@@ -5,6 +5,15 @@
 JUNE is a Nim binding of the JUCE framework, allowing fast prototyping JUCE applications in your favourite
 compiled programming language.
 
+------------
+Requirements
+------------
+
+- Nim 1.6 or newer.
+- CMake 3.22 or newer, Ninja, and a C++17 compiler.
+- JUCE 8.0.15, vendored as a git submodule. Clone with ``--recursive``, or run
+  ``git submodule update --init --recursive`` in an existing checkout.
+
 -----------------
 Build From Source
 -----------------
@@ -17,7 +26,14 @@ Build the JUCE shared library.
   # nimble juce_release
 
 
-Then build the nim test (tweak nim.cfg if needed).
+Then run the test suite.
+
+.. code-block:: bash
+
+  nimble test
+
+
+Or build the example application (tweak nim.cfg if needed).
 
 .. code-block:: bash
 
