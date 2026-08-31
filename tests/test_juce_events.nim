@@ -1,2 +1,2 @@
 
-import june/juce_events
+import june

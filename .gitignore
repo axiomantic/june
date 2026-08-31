@@ -12,3 +12,10 @@ __pycache__/
 *.app
 *.dSYM
 
+
+# Compiled test executables
+tests/test_juce_core
+tests/test_juce_events
+tests/test_juce_data_structures
+tests/test_juce_graphics
+tests/test_juce_gui_basics

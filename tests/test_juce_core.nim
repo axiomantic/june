@@ -1,5 +1,5 @@
 
-import june/juce_core
+import june
 
 # String tests ================================================================
 var w = makeString("abcdef")
