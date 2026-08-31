@@ -13,6 +13,11 @@ Requirements
 - CMake 3.22 or newer, Ninja, and a C++17 compiler.
 - JUCE 8.0.15, vendored as a git submodule. Clone with ``--recursive``, or run
   ``git submodule update --init --recursive`` in an existing checkout.
+- On Linux, the JUCE development packages::
+
+    sudo apt-get install ninja-build pkg-config libfreetype-dev \
+      libfontconfig1-dev libx11-dev libxext-dev libxinerama-dev \
+      libxrandr-dev libxcursor-dev libxcomposite-dev libcurl4-openssl-dev
 
 -----------------
 Build From Source
