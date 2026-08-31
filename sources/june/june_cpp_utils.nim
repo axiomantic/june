@@ -224,6 +224,13 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
   cppClassDefinition &= "} // namespace june\n"
 
   let finalCodeEmission = cppIncludeDefinition & cppClassDefinition
+  # The macro runs before the Nim compiler creates the nimcache directory, so
+  # the generated header has nowhere to land unless we create it here. The VM
+  # only gained a working createDir in Nim 2.0; older versions must shell out.
+  when (NimMajor, NimMinor) >= (2, 0):
+    createDir(june_cache_dir)
+  else:
+    discard staticExec("mkdir -p " & quoteShell(june_cache_dir))
   writeFile(june_cache_dir / cppGeneratedHeader, finalCodeEmission)
 
   result = newStmtList nnkTypeSection.newTree(
@@ -254,8 +261,6 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
       )
     )
   )
-
-  echo result.repr
 
 
 macro defineCppClassInternal*(class: untyped, body: untyped) =
