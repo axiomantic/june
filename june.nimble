@@ -11,6 +11,8 @@ description   = "Juce Bindings For Nim"
 license       = "MIT"
 srcDir        = "sources"
 
+requires "nim >= 1.6.0"
+
 task test, "Runs the test suite":
   exec "nim cpp -r tests/test_juce_core.nim"
   exec "nim cpp -r tests/test_juce_events.nim"

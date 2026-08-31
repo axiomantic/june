@@ -1,0 +1,98 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: nim ${{ matrix.nim-version }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        nim-version: ['1.6.14', '2.0.14', '2.2.10']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            ninja-build \
+            pkg-config \
+            libfreetype-dev \
+            libfontconfig1-dev \
+            libx11-dev \
+            libxext-dev \
+            libxinerama-dev \
+            libxrandr-dev \
+            libxcursor-dev \
+            libxcomposite-dev \
+            libcurl4-openssl-dev \
+            xvfb
+
+      - name: Install macOS dependencies
+        if: runner.os == 'macOS'
+        run: brew install ninja
+
+      - name: Install Nimble
+        uses: nim-lang/setup-nimble-action@v1
+        with:
+          nimble-version: latest
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # nimble resolves the compiler from the package's own nim requirement and
+      # puts it on PATH for the duration of a task, so the matrix selects a
+      # version by narrowing that requirement rather than by installing a
+      # compiler onto the runner. Nothing else pins it: a loose requirement
+      # would let every matrix entry resolve to the same newest compiler and
+      # report three passes for one version.
+      - name: Pin Nim ${{ matrix.nim-version }}
+        shell: bash
+        run: |
+          sed -i.bak 's/^requires "nim .*/requires "nim == ${{ matrix.nim-version }}"/' june.nimble
+          rm -f june.nimble.bak
+          grep '^requires "nim' june.nimble
+
+      - name: Install Nim ${{ matrix.nim-version }}
+        run: nimble install -y nim@${{ matrix.nim-version }}
+
+      # The JUCE static library is the slow part of the build and depends only
+      # on the submodule revision, not on the Nim version under test. Key the
+      # cache on the revision itself: hashFiles cannot see into .git, and a key
+      # that never changes would serve a stale library after a JUCE bump.
+      - name: Record the JUCE revision
+        id: juce
+        run: echo "sha=$(git -C JUCE rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache JUCE build
+        uses: actions/cache@v4
+        with:
+          path: build
+          key: juce-${{ matrix.os }}-${{ steps.juce.outputs.sha }}-${{ hashFiles('CMakeLists.txt') }}
+
+      - name: Build JUCE
+        run: nimble juce_debug
+
+      # nimble names the compiler it selected on stdout. Assert it, so a
+      # resolution that quietly falls back to another version fails the job
+      # instead of reporting a pass for a compiler this entry never ran.
+      - name: Run tests
+        shell: bash
+        run: |
+          nimble test 2>&1 | tee test.log
+          grep -q 'nim-${{ matrix.nim-version }}' test.log || {
+            echo "::error::nimble did not select Nim ${{ matrix.nim-version }}"
+            exit 1
+          }
