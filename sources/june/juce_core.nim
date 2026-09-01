@@ -548,9 +548,7 @@ proc length*(this: String): cint {.header: juce_core, importcpp: "#.length()".}
 proc `String=`*(this: var String, other: String): var String {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `String=`*(this: var String, other: lent String): var String {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `+=`*(this: var String, stringToAppend: String) {.header: juce_core, importcpp: "#.operator+=(@)".}
-proc `+=`*(this: var String, textToAppend: constChar) {.header: juce_core, importcpp: "#.operator+=(@)".}
 proc `+=`*(this: var String, textToAppend: ptr uint16) {.header: juce_core, importcpp: "#.operator+=(@)".}
-proc `+=`*(this: var String, textToAppend: StringRef) {.header: juce_core, importcpp: "#.operator+=(@)".}
 proc `+=`*(this: var String, numberToAppend: cint) {.header: juce_core, importcpp: "#.operator+=(@)".}
 proc `+=`*(this: var String, numberToAppend: int64) {.header: juce_core, importcpp: "#.operator+=(@)".}
 proc `+=`*(this: var String, numberToAppend: uint64) {.header: juce_core, importcpp: "#.operator+=(@)".}
