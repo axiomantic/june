@@ -15,8 +15,16 @@ proc toRawUTF8*(this: String): string =
 
 proc `$`*(text: String): string = text.toRawUTF8
 
+# JUCE declares these as free functions, and the generator only sees members, so
+# they arrive as the no-equality guard rather than as operators.
+proc `==`*(this: String, other: String): bool {.header: juce_core, importcpp: "# == #".}
+proc `<`*(this: String, other: String): bool {.header: juce_core, importcpp: "# < #".}
+proc `==`*(this: juce_var, other: juce_var): bool {.header: juce_core, importcpp: "# == #".}
+
 converter toJuceString*(text: string): String = makeString(text)
-converter toNimString*(text: String): string = text.toRawUTF8
+# No implicit String -> string. With toJuceString going the other way, any
+# mixed comparison had two equally good paths and Nim 1.6 and 2.0 call it
+# ambiguous. Use $ to get a Nim string.
 
 # StringRef
 converter toStringRef*(text: String): StringRef = makeStringRef(text)

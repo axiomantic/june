@@ -26,6 +26,7 @@ proc perform*(this: var UndoableAction): bool {.header: juce_data_structures, im
 proc undo*(this: var UndoableAction): bool {.header: juce_data_structures, importcpp: "#.undo()".}
 proc getSizeInUnits*(this: var UndoableAction): cint {.header: juce_data_structures, importcpp: "#.getSizeInUnits()".}
 proc createCoalescedAction*(this: var UndoableAction, nextAction: ptr UndoableAction): ptr UndoableAction {.header: juce_data_structures, importcpp: "#.createCoalescedAction(@)".}
+proc `==`*(this: UndoableAction, other: UndoableAction): bool {.error: "juce::UndoableAction defines no operator==; compare a property instead".}
 
 proc makeUndoManager*(maxNumberOfUnitsToKeep: cint, minimumTransactionsToKeep: cint): UndoManager {.header: juce_data_structures, importcpp: "juce::UndoManager(@)".}
 proc clearUndoHistory*(this: var UndoManager) {.header: juce_data_structures, importcpp: "#.clearUndoHistory()".}
@@ -51,6 +52,7 @@ proc getRedoDescription*(this: UndoManager): String {.header: juce_data_structur
 proc getRedoDescriptions*(this: UndoManager): StringArray {.header: juce_data_structures, importcpp: "#.getRedoDescriptions()".}
 proc getTimeOfRedoTransaction*(this: UndoManager): Time {.header: juce_data_structures, importcpp: "#.getTimeOfRedoTransaction()".}
 proc isPerformingUndoRedo*(this: UndoManager): bool {.header: juce_data_structures, importcpp: "#.isPerformingUndoRedo()".}
+proc `==`*(this: UndoManager, other: UndoManager): bool {.error: "juce::UndoManager defines no operator==; compare a property instead".}
 
 proc makeValue*(): Value {.header: juce_data_structures, importcpp: "juce::Value(@)".}
 proc makeValue*(initialValue: juce_var): Value {.header: juce_data_structures, importcpp: "juce::Value(@)".}
@@ -123,6 +125,7 @@ proc makeValueTreeSynchroniser*(tree: ValueTree): ValueTreeSynchroniser {.header
 proc stateChanged*(this: var ValueTreeSynchroniser, encodedChange: constPointer, encodedChangeSize: uint64) {.header: juce_data_structures, importcpp: "#.stateChanged(@)".}
 proc sendFullSyncCallback*(this: var ValueTreeSynchroniser) {.header: juce_data_structures, importcpp: "#.sendFullSyncCallback()".}
 proc getRoot*(this: var ValueTreeSynchroniser): ValueTree {.header: juce_data_structures, importcpp: "#.getRoot()".}
+proc `==`*(this: ValueTreeSynchroniser, other: ValueTreeSynchroniser): bool {.error: "juce::ValueTreeSynchroniser defines no operator==; compare a property instead".}
 
 proc makeValueTreePropertyWithDefault*(): ValueTreePropertyWithDefault {.header: juce_data_structures, importcpp: "juce::ValueTreePropertyWithDefault(@)".}
 proc makeValueTreePropertyWithDefault*(tree: var ValueTree, propertyID: Identifier, um: ptr UndoManager): ValueTreePropertyWithDefault {.header: juce_data_structures, importcpp: "juce::ValueTreePropertyWithDefault(@)".}
@@ -144,6 +147,7 @@ proc getPropertyID*(this: var ValueTreePropertyWithDefault): var Identifier {.he
 proc getPropertyID*(this: ValueTreePropertyWithDefault): Identifier {.header: juce_data_structures, importcpp: "#.getPropertyID()".}
 proc getUndoManager*(this: var ValueTreePropertyWithDefault): ptr UndoManager {.header: juce_data_structures, importcpp: "#.getUndoManager()".}
 proc `ValueTreePropertyWithDefault=`*(this: var ValueTreePropertyWithDefault, other: ValueTreePropertyWithDefault): var ValueTreePropertyWithDefault {.header: juce_data_structures, importcpp: "#.operator=(@)".}
+proc `==`*(this: ValueTreePropertyWithDefault, other: ValueTreePropertyWithDefault): bool {.error: "juce::ValueTreePropertyWithDefault defines no operator==; compare a property instead".}
 
 proc makePropertiesFile*(options: PropertiesFileOptions): PropertiesFile {.header: juce_data_structures, importcpp: "juce::PropertiesFile(@)".}
 proc makePropertiesFile*(file: File, options: PropertiesFileOptions): PropertiesFile {.header: juce_data_structures, importcpp: "juce::PropertiesFile(@)".}
@@ -154,6 +158,7 @@ proc needsToBeSaved*(this: PropertiesFile): bool {.header: juce_data_structures,
 proc setNeedsToBeSaved*(this: var PropertiesFile, needsToBeSaved: bool) {.header: juce_data_structures, importcpp: "#.setNeedsToBeSaved(@)".}
 proc reload*(this: var PropertiesFile): bool {.header: juce_data_structures, importcpp: "#.reload()".}
 proc getFile*(this: PropertiesFile): File {.header: juce_data_structures, importcpp: "#.getFile()".}
+proc `==`*(this: PropertiesFile, other: PropertiesFile): bool {.error: "juce::PropertiesFile defines no operator==; compare a property instead".}
 
 proc makeApplicationProperties*(): ApplicationProperties {.header: juce_data_structures, importcpp: "juce::ApplicationProperties(@)".}
 proc setStorageParameters*(this: var ApplicationProperties, options: PropertiesFileOptions) {.header: juce_data_structures, importcpp: "#.setStorageParameters(@)".}
@@ -162,6 +167,7 @@ proc getUserSettings*(this: var ApplicationProperties): ptr PropertiesFile {.hea
 proc getCommonSettings*(this: var ApplicationProperties, returnUserPropsIfReadOnly: bool): ptr PropertiesFile {.header: juce_data_structures, importcpp: "#.getCommonSettings(@)".}
 proc saveIfNeeded*(this: var ApplicationProperties): bool {.header: juce_data_structures, importcpp: "#.saveIfNeeded()".}
 proc closeFiles*(this: var ApplicationProperties) {.header: juce_data_structures, importcpp: "#.closeFiles()".}
+proc `==`*(this: ApplicationProperties, other: ApplicationProperties): bool {.error: "juce::ApplicationProperties defines no operator==; compare a property instead".}
 
 
 

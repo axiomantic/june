@@ -54,20 +54,26 @@ proc currentThreadHasLockedMessageManager*(this: MessageManager): bool {.header:
 proc registerBroadcastListener*(this: var MessageManager, listener: ptr ActionListener) {.header: juce_events, importcpp: "#.registerBroadcastListener(@)".}
 proc deregisterBroadcastListener*(this: var MessageManager, listener: ptr ActionListener) {.header: juce_events, importcpp: "#.deregisterBroadcastListener(@)".}
 proc deliverBroadcastMessage*(this: var MessageManager, arg1: String) {.header: juce_events, importcpp: "#.deliverBroadcastMessage(@)".}
+proc `==`*(this: MessageManager, other: MessageManager): bool {.error: "juce::MessageManager defines no operator==; compare a property instead".}
 
 proc makeMessageManagerLock*(threadToCheckForExitSignal: ptr Thread): MessageManagerLock {.header: juce_events, importcpp: "juce::MessageManagerLock(@)".}
 proc makeMessageManagerLock*(jobToCheckForExitSignal: ptr ThreadPoolJob): MessageManagerLock {.header: juce_events, importcpp: "juce::MessageManagerLock(@)".}
 proc lockWasGained*(this: MessageManagerLock): bool {.header: juce_events, importcpp: "#.lockWasGained()".}
+proc `==`*(this: MessageManagerLock, other: MessageManagerLock): bool {.error: "juce::MessageManagerLock defines no operator==; compare a property instead".}
 
 proc makeMessage*(): Message {.header: juce_events, importcpp: "juce::Message(@)".}
+proc `==`*(this: Message, other: Message): bool {.error: "juce::Message defines no operator==; compare a property instead".}
 
 proc makeMessageListener*(): MessageListener {.header: juce_events, importcpp: "juce::MessageListener(@)".}
 proc handleMessage*(this: var MessageListener, message: Message) {.header: juce_events, importcpp: "#.handleMessage(@)".}
 proc postMessage*(this: MessageListener, message: ptr Message) {.header: juce_events, importcpp: "#.postMessage(@)".}
+proc `==`*(this: MessageListener, other: MessageListener): bool {.error: "juce::MessageListener defines no operator==; compare a property instead".}
 
 proc makeCallbackMessage*(): CallbackMessage {.header: juce_events, importcpp: "juce::CallbackMessage(@)".}
 proc messageCallback*(this: var CallbackMessage) {.header: juce_events, importcpp: "#.messageCallback()".}
+proc `==`*(this: CallbackMessage, other: CallbackMessage): bool {.error: "juce::CallbackMessage defines no operator==; compare a property instead".}
 
+proc `==`*(this: DeletedAtShutdown, other: DeletedAtShutdown): bool {.error: "juce::DeletedAtShutdown defines no operator==; compare a property instead".}
 
 proc getApplicationName*(this: var JUCEApplicationBase): String {.header: juce_events, importcpp: "#.getApplicationName()".}
 proc getApplicationVersion*(this: var JUCEApplicationBase): String {.header: juce_events, importcpp: "#.getApplicationVersion()".}
@@ -87,21 +93,26 @@ proc isInitialising*(this: JUCEApplicationBase): bool {.header: juce_events, imp
 proc initialiseApp*(this: var JUCEApplicationBase): bool {.header: juce_events, importcpp: "#.initialiseApp()".}
 proc shutdownApp*(this: var JUCEApplicationBase): cint {.header: juce_events, importcpp: "#.shutdownApp()".}
 proc sendCommandLineToPreexistingInstance*(this: var JUCEApplicationBase): bool {.header: juce_events, importcpp: "#.sendCommandLineToPreexistingInstance()".}
+proc `==`*(this: JUCEApplicationBase, other: JUCEApplicationBase): bool {.error: "juce::JUCEApplicationBase defines no operator==; compare a property instead".}
 
 proc makeScopedJuceInitialiser_GUI*(): ScopedJuceInitialiser_GUI {.header: juce_events, importcpp: "juce::ScopedJuceInitialiser_GUI(@)".}
 proc `ScopedJuceInitialiser_GUI=`*(this: var ScopedJuceInitialiser_GUI, arg1: ScopedJuceInitialiser_GUI): var ScopedJuceInitialiser_GUI {.header: juce_events, importcpp: "#.operator=(@)".}
 proc `ScopedJuceInitialiser_GUI=`*(this: var ScopedJuceInitialiser_GUI, arg1: lent ScopedJuceInitialiser_GUI): var ScopedJuceInitialiser_GUI {.header: juce_events, importcpp: "#.operator=(@)".}
+proc `==`*(this: ScopedJuceInitialiser_GUI, other: ScopedJuceInitialiser_GUI): bool {.error: "juce::ScopedJuceInitialiser_GUI defines no operator==; compare a property instead".}
 
 proc makeMountedVolumeListChangeDetector*(): MountedVolumeListChangeDetector {.header: juce_events, importcpp: "juce::MountedVolumeListChangeDetector(@)".}
 proc mountedVolumeListChanged*(this: var MountedVolumeListChangeDetector) {.header: juce_events, importcpp: "#.mountedVolumeListChanged()".}
+proc `==`*(this: MountedVolumeListChangeDetector, other: MountedVolumeListChangeDetector): bool {.error: "juce::MountedVolumeListChangeDetector defines no operator==; compare a property instead".}
 
 proc makeActionBroadcaster*(): ActionBroadcaster {.header: juce_events, importcpp: "juce::ActionBroadcaster(@)".}
 proc addActionListener*(this: var ActionBroadcaster, listener: ptr ActionListener) {.header: juce_events, importcpp: "#.addActionListener(@)".}
 proc removeActionListener*(this: var ActionBroadcaster, listener: ptr ActionListener) {.header: juce_events, importcpp: "#.removeActionListener(@)".}
 proc removeAllActionListeners*(this: var ActionBroadcaster) {.header: juce_events, importcpp: "#.removeAllActionListeners()".}
 proc sendActionMessage*(this: ActionBroadcaster, message: String) {.header: juce_events, importcpp: "#.sendActionMessage(@)".}
+proc `==`*(this: ActionBroadcaster, other: ActionBroadcaster): bool {.error: "juce::ActionBroadcaster defines no operator==; compare a property instead".}
 
 proc actionListenerCallback*(this: var ActionListener, message: String) {.header: juce_events, importcpp: "#.actionListenerCallback(@)".}
+proc `==`*(this: ActionListener, other: ActionListener): bool {.error: "juce::ActionListener defines no operator==; compare a property instead".}
 
 proc makeAsyncUpdater*(): AsyncUpdater {.header: juce_events, importcpp: "juce::AsyncUpdater(@)".}
 proc triggerAsyncUpdate*(this: var AsyncUpdater) {.header: juce_events, importcpp: "#.triggerAsyncUpdate()".}
@@ -109,6 +120,7 @@ proc cancelPendingUpdate*(this: var AsyncUpdater) {.header: juce_events, importc
 proc handleUpdateNowIfNeeded*(this: var AsyncUpdater) {.header: juce_events, importcpp: "#.handleUpdateNowIfNeeded()".}
 proc isUpdatePending*(this: AsyncUpdater): bool {.header: juce_events, importcpp: "#.isUpdatePending()".}
 proc handleAsyncUpdate*(this: var AsyncUpdater) {.header: juce_events, importcpp: "#.handleAsyncUpdate()".}
+proc `==`*(this: AsyncUpdater, other: AsyncUpdater): bool {.error: "juce::AsyncUpdater defines no operator==; compare a property instead".}
 
 proc makeLockingAsyncUpdater*(callbackToUse: CppFunctionObjectN0): LockingAsyncUpdater {.header: juce_events, importcpp: "juce::LockingAsyncUpdater(@)".}
 proc `LockingAsyncUpdater=`*(this: var LockingAsyncUpdater, other: lent LockingAsyncUpdater): var LockingAsyncUpdater {.header: juce_events, importcpp: "#.operator=(@)".}
@@ -116,8 +128,10 @@ proc triggerAsyncUpdate*(this: var LockingAsyncUpdater) {.header: juce_events, i
 proc cancelPendingUpdate*(this: var LockingAsyncUpdater) {.header: juce_events, importcpp: "#.cancelPendingUpdate()".}
 proc handleUpdateNowIfNeeded*(this: var LockingAsyncUpdater) {.header: juce_events, importcpp: "#.handleUpdateNowIfNeeded()".}
 proc isUpdatePending*(this: LockingAsyncUpdater): bool {.header: juce_events, importcpp: "#.isUpdatePending()".}
+proc `==`*(this: LockingAsyncUpdater, other: LockingAsyncUpdater): bool {.error: "juce::LockingAsyncUpdater defines no operator==; compare a property instead".}
 
 proc changeListenerCallback*(this: var ChangeListener, source: ptr ChangeBroadcaster) {.header: juce_events, importcpp: "#.changeListenerCallback(@)".}
+proc `==`*(this: ChangeListener, other: ChangeListener): bool {.error: "juce::ChangeListener defines no operator==; compare a property instead".}
 
 proc makeChangeBroadcaster*(): ChangeBroadcaster {.header: juce_events, importcpp: "juce::ChangeBroadcaster(@)".}
 proc addChangeListener*(this: var ChangeBroadcaster, listener: ptr ChangeListener) {.header: juce_events, importcpp: "#.addChangeListener(@)".}
@@ -126,6 +140,7 @@ proc removeAllChangeListeners*(this: var ChangeBroadcaster) {.header: juce_event
 proc sendChangeMessage*(this: var ChangeBroadcaster) {.header: juce_events, importcpp: "#.sendChangeMessage()".}
 proc sendSynchronousChangeMessage*(this: var ChangeBroadcaster) {.header: juce_events, importcpp: "#.sendSynchronousChangeMessage()".}
 proc dispatchPendingMessages*(this: var ChangeBroadcaster) {.header: juce_events, importcpp: "#.dispatchPendingMessages()".}
+proc `==`*(this: ChangeBroadcaster, other: ChangeBroadcaster): bool {.error: "juce::ChangeBroadcaster defines no operator==; compare a property instead".}
 
 proc timerCallback*(this: var Timer) {.header: juce_events, importcpp: "#.timerCallback()".}
 proc startTimer*(this: var Timer, intervalInMilliseconds: cint) {.header: juce_events, importcpp: "#.startTimer(@)".}
@@ -133,18 +148,22 @@ proc startTimerHz*(this: var Timer, timerFrequencyHz: cint) {.header: juce_event
 proc stopTimer*(this: var Timer) {.header: juce_events, importcpp: "#.stopTimer()".}
 proc isTimerRunning*(this: Timer): bool {.header: juce_events, importcpp: "#.isTimerRunning()".}
 proc getTimerInterval*(this: Timer): cint {.header: juce_events, importcpp: "#.getTimerInterval()".}
+proc `==`*(this: Timer, other: Timer): bool {.error: "juce::Timer defines no operator==; compare a property instead".}
 
 proc makeTimedCallback*(callbackIn: CppFunctionObjectN0): TimedCallback {.header: juce_events, importcpp: "juce::TimedCallback(@)".}
+proc `==`*(this: TimedCallback, other: TimedCallback): bool {.error: "juce::TimedCallback defines no operator==; compare a property instead".}
 
 proc timerCallback*(this: var MultiTimer, timerID: cint) {.header: juce_events, importcpp: "#.timerCallback(@)".}
 proc startTimer*(this: var MultiTimer, timerID: cint, intervalInMilliseconds: cint) {.header: juce_events, importcpp: "#.startTimer(@)".}
 proc stopTimer*(this: var MultiTimer, timerID: cint) {.header: juce_events, importcpp: "#.stopTimer(@)".}
 proc isTimerRunning*(this: MultiTimer, timerID: cint): bool {.header: juce_events, importcpp: "#.isTimerRunning(@)".}
 proc getTimerInterval*(this: MultiTimer, timerID: cint): cint {.header: juce_events, importcpp: "#.getTimerInterval(@)".}
+proc `==`*(this: MultiTimer, other: MultiTimer): bool {.error: "juce::MultiTimer defines no operator==; compare a property instead".}
 
 proc clearSingletonInstance*(this: var ChildProcessManager) {.header: juce_events, importcpp: "#.clearSingletonInstance()".}
 proc addChildProcessExitedListener*(this: var ChildProcessManager, listener: CppFunctionObjectN1[ChildProcess]): ErasedScopeGuard {.header: juce_events, importcpp: "#.addChildProcessExitedListener(@)".}
 proc hasRunningProcess*(this: ChildProcessManager): bool {.header: juce_events, importcpp: "#.hasRunningProcess()".}
+proc `==`*(this: ChildProcessManager, other: ChildProcessManager): bool {.error: "juce::ChildProcessManager defines no operator==; compare a property instead".}
 
 proc makeInterprocessConnection*(callbacksOnMessageThread: bool, magicMessageHeaderNumber: uint32): InterprocessConnection {.header: juce_events, importcpp: "juce::InterprocessConnection(@)".}
 proc connectToSocket*(this: var InterprocessConnection, hostName: String, portNumber: cint, timeOutMillisecs: cint): bool {.header: juce_events, importcpp: "#.connectToSocket(@)".}
@@ -159,11 +178,13 @@ proc sendMessage*(this: var InterprocessConnection, message: MemoryBlock): bool 
 proc connectionMade*(this: var InterprocessConnection) {.header: juce_events, importcpp: "#.connectionMade()".}
 proc connectionLost*(this: var InterprocessConnection) {.header: juce_events, importcpp: "#.connectionLost()".}
 proc messageReceived*(this: var InterprocessConnection, message: MemoryBlock) {.header: juce_events, importcpp: "#.messageReceived(@)".}
+proc `==`*(this: InterprocessConnection, other: InterprocessConnection): bool {.error: "juce::InterprocessConnection defines no operator==; compare a property instead".}
 
 proc makeInterprocessConnectionServer*(): InterprocessConnectionServer {.header: juce_events, importcpp: "juce::InterprocessConnectionServer(@)".}
 proc beginWaitingForSocket*(this: var InterprocessConnectionServer, portNumber: cint, bindAddress: String): bool {.header: juce_events, importcpp: "#.beginWaitingForSocket(@)".}
 proc stop*(this: var InterprocessConnectionServer) {.header: juce_events, importcpp: "#.stop()".}
 proc getBoundPort*(this: InterprocessConnectionServer): cint {.header: juce_events, importcpp: "#.getBoundPort()".}
+proc `==`*(this: InterprocessConnectionServer, other: InterprocessConnectionServer): bool {.error: "juce::InterprocessConnectionServer defines no operator==; compare a property instead".}
 
 proc makeChildProcessWorker*(): ChildProcessWorker {.header: juce_events, importcpp: "juce::ChildProcessWorker(@)".}
 proc initialiseFromCommandLine*(this: var ChildProcessWorker, commandLine: String, commandLineUniqueID: String, timeoutMs: cint = 0): bool {.header: juce_events, importcpp: "#.initialiseFromCommandLine(@)".}
@@ -173,6 +194,7 @@ proc handleConnectionMade*(this: var ChildProcessWorker) {.header: juce_events, 
 proc handleConnectionLost*(this: var ChildProcessWorker) {.header: juce_events, importcpp: "#.handleConnectionLost()".}
 proc sendMessageToCoordinator*(this: var ChildProcessWorker, arg1: MemoryBlock): bool {.header: juce_events, importcpp: "#.sendMessageToCoordinator(@)".}
 proc sendMessageToMaster*(this: var ChildProcessWorker, mb: MemoryBlock): bool {.header: juce_events, importcpp: "#.sendMessageToMaster(@)".}
+proc `==`*(this: ChildProcessWorker, other: ChildProcessWorker): bool {.error: "juce::ChildProcessWorker defines no operator==; compare a property instead".}
 
 proc makeChildProcessCoordinator*(): ChildProcessCoordinator {.header: juce_events, importcpp: "juce::ChildProcessCoordinator(@)".}
 proc launchWorkerProcess*(this: var ChildProcessCoordinator, executableToLaunch: File, commandLineUniqueID: String, timeoutMs: cint = 0, streamFlags: cint): bool {.header: juce_events, importcpp: "#.launchWorkerProcess(@)".}
@@ -184,9 +206,12 @@ proc handleMessageFromSlave*(this: var ChildProcessCoordinator, arg1: MemoryBloc
 proc handleConnectionLost*(this: var ChildProcessCoordinator) {.header: juce_events, importcpp: "#.handleConnectionLost()".}
 proc sendMessageToWorker*(this: var ChildProcessCoordinator, arg1: MemoryBlock): bool {.header: juce_events, importcpp: "#.sendMessageToWorker(@)".}
 proc sendMessageToSlave*(this: var ChildProcessCoordinator, mb: MemoryBlock): bool {.header: juce_events, importcpp: "#.sendMessageToSlave(@)".}
+proc `==`*(this: ChildProcessCoordinator, other: ChildProcessCoordinator): bool {.error: "juce::ChildProcessCoordinator defines no operator==; compare a property instead".}
 
+proc `==`*(this: NetworkServiceDiscovery, other: NetworkServiceDiscovery): bool {.error: "juce::NetworkServiceDiscovery defines no operator==; compare a property instead".}
 
 proc makeScopedLowPowerModeDisabler*(): ScopedLowPowerModeDisabler {.header: juce_events, importcpp: "juce::ScopedLowPowerModeDisabler(@)".}
+proc `==`*(this: ScopedLowPowerModeDisabler, other: ScopedLowPowerModeDisabler): bool {.error: "juce::ScopedLowPowerModeDisabler defines no operator==; compare a property instead".}
 
 
 

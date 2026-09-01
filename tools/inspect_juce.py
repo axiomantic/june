@@ -13,6 +13,8 @@ from clang_base_enumerations import CursorKind, AccessSpecifier
 
 nim_enum_def = """  {enum_name}* {{.header: {juce_module_name}, importcpp: "{spelling}".}} = distinct cint"""
 
+nim_no_equality_def = """proc `==`*(this: {class_name}, other: {class_name}): bool {{.error: "{spelling} defines no operator==; compare a property instead".}}"""
+
 nim_enum_constant_def = """let {constant_name}* {{.header: {juce_module_name}, importcpp: "{spelling}".}}: {enum_name}"""
 
 nim_type_def = """type
@@ -336,6 +338,11 @@ subclassed_by_lifting = {
 wrapped_by_lifting = {
     ("String", "toRawUTF8"): "toRawUTF8Impl",
 }
+
+# Types whose equality JUCE declares as a free function rather than a member.
+# The generator only sees members, so it would emit its no-equality guard and
+# collide with the operator the _lifting file binds.
+equality_bound_by_lifting = {"String", "juce_var"}
 
 # Types a Nim string reaches through a converter. A class with more than one
 # single-argument constructor among these is ambiguous at every literal call:
@@ -933,6 +940,8 @@ def run_main(juce_module_name, juce_class_name_to_export):
             emitted_declarations.add(declaration)
             print(declaration)
 
+        class_bound_equality = False
+
         for m in filter(lambda x: x.kind == CursorKind.CXX_METHOD, c.get_children()):
             if m.access_specifier != AccessSpecifier.PUBLIC:
                 continue
@@ -1033,7 +1042,20 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 continue
             emitted_declarations.add(declaration)
 
+            if method_name == "`==`" and not comment:
+                class_bound_equality = True
+
             print(declaration)
+
+        # Where C++ defines no equality, make comparing two of these a compile
+        # error. Nim would otherwise fall back to structural equality, and an
+        # importcpp object declares no fields, so it compares nothing and
+        # reports every two values equal - silently, and in the direction that
+        # makes a test pass. != is derived from ==, so it is covered too.
+        if not class_bound_equality and class_name not in equality_bound_by_lifting:
+            print(nim_no_equality_def.format(**{
+                "class_name": class_name,
+                "spelling": qualified_name }))
 
         print()
 
