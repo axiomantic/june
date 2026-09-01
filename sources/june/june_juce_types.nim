@@ -127,3 +127,63 @@ proc getTop*[T](this: BorderSize[T]): T {.header: "<juce_graphics/juce_graphics.
 proc getBottom*[T](this: BorderSize[T]): T {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getBottom()".}
 proc getLeft*[T](this: BorderSize[T]): T {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getLeft()".}
 proc getRight*[T](this: BorderSize[T]): T {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getRight()".}
+
+# Containers ==================================================================
+
+type
+    Array*[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::Array".} = object
+    OwnedArray*[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::OwnedArray".} = object
+    ReferenceCountedObjectPtr*[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::ReferenceCountedObjectPtr".} = object
+    Span*[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::Span".} = object
+    RectangleList*[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::RectangleList".} = object
+    Parallelogram*[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::Parallelogram".} = object
+
+# Array
+proc size*[T](this: Array[T]): cint {.importcpp: "#.size()".}
+proc isEmpty*[T](this: Array[T]): bool {.importcpp: "#.isEmpty()".}
+proc `[]`*[T](this: Array[T], index: cint): T {.importcpp: "#[#]".}
+proc getFirst*[T](this: Array[T]): T {.importcpp: "#.getFirst()".}
+proc getLast*[T](this: Array[T]): T {.importcpp: "#.getLast()".}
+proc indexOf*[T](this: Array[T], element: T): cint {.importcpp: "#.indexOf(@)".}
+proc contains*[T](this: Array[T], element: T): bool {.importcpp: "#.contains(@)".}
+proc add*[T](this: var Array[T], element: T) {.importcpp: "#.add(@)".}
+proc clear*[T](this: var Array[T]) {.importcpp: "#.clear()".}
+
+iterator items*[T](this: Array[T]): T =
+  for index in 0.cint ..< this.size():
+    yield this[index]
+
+# OwnedArray holds pointers it owns, so indexing yields a ptr rather than a value.
+proc size*[T](this: OwnedArray[T]): cint {.importcpp: "#.size()".}
+proc isEmpty*[T](this: OwnedArray[T]): bool {.importcpp: "#.isEmpty()".}
+proc `[]`*[T](this: OwnedArray[T], index: cint): ptr T {.importcpp: "#[#]".}
+
+iterator items*[T](this: OwnedArray[T]): ptr T =
+  for index in 0.cint ..< this.size():
+    yield this[index]
+
+# ReferenceCountedObjectPtr
+proc get*[T](this: ReferenceCountedObjectPtr[T]): ptr T {.importcpp: "#.get()".}
+proc isNil*[T](this: ReferenceCountedObjectPtr[T]): bool {.importcpp: "(# == nullptr)".}
+
+# Span
+proc size*[T](this: Span[T]): csize_t {.importcpp: "#.size()".}
+proc isEmpty*[T](this: Span[T]): bool {.importcpp: "#.empty()".}
+proc `[]`*[T](this: Span[T], index: csize_t): T {.importcpp: "#[#]".}
+
+iterator items*[T](this: Span[T]): T =
+  for index in 0.csize_t ..< this.size():
+    yield this[index]
+
+# RectangleList
+proc getNumRectangles*[T](this: RectangleList[T]): cint {.importcpp: "#.getNumRectangles()".}
+proc getRectangle*[T](this: RectangleList[T], index: cint): Rectangle[T] {.importcpp: "#.getRectangle(@)".}
+proc isEmpty*[T](this: RectangleList[T]): bool {.importcpp: "#.isEmpty()".}
+proc getBounds*[T](this: RectangleList[T]): Rectangle[T] {.importcpp: "#.getBounds()".}
+proc add*[T](this: var RectangleList[T], rect: Rectangle[T]) {.importcpp: "#.add(@)".}
+proc clear*[T](this: var RectangleList[T]) {.importcpp: "#.clear()".}
+
+iterator items*[T](this: RectangleList[T]): Rectangle[T] =
+  for index in 0.cint ..< this.getNumRectangles():
+    yield this.getRectangle(index)
+

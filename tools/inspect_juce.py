@@ -10,6 +10,8 @@ from clang_base_enumerations import CursorKind, AccessSpecifier
 
 #==================================================================================================
 
+nim_enum_def = """  {enum_name}* {{.header: {juce_module_name}, importcpp: "{spelling}".}} = distinct cint"""
+
 nim_type_def = """type
 {classes}
 """
@@ -37,6 +39,12 @@ nim_class_def = """  {class_name}{export} {{.header: {juce_module_name}, importc
 
 nim_method_def = """{comment}proc {method_name}*({method_args}){method_return} {{.header: {juce_module_name}, importcpp: "#.{juce_spelling}({juce_args})".}}"""
 
+# Deliberately not {.constructor.}. That pragma makes Nim emit a C++ declaration,
+# `ValueTree vt(Identifier("x"))`, which C++ reads as a function declaration -
+# the most vexing parse - and every later use fails with "not a structure or
+# union". Without it the pattern is used and the call is an expression.
+nim_constructor_def = """{comment}proc make{class_name}*({method_args}): {class_name} {{.header: {juce_module_name}, importcpp: "{spelling}(@)".}}"""
+
 #==================================================================================================
 
 def remap_type(t, *args):
@@ -53,7 +61,12 @@ def remap_type(t, *args):
         "juce::uint16": "uint16",
         "juce::uint32": "uint32",
         "juce::uint64": "uint64",
-        "juce::juce_wchar": "uint16",
+        # wchar_t is 32-bit on the platforms this binding supports, and JUCE
+        # defines juce_wchar as wchar_t there.
+        "juce::juce_wchar": "uint32",
+        "juce_wchar": "uint32",
+        "CommandID": "int",
+        "juce::CommandID": "int",
         "juce::String::CharPointerType": "ptr char",
         "juce::CharPointer_ASCII::CharType": "char",
         "juce::CharPointer_UTF8::CharType": "char",
@@ -138,6 +151,14 @@ cpp_value_types = {
     "bool": "bool",
     "size_t": "csize_t",
     "void": "void",
+    "int8_t": "int8",
+    "int16_t": "int16",
+    "int32_t": "int32",
+    "int64_t": "int64",
+    "uint8_t": "uint8",
+    "uint16_t": "uint16",
+    "uint32_t": "uint32",
+    "uint64_t": "uint64",
 }
 
 # Template heads this binding can express. A JUCE template maps to the Nim
@@ -152,6 +173,12 @@ template_heads = {
     "Line": "Line",
     "BorderSize": "BorderSize",
     "Range": "Range",
+    "Array": "Array",
+    "OwnedArray": "OwnedArray",
+    "ReferenceCountedObjectPtr": "ReferenceCountedObjectPtr",
+    "Span": "Span",
+    "RectangleList": "RectangleList",
+    "Parallelogram": "Parallelogram",
 }
 
 def split_template_args(text):
@@ -290,12 +317,23 @@ known_builtin_types = {
     "cfloat", "cdouble", "constChar", "constPointer",
     "UniquePtr", "CppOptional", "CppVector",
     "Rectangle", "Point", "Line", "BorderSize", "Range",
+    "Array", "OwnedArray", "ReferenceCountedObjectPtr",
+    "Span", "RectangleList", "Parallelogram",
 }
 known_builtin_types.update(f"CppFunctionObjectN{n}" for n in range(10))
 known_builtin_types.update(f"CppFunctionObjectR{n}" for n in range(10))
 
 # Not types: Nim type-construction keywords that appear in a rendered signature.
 type_syntax_words = {"var", "ptr", "lent", "typedesc", "proc", "of"}
+
+def is_c_array(rendered):
+    """A C array spells as uint8[6] or char[]; Nim generic brackets never hold
+    a number and are never empty, so the two cannot be confused."""
+    return re.search(r"\[\s*\d*\s*\]", rendered) is not None
+
+def is_anonymous_enum(cursor):
+    """libclang names an anonymous enum "(unnamed enum at path:line:col)"."""
+    return not cursor.spelling or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", cursor.spelling)
 
 def type_is_declared(rendered, declared):
     """True when every identifier in a rendered signature names a known type.
@@ -435,6 +473,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
     emitted_types = set()
     emitted_declarations = set()
     declared_type_names = set()
+    enum_remap = {}
 
     base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -536,6 +575,26 @@ def run_main(juce_module_name, juce_class_name_to_export):
 
     module_classes = [c for c in definitions_by_name.values() if declared_in_this_module(c)]
 
+    # Enums, top level and nested. None were bound at all, which is why
+    # NotificationType, SliderStyle and Justification-adjacent parameters had no
+    # spelling and their procs were commented out.
+    module_enums = []
+    seen_enum_names = set()
+    for entry in juce_namespace:
+        for node in entry.get_children():
+            if node.kind == CursorKind.ENUM_DECL and not is_anonymous_enum(node) and declared_in_this_module(node):
+                if node.spelling not in seen_enum_names:
+                    seen_enum_names.add(node.spelling)
+                    module_enums.append((node.spelling, node, None))
+    for c in module_classes:
+        for node in c.get_children():
+            if (node.kind == CursorKind.ENUM_DECL and node.access_specifier == AccessSpecifier.PUBLIC
+                    and not is_anonymous_enum(node)):
+                nested_name = f"{remap_class_name(c.spelling)}{node.spelling}"
+                if nested_name not in seen_enum_names:
+                    seen_enum_names.add(nested_name)
+                    module_enums.append((nested_name, node, c.spelling))
+
     # An opaque class, declared but never defined in this translation unit, is
     # still worth binding as a type by whichever module declares it.
     module_classes += [c for name, c in declarations_by_name.items()
@@ -549,6 +608,13 @@ def run_main(juce_module_name, juce_class_name_to_export):
         inner_classes = [node for node in filter(
             lambda x: x.access_specifier == AccessSpecifier.PUBLIC and
                 (x.kind == CursorKind.CLASS_DECL or x.kind == CursorKind.STRUCT_DECL), c.get_children())]
+
+        # Record from the definition. A forward declaration has no bases and no
+        # nested types, so letting one overwrite the definition's entry silently
+        # drops both: Slider::Listener stops existing and Component stops
+        # inheriting.
+        if c.spelling in class_map and not c.is_definition():
+            continue
 
         class_map[c.spelling] = c
         class_inheritance_map[c.spelling] = bases
@@ -601,8 +667,43 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 "export": "*",
                 "base": "" }))
 
+    for enum_name, enum_cursor, owner in module_enums:
+        qualified = f"juce::{owner}::{enum_cursor.spelling}" if owner else f"juce::{enum_cursor.spelling}"
+        all_class_decls.append(nim_enum_def.format(**{
+            "enum_name": enum_name,
+            "spelling": qualified,
+            "juce_module_name": juce_module_name }))
+        declared_type_names.add(enum_name)
+        enum_remap[qualified] = enum_name
+        if not owner:
+            enum_remap[enum_cursor.spelling] = enum_name
+
     if all_class_decls:
         print(nim_type_def.format(**{ "classes": "\n".join(all_class_decls) }))
+
+    # Enumerators are prefixed with their type. C++ scopes them by enum or by
+    # class; Nim would put every one of them in the same namespace, where names
+    # as generic as "plain" or "none" collide immediately.
+    for enum_name, enum_cursor, _ in module_enums:
+        constants = [f"  {enum_name}_{e.spelling}* = {enum_name}({e.enum_value})"
+                     for e in enum_cursor.get_children()
+                     if e.kind == CursorKind.ENUM_CONSTANT_DECL]
+        if constants:
+            print("const\n" + "\n".join(constants) + "\n")
+
+    # An anonymous enum has no name to bind, but its enumerators are ordinary
+    # constants and some of them matter, such as the byte limits on a
+    # CharPointer. Emit those as plain integers under the owning class's name.
+    for c in module_classes:
+        for node in c.get_children():
+            if (node.kind != CursorKind.ENUM_DECL or node.access_specifier != AccessSpecifier.PUBLIC
+                    or not is_anonymous_enum(node)):
+                continue
+            constants = [f"  {remap_class_name(c.spelling)}_{e.spelling}*: cint = {e.enum_value}"
+                         for e in node.get_children()
+                         if e.kind == CursorKind.ENUM_CONSTANT_DECL]
+            if constants:
+                print("const\n" + "\n".join(constants) + "\n")
 
     for c in all_classes:
         declared_type_names.add(remap_exported_class_name(c.spelling))
@@ -621,7 +722,25 @@ def run_main(juce_module_name, juce_class_name_to_export):
 
         remap_inner_classes = {}
         for ic in class_inner[c.spelling]:
-            remap_inner_classes[f"juce::{c.spelling}::{ic.spelling}"] = f"{class_name}{ic.spelling}"
+            mapped_inner = f"{class_name}{ic.spelling}"
+            remap_inner_classes[f"juce::{c.spelling}::{ic.spelling}"] = mapped_inner
+
+            # Inside its own class a nested type is spelled bare, so
+            # Slider::Listener arrives as "Listener". Map that too, unless a
+            # top-level class already owns the name, which must win.
+            if f"juce::{ic.spelling}" not in class_juce_map:
+                remap_inner_classes[ic.spelling] = mapped_inner
+
+        # Nested enums are spelled bare inside their class too: Image's
+        # constructor takes a "PixelFormat", not an "Image::PixelFormat".
+        for node in c.get_children():
+            if (node.kind != CursorKind.ENUM_DECL or is_anonymous_enum(node)
+                    or node.access_specifier != AccessSpecifier.PUBLIC):
+                continue
+            mapped_enum = f"{remap_class_name(c.spelling)}{node.spelling}"
+            remap_inner_classes[f"juce::{c.spelling}::{node.spelling}"] = mapped_enum
+            if f"juce::{node.spelling}" not in class_juce_map:
+                remap_inner_classes[node.spelling] = mapped_enum
 
         if c.spelling in done_classes:
             continue
@@ -629,6 +748,40 @@ def run_main(juce_module_name, juce_class_name_to_export):
 
         #print(c.spelling)
         #print(list(map(lambda x: x.spelling, class_inheritance_map[c.spelling])))
+
+        # Constructors. Nothing generated these before, so a type could be
+        # named but never built: an Identifier had no way into existence, which
+        # is most of why ValueTree was unusable.
+        for ctor in filter(lambda x: x.kind == CursorKind.CONSTRUCTOR, c.get_children()):
+            if ctor.access_specifier != AccessSpecifier.PUBLIC:
+                continue
+
+            ctor_args, ctor_types = [], []
+            for count, arg in enumerate(ctor.get_arguments()):
+                argument_type = remap_type(arg.type, remap_inner_classes, enum_remap, class_juce_map)
+                ctor_args.append(f"{remap_argument_name(arg.spelling, count)}: {argument_type}")
+                ctor_types.append(argument_type)
+
+            # A copy or move constructor would just shadow the plain one.
+            if len(ctor_types) == 1 and ctor_types[0].replace("var ", "").replace("lent ", "") == class_name:
+                continue
+
+            rendered = ", ".join(ctor_types)
+            ctor_invalid = ("<" in rendered or "::" in rendered or is_c_array(rendered)
+                            or not type_is_declared(rendered, declared_type_names))
+            ctor_comment = "# " if ctor_invalid else ""
+
+            declaration = nim_constructor_def.format(**{
+                "comment": ctor_comment,
+                "class_name": class_name,
+                "method_args": ", ".join(ctor_args),
+                "juce_module_name": juce_module_name,
+                "spelling": qualified_name })
+
+            if declaration in emitted_declarations:
+                continue
+            emitted_declarations.add(declaration)
+            print(declaration)
 
         for m in filter(lambda x: x.kind == CursorKind.CXX_METHOD, c.get_children()):
             if m.access_specifier != AccessSpecifier.PUBLIC:
@@ -658,7 +811,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
                     default_value = f" = {default_value}"
 
                 spelling = remap_argument_name(arg.spelling, count)
-                argument_type = remap_type(arg.type, remap_inner_classes, class_juce_map)
+                argument_type = remap_type(arg.type, remap_inner_classes, enum_remap, class_juce_map)
 
                 # A default is only kept where the literal is already a value of
                 # the parameter's type here. The converters that would make, say,
@@ -675,13 +828,17 @@ def run_main(juce_module_name, juce_class_name_to_export):
                     literal = default_value.split("=", 1)[1].strip()
                     if not re.fullmatch(r"(nil|true|false|-?[0-9][0-9a-fA-FxX.eE+_-]*[fFlLuU]?|'.'|\".*\")", literal):
                         default_value = ""
+                    # A C++ character literal defaults an integer parameter
+                    # freely; Nim will not convert one.
+                    elif literal.startswith("'") and argument_type not in ("char", "cchar"):
+                        default_value = ""
 
                 args.append(f"{spelling}: {argument_type}{default_value}")
                 argument_types.append(argument_type)
 
             return_type = ""
             if m.result_type.spelling != "void":
-                return_type = f": {remap_type(m.result_type, remap_inner_classes, class_juce_map)}"
+                return_type = f": {remap_type(m.result_type, remap_inner_classes, enum_remap, class_juce_map)}"
 
             if m.result_type.spelling in ["CFStringRef", "OSType"]:
                 comment = "# "
@@ -697,7 +854,8 @@ def run_main(juce_module_name, juce_class_name_to_export):
             # made "false" look like an undeclared name and commented out every
             # proc that had one.
             rendered = ", ".join(argument_types) + return_type
-            if "<" in rendered or "::" in rendered or not type_is_declared(rendered, declared_type_names):
+            if ("<" in rendered or "::" in rendered or is_c_array(rendered)
+                    or not type_is_declared(rendered, declared_type_names)):
                 comment = "# "
 
             method_spelling = m.spelling
