@@ -318,6 +318,11 @@ def remap_template_arg(spelling, *args):
         result = spelling
         for table in args:
             result = table.get(result, result)
+        # juce::var is bound as juce_var, because `var` is a Nim keyword. The
+        # rename was applied to class names and to parameter types but not
+        # inside a template argument, so a std::function taking one produced a
+        # type spelled `var` that no Nim file can contain.
+        result = remap_class_name(result)
         if "::" in result:
             return None
 
