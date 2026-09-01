@@ -94,14 +94,14 @@ Then run the test suite.
   nimble test
 
 ``nimble`` 0.22 exits 0 whatever happens, including on a task whose ``exec``
-raised, so its exit code does not report a failure. Read the output, or run the
-commands directly, which report properly:
+raised, so its exit code does not report a failing test. Read its output, or run
+the tests directly, which reports properly:
 
 .. code-block:: bash
 
   (for t in tests/test_juce_*.nim; do nim cpp -r "$t" || exit 1; done)
 
-CI runs them directly for this reason.
+CI does the latter for this reason.
 
 
 Or build the example application (tweak nim.cfg if needed).
