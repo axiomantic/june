@@ -246,7 +246,9 @@ Hand-written additions live in the ``*_lifting.nim`` files and in
   bound as Nim operators; ``!=``, ``>`` and ``>=`` follow from them. Compound
   assignment -- ``+=``, ``-=``, ``*=``, ``/=``, ``|=``, ``&=``, ``^=``, ``%=``,
   ``<<=`` and ``>>=`` -- is bound as a statement returning nothing, where C++
-  returns a reference to the target.
+  returns a reference to the target. The bitwise operators ``|``, ``&``, ``^``
+  and ``%`` keep their spelling; the shifts take Nim's names, ``shl`` and
+  ``shr``.
 - The class templates: ``Rectangle``, ``Point``, ``Line``, ``BorderSize``,
   ``Range``, ``Array``, ``OwnedArray``, ``Span``, ``RectangleList``,
   ``SparseSet``, ``NormalisableRange``, ``Parallelogram``, ``Optional`` and

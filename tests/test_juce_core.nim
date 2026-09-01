@@ -199,3 +199,17 @@ proc testContainerIteration() =
   doAssert tags == @["first", "second"], "tags " & $tags
 
 testContainerIteration()
+
+# BigInteger's bitwise and shift operators. Nim spells shifts `shl` and `shr`,
+# so those two are bound under the Nim name rather than the C++ one.
+proc testBigIntegerOperators() =
+  let a = makeBigInteger(0b1100.cint)
+  let b = makeBigInteger(0b1010.cint)
+
+  doAssert (a | b).toInteger() == 0b1110
+  doAssert (a & b).toInteger() == 0b1000
+  doAssert (a ^ b).toInteger() == 0b0110
+  doAssert (a shl 2.cint).toInteger() == 0b110000
+  doAssert (a shr 2.cint).toInteger() == 0b11
+
+testBigIntegerOperators()
