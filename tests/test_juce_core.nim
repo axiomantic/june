@@ -152,3 +152,18 @@ proc testCompoundAssignment() =
   doAssert bits.toInteger() == 0b1111
 
 testCompoundAssignment()
+
+# juce::var is bound as juce_var because `var` is a Nim keyword. The rename was
+# applied to class names but not inside a template argument, so these signatures
+# were spelled Array[var] and Span[var]. Calling one is what proves the type is
+# nameable; the declaration alone was tolerated.
+proc testVarArrayTypes() =
+  let number = makejuce_var(42.cint)
+  doAssert number.getArray() == nil, "a number is not an array"
+  doAssert number.isInt()
+
+  var elements: Span[juce_var] = number.getArrayElements()
+  doAssert elements.isEmpty()
+  doAssert elements.size() == 0.csize_t
+
+testVarArrayTypes()

@@ -3462,8 +3462,8 @@ proc getButtonText*(this: ButtonPropertyComponent): String {.header: juce_gui_ba
 proc refresh*(this: var ButtonPropertyComponent) {.header: juce_gui_basics, importcpp: "#.refresh()".}
 proc `==`*(this: ButtonPropertyComponent, other: ButtonPropertyComponent): bool {.error: "juce::ButtonPropertyComponent defines no operator==; compare a property instead".}
 
-proc makeChoicePropertyComponent*(valueToControl: Value, propertyName: String, choices: StringArray, correspondingValues: Array[var]): ChoicePropertyComponent {.header: juce_gui_basics, importcpp: "juce::ChoicePropertyComponent(@)".}
-proc makeChoicePropertyComponent*(valueToControl: ValueTreePropertyWithDefault, propertyName: String, choices: StringArray, correspondingValues: Array[var]): ChoicePropertyComponent {.header: juce_gui_basics, importcpp: "juce::ChoicePropertyComponent(@)".}
+proc makeChoicePropertyComponent*(valueToControl: Value, propertyName: String, choices: StringArray, correspondingValues: Array[juce_var]): ChoicePropertyComponent {.header: juce_gui_basics, importcpp: "juce::ChoicePropertyComponent(@)".}
+proc makeChoicePropertyComponent*(valueToControl: ValueTreePropertyWithDefault, propertyName: String, choices: StringArray, correspondingValues: Array[juce_var]): ChoicePropertyComponent {.header: juce_gui_basics, importcpp: "juce::ChoicePropertyComponent(@)".}
 proc makeChoicePropertyComponent*(valueToControl: ValueTreePropertyWithDefault, propertyName: String): ChoicePropertyComponent {.header: juce_gui_basics, importcpp: "juce::ChoicePropertyComponent(@)".}
 proc setIndex*(this: var ChoicePropertyComponent, newIndex: cint) {.header: juce_gui_basics, importcpp: "#.setIndex(@)".}
 proc getIndex*(this: ChoicePropertyComponent): cint {.header: juce_gui_basics, importcpp: "#.getIndex()".}
@@ -3514,8 +3514,8 @@ proc refresh*(this: var TextPropertyComponent) {.header: juce_gui_basics, import
 proc textWasEdited*(this: var TextPropertyComponent) {.header: juce_gui_basics, importcpp: "#.textWasEdited()".}
 proc `==`*(this: TextPropertyComponent, other: TextPropertyComponent): bool {.error: "juce::TextPropertyComponent defines no operator==; compare a property instead".}
 
-proc makeMultiChoicePropertyComponent*(valueToControl: Value, propertyName: String, choices: StringArray, correspondingValues: Array[var], maxChoices: cint): MultiChoicePropertyComponent {.header: juce_gui_basics, importcpp: "juce::MultiChoicePropertyComponent(@)".}
-proc makeMultiChoicePropertyComponent*(valueToControl: ValueTreePropertyWithDefault, propertyName: String, choices: StringArray, correspondingValues: Array[var], maxChoices: cint): MultiChoicePropertyComponent {.header: juce_gui_basics, importcpp: "juce::MultiChoicePropertyComponent(@)".}
+proc makeMultiChoicePropertyComponent*(valueToControl: Value, propertyName: String, choices: StringArray, correspondingValues: Array[juce_var], maxChoices: cint): MultiChoicePropertyComponent {.header: juce_gui_basics, importcpp: "juce::MultiChoicePropertyComponent(@)".}
+proc makeMultiChoicePropertyComponent*(valueToControl: ValueTreePropertyWithDefault, propertyName: String, choices: StringArray, correspondingValues: Array[juce_var], maxChoices: cint): MultiChoicePropertyComponent {.header: juce_gui_basics, importcpp: "juce::MultiChoicePropertyComponent(@)".}
 proc isExpanded*(this: MultiChoicePropertyComponent): bool {.header: juce_gui_basics, importcpp: "#.isExpanded()".}
 proc isExpandable*(this: MultiChoicePropertyComponent): bool {.header: juce_gui_basics, importcpp: "#.isExpandable()".}
 proc setExpanded*(this: var MultiChoicePropertyComponent, expanded: bool) {.header: juce_gui_basics, importcpp: "#.setExpanded(@)".}
