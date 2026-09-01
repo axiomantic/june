@@ -111,3 +111,58 @@ proc testCustomButton() =
 
 testCustomButton()
 
+# bindClosure hands C++ the raw environment pointer without taking a reference to
+# it, so a handler set from a scope that then exits used to have its captures
+# collected out from under it. The failure was a corrupted capture rather than a
+# crash, which is why it needed looking for.
+proc setHandlerFromAScopeThatExits(component: ptr CustomComponent) =
+  var captured = @[1, 2, 3, 4, 5, 6, 7, 8]
+  component[].setPaintHandler(proc(g: ptr Graphics) =
+    doAssert captured.len == 8, "the captured environment was collected"
+    doAssert captured[7] == 8, "the captured environment was corrupted"
+    g[].setColour(makeColour(255'u8, 0'u8, 0'u8, 255'u8))
+    g[].fillRect(makeRectangle(0.cint, 0.cint, 5.cint, 5.cint))
+  )
+
+# The same applies to a handler assigned straight to its field rather than
+# through a setter, which is how the no-argument overrides are used.
+proc setResizedHandlerFromAScopeThatExits(component: ptr CustomComponent, counter: ref int) =
+  var captured = @[9, 8, 7, 6, 5, 4, 3, 2]
+  component[].onResized = bindClosure(proc() =
+    doAssert captured.len == 8, "the captured environment was collected"
+    doAssert captured[0] == 9, "the captured environment was corrupted"
+    counter[] += 1
+  )
+
+proc testClosureLifetime() =
+  initialiseJuce_GUI()
+
+  block:
+    let component = newCustomComponent()
+    component[].setBounds(makeRectangle(0.cint, 0.cint, 20.cint, 20.cint))
+    setHandlerFromAScopeThatExits(component)
+
+    # Churn the heap so a freed environment is likely to be reused.
+    var noise: seq[seq[int]] = @[]
+    for i in 0 ..< 2000:
+      noise.add(@[i, i, i, i, i, i, i, i])
+    GC_fullCollect()
+
+    let image = makeImage(ImagePixelFormat_ARGB, 20.cint, 20.cint, true)
+    var graphics = makeGraphics(image)
+    component[].paintEntireComponent(graphics, false)
+    doAssert image.getPixelAt(2.cint, 2.cint).getRed() == 255
+
+    # And for a directly assigned handler.
+    let resizes = new(int)
+    setResizedHandlerFromAScopeThatExits(component, resizes)
+    GC_fullCollect()
+    component[].setBounds(makeRectangle(0.cint, 0.cint, 25.cint, 25.cint))
+    doAssert resizes[] > 0, "the resized handler was not called"
+
+    cdelete component
+
+  shutdownJuce_GUI()
+
+testClosureLifetime()
+
