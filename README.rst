@@ -43,6 +43,9 @@ Hand-written additions live in the ``*_lifting.nim`` files and in
   ``SparseSet`` and ``ReferenceCountedObjectPtr``.
 - The standard library types JUCE exposes: ``std::unique_ptr``,
   ``std::optional``, ``std::vector`` and ``std::function``.
+- Subclasses whose virtual methods call into Nim: ``CustomComponent``,
+  ``CustomButton``, ``CustomTimer``, plus the ``JUCEApplication`` and
+  ``DocumentWindow`` that were already there.
 
 Instantiate a class template with ``cint`` or ``cfloat``, never Nim's ``int`` or
 ``float``. Nim puts the parameter's C++ name into the template, and Nim's
@@ -90,6 +93,20 @@ not hit it.
 The no-argument overrides -- ``onResized``, ``onMoved``, ``onVisibilityChanged``,
 ``onParentHierarchyChanged``, ``onChildrenChanged`` -- are assigned directly with
 ``bindClosure``.
+
+``CustomButton`` and ``CustomTimer`` work the same way. Both subclass a JUCE
+class whose pure virtual made it impossible to instantiate before:
+``Button::paintButton`` and ``Timer::timerCallback``.
+
+.. code-block:: nim
+
+  let timer = newCustomTimer()
+  timer[].onTimerCallback = bindClosure(proc() = echo "tick")
+  timer[].startTimer(1000.cint)
+
+Wrap code that constructs these in ``initialiseJuce_GUI()`` and
+``shutdownJuce_GUI()``. A Button starts JUCE's timer thread and its look and
+feel singleton, and both assert at exit if the GUI was never initialised.
 
 --------------------------
 Regenerating The Bindings

@@ -74,3 +74,40 @@ proc testMouseHandlers() =
 
 testMouseHandlers()
 
+# Button's paintButton is pure virtual, so a Button could not be instantiated at
+# all without a subclass. Its constructor is protected, which is why the
+# generated subclass declares a forwarding constructor rather than inheriting
+# one: an inherited constructor keeps the base's access.
+proc testCustomButton() =
+  # Constructing a Button starts JUCE's timer infrastructure and its look and
+  # feel singleton, both of which assert at exit unless the GUI was initialised.
+  initialiseJuce_GUI()
+
+  block:
+    let button = newCustomButton("Press me")
+    doAssert CustomButton is Button
+    doAssert CustomButton is Component
+    doAssert $button[].getButtonText() == "Press me"
+
+    button[].setBounds(makeRectangle(0.cint, 0.cint, 30.cint, 20.cint))
+    doAssert button[].getWidth() == 30
+
+    var paintCalls = 0
+    button[].setPaintButtonHandler(proc(g: ptr Graphics, highlighted: bool, down: bool) =
+      paintCalls += 1
+      g[].setColour(makeColour(0'u8, 255'u8, 0'u8, 255'u8))
+      g[].fillRect(makeRectangle(0.cint, 0.cint, 8.cint, 8.cint))
+    )
+
+    let image = makeImage(ImagePixelFormat_ARGB, 30.cint, 20.cint, true)
+    var graphics = makeGraphics(image)
+    button[].paintEntireComponent(graphics, false)
+
+    doAssert paintCalls == 1
+    doAssert image.getPixelAt(4.cint, 4.cint).getGreen() == 255
+    cdelete button
+
+  shutdownJuce_GUI()
+
+testCustomButton()
+

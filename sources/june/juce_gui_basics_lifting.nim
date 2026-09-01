@@ -124,3 +124,22 @@ defineHandlerSetter(setMouseMoveHandler, onMouseMove, MouseEvent)
 defineHandlerSetter(setMouseEnterHandler, onMouseEnter, MouseEvent)
 defineHandlerSetter(setMouseExitHandler, onMouseExit, MouseEvent)
 
+# Button ======================================================================
+#
+# paintButton is pure virtual, so a Button cannot be instantiated without a
+# subclass either. Its constructor takes a name, which the generated subclass
+# inherits through the using-declaration the macro emits.
+
+defineCppClassInternal CustomButton of Button:
+    include "juce_gui_basics/juce_gui_basics.h"
+    proc paintButton(g: varref[Graphics], shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) = discard
+    proc clicked() = discard
+    proc buttonStateChanged() = discard
+
+proc newCustomButton*(name: String): ptr CustomButton {.importcpp: "(new june::CustomButton(@))".}
+
+proc setPaintButtonHandler*(this: var CustomButton,
+                           handler: proc(g: ptr Graphics, highlighted: bool, down: bool) {.closure.}) =
+    let bound: CppFunctionObjectN3[ptr Graphics, bool, bool] = bindClosure(handler)
+    this.onPaintButton = bound
+

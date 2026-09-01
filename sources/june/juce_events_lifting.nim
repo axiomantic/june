@@ -9,3 +9,15 @@ proc initialiseJuce_GUI*() {.header: juce_events, importcpp: "juce::initialiseJu
 proc shutdownJuce_GUI*() {.header: juce_events, importcpp: "juce::shutdownJuce_GUI()".}
 
 proc getInstance*(this: typedesc[MessageManager]): ptr MessageManager {.header: juce_events, importcpp: "juce::MessageManager::getInstance()".}
+
+# Timer =======================================================================
+#
+# timerCallback is pure virtual, so a Timer cannot be instantiated at all
+# without a subclass. That subclass had no way to exist before.
+
+defineCppClassInternal CustomTimer of Timer:
+    include "juce_events/juce_events.h"
+    proc timerCallback() = discard
+
+proc newCustomTimer*(): ptr CustomTimer {.importcpp: "(new june::CustomTimer)".}
+

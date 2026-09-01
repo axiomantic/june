@@ -105,14 +105,18 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
   var cppIncludedHeader = "june_generated_" & parentClassName & ".h"
   var cppGeneratedHeader = "june_generated_" & className & ".h"
 
-  var cppIncludeDefinition = "#pragma once\n\n"
+  var cppIncludeDefinition = "#pragma once\n\n#include <utility>\n\n"
   if not internalClass:
       cppIncludeDefinition &= "#include \"" & cppIncludedHeader & "\"\n"
 
   var cppClassDefinition = ""
   cppClassDefinition &= "namespace june { using namespace juce;\n\n"
   cppClassDefinition &= "struct " & className & " : " & parentNamespace & "::" & parentClassName & " {\n"
-  cppClassDefinition &= "    using " & parentNamespace & "::" & parentClassName & "::" & parentClassName & ";\n\n"
+  # A public forwarding constructor rather than `using Parent::Parent`. An
+  # inherited constructor keeps the base's access, and juce::Button's is
+  # protected, so the subclass could not be constructed from outside at all.
+  cppClassDefinition &= "    template <typename... Args>\n"
+  cppClassDefinition &= "    " & className & "(Args&&... args) : " & parentNamespace & "::" & parentClassName & "(std::forward<Args>(args)...) {}\n\n"
 
   for node in body.children:
     case node.kind:

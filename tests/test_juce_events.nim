@@ -20,3 +20,28 @@ proc testEnums() =
 # singleton that nothing deletes, and JUCE's leak detector fires at exit.
 
 testEnums()
+
+# Timer's timerCallback is pure virtual, so a Timer could not be instantiated
+# without a subclass either.
+proc testCustomTimer() =
+  initialiseJuce_GUI()
+
+  block:
+    let timer = newCustomTimer()
+    doAssert CustomTimer is Timer
+
+    var ticks = 0
+    timer[].onTimerCallback = bindClosure(proc() = ticks += 1)
+
+    doAssert not timer[].isTimerRunning()
+    timer[].startTimer(10.cint)
+    doAssert timer[].isTimerRunning()
+    doAssert timer[].getTimerInterval() == 10
+    timer[].stopTimer()
+    doAssert not timer[].isTimerRunning()
+    cdelete timer
+
+  shutdownJuce_GUI()
+
+testCustomTimer()
+
