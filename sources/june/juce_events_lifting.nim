@@ -10,6 +10,11 @@ proc shutdownJuce_GUI*() {.header: juce_events, importcpp: "juce::shutdownJuce_G
 
 proc getInstance*(this: typedesc[MessageManager]): ptr MessageManager {.header: juce_events, importcpp: "juce::MessageManager::getInstance()".}
 
+# callAsync is a C++ template taking any callable, so the generator cannot bind
+# it. A std::function<void()> satisfies it, and that is what CppFunctionObjectN0
+# already is. Returns false when the message manager has gone.
+proc callAsync*(this: typedesc[MessageManager], callback: CppFunctionObjectN0): bool {.header: juce_events, importcpp: "juce::MessageManager::callAsync(@)".}
+
 # Timer =======================================================================
 #
 # timerCallback is pure virtual, so a Timer cannot be instantiated at all
