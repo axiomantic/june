@@ -82,17 +82,28 @@ jobs:
           path: build
           key: juce-${{ matrix.os }}-${{ steps.juce.outputs.sha }}-${{ hashFiles('CMakeLists.txt') }}
 
+      # nimble 0.22 exits 0 whatever happens, including on an unknown task, so
+      # its exit code says nothing. Check the artifact the build should have
+      # produced instead.
       - name: Build JUCE
-        run: nimble juce_debug
+        shell: bash
+        run: |
+          nimble juce_debug
+          ls -l build/june_artefacts/Debug/libjune.a
 
-      # nimble names the compiler it selected on stdout. Assert it, so a
-      # resolution that quietly falls back to another version fails the job
-      # instead of reporting a pass for a compiler this entry never ran.
+      # Run the tests directly rather than through `nimble test`, because a
+      # failing test does not reach nimble's exit code and the job would pass
+      # over a red suite. nimble puts its chosen compiler on PATH only for the
+      # duration of a task, so resolve that compiler by path here; the version
+      # is pinned above, which makes the glob unambiguous.
       - name: Run tests
         shell: bash
         run: |
-          nimble test 2>&1 | tee test.log
-          grep -q 'nim-${{ matrix.nim-version }}' test.log || {
-            echo "::error::nimble did not select Nim ${{ matrix.nim-version }}"
-            exit 1
-          }
+          nim_bin=$(echo "$HOME"/.nimble/pkgs2/nim-${{ matrix.nim-version }}-*/bin/nim)
+          test -x "$nim_bin" || { echo "::error::no Nim ${{ matrix.nim-version }} at $nim_bin"; exit 1; }
+          "$nim_bin" --version | head -1
+          for test_file in tests/test_juce_*.nim; do
+            echo "::group::$test_file"
+            "$nim_bin" cpp -r --hints:off "$test_file"
+            echo "::endgroup::"
+          done
