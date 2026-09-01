@@ -16,12 +16,19 @@ type
   PropertiesFile* {.header: juce_data_structures, importcpp: "juce::PropertiesFile", inheritable, pure.} = object of PropertySet
   PropertiesFileOptions* {.header: juce_data_structures, importcpp: "juce::PropertiesFile::Options", inheritable, pure.} = object
   ApplicationProperties* {.header: juce_data_structures, importcpp: "juce::ApplicationProperties", inheritable, pure.} = object
+  PropertiesFileStorageFormat* {.header: juce_data_structures, importcpp: "juce::PropertiesFile::StorageFormat".} = distinct cint
+
+const
+  PropertiesFileStorageFormat_storeAsBinary* = PropertiesFileStorageFormat(0)
+  PropertiesFileStorageFormat_storeAsCompressedBinary* = PropertiesFileStorageFormat(1)
+  PropertiesFileStorageFormat_storeAsXML* = PropertiesFileStorageFormat(2)
 
 proc perform*(this: var UndoableAction): bool {.header: juce_data_structures, importcpp: "#.perform()".}
 proc undo*(this: var UndoableAction): bool {.header: juce_data_structures, importcpp: "#.undo()".}
 proc getSizeInUnits*(this: var UndoableAction): int {.header: juce_data_structures, importcpp: "#.getSizeInUnits()".}
 proc createCoalescedAction*(this: var UndoableAction, nextAction: ptr UndoableAction): ptr UndoableAction {.header: juce_data_structures, importcpp: "#.createCoalescedAction(@)".}
 
+proc makeUndoManager*(maxNumberOfUnitsToKeep: int, minimumTransactionsToKeep: int): UndoManager {.header: juce_data_structures, importcpp: "juce::UndoManager(@)".}
 proc clearUndoHistory*(this: var UndoManager) {.header: juce_data_structures, importcpp: "#.clearUndoHistory()".}
 proc getNumberOfUnitsTakenUpByStoredCommands*(this: UndoManager): int {.header: juce_data_structures, importcpp: "#.getNumberOfUnitsTakenUpByStoredCommands()".}
 proc setMaxNumberOfStoredUnits*(this: var UndoManager, maxNumberOfUnitsToKeep: int, minimumTransactionsToKeep: int) {.header: juce_data_structures, importcpp: "#.setMaxNumberOfStoredUnits(@)".}
@@ -37,7 +44,7 @@ proc undoCurrentTransactionOnly*(this: var UndoManager): bool {.header: juce_dat
 proc getUndoDescription*(this: UndoManager): String {.header: juce_data_structures, importcpp: "#.getUndoDescription()".}
 proc getUndoDescriptions*(this: UndoManager): StringArray {.header: juce_data_structures, importcpp: "#.getUndoDescriptions()".}
 proc getTimeOfUndoTransaction*(this: UndoManager): Time {.header: juce_data_structures, importcpp: "#.getTimeOfUndoTransaction()".}
-# proc getActionsInCurrentTransaction*(this: UndoManager, actionsFound: Array< UndoableAction >) {.header: juce_data_structures, importcpp: "#.getActionsInCurrentTransaction(@)".}
+proc getActionsInCurrentTransaction*(this: UndoManager, actionsFound: Array[UndoableAction]) {.header: juce_data_structures, importcpp: "#.getActionsInCurrentTransaction(@)".}
 proc getNumActionsInCurrentTransaction*(this: UndoManager): int {.header: juce_data_structures, importcpp: "#.getNumActionsInCurrentTransaction()".}
 proc canRedo*(this: UndoManager): bool {.header: juce_data_structures, importcpp: "#.canRedo()".}
 proc redo*(this: var UndoManager): bool {.header: juce_data_structures, importcpp: "#.redo()".}
@@ -46,6 +53,9 @@ proc getRedoDescriptions*(this: UndoManager): StringArray {.header: juce_data_st
 proc getTimeOfRedoTransaction*(this: UndoManager): Time {.header: juce_data_structures, importcpp: "#.getTimeOfRedoTransaction()".}
 proc isPerformingUndoRedo*(this: UndoManager): bool {.header: juce_data_structures, importcpp: "#.isPerformingUndoRedo()".}
 
+proc makeValue*(): Value {.header: juce_data_structures, importcpp: "juce::Value(@)".}
+proc makeValue*(initialValue: juce_var): Value {.header: juce_data_structures, importcpp: "juce::Value(@)".}
+proc makeValue*(valueSource: ptr ValueValueSource): Value {.header: juce_data_structures, importcpp: "juce::Value(@)".}
 proc getValue*(this: Value): juce_var {.header: juce_data_structures, importcpp: "#.getValue()".}
 proc toString*(this: Value): String {.header: juce_data_structures, importcpp: "#.toString()".}
 proc setValue*(this: var Value, newValue: juce_var) {.header: juce_data_structures, importcpp: "#.setValue(@)".}
@@ -55,10 +65,13 @@ proc referTo*(this: var Value, valueToReferTo: Value) {.header: juce_data_struct
 proc refersToSameSourceAs*(this: Value, other: Value): bool {.header: juce_data_structures, importcpp: "#.refersToSameSourceAs(@)".}
 proc `Value==`*(this: Value, other: Value): bool {.header: juce_data_structures, importcpp: "#.operator==(@)".}
 proc `Value!=`*(this: Value, other: Value): bool {.header: juce_data_structures, importcpp: "#.operator!=(@)".}
-# proc addListener*(this: var Value, listener: ptr Listener) {.header: juce_data_structures, importcpp: "#.addListener(@)".}
-# proc removeListener*(this: var Value, listener: ptr Listener) {.header: juce_data_structures, importcpp: "#.removeListener(@)".}
-# proc getValueSource*(this: var Value): var ValueSource {.header: juce_data_structures, importcpp: "#.getValueSource()".}
+proc addListener*(this: var Value, listener: ptr ValueListener) {.header: juce_data_structures, importcpp: "#.addListener(@)".}
+proc removeListener*(this: var Value, listener: ptr ValueListener) {.header: juce_data_structures, importcpp: "#.removeListener(@)".}
+proc getValueSource*(this: var Value): var ValueValueSource {.header: juce_data_structures, importcpp: "#.getValueSource()".}
 
+proc makeValueTree*(): ValueTree {.header: juce_data_structures, importcpp: "juce::ValueTree(@)".}
+proc makeValueTree*(`type`: Identifier): ValueTree {.header: juce_data_structures, importcpp: "juce::ValueTree(@)".}
+# proc makeValueTree*(`type`: Identifier, properties: std::initializer_list<NamedValueSet::NamedValue>, subTrees: std::initializer_list<ValueTree>): ValueTree {.header: juce_data_structures, importcpp: "juce::ValueTree(@)".}
 proc `ValueTree=`*(this: var ValueTree, arg1: ValueTree): var ValueTree {.header: juce_data_structures, importcpp: "#.operator=(@)".}
 proc `ValueTree==`*(this: ValueTree, arg1: ValueTree): bool {.header: juce_data_structures, importcpp: "#.operator==(@)".}
 proc `ValueTree!=`*(this: ValueTree, arg1: ValueTree): bool {.header: juce_data_structures, importcpp: "#.operator!=(@)".}
@@ -96,21 +109,26 @@ proc indexOf*(this: ValueTree, child: ValueTree): int {.header: juce_data_struct
 proc getParent*(this: ValueTree): ValueTree {.header: juce_data_structures, importcpp: "#.getParent()".}
 proc getRoot*(this: ValueTree): ValueTree {.header: juce_data_structures, importcpp: "#.getRoot()".}
 proc getSibling*(this: ValueTree, delta: int): ValueTree {.header: juce_data_structures, importcpp: "#.getSibling(@)".}
-# proc begin*(this: ValueTree): Iterator {.header: juce_data_structures, importcpp: "#.begin()".}
-# proc `end`*(this: ValueTree): Iterator {.header: juce_data_structures, importcpp: "#.end()".}
+# proc begin*(this: ValueTree): ValueTreeIterator {.header: juce_data_structures, importcpp: "#.begin()".}
+# proc `end`*(this: ValueTree): ValueTreeIterator {.header: juce_data_structures, importcpp: "#.end()".}
 proc createXml*(this: ValueTree): UniquePtr[XmlElement] {.header: juce_data_structures, importcpp: "#.createXml()".}
 # proc toXmlString*(this: ValueTree, format: XmlElement::TextFormat): String {.header: juce_data_structures, importcpp: "#.toXmlString(@)".}
 proc writeToStream*(this: ValueTree, output: var OutputStream) {.header: juce_data_structures, importcpp: "#.writeToStream(@)".}
-# proc addListener*(this: var ValueTree, listener: ptr Listener) {.header: juce_data_structures, importcpp: "#.addListener(@)".}
-# proc removeListener*(this: var ValueTree, listener: ptr Listener) {.header: juce_data_structures, importcpp: "#.removeListener(@)".}
-# proc setPropertyExcludingListener*(this: var ValueTree, listenerToExclude: ptr Listener, name: Identifier, newValue: juce_var, undoManager: ptr UndoManager): var ValueTree {.header: juce_data_structures, importcpp: "#.setPropertyExcludingListener(@)".}
+proc addListener*(this: var ValueTree, listener: ptr ValueTreeListener) {.header: juce_data_structures, importcpp: "#.addListener(@)".}
+proc removeListener*(this: var ValueTree, listener: ptr ValueTreeListener) {.header: juce_data_structures, importcpp: "#.removeListener(@)".}
+proc setPropertyExcludingListener*(this: var ValueTree, listenerToExclude: ptr ValueTreeListener, name: Identifier, newValue: juce_var, undoManager: ptr UndoManager): var ValueTree {.header: juce_data_structures, importcpp: "#.setPropertyExcludingListener(@)".}
 proc sendPropertyChangeMessage*(this: var ValueTree, property: Identifier) {.header: juce_data_structures, importcpp: "#.sendPropertyChangeMessage(@)".}
 proc getReferenceCount*(this: ValueTree): int {.header: juce_data_structures, importcpp: "#.getReferenceCount()".}
 
+proc makeValueTreeSynchroniser*(tree: ValueTree): ValueTreeSynchroniser {.header: juce_data_structures, importcpp: "juce::ValueTreeSynchroniser(@)".}
 proc stateChanged*(this: var ValueTreeSynchroniser, encodedChange: constPointer, encodedChangeSize: csize_t) {.header: juce_data_structures, importcpp: "#.stateChanged(@)".}
 proc sendFullSyncCallback*(this: var ValueTreeSynchroniser) {.header: juce_data_structures, importcpp: "#.sendFullSyncCallback()".}
 proc getRoot*(this: var ValueTreeSynchroniser): ValueTree {.header: juce_data_structures, importcpp: "#.getRoot()".}
 
+proc makeValueTreePropertyWithDefault*(): ValueTreePropertyWithDefault {.header: juce_data_structures, importcpp: "juce::ValueTreePropertyWithDefault(@)".}
+proc makeValueTreePropertyWithDefault*(tree: var ValueTree, propertyID: Identifier, um: ptr UndoManager): ValueTreePropertyWithDefault {.header: juce_data_structures, importcpp: "juce::ValueTreePropertyWithDefault(@)".}
+proc makeValueTreePropertyWithDefault*(tree: var ValueTree, propertyID: Identifier, um: ptr UndoManager, defaultToUse: juce_var): ValueTreePropertyWithDefault {.header: juce_data_structures, importcpp: "juce::ValueTreePropertyWithDefault(@)".}
+proc makeValueTreePropertyWithDefault*(tree: var ValueTree, propertyID: Identifier, um: ptr UndoManager, defaultToUse: juce_var, arrayDelimiter: StringRef): ValueTreePropertyWithDefault {.header: juce_data_structures, importcpp: "juce::ValueTreePropertyWithDefault(@)".}
 proc get*(this: ValueTreePropertyWithDefault): juce_var {.header: juce_data_structures, importcpp: "#.get()".}
 proc getPropertyAsValue*(this: var ValueTreePropertyWithDefault): Value {.header: juce_data_structures, importcpp: "#.getPropertyAsValue()".}
 proc getDefault*(this: ValueTreePropertyWithDefault): juce_var {.header: juce_data_structures, importcpp: "#.getDefault()".}
@@ -128,6 +146,8 @@ proc getPropertyID*(this: ValueTreePropertyWithDefault): Identifier {.header: ju
 proc getUndoManager*(this: var ValueTreePropertyWithDefault): ptr UndoManager {.header: juce_data_structures, importcpp: "#.getUndoManager()".}
 proc `ValueTreePropertyWithDefault=`*(this: var ValueTreePropertyWithDefault, other: ValueTreePropertyWithDefault): var ValueTreePropertyWithDefault {.header: juce_data_structures, importcpp: "#.operator=(@)".}
 
+proc makePropertiesFile*(options: PropertiesFileOptions): PropertiesFile {.header: juce_data_structures, importcpp: "juce::PropertiesFile(@)".}
+proc makePropertiesFile*(file: File, options: PropertiesFileOptions): PropertiesFile {.header: juce_data_structures, importcpp: "juce::PropertiesFile(@)".}
 proc isValidFile*(this: PropertiesFile): bool {.header: juce_data_structures, importcpp: "#.isValidFile()".}
 proc saveIfNeeded*(this: var PropertiesFile): bool {.header: juce_data_structures, importcpp: "#.saveIfNeeded()".}
 proc save*(this: var PropertiesFile): bool {.header: juce_data_structures, importcpp: "#.save()".}
@@ -136,6 +156,7 @@ proc setNeedsToBeSaved*(this: var PropertiesFile, needsToBeSaved: bool) {.header
 proc reload*(this: var PropertiesFile): bool {.header: juce_data_structures, importcpp: "#.reload()".}
 proc getFile*(this: PropertiesFile): File {.header: juce_data_structures, importcpp: "#.getFile()".}
 
+proc makeApplicationProperties*(): ApplicationProperties {.header: juce_data_structures, importcpp: "juce::ApplicationProperties(@)".}
 # proc setStorageParameters*(this: var ApplicationProperties, options: PropertiesFile::Options) {.header: juce_data_structures, importcpp: "#.setStorageParameters(@)".}
 # proc getStorageParameters*(this: ApplicationProperties): PropertiesFile::Options {.header: juce_data_structures, importcpp: "#.getStorageParameters()".}
 proc getUserSettings*(this: var ApplicationProperties): ptr PropertiesFile {.header: juce_data_structures, importcpp: "#.getUserSettings()".}
