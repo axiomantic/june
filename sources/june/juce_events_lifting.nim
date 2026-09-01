@@ -26,3 +26,26 @@ defineCppClassInternal CustomTimer of Timer:
 
 proc newCustomTimer*(): ptr CustomTimer {.importcpp: "(new june::CustomTimer)".}
 
+# AsyncUpdater, ActionListener and ChangeListener =============================
+#
+# All three have a pure virtual, so none could be instantiated without a
+# subclass, and no subclass was possible.
+
+defineCppClassInternal CustomAsyncUpdater of AsyncUpdater:
+    include "juce_events/juce_events.h"
+    proc handleAsyncUpdate() = discard
+
+proc newCustomAsyncUpdater*(): ptr CustomAsyncUpdater {.importcpp: "(new june::CustomAsyncUpdater)".}
+
+defineCppClassInternal CustomActionListener of ActionListener:
+    include "juce_events/juce_events.h"
+    proc actionListenerCallback(message: constref[String]) = discard
+
+proc newCustomActionListener*(): ptr CustomActionListener {.importcpp: "(new june::CustomActionListener)".}
+
+defineCppClassInternal CustomChangeListener of ChangeListener:
+    include "juce_events/juce_events.h"
+    proc changeListenerCallback(source: ptr ChangeBroadcaster) = discard
+
+proc newCustomChangeListener*(): ptr CustomChangeListener {.importcpp: "(new june::CustomChangeListener)".}
+

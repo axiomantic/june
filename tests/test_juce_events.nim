@@ -57,3 +57,39 @@ proc testCallAsync() =
 
 testCallAsync()
 
+# AsyncUpdater, ActionListener and ChangeListener each have a pure virtual, so
+# none could be instantiated without a subclass, and no subclass was possible.
+proc testAsyncUpdater() =
+  initialiseJuce_GUI()
+
+  block:
+    let updater = newCustomAsyncUpdater()
+    doAssert CustomAsyncUpdater is AsyncUpdater
+
+    var updates = 0
+    updater[].onHandleAsyncUpdate = bindClosure(proc() = updates += 1)
+
+    doAssert not updater[].isUpdatePending()
+    updater[].triggerAsyncUpdate()
+    doAssert updater[].isUpdatePending()
+
+    # Runs it now rather than waiting for the message loop, so the test can see
+    # that JUCE called into Nim.
+    updater[].handleUpdateNowIfNeeded()
+    doAssert updates == 1
+    doAssert not updater[].isUpdatePending()
+    cdelete updater
+
+  block:
+    let listener = newCustomActionListener()
+    doAssert CustomActionListener is ActionListener
+    cdelete listener
+
+    let changeListener = newCustomChangeListener()
+    doAssert CustomChangeListener is ChangeListener
+    cdelete changeListener
+
+  shutdownJuce_GUI()
+
+testAsyncUpdater()
+
