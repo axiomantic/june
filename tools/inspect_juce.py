@@ -98,6 +98,7 @@ def remap_type(t, *args):
         "long long": "int64",
         "unsigned long long": "uint64",
         "juce::var": "juce_var",
+        "std::string": "CppString",
         "var": "juce_var",
         "var::NativeFunctionArgs": "juce_varNativeFunctionArgs",
         "NamedValueSet::NamedValue": "NamedValueSetNamedValue"
@@ -408,6 +409,7 @@ known_builtin_types = {
     "cint", "cuint", "clong", "culong", "clonglong", "culonglong",
     "cfloat", "cdouble", "constChar", "constPointer",
     "UniquePtr", "CppOptional", "CppVector",
+    "CppString",
     "Rectangle", "Point", "Line", "BorderSize", "Range",
     "Array", "OwnedArray", "ReferenceCountedObjectPtr",
     "Span", "RectangleList", "Parallelogram", "SparseSet",
