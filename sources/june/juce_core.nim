@@ -620,7 +620,7 @@ proc initialSectionContainingOnly*(this: String, permittedCharacters: StringRef)
 proc initialSectionNotContaining*(this: String, charactersToStopAt: StringRef): String {.header: juce_core, importcpp: "#.initialSectionNotContaining(@)".}
 proc isQuotedString*(this: String): bool {.header: juce_core, importcpp: "#.isQuotedString()".}
 proc unquoted*(this: String): String {.header: juce_core, importcpp: "#.unquoted()".}
-proc quoted*(this: String, quoteCharacter: uint16): String {.header: juce_core, importcpp: "#.quoted(@)".}
+# proc quoted*(this: String, quoteCharacter: uint16): String {.header: juce_core, importcpp: "#.quoted(@)".}
 proc paddedLeft*(this: String, padCharacter: uint16, minimumLength: cint): String {.header: juce_core, importcpp: "#.paddedLeft(@)".}
 proc paddedRight*(this: String, padCharacter: uint16, minimumLength: cint): String {.header: juce_core, importcpp: "#.paddedRight(@)".}
 # proc begin*(this: String): CharPointer_UTF8 {.header: juce_core, importcpp: "#.begin()".}
@@ -1630,12 +1630,12 @@ proc `==`*(this: HighResolutionTimer, other: HighResolutionTimer): bool {.error:
 proc makeThreadPoolJob*(name: String): ThreadPoolJob {.header: juce_core, importcpp: "juce::ThreadPoolJob(@)".}
 proc getJobName*(this: ThreadPoolJob): String {.header: juce_core, importcpp: "#.getJobName()".}
 proc setJobName*(this: var ThreadPoolJob, newName: String) {.header: juce_core, importcpp: "#.setJobName(@)".}
-proc runJob*(this: var ThreadPoolJob): ThreadPoolJobJobStatus {.header: juce_core, importcpp: "#.runJob()".}
+# proc runJob*(this: var ThreadPoolJob): ThreadPoolJobJobStatus {.header: juce_core, importcpp: "#.runJob()".}
 proc isRunning*(this: ThreadPoolJob): bool {.header: juce_core, importcpp: "#.isRunning()".}
 proc shouldExit*(this: ThreadPoolJob): bool {.header: juce_core, importcpp: "#.shouldExit()".}
 proc signalJobShouldExit*(this: var ThreadPoolJob) {.header: juce_core, importcpp: "#.signalJobShouldExit()".}
-proc addListener*(this: var ThreadPoolJob, arg1: ptr ThreadListener) {.header: juce_core, importcpp: "#.addListener(@)".}
-proc removeListener*(this: var ThreadPoolJob, arg1: ptr ThreadListener) {.header: juce_core, importcpp: "#.removeListener(@)".}
+# proc addListener*(this: var ThreadPoolJob, arg1: ptr ThreadListener) {.header: juce_core, importcpp: "#.addListener(@)".}
+# proc removeListener*(this: var ThreadPoolJob, arg1: ptr ThreadListener) {.header: juce_core, importcpp: "#.removeListener(@)".}
 proc `==`*(this: ThreadPoolJob, other: ThreadPoolJob): bool {.error: "juce::ThreadPoolJob defines no operator==; compare a property instead".}
 
 proc withThreadName*(this: ThreadPoolOptions, newThreadName: String): ThreadPoolOptions {.header: juce_core, importcpp: "#.withThreadName(@)".}
@@ -1821,8 +1821,8 @@ proc getPostDataAsMemoryBlock*(this: URL): MemoryBlock {.header: juce_core, impo
 proc launchInDefaultBrowser*(this: URL): bool {.header: juce_core, importcpp: "#.launchInDefaultBrowser()".}
 # proc createInputStream*(this: URL, options: URLInputStreamOptions): UniquePtr[InputStream] {.header: juce_core, importcpp: "#.createInputStream(@)".}
 proc createOutputStream*(this: URL): UniquePtr[OutputStream] {.header: juce_core, importcpp: "#.createOutputStream()".}
-proc downloadToFile*(this: var URL, targetLocation: File, extraHeaders: String, listener: ptr URLDownloadTaskListener = nil, usePostCommand: bool = false): UniquePtr[URLDownloadTask] {.header: juce_core, importcpp: "#.downloadToFile(@)".}
-proc downloadToFile*(this: var URL, targetLocation: File, options: URLDownloadTaskOptions): UniquePtr[URLDownloadTask] {.header: juce_core, importcpp: "#.downloadToFile(@)".}
+# proc downloadToFile*(this: var URL, targetLocation: File, extraHeaders: String, listener: ptr URLDownloadTaskListener = nil, usePostCommand: bool = false): UniquePtr[URLDownloadTask] {.header: juce_core, importcpp: "#.downloadToFile(@)".}
+# proc downloadToFile*(this: var URL, targetLocation: File, options: URLDownloadTaskOptions): UniquePtr[URLDownloadTask] {.header: juce_core, importcpp: "#.downloadToFile(@)".}
 proc readEntireBinaryStream*(this: URL, destData: var MemoryBlock, usePostCommand: bool = false): bool {.header: juce_core, importcpp: "#.readEntireBinaryStream(@)".}
 proc readEntireTextStream*(this: URL, usePostCommand: bool = false): String {.header: juce_core, importcpp: "#.readEntireTextStream(@)".}
 proc readEntireXmlStream*(this: URL, usePostCommand: bool = false): UniquePtr[XmlElement] {.header: juce_core, importcpp: "#.readEntireXmlStream(@)".}

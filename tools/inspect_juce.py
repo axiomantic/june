@@ -509,30 +509,28 @@ def remap_argument_name(arg_name, count):
 #==================================================================================================
 
 def skip_class_method(class_name, method_name):
+    # One entry per class, holding a set. A dict of class to a single method
+    # name loses every entry but the last for a class named more than once, and
+    # `in` against the surviving string is a substring test rather than a
+    # membership test, so a method whose name is a prefix of another is skipped
+    # by accident.
     skip_table = {
-        "ConsoleApplication": "findAndRunCommand",
-        "AbstractFifo": "read",
-        "AbstractFifo": "write",
-        "String": "quoted",
-        "String": "operator+=",
-        "StringArray": "appendNumbersToDuplicates",
-        "DynamicObject": "clone",
-        "MemoryMappedFile": "getRange",
-        "RelativeTime": "getDescription",
-        "Expression": "getType",
-        "Random": "nextInt",
-        "Thread": "getThreadID",
-        "ThreadPoolJob": "runJob",
-        "ThreadPoolJob": "addListener",
-        "ThreadPoolJob": "removeListener",
-        "ThreadPoolJob": "addJob",
-        "URL": "downloadToFile",
-        "URL": "createInputStream",
-        "XmlElement": "getChildIterator",
-        "XmlElement": "getChildWithTagNameIterator",
+        "ConsoleApplication": {"findAndRunCommand"},
+        "AbstractFifo": {"read", "write"},
+        "String": {"quoted", "operator+="},
+        "StringArray": {"appendNumbersToDuplicates"},
+        "DynamicObject": {"clone"},
+        "MemoryMappedFile": {"getRange"},
+        "RelativeTime": {"getDescription"},
+        "Expression": {"getType"},
+        "Random": {"nextInt"},
+        "Thread": {"getThreadID"},
+        "ThreadPoolJob": {"runJob", "addListener", "removeListener", "addJob"},
+        "URL": {"downloadToFile", "createInputStream"},
+        "XmlElement": {"getChildIterator", "getChildWithTagNameIterator"},
     }
 
-    return method_name.strip() in skip_table.get(class_name.strip(), {})
+    return method_name.strip() in skip_table.get(class_name.strip(), frozenset())
 
 #==================================================================================================
 
