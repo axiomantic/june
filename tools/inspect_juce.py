@@ -13,6 +13,8 @@ from clang_base_enumerations import CursorKind, AccessSpecifier
 
 nim_enum_def = """  {enum_name}* {{.header: {juce_module_name}, importcpp: "{spelling}".}} = distinct cint"""
 
+nim_enum_constant_def = """let {constant_name}* {{.header: {juce_module_name}, importcpp: "{spelling}".}}: {enum_name}"""
+
 nim_type_def = """type
 {classes}
 """
@@ -190,6 +192,7 @@ cpp_value_types = {
     "bool": "bool",
     "size_t": "csize_t",
     "void": "void",
+    "CommandID": "cint",
     "int8_t": "int8",
     "int16_t": "int16",
     "int32_t": "int32",
@@ -219,6 +222,7 @@ template_heads = {
     "RectangleList": "RectangleList",
     "Parallelogram": "Parallelogram",
     "SparseSet": "SparseSet",
+    "NormalisableRange": "NormalisableRange",
 }
 
 def split_template_args(text):
@@ -392,6 +396,7 @@ known_builtin_types = {
     "Rectangle", "Point", "Line", "BorderSize", "Range",
     "Array", "OwnedArray", "ReferenceCountedObjectPtr",
     "Span", "RectangleList", "Parallelogram", "SparseSet",
+    "NormalisableRange",
 }
 known_builtin_types.update(f"CppFunctionObjectN{n}" for n in range(10))
 known_builtin_types.update(f"CppFunctionObjectR{n}" for n in range(10))
@@ -774,12 +779,27 @@ def run_main(juce_module_name, juce_class_name_to_export):
     # Enumerators are prefixed with their type. C++ scopes them by enum or by
     # class; Nim would put every one of them in the same namespace, where names
     # as generic as "plain" or "none" collide immediately.
-    for enum_name, enum_cursor, _ in module_enums:
-        constants = [f"  {enum_name}_{e.spelling}* = {enum_name}({e.enum_value})"
+    #
+    # Each is bound to its C++ name rather than to its numeric value. Nim 1.6
+    # erases a distinct type back to its base when passing it, emitting
+    # `juce::Image(((int) 2), ...)`, and C++ does not implicitly convert an int
+    # to an enum, so every call taking one failed to find a constructor. Naming
+    # the enumerator emits the enumerator, which is correct on every version.
+    for enum_name, enum_cursor, owner in module_enums:
+        if owner:
+            scope = f"juce::{owner}::{enum_cursor.spelling}::" if enum_cursor.is_scoped_enum() else f"juce::{owner}::"
+        else:
+            scope = f"juce::{enum_cursor.spelling}::" if enum_cursor.is_scoped_enum() else "juce::"
+
+        constants = [nim_enum_constant_def.format(**{
+                        "constant_name": f"{enum_name}_{e.spelling}",
+                        "enum_name": enum_name,
+                        "spelling": f"{scope}{e.spelling}",
+                        "juce_module_name": juce_module_name })
                      for e in enum_cursor.get_children()
                      if e.kind == CursorKind.ENUM_CONSTANT_DECL]
         if constants:
-            print("const\n" + "\n".join(constants) + "\n")
+            print("\n".join(constants) + "\n")
 
     # An anonymous enum has no name to bind, but its enumerators are ordinary
     # constants and some of them matter, such as the byte limits on a

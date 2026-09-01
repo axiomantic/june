@@ -18,10 +18,9 @@ type
   ApplicationProperties* {.header: juce_data_structures, importcpp: "juce::ApplicationProperties", inheritable, pure.} = object
   PropertiesFileStorageFormat* {.header: juce_data_structures, importcpp: "juce::PropertiesFile::StorageFormat".} = distinct cint
 
-const
-  PropertiesFileStorageFormat_storeAsBinary* = PropertiesFileStorageFormat(0)
-  PropertiesFileStorageFormat_storeAsCompressedBinary* = PropertiesFileStorageFormat(1)
-  PropertiesFileStorageFormat_storeAsXML* = PropertiesFileStorageFormat(2)
+let PropertiesFileStorageFormat_storeAsBinary* {.header: juce_data_structures, importcpp: "juce::PropertiesFile::storeAsBinary".}: PropertiesFileStorageFormat
+let PropertiesFileStorageFormat_storeAsCompressedBinary* {.header: juce_data_structures, importcpp: "juce::PropertiesFile::storeAsCompressedBinary".}: PropertiesFileStorageFormat
+let PropertiesFileStorageFormat_storeAsXML* {.header: juce_data_structures, importcpp: "juce::PropertiesFile::storeAsXML".}: PropertiesFileStorageFormat
 
 proc perform*(this: var UndoableAction): bool {.header: juce_data_structures, importcpp: "#.perform()".}
 proc undo*(this: var UndoableAction): bool {.header: juce_data_structures, importcpp: "#.undo()".}

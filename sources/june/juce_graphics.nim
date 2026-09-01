@@ -73,84 +73,73 @@ type
   AttributedStringWordWrap* {.header: juce_graphics, importcpp: "juce::AttributedString::WordWrap".} = distinct cint
   AttributedStringReadingDirection* {.header: juce_graphics, importcpp: "juce::AttributedString::ReadingDirection".} = distinct cint
 
-const
-  TypefaceMetricsKind_legacy* = TypefaceMetricsKind(0)
-  TypefaceMetricsKind_portable* = TypefaceMetricsKind(1)
+let TypefaceMetricsKind_legacy* {.header: juce_graphics, importcpp: "juce::TypefaceMetricsKind::legacy".}: TypefaceMetricsKind
+let TypefaceMetricsKind_portable* {.header: juce_graphics, importcpp: "juce::TypefaceMetricsKind::portable".}: TypefaceMetricsKind
 
-const
-  JustificationFlags_left* = JustificationFlags(1)
-  JustificationFlags_right* = JustificationFlags(2)
-  JustificationFlags_horizontallyCentred* = JustificationFlags(4)
-  JustificationFlags_top* = JustificationFlags(8)
-  JustificationFlags_bottom* = JustificationFlags(16)
-  JustificationFlags_verticallyCentred* = JustificationFlags(32)
-  JustificationFlags_horizontallyJustified* = JustificationFlags(64)
-  JustificationFlags_centred* = JustificationFlags(36)
-  JustificationFlags_centredLeft* = JustificationFlags(33)
-  JustificationFlags_centredRight* = JustificationFlags(34)
-  JustificationFlags_centredTop* = JustificationFlags(12)
-  JustificationFlags_centredBottom* = JustificationFlags(20)
-  JustificationFlags_topLeft* = JustificationFlags(9)
-  JustificationFlags_topRight* = JustificationFlags(10)
-  JustificationFlags_bottomLeft* = JustificationFlags(17)
-  JustificationFlags_bottomRight* = JustificationFlags(18)
+let JustificationFlags_left* {.header: juce_graphics, importcpp: "juce::Justification::left".}: JustificationFlags
+let JustificationFlags_right* {.header: juce_graphics, importcpp: "juce::Justification::right".}: JustificationFlags
+let JustificationFlags_horizontallyCentred* {.header: juce_graphics, importcpp: "juce::Justification::horizontallyCentred".}: JustificationFlags
+let JustificationFlags_top* {.header: juce_graphics, importcpp: "juce::Justification::top".}: JustificationFlags
+let JustificationFlags_bottom* {.header: juce_graphics, importcpp: "juce::Justification::bottom".}: JustificationFlags
+let JustificationFlags_verticallyCentred* {.header: juce_graphics, importcpp: "juce::Justification::verticallyCentred".}: JustificationFlags
+let JustificationFlags_horizontallyJustified* {.header: juce_graphics, importcpp: "juce::Justification::horizontallyJustified".}: JustificationFlags
+let JustificationFlags_centred* {.header: juce_graphics, importcpp: "juce::Justification::centred".}: JustificationFlags
+let JustificationFlags_centredLeft* {.header: juce_graphics, importcpp: "juce::Justification::centredLeft".}: JustificationFlags
+let JustificationFlags_centredRight* {.header: juce_graphics, importcpp: "juce::Justification::centredRight".}: JustificationFlags
+let JustificationFlags_centredTop* {.header: juce_graphics, importcpp: "juce::Justification::centredTop".}: JustificationFlags
+let JustificationFlags_centredBottom* {.header: juce_graphics, importcpp: "juce::Justification::centredBottom".}: JustificationFlags
+let JustificationFlags_topLeft* {.header: juce_graphics, importcpp: "juce::Justification::topLeft".}: JustificationFlags
+let JustificationFlags_topRight* {.header: juce_graphics, importcpp: "juce::Justification::topRight".}: JustificationFlags
+let JustificationFlags_bottomLeft* {.header: juce_graphics, importcpp: "juce::Justification::bottomLeft".}: JustificationFlags
+let JustificationFlags_bottomRight* {.header: juce_graphics, importcpp: "juce::Justification::bottomRight".}: JustificationFlags
 
-const
-  PathStrokeTypeJointStyle_mitered* = PathStrokeTypeJointStyle(0)
-  PathStrokeTypeJointStyle_curved* = PathStrokeTypeJointStyle(1)
-  PathStrokeTypeJointStyle_beveled* = PathStrokeTypeJointStyle(2)
+let PathStrokeTypeJointStyle_mitered* {.header: juce_graphics, importcpp: "juce::PathStrokeType::mitered".}: PathStrokeTypeJointStyle
+let PathStrokeTypeJointStyle_curved* {.header: juce_graphics, importcpp: "juce::PathStrokeType::curved".}: PathStrokeTypeJointStyle
+let PathStrokeTypeJointStyle_beveled* {.header: juce_graphics, importcpp: "juce::PathStrokeType::beveled".}: PathStrokeTypeJointStyle
 
-const
-  PathStrokeTypeEndCapStyle_butt* = PathStrokeTypeEndCapStyle(0)
-  PathStrokeTypeEndCapStyle_square* = PathStrokeTypeEndCapStyle(1)
-  PathStrokeTypeEndCapStyle_rounded* = PathStrokeTypeEndCapStyle(2)
+let PathStrokeTypeEndCapStyle_butt* {.header: juce_graphics, importcpp: "juce::PathStrokeType::butt".}: PathStrokeTypeEndCapStyle
+let PathStrokeTypeEndCapStyle_square* {.header: juce_graphics, importcpp: "juce::PathStrokeType::square".}: PathStrokeTypeEndCapStyle
+let PathStrokeTypeEndCapStyle_rounded* {.header: juce_graphics, importcpp: "juce::PathStrokeType::rounded".}: PathStrokeTypeEndCapStyle
 
-const
-  RectanglePlacementFlags_xLeft* = RectanglePlacementFlags(1)
-  RectanglePlacementFlags_xRight* = RectanglePlacementFlags(2)
-  RectanglePlacementFlags_xMid* = RectanglePlacementFlags(4)
-  RectanglePlacementFlags_yTop* = RectanglePlacementFlags(8)
-  RectanglePlacementFlags_yBottom* = RectanglePlacementFlags(16)
-  RectanglePlacementFlags_yMid* = RectanglePlacementFlags(32)
-  RectanglePlacementFlags_stretchToFit* = RectanglePlacementFlags(64)
-  RectanglePlacementFlags_fillDestination* = RectanglePlacementFlags(128)
-  RectanglePlacementFlags_onlyReduceInSize* = RectanglePlacementFlags(256)
-  RectanglePlacementFlags_onlyIncreaseInSize* = RectanglePlacementFlags(512)
-  RectanglePlacementFlags_doNotResize* = RectanglePlacementFlags(768)
-  RectanglePlacementFlags_centred* = RectanglePlacementFlags(36)
+let RectanglePlacementFlags_xLeft* {.header: juce_graphics, importcpp: "juce::RectanglePlacement::xLeft".}: RectanglePlacementFlags
+let RectanglePlacementFlags_xRight* {.header: juce_graphics, importcpp: "juce::RectanglePlacement::xRight".}: RectanglePlacementFlags
+let RectanglePlacementFlags_xMid* {.header: juce_graphics, importcpp: "juce::RectanglePlacement::xMid".}: RectanglePlacementFlags
+let RectanglePlacementFlags_yTop* {.header: juce_graphics, importcpp: "juce::RectanglePlacement::yTop".}: RectanglePlacementFlags
+let RectanglePlacementFlags_yBottom* {.header: juce_graphics, importcpp: "juce::RectanglePlacement::yBottom".}: RectanglePlacementFlags
+let RectanglePlacementFlags_yMid* {.header: juce_graphics, importcpp: "juce::RectanglePlacement::yMid".}: RectanglePlacementFlags
+let RectanglePlacementFlags_stretchToFit* {.header: juce_graphics, importcpp: "juce::RectanglePlacement::stretchToFit".}: RectanglePlacementFlags
+let RectanglePlacementFlags_fillDestination* {.header: juce_graphics, importcpp: "juce::RectanglePlacement::fillDestination".}: RectanglePlacementFlags
+let RectanglePlacementFlags_onlyReduceInSize* {.header: juce_graphics, importcpp: "juce::RectanglePlacement::onlyReduceInSize".}: RectanglePlacementFlags
+let RectanglePlacementFlags_onlyIncreaseInSize* {.header: juce_graphics, importcpp: "juce::RectanglePlacement::onlyIncreaseInSize".}: RectanglePlacementFlags
+let RectanglePlacementFlags_doNotResize* {.header: juce_graphics, importcpp: "juce::RectanglePlacement::doNotResize".}: RectanglePlacementFlags
+let RectanglePlacementFlags_centred* {.header: juce_graphics, importcpp: "juce::RectanglePlacement::centred".}: RectanglePlacementFlags
 
-const
-  GraphicsResamplingQuality_lowResamplingQuality* = GraphicsResamplingQuality(0)
-  GraphicsResamplingQuality_mediumResamplingQuality* = GraphicsResamplingQuality(1)
-  GraphicsResamplingQuality_highResamplingQuality* = GraphicsResamplingQuality(2)
+let GraphicsResamplingQuality_lowResamplingQuality* {.header: juce_graphics, importcpp: "juce::Graphics::lowResamplingQuality".}: GraphicsResamplingQuality
+let GraphicsResamplingQuality_mediumResamplingQuality* {.header: juce_graphics, importcpp: "juce::Graphics::mediumResamplingQuality".}: GraphicsResamplingQuality
+let GraphicsResamplingQuality_highResamplingQuality* {.header: juce_graphics, importcpp: "juce::Graphics::highResamplingQuality".}: GraphicsResamplingQuality
 
-const
-  ImagePixelFormat_UnknownFormat* = ImagePixelFormat(0)
-  ImagePixelFormat_RGB* = ImagePixelFormat(1)
-  ImagePixelFormat_ARGB* = ImagePixelFormat(2)
-  ImagePixelFormat_SingleChannel* = ImagePixelFormat(3)
+let ImagePixelFormat_UnknownFormat* {.header: juce_graphics, importcpp: "juce::Image::UnknownFormat".}: ImagePixelFormat
+let ImagePixelFormat_RGB* {.header: juce_graphics, importcpp: "juce::Image::RGB".}: ImagePixelFormat
+let ImagePixelFormat_ARGB* {.header: juce_graphics, importcpp: "juce::Image::ARGB".}: ImagePixelFormat
+let ImagePixelFormat_SingleChannel* {.header: juce_graphics, importcpp: "juce::Image::SingleChannel".}: ImagePixelFormat
 
-const
-  TypefaceColourGlyphFormat_colourGlyphFormatBitmap* = TypefaceColourGlyphFormat(1)
-  TypefaceColourGlyphFormat_colourGlyphFormatSvg* = TypefaceColourGlyphFormat(2)
-  TypefaceColourGlyphFormat_colourGlyphFormatCOLRv0* = TypefaceColourGlyphFormat(4)
-  TypefaceColourGlyphFormat_colourGlyphFormatCOLRv1* = TypefaceColourGlyphFormat(8)
+let TypefaceColourGlyphFormat_colourGlyphFormatBitmap* {.header: juce_graphics, importcpp: "juce::Typeface::colourGlyphFormatBitmap".}: TypefaceColourGlyphFormat
+let TypefaceColourGlyphFormat_colourGlyphFormatSvg* {.header: juce_graphics, importcpp: "juce::Typeface::colourGlyphFormatSvg".}: TypefaceColourGlyphFormat
+let TypefaceColourGlyphFormat_colourGlyphFormatCOLRv0* {.header: juce_graphics, importcpp: "juce::Typeface::colourGlyphFormatCOLRv0".}: TypefaceColourGlyphFormat
+let TypefaceColourGlyphFormat_colourGlyphFormatCOLRv1* {.header: juce_graphics, importcpp: "juce::Typeface::colourGlyphFormatCOLRv1".}: TypefaceColourGlyphFormat
 
-const
-  FontFontStyleFlags_plain* = FontFontStyleFlags(0)
-  FontFontStyleFlags_bold* = FontFontStyleFlags(1)
-  FontFontStyleFlags_italic* = FontFontStyleFlags(2)
-  FontFontStyleFlags_underlined* = FontFontStyleFlags(4)
+let FontFontStyleFlags_plain* {.header: juce_graphics, importcpp: "juce::Font::plain".}: FontFontStyleFlags
+let FontFontStyleFlags_bold* {.header: juce_graphics, importcpp: "juce::Font::bold".}: FontFontStyleFlags
+let FontFontStyleFlags_italic* {.header: juce_graphics, importcpp: "juce::Font::italic".}: FontFontStyleFlags
+let FontFontStyleFlags_underlined* {.header: juce_graphics, importcpp: "juce::Font::underlined".}: FontFontStyleFlags
 
-const
-  AttributedStringWordWrap_none* = AttributedStringWordWrap(0)
-  AttributedStringWordWrap_byWord* = AttributedStringWordWrap(1)
-  AttributedStringWordWrap_byChar* = AttributedStringWordWrap(2)
+let AttributedStringWordWrap_none* {.header: juce_graphics, importcpp: "juce::AttributedString::none".}: AttributedStringWordWrap
+let AttributedStringWordWrap_byWord* {.header: juce_graphics, importcpp: "juce::AttributedString::byWord".}: AttributedStringWordWrap
+let AttributedStringWordWrap_byChar* {.header: juce_graphics, importcpp: "juce::AttributedString::byChar".}: AttributedStringWordWrap
 
-const
-  AttributedStringReadingDirection_natural* = AttributedStringReadingDirection(0)
-  AttributedStringReadingDirection_leftToRight* = AttributedStringReadingDirection(1)
-  AttributedStringReadingDirection_rightToLeft* = AttributedStringReadingDirection(2)
+let AttributedStringReadingDirection_natural* {.header: juce_graphics, importcpp: "juce::AttributedString::natural".}: AttributedStringReadingDirection
+let AttributedStringReadingDirection_leftToRight* {.header: juce_graphics, importcpp: "juce::AttributedString::leftToRight".}: AttributedStringReadingDirection
+let AttributedStringReadingDirection_rightToLeft* {.header: juce_graphics, importcpp: "juce::AttributedString::rightToLeft".}: AttributedStringReadingDirection
 
 const
   PixelARGB_indexA*: cint = 3
