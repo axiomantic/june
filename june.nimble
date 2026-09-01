@@ -24,6 +24,7 @@ task examples, "Compile every example":
   # Compile only: they open a window. CI runs the same check, because the
   # examples are reproduced in the README.
   exec "nim cpp -c examples/custom_component.nim"
+  exec "nim cpp -c examples/rotary_panel.nim"
   exec "nim cpp -c examples/test_app.nim"
 
 task juce_debug, "Build juce (debug)":
