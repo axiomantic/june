@@ -220,4 +220,3 @@ proc convertTo0to1*[T](this: NormalisableRange[T], v: T): T {.importcpp: "#.conv
 proc convertFrom0to1*[T](this: NormalisableRange[T], v: T): T {.importcpp: "#.convertFrom0to1(@)".}
 proc snapToLegalValue*[T](this: NormalisableRange[T], v: T): T {.importcpp: "#.snapToLegalValue(@)".}
 proc getRange*[T](this: NormalisableRange[T]): Range[T] {.importcpp: "#.getRange()".}
-

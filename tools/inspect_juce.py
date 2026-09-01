@@ -13,6 +13,8 @@ from clang_base_enumerations import CursorKind, AccessSpecifier
 
 nim_enum_def = """  {enum_name}* {{.header: {juce_module_name}, importcpp: "{spelling}".}} = distinct cint"""
 
+nim_dollar_def = """proc `$`*(this: {class_name}): string = $this.toString()"""
+
 nim_no_equality_def = """proc `==`*(this: {class_name}, other: {class_name}): bool {{.error: "{spelling} defines no operator==; compare a property instead".}}"""
 
 nim_enum_constant_def = """let {constant_name}* {{.header: {juce_module_name}, importcpp: "{spelling}".}}: {enum_name}"""
@@ -575,6 +577,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
     emitted_types = set()
     emitted_declarations = set()
     declared_type_names = set()
+    dollar_definitions = []
     enum_remap = {}
     global_nested_remap = {}
 
@@ -952,6 +955,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
             print(declaration)
 
         class_bound_equality = False
+        class_has_to_string = False
 
         for m in filter(lambda x: x.kind == CursorKind.CXX_METHOD, c.get_children()):
             if m.access_specifier != AccessSpecifier.PUBLIC:
@@ -1056,6 +1060,13 @@ def run_main(juce_module_name, juce_class_name_to_export):
             if method_name == "`==`" and not comment:
                 class_bound_equality = True
 
+            # A zero-argument toString returning a String is what $ should use.
+            # Without it Nim's default $ prints "()" for every one of these: an
+            # importcpp object declares no fields, so there is nothing to show.
+            if (method_name == "toString" and not comment and len(args) == 1
+                    and return_type == ": String"):
+                class_has_to_string = True
+
             print(declaration)
 
         # Where C++ defines no equality, make comparing two of these a compile
@@ -1063,6 +1074,13 @@ def run_main(juce_module_name, juce_class_name_to_export):
         # importcpp object declares no fields, so it compares nothing and
         # reports every two values equal - silently, and in the direction that
         # makes a test pass. != is derived from ==, so it is covered too.
+        if class_has_to_string:
+            # Emitted after the _lifting include below, not here: the body calls
+            # $ on a String, and that is defined in the lifting file. Declared
+            # before it, the call resolves to Nim's default $ for an object,
+            # which prints "()" because these declare no fields.
+            dollar_definitions.append(nim_dollar_def.format(**{"class_name": class_name}))
+
         if not class_bound_equality and class_name not in equality_bound_by_lifting:
             print(nim_no_equality_def.format(**{
                 "class_name": class_name,
@@ -1071,6 +1089,9 @@ def run_main(juce_module_name, juce_class_name_to_export):
         print()
 
     print(nim_suffix_def.format(**{"juce_module_name": juce_module_name}))
+
+    if dollar_definitions:
+        print("\n".join(dollar_definitions))
 
 
 if __name__ == "__main__":
