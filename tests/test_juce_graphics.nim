@@ -56,8 +56,7 @@ proc testDrawing() =
   doAssert img.getPixelAt(5.cint, 5.cint).getBlue() == 0
   doAssert img.getPixelAt(20.cint, 20.cint).getRed() == 0
 
-testGeometry()
-testDrawing()
+
 
 proc testText() =
   let img = makeImage(ImagePixelFormat_ARGB, 60.cint, 20.cint, true)
@@ -75,5 +74,12 @@ proc testText() =
         litPixels += 1
   doAssert litPixels > 0, "drawText produced no pixels"
 
+testGeometry()
+
+# Image, Graphics and the font machinery reach for JUCE singletons, which assert
+# at exit unless the GUI was initialised and shut down around them.
+initialiseJuce_GUI()
+testDrawing()
 testText()
+shutdownJuce_GUI()
 
