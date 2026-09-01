@@ -25,6 +25,11 @@ proc withStartAndLength*[T](this: typedesc[Range[T]], startValue: T, length: T):
 proc emptyRange*[T](this: typedesc[Range[T]], start: T): Range[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::Range<'*0>::emptyRange(@)".}
 proc findMinAndMax*[T](this: typedesc[Range[T]], values: ptr T, numValues: cint): Range[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::Range<'*0>::findMinAndMax(@)".}
 
+# Bind == explicitly. Without it Nim falls back to structural equality, and an
+# importcpp object declares no fields, so it compares nothing and reports every
+# two values equal. != follows from == by derivation.
+proc `==`*[T](this: Range[T], other: Range[T]): bool {.header: "<juce_core/juce_core.h>", importcpp: "# == #".}
+
 proc getStart*[T](this: Range[T]): T {.header: "<juce_core/juce_core.h>", importcpp: "#.getStart(@)".}
 proc getLength*[T](this: Range[T]): T {.header: "<juce_core/juce_core.h>", importcpp: "#.getLength(@)".}
 proc getEnd*[T](this: Range[T]): T {.header: "<juce_core/juce_core.h>", importcpp: "#.getEnd(@)".}
@@ -65,6 +70,8 @@ type
 proc makePoint*[T](): Point[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::Point<'*0>()", constructor.}
 proc makePoint*[T](x: T, y: T): Point[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::Point<'*0>(@)", constructor.}
 
+proc `==`*[T](this: Point[T], other: Point[T]): bool {.header: "<juce_graphics/juce_graphics.h>", importcpp: "# == #".}
+
 proc getX*[T](this: Point[T]): T {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getX()".}
 proc getY*[T](this: Point[T]): T {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getY()".}
 proc setX*[T](this: var Point[T], newX: T) {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.setX(@)".}
@@ -81,6 +88,8 @@ proc toInt*[T](this: Point[T]): Point[cint] {.header: "<juce_graphics/juce_graph
 proc makeRectangle*[T](): Rectangle[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::Rectangle<'*0>()", constructor.}
 proc makeRectangle*[T](width: T, height: T): Rectangle[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::Rectangle<'*0>(@)", constructor.}
 proc makeRectangle*[T](x: T, y: T, width: T, height: T): Rectangle[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::Rectangle<'*0>(@)", constructor.}
+
+proc `==`*[T](this: Rectangle[T], other: Rectangle[T]): bool {.header: "<juce_graphics/juce_graphics.h>", importcpp: "# == #".}
 
 proc getX*[T](this: Rectangle[T]): T {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getX()".}
 proc getY*[T](this: Rectangle[T]): T {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getY()".}
@@ -117,6 +126,8 @@ proc removeFromRight*[T](this: var Rectangle[T], amount: T): Rectangle[T] {.head
 
 # Line
 proc makeLine*[T](startX: T, startY: T, endX: T, endY: T): Line[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::Line<'*0>(@)", constructor.}
+proc `==`*[T](this: Line[T], other: Line[T]): bool {.header: "<juce_graphics/juce_graphics.h>", importcpp: "# == #".}
+
 proc getStart*[T](this: Line[T]): Point[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getStart()".}
 proc getEnd*[T](this: Line[T]): Point[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getEnd()".}
 proc getLength*[T](this: Line[T]): T {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getLength()".}
