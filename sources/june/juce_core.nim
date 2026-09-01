@@ -1482,12 +1482,12 @@ proc `+`*(this: BigInteger, arg1: BigInteger): BigInteger {.header: juce_core, i
 proc `-`*(this: BigInteger, arg1: BigInteger): BigInteger {.header: juce_core, importcpp: "#.operator-(@)".}
 proc `*`*(this: BigInteger, arg1: BigInteger): BigInteger {.header: juce_core, importcpp: "#.operator*(@)".}
 proc `/`*(this: BigInteger, arg1: BigInteger): BigInteger {.header: juce_core, importcpp: "#.operator/(@)".}
-# proc operator|*(this: BigInteger, arg1: BigInteger): BigInteger {.header: juce_core, importcpp: "#.operator|(@)".}
-# proc operator&*(this: BigInteger, arg1: BigInteger): BigInteger {.header: juce_core, importcpp: "#.operator&(@)".}
-# proc operator^*(this: BigInteger, arg1: BigInteger): BigInteger {.header: juce_core, importcpp: "#.operator^(@)".}
-# proc operator%*(this: BigInteger, arg1: BigInteger): BigInteger {.header: juce_core, importcpp: "#.operator%(@)".}
-# proc operator<<*(this: BigInteger, numBitsToShift: cint): BigInteger {.header: juce_core, importcpp: "#.operator<<(@)".}
-# proc operator>>*(this: BigInteger, numBitsToShift: cint): BigInteger {.header: juce_core, importcpp: "#.operator>>(@)".}
+proc `|`*(this: BigInteger, arg1: BigInteger): BigInteger {.header: juce_core, importcpp: "#.operator|(@)".}
+proc `&`*(this: BigInteger, arg1: BigInteger): BigInteger {.header: juce_core, importcpp: "#.operator&(@)".}
+proc `^`*(this: BigInteger, arg1: BigInteger): BigInteger {.header: juce_core, importcpp: "#.operator^(@)".}
+proc `%`*(this: BigInteger, arg1: BigInteger): BigInteger {.header: juce_core, importcpp: "#.operator%(@)".}
+proc `shl`*(this: BigInteger, numBitsToShift: cint): BigInteger {.header: juce_core, importcpp: "#.operator<<(@)".}
+proc `shr`*(this: BigInteger, numBitsToShift: cint): BigInteger {.header: juce_core, importcpp: "#.operator>>(@)".}
 proc `==`*(this: BigInteger, arg1: BigInteger): bool {.header: juce_core, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: BigInteger, arg1: BigInteger): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
 proc `<`*(this: BigInteger, arg1: BigInteger): bool {.header: juce_core, importcpp: "#.operator<(@)".}

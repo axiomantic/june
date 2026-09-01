@@ -530,6 +530,16 @@ def remap_operator_name(class_name, method_name):
         "operator*": "`*`",
         "operator/": "`/`",
         "operator[]": "`[]`",
+        # Nim has no bitwise or shift operator of its own for these spellings -
+        # it uses `and`, `or`, `shl` and `shr` - so binding them introduces no
+        # ambiguity with an existing overload. `&` is the exception: it already
+        # concatenates strings, and an overload on a JUCE type is distinct.
+        "operator|": "`|`",
+        "operator&": "`&`",
+        "operator^": "`^`",
+        "operator%": "`%`",
+        "operator<<": "`shl`",
+        "operator>>": "`shr`",
     }
     if method_name in nim_operators:
         return nim_operators[method_name]
