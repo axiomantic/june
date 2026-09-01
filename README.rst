@@ -223,8 +223,11 @@ Hand-written additions live in the ``*_lifting.nim`` files and in
 - The standard library types JUCE exposes: ``std::unique_ptr``,
   ``std::optional``, ``std::vector``, ``std::string`` and ``std::function``.
 - Subclasses whose virtual methods call into Nim: ``CustomComponent``,
-  ``CustomButton``, ``CustomTimer``, plus the ``JUCEApplication`` and
-  ``DocumentWindow`` that were already there.
+  ``CustomButton``, ``CustomTimer``, ``CustomAsyncUpdater``,
+  ``CustomActionListener`` and ``CustomChangeListener``, plus the
+  ``JUCEApplication`` and ``DocumentWindow`` that were already there. Each of
+  those JUCE classes has a pure virtual, so none could be instantiated without
+  a subclass.
 
 Instantiate a class template with ``cint`` or ``cfloat``, never Nim's ``int`` or
 ``float``. Nim puts the parameter's C++ name into the template, and Nim's

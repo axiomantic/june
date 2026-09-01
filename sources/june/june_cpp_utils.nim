@@ -59,6 +59,13 @@ proc makeCppType(node: NimNode): CppType {.compiletime.} =
     else:
       error "Invalid type definition"
 
+  of nnkPtrTy:
+    # A pointer parameter, such as ChangeListener's ChangeBroadcaster*. Passed
+    # through as a pointer on both sides, so nothing needs taking an address of.
+    result.nim = realNode
+    result.cpp = $realNode[0]
+    result.isPointer = true
+
   of nnkEmpty:
     result.nim = newIdentNode("void")
     result.cpp = "void"
