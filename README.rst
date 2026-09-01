@@ -201,6 +201,34 @@ To run something on the message thread, bind the closure first and pass it to
   let callback: CppFunctionObjectN0 = bindClosure(proc() = echo "on the message thread")
   discard MessageManager.callAsync(callback)
 
+Theming With A LookAndFeel
+--------------------------
+
+Every JUCE widget asks its ``LookAndFeel`` to draw it, so overriding one method
+restyles every widget of that kind at once. ``CustomLookAndFeel`` subclasses
+``LookAndFeel_V4``; an override left unset falls through to the V4 drawing.
+
+.. code-block:: nim
+
+  let theme = newCustomLookAndFeel()
+
+  theme[].setDrawRotarySliderHandler(proc(g: ptr Graphics, x, y, width, height: cint,
+                                          sliderPos, startAngle, endAngle: cfloat,
+                                          slider: ptr Slider) =
+    g[].setColour(makeColour(120'u8, 200'u8, 160'u8, 255'u8))
+    g[].fillEllipse(x.float32, y.float32, width.float32, height.float32)
+  )
+
+  slider[].setLookAndFeel(theme)
+
+``setDrawButtonBackgroundHandler`` and ``setDrawLabelHandler`` are bound the
+same way. Clear a widget's look and feel with ``setLookAndFeel(nil)`` before
+deleting the theme: a ``Component`` must not outlive the ``LookAndFeel`` it
+points at.
+
+``examples/rotary_panel.nim`` puts these together into a complete application --
+a window, a themed rotary slider, a label and a timer.
+
 ----------------
 What Is Bound
 ----------------
@@ -224,9 +252,9 @@ Hand-written additions live in the ``*_lifting.nim`` files and in
   ``std::optional``, ``std::vector``, ``std::string`` and ``std::function``.
 - Subclasses whose virtual methods call into Nim: ``CustomComponent``,
   ``CustomButton``, ``CustomTimer``, ``CustomAsyncUpdater``,
-  ``CustomActionListener``, ``CustomChangeListener``, ``CustomSlider`` and
-  ``CustomLabel``, plus the ``JUCEApplication`` and ``DocumentWindow`` that
-  were already there. Most of those JUCE classes have a pure virtual, so they
+  ``CustomActionListener``, ``CustomChangeListener``, ``CustomSlider``,
+  ``CustomLabel`` and ``CustomLookAndFeel``, plus the ``JUCEApplication`` and
+  ``DocumentWindow`` that were already there. Most of those JUCE classes have a pure virtual, so they
   could not be instantiated without a subclass at all.
 
 Instantiate a class template with ``cint`` or ``cfloat``, never Nim's ``int`` or
