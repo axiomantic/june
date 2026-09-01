@@ -131,3 +131,24 @@ proc testDerivedComparisonOperators() =
   doAssert makeStringRef(b) >= identifierA   # derived from `<=`
 
 testDerivedComparisonOperators()
+
+# Compound assignment used to be bound as `String+=`, a legal Nim identifier
+# that cannot be written as an operator. The point of binding one is to write
+# a += b, so this is the assertion that the spelling is usable.
+proc testCompoundAssignment() =
+  var text = makeString("ab")
+  text += makeString("cd")
+  doAssert $text == "abcd"
+
+  text += "ef"
+  doAssert $text == "abcdef"
+
+  # C++ returns a reference to the target and Nim's form is a statement, so the
+  # binding returns nothing. Chaining it is a compile error, not a silent no-op.
+  doAssert typeof(text += makeString("x")) is void
+
+  var bits = makeBigInteger(0b1100.cint)
+  bits |= makeBigInteger(0b0011.cint)
+  doAssert bits.toInteger() == 0b1111
+
+testCompoundAssignment()

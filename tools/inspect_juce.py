@@ -473,6 +473,25 @@ def remap_identifier(identifier):
 def remap_method_name(method_name):
     return remap_identifier(method_name)
 
+# Compound assignment. C++ returns a reference to the target; Nim's form is a
+# statement, and a proc returning a value cannot be used as one, so the return
+# is dropped at the emission site. Binding these as `BigInteger+=` instead made
+# a legal identifier that cannot be written as an operator, which is the same
+# uselessness the mangled `Colour==` had.
+nim_compound_assignments = {
+    "operator+=": "`+=`",
+    "operator-=": "`-=`",
+    "operator*=": "`*=`",
+    "operator/=": "`/=`",
+    "operator|=": "`|=`",
+    "operator&=": "`&=`",
+    "operator^=": "`^=`",
+    "operator%=": "`%=`",
+    "operator<<=": "`<<=`",
+    "operator>>=": "`>>=`",
+}
+
+
 def remap_operator_name(class_name, method_name):
     # Nim can spell these, so bind them as the operators they are. They used to
     # be mangled into `Colour==`, which is a legal identifier and useless: the
@@ -490,20 +509,13 @@ def remap_operator_name(class_name, method_name):
     if method_name in nim_operators:
         return nim_operators[method_name]
 
+    if method_name in nim_compound_assignments:
+        return nim_compound_assignments[method_name]
+
     remap_table = {
         # != > and >= are not bound: Nim derives != from ==, and reverses > and
         # >= from < and <=, so binding them creates ambiguous overloads.
         "operator=": f"`{class_name}=`",
-        "operator+=": f"`{class_name}+=`",
-        "operator-=": f"`{class_name}-=`",
-        "operator/=": f"`{class_name}/=`",
-        "operator*=": f"`{class_name}*=`",
-        "operator|=": f"`{class_name}|=`",
-        "operator&=": f"`{class_name}&=`",
-        "operator^=": f"`{class_name}^=`",
-        "operator%=": f"`{class_name}%=`",
-        "operator<<=": f"`{class_name}<<=`",
-        "operator>>=": f"`{class_name}>>=`",
         "operator++": "`inc`",
         "operator--": "`dec`",
     }
@@ -533,7 +545,7 @@ def skip_class_method(class_name, method_name):
     skip_table = {
         "ConsoleApplication": {"findAndRunCommand"},
         "AbstractFifo": {"read", "write"},
-        "String": {"quoted", "operator+="},
+        "String": {"quoted"},
         "StringArray": {"appendNumbersToDuplicates"},
         "DynamicObject": {"clone"},
         "MemoryMappedFile": {"getRange"},
@@ -1052,12 +1064,6 @@ def run_main(juce_module_name, juce_class_name_to_export):
             # value is not either: reading "ignoreCase: bool = false" as a type
             # made "false" look like an undeclared name and commented out every
             # proc that had one.
-            rendered = ", ".join(argument_types) + return_type
-            if ("<" in rendered or "::" in rendered or "(" in rendered
-                    or is_c_array(rendered)
-                    or not type_is_declared(rendered, declared_type_names)):
-                comment = "# "
-
             method_spelling = m.spelling
             method_name = remap_method_name(remap_wrapped_method_name(class_name, m.spelling))
             if method_name.startswith("operator"):
@@ -1065,6 +1071,17 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 if not method_name:
                     method_name = m.spelling
                     comment = "# "
+
+            # Dropped before the check below, so a compound assignment is not
+            # commented out over a return type it no longer has.
+            if method_name in nim_compound_assignments.values():
+                return_type = ""
+
+            rendered = ", ".join(argument_types) + return_type
+            if ("<" in rendered or "::" in rendered or "(" in rendered
+                    or is_c_array(rendered)
+                    or not type_is_declared(rendered, declared_type_names)):
+                comment = "# "
 
             declaration = nim_method_def.format(**{
                 "comment": comment,

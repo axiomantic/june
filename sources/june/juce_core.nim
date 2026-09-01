@@ -336,8 +336,8 @@ proc `inc`*(this: var CharPointer_UTF8): var CharPointer_UTF8 {.header: juce_cor
 proc `dec`*(this: var CharPointer_UTF8): var CharPointer_UTF8 {.header: juce_core, importcpp: "#.operator--()".}
 proc getAndAdvance*(this: var CharPointer_UTF8): uint16 {.header: juce_core, importcpp: "#.getAndAdvance()".}
 proc `inc`*(this: var CharPointer_UTF8, arg1: cint): CharPointer_UTF8 {.header: juce_core, importcpp: "#.operator++(@)".}
-proc `CharPointer_UTF8+=`*(this: var CharPointer_UTF8, numToSkip: cint): var CharPointer_UTF8 {.header: juce_core, importcpp: "#.operator+=(@)".}
-proc `CharPointer_UTF8-=`*(this: var CharPointer_UTF8, numToSkip: cint): var CharPointer_UTF8 {.header: juce_core, importcpp: "#.operator-=(@)".}
+proc `+=`*(this: var CharPointer_UTF8, numToSkip: cint) {.header: juce_core, importcpp: "#.operator+=(@)".}
+proc `-=`*(this: var CharPointer_UTF8, numToSkip: cint) {.header: juce_core, importcpp: "#.operator-=(@)".}
 proc `[]`*(this: CharPointer_UTF8, characterIndex: cint): uint16 {.header: juce_core, importcpp: "#.operator[](@)".}
 proc `+`*(this: CharPointer_UTF8, numToSkip: cint): CharPointer_UTF8 {.header: juce_core, importcpp: "#.operator+(@)".}
 proc `-`*(this: CharPointer_UTF8, numToSkip: cint): CharPointer_UTF8 {.header: juce_core, importcpp: "#.operator-(@)".}
@@ -384,8 +384,8 @@ proc `inc`*(this: var CharPointer_UTF16): var CharPointer_UTF16 {.header: juce_c
 proc `dec`*(this: var CharPointer_UTF16): var CharPointer_UTF16 {.header: juce_core, importcpp: "#.operator--()".}
 proc getAndAdvance*(this: var CharPointer_UTF16): uint16 {.header: juce_core, importcpp: "#.getAndAdvance()".}
 proc `inc`*(this: var CharPointer_UTF16, arg1: cint): CharPointer_UTF16 {.header: juce_core, importcpp: "#.operator++(@)".}
-proc `CharPointer_UTF16+=`*(this: var CharPointer_UTF16, numToSkip: cint): var CharPointer_UTF16 {.header: juce_core, importcpp: "#.operator+=(@)".}
-proc `CharPointer_UTF16-=`*(this: var CharPointer_UTF16, numToSkip: cint): var CharPointer_UTF16 {.header: juce_core, importcpp: "#.operator-=(@)".}
+proc `+=`*(this: var CharPointer_UTF16, numToSkip: cint) {.header: juce_core, importcpp: "#.operator+=(@)".}
+proc `-=`*(this: var CharPointer_UTF16, numToSkip: cint) {.header: juce_core, importcpp: "#.operator-=(@)".}
 proc `[]`*(this: CharPointer_UTF16, characterIndex: cint): uint16 {.header: juce_core, importcpp: "#.operator[](@)".}
 proc `+`*(this: CharPointer_UTF16, numToSkip: cint): CharPointer_UTF16 {.header: juce_core, importcpp: "#.operator+(@)".}
 proc `-`*(this: CharPointer_UTF16, numToSkip: cint): CharPointer_UTF16 {.header: juce_core, importcpp: "#.operator-(@)".}
@@ -431,8 +431,8 @@ proc `inc`*(this: var CharPointer_UTF32): var CharPointer_UTF32 {.header: juce_c
 proc `dec`*(this: var CharPointer_UTF32): var CharPointer_UTF32 {.header: juce_core, importcpp: "#.operator--()".}
 proc getAndAdvance*(this: var CharPointer_UTF32): uint16 {.header: juce_core, importcpp: "#.getAndAdvance()".}
 proc `inc`*(this: var CharPointer_UTF32, arg1: cint): CharPointer_UTF32 {.header: juce_core, importcpp: "#.operator++(@)".}
-proc `CharPointer_UTF32+=`*(this: var CharPointer_UTF32, numToSkip: cint): var CharPointer_UTF32 {.header: juce_core, importcpp: "#.operator+=(@)".}
-proc `CharPointer_UTF32-=`*(this: var CharPointer_UTF32, numToSkip: cint): var CharPointer_UTF32 {.header: juce_core, importcpp: "#.operator-=(@)".}
+proc `+=`*(this: var CharPointer_UTF32, numToSkip: cint) {.header: juce_core, importcpp: "#.operator+=(@)".}
+proc `-=`*(this: var CharPointer_UTF32, numToSkip: cint) {.header: juce_core, importcpp: "#.operator-=(@)".}
 proc `[]`*(this: CharPointer_UTF32, characterIndex: cint): var uint16 {.header: juce_core, importcpp: "#.operator[](@)".}
 proc `+`*(this: CharPointer_UTF32, numToSkip: cint): CharPointer_UTF32 {.header: juce_core, importcpp: "#.operator+(@)".}
 proc `-`*(this: CharPointer_UTF32, numToSkip: cint): CharPointer_UTF32 {.header: juce_core, importcpp: "#.operator-(@)".}
@@ -480,8 +480,8 @@ proc `inc`*(this: var CharPointer_ASCII): var CharPointer_ASCII {.header: juce_c
 proc `dec`*(this: var CharPointer_ASCII): var CharPointer_ASCII {.header: juce_core, importcpp: "#.operator--()".}
 proc getAndAdvance*(this: var CharPointer_ASCII): uint16 {.header: juce_core, importcpp: "#.getAndAdvance()".}
 proc `inc`*(this: var CharPointer_ASCII, arg1: cint): CharPointer_ASCII {.header: juce_core, importcpp: "#.operator++(@)".}
-proc `CharPointer_ASCII+=`*(this: var CharPointer_ASCII, numToSkip: cint): var CharPointer_ASCII {.header: juce_core, importcpp: "#.operator+=(@)".}
-proc `CharPointer_ASCII-=`*(this: var CharPointer_ASCII, numToSkip: cint): var CharPointer_ASCII {.header: juce_core, importcpp: "#.operator-=(@)".}
+proc `+=`*(this: var CharPointer_ASCII, numToSkip: cint) {.header: juce_core, importcpp: "#.operator+=(@)".}
+proc `-=`*(this: var CharPointer_ASCII, numToSkip: cint) {.header: juce_core, importcpp: "#.operator-=(@)".}
 proc `[]`*(this: CharPointer_ASCII, characterIndex: cint): uint16 {.header: juce_core, importcpp: "#.operator[](@)".}
 proc `+`*(this: CharPointer_ASCII, numToSkip: cint): CharPointer_ASCII {.header: juce_core, importcpp: "#.operator+(@)".}
 proc `-`*(this: CharPointer_ASCII, numToSkip: cint): CharPointer_ASCII {.header: juce_core, importcpp: "#.operator-(@)".}
@@ -547,15 +547,15 @@ proc hash*(this: String): uint64 {.header: juce_core, importcpp: "#.hash()".}
 proc length*(this: String): cint {.header: juce_core, importcpp: "#.length()".}
 proc `String=`*(this: var String, other: String): var String {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `String=`*(this: var String, other: lent String): var String {.header: juce_core, importcpp: "#.operator=(@)".}
-# proc `String+=`*(this: var String, stringToAppend: String): var String {.header: juce_core, importcpp: "#.operator+=(@)".}
-# proc `String+=`*(this: var String, textToAppend: constChar): var String {.header: juce_core, importcpp: "#.operator+=(@)".}
-# proc `String+=`*(this: var String, textToAppend: ptr uint16): var String {.header: juce_core, importcpp: "#.operator+=(@)".}
-# proc `String+=`*(this: var String, textToAppend: StringRef): var String {.header: juce_core, importcpp: "#.operator+=(@)".}
-# proc `String+=`*(this: var String, numberToAppend: cint): var String {.header: juce_core, importcpp: "#.operator+=(@)".}
-# proc `String+=`*(this: var String, numberToAppend: int64): var String {.header: juce_core, importcpp: "#.operator+=(@)".}
-# proc `String+=`*(this: var String, numberToAppend: uint64): var String {.header: juce_core, importcpp: "#.operator+=(@)".}
-# proc `String+=`*(this: var String, characterToAppend: char): var String {.header: juce_core, importcpp: "#.operator+=(@)".}
-# proc `String+=`*(this: var String, characterToAppend: uint16): var String {.header: juce_core, importcpp: "#.operator+=(@)".}
+proc `+=`*(this: var String, stringToAppend: String) {.header: juce_core, importcpp: "#.operator+=(@)".}
+proc `+=`*(this: var String, textToAppend: constChar) {.header: juce_core, importcpp: "#.operator+=(@)".}
+proc `+=`*(this: var String, textToAppend: ptr uint16) {.header: juce_core, importcpp: "#.operator+=(@)".}
+proc `+=`*(this: var String, textToAppend: StringRef) {.header: juce_core, importcpp: "#.operator+=(@)".}
+proc `+=`*(this: var String, numberToAppend: cint) {.header: juce_core, importcpp: "#.operator+=(@)".}
+proc `+=`*(this: var String, numberToAppend: int64) {.header: juce_core, importcpp: "#.operator+=(@)".}
+proc `+=`*(this: var String, numberToAppend: uint64) {.header: juce_core, importcpp: "#.operator+=(@)".}
+proc `+=`*(this: var String, characterToAppend: char) {.header: juce_core, importcpp: "#.operator+=(@)".}
+proc `+=`*(this: var String, characterToAppend: uint16) {.header: juce_core, importcpp: "#.operator+=(@)".}
 proc append*(this: var String, textToAppend: String, maxCharsToTake: uint64) {.header: juce_core, importcpp: "#.append(@)".}
 proc appendCharPointer*(this: var String, startOfTextToAppend: CharPointer_UTF8, endOfTextToAppend: CharPointer_UTF8) {.header: juce_core, importcpp: "#.appendCharPointer(@)".}
 proc appendCharPointer*(this: var String, textToAppend: CharPointer_UTF8) {.header: juce_core, importcpp: "#.appendCharPointer(@)".}
@@ -1093,10 +1093,10 @@ proc inDays*(this: RelativeTime): float64 {.header: juce_core, importcpp: "#.inD
 proc inWeeks*(this: RelativeTime): float64 {.header: juce_core, importcpp: "#.inWeeks()".}
 # proc getDescription*(this: RelativeTime, returnValueForZeroTime: String): String {.header: juce_core, importcpp: "#.getDescription(@)".}
 proc getApproximateDescription*(this: RelativeTime): String {.header: juce_core, importcpp: "#.getApproximateDescription()".}
-proc `RelativeTime+=`*(this: var RelativeTime, timeToAdd: RelativeTime): RelativeTime {.header: juce_core, importcpp: "#.operator+=(@)".}
-proc `RelativeTime-=`*(this: var RelativeTime, timeToSubtract: RelativeTime): RelativeTime {.header: juce_core, importcpp: "#.operator-=(@)".}
-proc `RelativeTime+=`*(this: var RelativeTime, secondsToAdd: float64): RelativeTime {.header: juce_core, importcpp: "#.operator+=(@)".}
-proc `RelativeTime-=`*(this: var RelativeTime, secondsToSubtract: float64): RelativeTime {.header: juce_core, importcpp: "#.operator-=(@)".}
+proc `+=`*(this: var RelativeTime, timeToAdd: RelativeTime) {.header: juce_core, importcpp: "#.operator+=(@)".}
+proc `-=`*(this: var RelativeTime, timeToSubtract: RelativeTime) {.header: juce_core, importcpp: "#.operator-=(@)".}
+proc `+=`*(this: var RelativeTime, secondsToAdd: float64) {.header: juce_core, importcpp: "#.operator+=(@)".}
+proc `-=`*(this: var RelativeTime, secondsToSubtract: float64) {.header: juce_core, importcpp: "#.operator-=(@)".}
 proc `==`*(this: RelativeTime, other: RelativeTime): bool {.error: "juce::RelativeTime defines no operator==; compare a property instead".}
 
 proc makeTime*(): Time {.header: juce_core, importcpp: "juce::Time(@)".}
@@ -1124,8 +1124,8 @@ proc getUTCOffsetString*(this: Time, includeDividerCharacters: bool): String {.h
 proc toString*(this: Time, includeDate: bool, includeTime: bool, includeSeconds: bool = true, use24HourClock: bool = false): String {.header: juce_core, importcpp: "#.toString(@)".}
 proc formatted*(this: Time, format: String): String {.header: juce_core, importcpp: "#.formatted(@)".}
 proc toISO8601*(this: Time, includeDividerCharacters: bool): String {.header: juce_core, importcpp: "#.toISO8601(@)".}
-proc `Time+=`*(this: var Time, delta: RelativeTime): var Time {.header: juce_core, importcpp: "#.operator+=(@)".}
-proc `Time-=`*(this: var Time, delta: RelativeTime): var Time {.header: juce_core, importcpp: "#.operator-=(@)".}
+proc `+=`*(this: var Time, delta: RelativeTime) {.header: juce_core, importcpp: "#.operator+=(@)".}
+proc `-=`*(this: var Time, delta: RelativeTime) {.header: juce_core, importcpp: "#.operator-=(@)".}
 proc setSystemTimeToThisTime*(this: Time): bool {.header: juce_core, importcpp: "#.setSystemTimeToThisTime()".}
 proc `==`*(this: Time, other: Time): bool {.error: "juce::Time defines no operator==; compare a property instead".}
 
@@ -1479,16 +1479,16 @@ proc getHighestBit*(this: BigInteger): cint {.header: juce_core, importcpp: "#.g
 proc isNegative*(this: BigInteger): bool {.header: juce_core, importcpp: "#.isNegative()".}
 proc setNegative*(this: var BigInteger, shouldBeNegative: bool) {.header: juce_core, importcpp: "#.setNegative(@)".}
 proc negate*(this: var BigInteger) {.header: juce_core, importcpp: "#.negate()".}
-proc `BigInteger+=`*(this: var BigInteger, arg1: BigInteger): var BigInteger {.header: juce_core, importcpp: "#.operator+=(@)".}
-proc `BigInteger-=`*(this: var BigInteger, arg1: BigInteger): var BigInteger {.header: juce_core, importcpp: "#.operator-=(@)".}
-proc `BigInteger*=`*(this: var BigInteger, arg1: BigInteger): var BigInteger {.header: juce_core, importcpp: "#.operator*=(@)".}
-proc `BigInteger/=`*(this: var BigInteger, arg1: BigInteger): var BigInteger {.header: juce_core, importcpp: "#.operator/=(@)".}
-proc `BigInteger|=`*(this: var BigInteger, arg1: BigInteger): var BigInteger {.header: juce_core, importcpp: "#.operator|=(@)".}
-proc `BigInteger&=`*(this: var BigInteger, arg1: BigInteger): var BigInteger {.header: juce_core, importcpp: "#.operator&=(@)".}
-proc `BigInteger^=`*(this: var BigInteger, arg1: BigInteger): var BigInteger {.header: juce_core, importcpp: "#.operator^=(@)".}
-proc `BigInteger%=`*(this: var BigInteger, arg1: BigInteger): var BigInteger {.header: juce_core, importcpp: "#.operator%=(@)".}
-proc `BigInteger<<=`*(this: var BigInteger, numBitsToShift: cint): var BigInteger {.header: juce_core, importcpp: "#.operator<<=(@)".}
-proc `BigInteger>>=`*(this: var BigInteger, numBitsToShift: cint): var BigInteger {.header: juce_core, importcpp: "#.operator>>=(@)".}
+proc `+=`*(this: var BigInteger, arg1: BigInteger) {.header: juce_core, importcpp: "#.operator+=(@)".}
+proc `-=`*(this: var BigInteger, arg1: BigInteger) {.header: juce_core, importcpp: "#.operator-=(@)".}
+proc `*=`*(this: var BigInteger, arg1: BigInteger) {.header: juce_core, importcpp: "#.operator*=(@)".}
+proc `/=`*(this: var BigInteger, arg1: BigInteger) {.header: juce_core, importcpp: "#.operator/=(@)".}
+proc `|=`*(this: var BigInteger, arg1: BigInteger) {.header: juce_core, importcpp: "#.operator|=(@)".}
+proc `&=`*(this: var BigInteger, arg1: BigInteger) {.header: juce_core, importcpp: "#.operator&=(@)".}
+proc `^=`*(this: var BigInteger, arg1: BigInteger) {.header: juce_core, importcpp: "#.operator^=(@)".}
+proc `%=`*(this: var BigInteger, arg1: BigInteger) {.header: juce_core, importcpp: "#.operator%=(@)".}
+proc `<<=`*(this: var BigInteger, numBitsToShift: cint) {.header: juce_core, importcpp: "#.operator<<=(@)".}
+proc `>>=`*(this: var BigInteger, numBitsToShift: cint) {.header: juce_core, importcpp: "#.operator>>=(@)".}
 proc `inc`*(this: var BigInteger): var BigInteger {.header: juce_core, importcpp: "#.operator++()".}
 proc `dec`*(this: var BigInteger): var BigInteger {.header: juce_core, importcpp: "#.operator--()".}
 proc `inc`*(this: var BigInteger, arg1: cint): BigInteger {.header: juce_core, importcpp: "#.operator++(@)".}
@@ -1874,8 +1874,8 @@ proc createTimer*(this: var TimedDiagnostic): ScopedTimeMeasurement {.header: ju
 proc isEmpty*(this: TimedDiagnostic): bool {.header: juce_core, importcpp: "#.isEmpty()".}
 proc `+`*(this: TimedDiagnostic, other: TimedDiagnostic): TimedDiagnostic {.header: juce_core, importcpp: "#.operator+(@)".}
 proc `-`*(this: TimedDiagnostic, other: TimedDiagnostic): TimedDiagnostic {.header: juce_core, importcpp: "#.operator-(@)".}
-proc `TimedDiagnostic+=`*(this: var TimedDiagnostic, other: TimedDiagnostic): var TimedDiagnostic {.header: juce_core, importcpp: "#.operator+=(@)".}
-proc `TimedDiagnostic-=`*(this: var TimedDiagnostic, other: TimedDiagnostic): var TimedDiagnostic {.header: juce_core, importcpp: "#.operator-=(@)".}
+proc `+=`*(this: var TimedDiagnostic, other: TimedDiagnostic) {.header: juce_core, importcpp: "#.operator+=(@)".}
+proc `-=`*(this: var TimedDiagnostic, other: TimedDiagnostic) {.header: juce_core, importcpp: "#.operator-=(@)".}
 proc `==`*(this: TimedDiagnostic, other: TimedDiagnostic): bool {.error: "juce::TimedDiagnostic defines no operator==; compare a property instead".}
 
 proc makeUnitTest*(name: String, category: String): UnitTest {.header: juce_core, importcpp: "juce::UnitTest(@)".}
