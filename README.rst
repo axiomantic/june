@@ -243,7 +243,10 @@ Hand-written additions live in the ``*_lifting.nim`` files and in
 - Enums, as distinct integer types. Enumerators are prefixed with the type name:
   ``JustificationFlags_centred``, ``NotificationType_sendNotification``.
 - Operators. ``==``, ``<``, ``<=``, ``+``, ``-``, ``*``, ``/`` and ``[]`` are
-  bound as Nim operators; ``!=``, ``>`` and ``>=`` follow from them.
+  bound as Nim operators; ``!=``, ``>`` and ``>=`` follow from them. Compound
+  assignment -- ``+=``, ``-=``, ``*=``, ``/=``, ``|=``, ``&=``, ``^=``, ``%=``,
+  ``<<=`` and ``>>=`` -- is bound as a statement returning nothing, where C++
+  returns a reference to the target.
 - The class templates: ``Rectangle``, ``Point``, ``Line``, ``BorderSize``,
   ``Range``, ``Array``, ``OwnedArray``, ``Span``, ``RectangleList``,
   ``SparseSet``, ``NormalisableRange``, ``Parallelogram``, ``Optional`` and
