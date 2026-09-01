@@ -228,6 +228,7 @@ template_heads = {
     "Parallelogram": "Parallelogram",
     "SparseSet": "SparseSet",
     "NormalisableRange": "NormalisableRange",
+    "Optional": "Optional",
 }
 
 def split_template_args(text):
@@ -406,7 +407,7 @@ known_builtin_types = {
     "CppString",
     "Rectangle", "Point", "Line", "BorderSize", "Range",
     "Array", "OwnedArray", "ReferenceCountedObjectPtr",
-    "Span", "RectangleList", "Parallelogram", "SparseSet",
+    "Span", "RectangleList", "Parallelogram", "SparseSet", "Optional",
     "NormalisableRange",
 }
 known_builtin_types.update(f"CppFunctionObjectN{n}" for n in range(10))

@@ -220,3 +220,12 @@ proc convertTo0to1*[T](this: NormalisableRange[T], v: T): T {.importcpp: "#.conv
 proc convertFrom0to1*[T](this: NormalisableRange[T], v: T): T {.importcpp: "#.convertFrom0to1(@)".}
 proc snapToLegalValue*[T](this: NormalisableRange[T], v: T): T {.importcpp: "#.snapToLegalValue(@)".}
 proc getRange*[T](this: NormalisableRange[T]): Range[T] {.importcpp: "#.getRange()".}
+
+# JUCE's own Optional, distinct from std::optional in june_stl.
+type
+    Optional*[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::Optional".} = object
+
+proc hasValue*[T](this: Optional[T]): bool {.importcpp: "#.hasValue()".}
+proc value*[T](this: Optional[T]): T {.importcpp: "(*#)".}
+proc reset*[T](this: var Optional[T]) {.importcpp: "#.reset()".}
+

@@ -218,7 +218,7 @@ Hand-written additions live in the ``*_lifting.nim`` files and in
   bound as Nim operators; ``!=``, ``>`` and ``>=`` follow from them.
 - The class templates: ``Rectangle``, ``Point``, ``Line``, ``BorderSize``,
   ``Range``, ``Array``, ``OwnedArray``, ``Span``, ``RectangleList``,
-  ``SparseSet``, ``NormalisableRange``, ``Parallelogram`` and
+  ``SparseSet``, ``NormalisableRange``, ``Parallelogram``, ``Optional`` and
   ``ReferenceCountedObjectPtr``.
 - The standard library types JUCE exposes: ``std::unique_ptr``,
   ``std::optional``, ``std::vector``, ``std::string`` and ``std::function``.
