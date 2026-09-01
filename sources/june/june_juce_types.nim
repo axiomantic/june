@@ -199,3 +199,14 @@ proc getNumRanges*[T](this: SparseSet[T]): cint {.importcpp: "#.getNumRanges()".
 proc getRange*[T](this: SparseSet[T], rangeIndex: cint): Range[T] {.importcpp: "#.getRange(@)".}
 proc getTotalRange*[T](this: SparseSet[T]): Range[T] {.importcpp: "#.getTotalRange()".}
 
+# NormalisableRange maps a value onto 0..1, which is how a Slider describes its
+# range.
+type
+    NormalisableRange*[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::NormalisableRange".} = object
+
+proc makeNormalisableRange*[T](rangeStart: T, rangeEnd: T): NormalisableRange[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::NormalisableRange<'*0>(@)".}
+proc convertTo0to1*[T](this: NormalisableRange[T], v: T): T {.importcpp: "#.convertTo0to1(@)".}
+proc convertFrom0to1*[T](this: NormalisableRange[T], v: T): T {.importcpp: "#.convertFrom0to1(@)".}
+proc snapToLegalValue*[T](this: NormalisableRange[T], v: T): T {.importcpp: "#.snapToLegalValue(@)".}
+proc getRange*[T](this: NormalisableRange[T]): Range[T] {.importcpp: "#.getRange()".}
+

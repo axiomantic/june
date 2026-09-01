@@ -42,15 +42,13 @@ type
   NotificationType* {.header: juce_events, importcpp: "juce::NotificationType".} = distinct cint
   InterprocessConnectionNotify* {.header: juce_events, importcpp: "juce::InterprocessConnection::Notify".} = distinct cint
 
-const
-  NotificationType_dontSendNotification* = NotificationType(0)
-  NotificationType_sendNotification* = NotificationType(1)
-  NotificationType_sendNotificationSync* = NotificationType(2)
-  NotificationType_sendNotificationAsync* = NotificationType(3)
+let NotificationType_dontSendNotification* {.header: juce_events, importcpp: "juce::dontSendNotification".}: NotificationType
+let NotificationType_sendNotification* {.header: juce_events, importcpp: "juce::sendNotification".}: NotificationType
+let NotificationType_sendNotificationSync* {.header: juce_events, importcpp: "juce::sendNotificationSync".}: NotificationType
+let NotificationType_sendNotificationAsync* {.header: juce_events, importcpp: "juce::sendNotificationAsync".}: NotificationType
 
-const
-  InterprocessConnectionNotify_no* = InterprocessConnectionNotify(0)
-  InterprocessConnectionNotify_yes* = InterprocessConnectionNotify(1)
+let InterprocessConnectionNotify_no* {.header: juce_events, importcpp: "juce::InterprocessConnection::Notify::no".}: InterprocessConnectionNotify
+let InterprocessConnectionNotify_yes* {.header: juce_events, importcpp: "juce::InterprocessConnection::Notify::yes".}: InterprocessConnectionNotify
 
 proc runDispatchLoop*(this: var MessageManager) {.header: juce_events, importcpp: "#.runDispatchLoop()".}
 proc stopDispatchLoop*(this: var MessageManager) {.header: juce_events, importcpp: "#.stopDispatchLoop()".}

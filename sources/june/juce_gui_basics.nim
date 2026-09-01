@@ -356,605 +356,518 @@ type
   GridAlignContent* {.header: juce_gui_basics, importcpp: "juce::Grid::AlignContent".} = distinct cint
   GridAutoFlow* {.header: juce_gui_basics, importcpp: "juce::Grid::AutoFlow".} = distinct cint
 
-const
-  AccessibilityActionType_press* = AccessibilityActionType(0)
-  AccessibilityActionType_toggle* = AccessibilityActionType(1)
-  AccessibilityActionType_focus* = AccessibilityActionType(2)
-  AccessibilityActionType_showMenu* = AccessibilityActionType(3)
-
-const
-  AccessibilityEvent_valueChanged* = AccessibilityEvent(0)
-  AccessibilityEvent_titleChanged* = AccessibilityEvent(1)
-  AccessibilityEvent_structureChanged* = AccessibilityEvent(2)
-  AccessibilityEvent_textSelectionChanged* = AccessibilityEvent(3)
-  AccessibilityEvent_textChanged* = AccessibilityEvent(4)
-  AccessibilityEvent_rowSelectionChanged* = AccessibilityEvent(5)
-
-const
-  AccessibilityRole_button* = AccessibilityRole(0)
-  AccessibilityRole_toggleButton* = AccessibilityRole(1)
-  AccessibilityRole_radioButton* = AccessibilityRole(2)
-  AccessibilityRole_comboBox* = AccessibilityRole(3)
-  AccessibilityRole_image* = AccessibilityRole(4)
-  AccessibilityRole_slider* = AccessibilityRole(5)
-  AccessibilityRole_label* = AccessibilityRole(6)
-  AccessibilityRole_staticText* = AccessibilityRole(7)
-  AccessibilityRole_editableText* = AccessibilityRole(8)
-  AccessibilityRole_menuItem* = AccessibilityRole(9)
-  AccessibilityRole_menuBar* = AccessibilityRole(10)
-  AccessibilityRole_popupMenu* = AccessibilityRole(11)
-  AccessibilityRole_table* = AccessibilityRole(12)
-  AccessibilityRole_tableHeader* = AccessibilityRole(13)
-  AccessibilityRole_column* = AccessibilityRole(14)
-  AccessibilityRole_row* = AccessibilityRole(15)
-  AccessibilityRole_cell* = AccessibilityRole(16)
-  AccessibilityRole_hyperlink* = AccessibilityRole(17)
-  AccessibilityRole_list* = AccessibilityRole(18)
-  AccessibilityRole_listItem* = AccessibilityRole(19)
-  AccessibilityRole_tree* = AccessibilityRole(20)
-  AccessibilityRole_treeItem* = AccessibilityRole(21)
-  AccessibilityRole_progressBar* = AccessibilityRole(22)
-  AccessibilityRole_group* = AccessibilityRole(23)
-  AccessibilityRole_dialogWindow* = AccessibilityRole(24)
-  AccessibilityRole_window* = AccessibilityRole(25)
-  AccessibilityRole_scrollBar* = AccessibilityRole(26)
-  AccessibilityRole_tooltip* = AccessibilityRole(27)
-  AccessibilityRole_splashScreen* = AccessibilityRole(28)
-  AccessibilityRole_ignored* = AccessibilityRole(29)
-  AccessibilityRole_unspecified* = AccessibilityRole(30)
-
-const
-  MessageBoxIconType_NoIcon* = MessageBoxIconType(0)
-  MessageBoxIconType_QuestionIcon* = MessageBoxIconType(1)
-  MessageBoxIconType_WarningIcon* = MessageBoxIconType(2)
-  MessageBoxIconType_InfoIcon* = MessageBoxIconType(3)
-
-const
-  MouseCursorStandardCursorType_ParentCursor* = MouseCursorStandardCursorType(0)
-  MouseCursorStandardCursorType_NoCursor* = MouseCursorStandardCursorType(1)
-  MouseCursorStandardCursorType_NormalCursor* = MouseCursorStandardCursorType(2)
-  MouseCursorStandardCursorType_WaitCursor* = MouseCursorStandardCursorType(3)
-  MouseCursorStandardCursorType_IBeamCursor* = MouseCursorStandardCursorType(4)
-  MouseCursorStandardCursorType_CrosshairCursor* = MouseCursorStandardCursorType(5)
-  MouseCursorStandardCursorType_CopyingCursor* = MouseCursorStandardCursorType(6)
-  MouseCursorStandardCursorType_PointingHandCursor* = MouseCursorStandardCursorType(7)
-  MouseCursorStandardCursorType_DraggingHandCursor* = MouseCursorStandardCursorType(8)
-  MouseCursorStandardCursorType_LeftRightResizeCursor* = MouseCursorStandardCursorType(9)
-  MouseCursorStandardCursorType_UpDownResizeCursor* = MouseCursorStandardCursorType(10)
-  MouseCursorStandardCursorType_UpDownLeftRightResizeCursor* = MouseCursorStandardCursorType(11)
-  MouseCursorStandardCursorType_TopEdgeResizeCursor* = MouseCursorStandardCursorType(12)
-  MouseCursorStandardCursorType_BottomEdgeResizeCursor* = MouseCursorStandardCursorType(13)
-  MouseCursorStandardCursorType_LeftEdgeResizeCursor* = MouseCursorStandardCursorType(14)
-  MouseCursorStandardCursorType_RightEdgeResizeCursor* = MouseCursorStandardCursorType(15)
-  MouseCursorStandardCursorType_TopLeftCornerResizeCursor* = MouseCursorStandardCursorType(16)
-  MouseCursorStandardCursorType_TopRightCornerResizeCursor* = MouseCursorStandardCursorType(17)
-  MouseCursorStandardCursorType_BottomLeftCornerResizeCursor* = MouseCursorStandardCursorType(18)
-  MouseCursorStandardCursorType_BottomRightCornerResizeCursor* = MouseCursorStandardCursorType(19)
-  MouseCursorStandardCursorType_NumStandardCursorTypes* = MouseCursorStandardCursorType(20)
-
-const
-  ModifierKeysFlags_noModifiers* = ModifierKeysFlags(0)
-  ModifierKeysFlags_shiftModifier* = ModifierKeysFlags(1)
-  ModifierKeysFlags_ctrlModifier* = ModifierKeysFlags(2)
-  ModifierKeysFlags_altModifier* = ModifierKeysFlags(4)
-  ModifierKeysFlags_leftButtonModifier* = ModifierKeysFlags(16)
-  ModifierKeysFlags_rightButtonModifier* = ModifierKeysFlags(32)
-  ModifierKeysFlags_middleButtonModifier* = ModifierKeysFlags(64)
-  ModifierKeysFlags_backButtonModifier* = ModifierKeysFlags(128)
-  ModifierKeysFlags_forwardButtonModifier* = ModifierKeysFlags(256)
-  ModifierKeysFlags_commandModifier* = ModifierKeysFlags(8)
-  ModifierKeysFlags_popupMenuClickModifier* = ModifierKeysFlags(34)
-  ModifierKeysFlags_allKeyboardModifiers* = ModifierKeysFlags(15)
-  ModifierKeysFlags_allMouseButtonModifiers* = ModifierKeysFlags(496)
-  ModifierKeysFlags_ctrlAltCommandModifiers* = ModifierKeysFlags(14)
-
-const
-  MouseInputSourceInputSourceType_mouse* = MouseInputSourceInputSourceType(0)
-  MouseInputSourceInputSourceType_touch* = MouseInputSourceInputSourceType(1)
-  MouseInputSourceInputSourceType_pen* = MouseInputSourceInputSourceType(2)
-
-const
-  FocusTraverserSkipDisabledComponents_no* = FocusTraverserSkipDisabledComponents(0)
-  FocusTraverserSkipDisabledComponents_yes* = FocusTraverserSkipDisabledComponents(1)
-
-const
-  ComponentWindowControlKind_client* = ComponentWindowControlKind(0)
-  ComponentWindowControlKind_caption* = ComponentWindowControlKind(1)
-  ComponentWindowControlKind_minimise* = ComponentWindowControlKind(2)
-  ComponentWindowControlKind_maximise* = ComponentWindowControlKind(3)
-  ComponentWindowControlKind_close* = ComponentWindowControlKind(4)
-  ComponentWindowControlKind_sizeTop* = ComponentWindowControlKind(5)
-  ComponentWindowControlKind_sizeLeft* = ComponentWindowControlKind(6)
-  ComponentWindowControlKind_sizeRight* = ComponentWindowControlKind(7)
-  ComponentWindowControlKind_sizeBottom* = ComponentWindowControlKind(8)
-  ComponentWindowControlKind_sizeTopLeft* = ComponentWindowControlKind(9)
-  ComponentWindowControlKind_sizeTopRight* = ComponentWindowControlKind(10)
-  ComponentWindowControlKind_sizeBottomLeft* = ComponentWindowControlKind(11)
-  ComponentWindowControlKind_sizeBottomRight* = ComponentWindowControlKind(12)
-
-const
-  ComponentFocusContainerType_none* = ComponentFocusContainerType(0)
-  ComponentFocusContainerType_focusContainer* = ComponentFocusContainerType(1)
-  ComponentFocusContainerType_keyboardFocusContainer* = ComponentFocusContainerType(2)
-
-const
-  ComponentFocusChangeType_focusChangedByMouseClick* = ComponentFocusChangeType(0)
-  ComponentFocusChangeType_focusChangedByTabKey* = ComponentFocusChangeType(1)
-  ComponentFocusChangeType_focusChangedDirectly* = ComponentFocusChangeType(2)
-
-const
-  ComponentFocusChangeDirection_unknown* = ComponentFocusChangeDirection(0)
-  ComponentFocusChangeDirection_forward* = ComponentFocusChangeDirection(1)
-  ComponentFocusChangeDirection_backward* = ComponentFocusChangeDirection(2)
-
-const
-  DesktopDisplayOrientation_upright* = DesktopDisplayOrientation(1)
-  DesktopDisplayOrientation_upsideDown* = DesktopDisplayOrientation(2)
-  DesktopDisplayOrientation_rotatedClockwise* = DesktopDisplayOrientation(4)
-  DesktopDisplayOrientation_rotatedAntiClockwise* = DesktopDisplayOrientation(8)
-  DesktopDisplayOrientation_allOrientations* = DesktopDisplayOrientation(15)
-
-const
-  CaretComponentColourIds_caretColourId* = CaretComponentColourIds(16777732)
-
-const
-  TextInputTargetVirtualKeyboardType_textKeyboard* = TextInputTargetVirtualKeyboardType(0)
-  TextInputTargetVirtualKeyboardType_numericKeyboard* = TextInputTargetVirtualKeyboardType(1)
-  TextInputTargetVirtualKeyboardType_decimalKeyboard* = TextInputTargetVirtualKeyboardType(2)
-  TextInputTargetVirtualKeyboardType_urlKeyboard* = TextInputTargetVirtualKeyboardType(3)
-  TextInputTargetVirtualKeyboardType_emailAddressKeyboard* = TextInputTargetVirtualKeyboardType(4)
-  TextInputTargetVirtualKeyboardType_phoneNumberKeyboard* = TextInputTargetVirtualKeyboardType(5)
-  TextInputTargetVirtualKeyboardType_passwordKeyboard* = TextInputTargetVirtualKeyboardType(6)
-
-const
-  ApplicationCommandInfoCommandFlags_isDisabled* = ApplicationCommandInfoCommandFlags(1)
-  ApplicationCommandInfoCommandFlags_isTicked* = ApplicationCommandInfoCommandFlags(2)
-  ApplicationCommandInfoCommandFlags_wantsKeyUpDownCallbacks* = ApplicationCommandInfoCommandFlags(4)
-  ApplicationCommandInfoCommandFlags_hiddenFromKeyEditor* = ApplicationCommandInfoCommandFlags(8)
-  ApplicationCommandInfoCommandFlags_readOnlyInKeyEditor* = ApplicationCommandInfoCommandFlags(16)
-  ApplicationCommandInfoCommandFlags_dontTriggerVisualFeedback* = ApplicationCommandInfoCommandFlags(32)
-
-const
-  ButtonConnectedEdgeFlags_ConnectedOnLeft* = ButtonConnectedEdgeFlags(1)
-  ButtonConnectedEdgeFlags_ConnectedOnRight* = ButtonConnectedEdgeFlags(2)
-  ButtonConnectedEdgeFlags_ConnectedOnTop* = ButtonConnectedEdgeFlags(4)
-  ButtonConnectedEdgeFlags_ConnectedOnBottom* = ButtonConnectedEdgeFlags(8)
-
-const
-  ButtonButtonState_buttonNormal* = ButtonButtonState(0)
-  ButtonButtonState_buttonOver* = ButtonButtonState(1)
-  ButtonButtonState_buttonDown* = ButtonButtonState(2)
-
-const
-  DrawableButtonButtonStyle_ImageFitted* = DrawableButtonButtonStyle(0)
-  DrawableButtonButtonStyle_ImageRaw* = DrawableButtonButtonStyle(1)
-  DrawableButtonButtonStyle_ImageAboveTextLabel* = DrawableButtonButtonStyle(2)
-  DrawableButtonButtonStyle_ImageOnButtonBackground* = DrawableButtonButtonStyle(3)
-  DrawableButtonButtonStyle_ImageOnButtonBackgroundOriginalSize* = DrawableButtonButtonStyle(4)
-  DrawableButtonButtonStyle_ImageStretched* = DrawableButtonButtonStyle(5)
-
-const
-  DrawableButtonColourIds_textColourId* = DrawableButtonColourIds(16793616)
-  DrawableButtonColourIds_textColourOnId* = DrawableButtonColourIds(16793619)
-  DrawableButtonColourIds_backgroundColourId* = DrawableButtonColourIds(16793617)
-  DrawableButtonColourIds_backgroundOnColourId* = DrawableButtonColourIds(16793618)
-
-const
-  HyperlinkButtonColourIds_textColourId* = HyperlinkButtonColourIds(16785152)
-
-const
-  TextButtonColourIds_buttonColourId* = TextButtonColourIds(16777472)
-  TextButtonColourIds_buttonOnColourId* = TextButtonColourIds(16777473)
-  TextButtonColourIds_textColourOffId* = TextButtonColourIds(16777474)
-  TextButtonColourIds_textColourOnId* = TextButtonColourIds(16777475)
-
-const
-  ToggleButtonColourIds_textColourId* = ToggleButtonColourIds(16803073)
-  ToggleButtonColourIds_tickColourId* = ToggleButtonColourIds(16803074)
-  ToggleButtonColourIds_tickDisabledColourId* = ToggleButtonColourIds(16803075)
-
-const
-  GroupComponentColourIds_outlineColourId* = GroupComponentColourIds(16798720)
-  GroupComponentColourIds_textColourId* = GroupComponentColourIds(16798736)
-
-const
-  ResizableEdgeComponentEdge_leftEdge* = ResizableEdgeComponentEdge(0)
-  ResizableEdgeComponentEdge_rightEdge* = ResizableEdgeComponentEdge(1)
-  ResizableEdgeComponentEdge_topEdge* = ResizableEdgeComponentEdge(2)
-  ResizableEdgeComponentEdge_bottomEdge* = ResizableEdgeComponentEdge(3)
-
-const
-  ScrollBarColourIds_backgroundColourId* = ScrollBarColourIds(16777984)
-  ScrollBarColourIds_thumbColourId* = ScrollBarColourIds(16778240)
-  ScrollBarColourIds_trackColourId* = ScrollBarColourIds(16778241)
-
-const
-  TabBarButtonExtraComponentPlacement_beforeText* = TabBarButtonExtraComponentPlacement(0)
-  TabBarButtonExtraComponentPlacement_afterText* = TabBarButtonExtraComponentPlacement(1)
-
-const
-  TabbedButtonBarOrientation_TabsAtTop* = TabbedButtonBarOrientation(0)
-  TabbedButtonBarOrientation_TabsAtBottom* = TabbedButtonBarOrientation(1)
-  TabbedButtonBarOrientation_TabsAtLeft* = TabbedButtonBarOrientation(2)
-  TabbedButtonBarOrientation_TabsAtRight* = TabbedButtonBarOrientation(3)
-
-const
-  TabbedButtonBarColourIds_tabOutlineColourId* = TabbedButtonBarColourIds(16799762)
-  TabbedButtonBarColourIds_tabTextColourId* = TabbedButtonBarColourIds(16799763)
-  TabbedButtonBarColourIds_frontOutlineColourId* = TabbedButtonBarColourIds(16799764)
-  TabbedButtonBarColourIds_frontTextColourId* = TabbedButtonBarColourIds(16799765)
-
-const
-  TabbedComponentColourIds_backgroundColourId* = TabbedComponentColourIds(16799744)
-  TabbedComponentColourIds_outlineColourId* = TabbedComponentColourIds(16799745)
-
-const
-  AccessibilityHandlerAnnouncementPriority_low* = AccessibilityHandlerAnnouncementPriority(0)
-  AccessibilityHandlerAnnouncementPriority_medium* = AccessibilityHandlerAnnouncementPriority(1)
-  AccessibilityHandlerAnnouncementPriority_high* = AccessibilityHandlerAnnouncementPriority(2)
-
-const
-  ViewportScrollOnDragMode_never* = ViewportScrollOnDragMode(0)
-  ViewportScrollOnDragMode_nonHover* = ViewportScrollOnDragMode(1)
-  ViewportScrollOnDragMode_all* = ViewportScrollOnDragMode(2)
-
-const
-  PopupMenuColourIds_backgroundColourId* = PopupMenuColourIds(16779008)
-  PopupMenuColourIds_textColourId* = PopupMenuColourIds(16778752)
-  PopupMenuColourIds_headerTextColourId* = PopupMenuColourIds(16778753)
-  PopupMenuColourIds_highlightedBackgroundColourId* = PopupMenuColourIds(16779520)
-  PopupMenuColourIds_highlightedTextColourId* = PopupMenuColourIds(16779264)
-
-const
-  RelativePointPathElementType_nullElement* = RelativePointPathElementType(0)
-  RelativePointPathElementType_startSubPathElement* = RelativePointPathElementType(1)
-  RelativePointPathElementType_closeSubPathElement* = RelativePointPathElementType(2)
-  RelativePointPathElementType_lineToElement* = RelativePointPathElementType(3)
-  RelativePointPathElementType_quadraticToElement* = RelativePointPathElementType(4)
-  RelativePointPathElementType_cubicToElement* = RelativePointPathElementType(5)
-
-const
-  TextEditorColourIds_backgroundColourId* = TextEditorColourIds(16777728)
-  TextEditorColourIds_textColourId* = TextEditorColourIds(16777729)
-  TextEditorColourIds_highlightColourId* = TextEditorColourIds(16777730)
-  TextEditorColourIds_highlightedTextColourId* = TextEditorColourIds(16777731)
-  TextEditorColourIds_outlineColourId* = TextEditorColourIds(16777733)
-  TextEditorColourIds_focusedOutlineColourId* = TextEditorColourIds(16777734)
-  TextEditorColourIds_shadowColourId* = TextEditorColourIds(16777735)
-
-const
-  LabelColourIds_backgroundColourId* = LabelColourIds(16777856)
-  LabelColourIds_textColourId* = LabelColourIds(16777857)
-  LabelColourIds_outlineColourId* = LabelColourIds(16777858)
-  LabelColourIds_backgroundWhenEditingColourId* = LabelColourIds(16777859)
-  LabelColourIds_textWhenEditingColourId* = LabelColourIds(16777860)
-  LabelColourIds_outlineWhenEditingColourId* = LabelColourIds(16777861)
-
-const
-  ComboBoxColourIds_backgroundColourId* = ComboBoxColourIds(16780032)
-  ComboBoxColourIds_textColourId* = ComboBoxColourIds(16779776)
-  ComboBoxColourIds_outlineColourId* = ComboBoxColourIds(16780288)
-  ComboBoxColourIds_buttonColourId* = ComboBoxColourIds(16780544)
-  ComboBoxColourIds_arrowColourId* = ComboBoxColourIds(16780800)
-  ComboBoxColourIds_focusedOutlineColourId* = ComboBoxColourIds(16781056)
-
-const
-  ListBoxColourIds_backgroundColourId* = ListBoxColourIds(16787456)
-  ListBoxColourIds_outlineColourId* = ListBoxColourIds(16787472)
-  ListBoxColourIds_textColourId* = ListBoxColourIds(16787488)
-
-const
-  ProgressBarStyle_linear* = ProgressBarStyle(0)
-  ProgressBarStyle_circular* = ProgressBarStyle(1)
-
-const
-  ProgressBarColourIds_backgroundColourId* = ProgressBarColourIds(16783616)
-  ProgressBarColourIds_foregroundColourId* = ProgressBarColourIds(16783872)
-
-const
-  SliderSliderStyle_LinearHorizontal* = SliderSliderStyle(0)
-  SliderSliderStyle_LinearVertical* = SliderSliderStyle(1)
-  SliderSliderStyle_LinearBar* = SliderSliderStyle(2)
-  SliderSliderStyle_LinearBarVertical* = SliderSliderStyle(3)
-  SliderSliderStyle_Rotary* = SliderSliderStyle(4)
-  SliderSliderStyle_RotaryHorizontalDrag* = SliderSliderStyle(5)
-  SliderSliderStyle_RotaryVerticalDrag* = SliderSliderStyle(6)
-  SliderSliderStyle_RotaryHorizontalVerticalDrag* = SliderSliderStyle(7)
-  SliderSliderStyle_IncDecButtons* = SliderSliderStyle(8)
-  SliderSliderStyle_TwoValueHorizontal* = SliderSliderStyle(9)
-  SliderSliderStyle_TwoValueVertical* = SliderSliderStyle(10)
-  SliderSliderStyle_ThreeValueHorizontal* = SliderSliderStyle(11)
-  SliderSliderStyle_ThreeValueVertical* = SliderSliderStyle(12)
-
-const
-  SliderTextEntryBoxPosition_NoTextBox* = SliderTextEntryBoxPosition(0)
-  SliderTextEntryBoxPosition_TextBoxLeft* = SliderTextEntryBoxPosition(1)
-  SliderTextEntryBoxPosition_TextBoxRight* = SliderTextEntryBoxPosition(2)
-  SliderTextEntryBoxPosition_TextBoxAbove* = SliderTextEntryBoxPosition(3)
-  SliderTextEntryBoxPosition_TextBoxBelow* = SliderTextEntryBoxPosition(4)
-
-const
-  SliderDragMode_notDragging* = SliderDragMode(0)
-  SliderDragMode_absoluteDrag* = SliderDragMode(1)
-  SliderDragMode_velocityDrag* = SliderDragMode(2)
-
-const
-  SliderIncDecButtonMode_incDecButtonsNotDraggable* = SliderIncDecButtonMode(0)
-  SliderIncDecButtonMode_incDecButtonsDraggable_AutoDirection* = SliderIncDecButtonMode(1)
-  SliderIncDecButtonMode_incDecButtonsDraggable_Horizontal* = SliderIncDecButtonMode(2)
-  SliderIncDecButtonMode_incDecButtonsDraggable_Vertical* = SliderIncDecButtonMode(3)
-
-const
-  SliderColourIds_backgroundColourId* = SliderColourIds(16781824)
-  SliderColourIds_thumbColourId* = SliderColourIds(16782080)
-  SliderColourIds_trackColourId* = SliderColourIds(16782096)
-  SliderColourIds_rotarySliderFillColourId* = SliderColourIds(16782097)
-  SliderColourIds_rotarySliderOutlineColourId* = SliderColourIds(16782098)
-  SliderColourIds_textBoxTextColourId* = SliderColourIds(16782336)
-  SliderColourIds_textBoxBackgroundColourId* = SliderColourIds(16782592)
-  SliderColourIds_textBoxHighlightColourId* = SliderColourIds(16782848)
-  SliderColourIds_textBoxOutlineColourId* = SliderColourIds(16783104)
-
-const
-  TableHeaderComponentColumnPropertyFlags_visible* = TableHeaderComponentColumnPropertyFlags(1)
-  TableHeaderComponentColumnPropertyFlags_resizable* = TableHeaderComponentColumnPropertyFlags(2)
-  TableHeaderComponentColumnPropertyFlags_draggable* = TableHeaderComponentColumnPropertyFlags(4)
-  TableHeaderComponentColumnPropertyFlags_appearsOnColumnMenu* = TableHeaderComponentColumnPropertyFlags(8)
-  TableHeaderComponentColumnPropertyFlags_sortable* = TableHeaderComponentColumnPropertyFlags(16)
-  TableHeaderComponentColumnPropertyFlags_sortedForwards* = TableHeaderComponentColumnPropertyFlags(32)
-  TableHeaderComponentColumnPropertyFlags_sortedBackwards* = TableHeaderComponentColumnPropertyFlags(64)
-  TableHeaderComponentColumnPropertyFlags_defaultFlags* = TableHeaderComponentColumnPropertyFlags(31)
-  TableHeaderComponentColumnPropertyFlags_notResizable* = TableHeaderComponentColumnPropertyFlags(29)
-  TableHeaderComponentColumnPropertyFlags_notResizableOrSortable* = TableHeaderComponentColumnPropertyFlags(13)
-  TableHeaderComponentColumnPropertyFlags_notSortable* = TableHeaderComponentColumnPropertyFlags(15)
-
-const
-  TableHeaderComponentColourIds_textColourId* = TableHeaderComponentColourIds(16791552)
-  TableHeaderComponentColourIds_backgroundColourId* = TableHeaderComponentColourIds(16791568)
-  TableHeaderComponentColourIds_outlineColourId* = TableHeaderComponentColourIds(16791584)
-  TableHeaderComponentColourIds_highlightColourId* = TableHeaderComponentColourIds(16791600)
-
-const
-  ToolbarToolbarItemStyle_iconsOnly* = ToolbarToolbarItemStyle(0)
-  ToolbarToolbarItemStyle_iconsWithText* = ToolbarToolbarItemStyle(1)
-  ToolbarToolbarItemStyle_textOnly* = ToolbarToolbarItemStyle(2)
-
-const
-  ToolbarCustomisationFlags_allowIconsOnlyChoice* = ToolbarCustomisationFlags(1)
-  ToolbarCustomisationFlags_allowIconsWithTextChoice* = ToolbarCustomisationFlags(2)
-  ToolbarCustomisationFlags_allowTextOnlyChoice* = ToolbarCustomisationFlags(4)
-  ToolbarCustomisationFlags_showResetToDefaultsButton* = ToolbarCustomisationFlags(8)
-  ToolbarCustomisationFlags_allCustomisationOptionsEnabled* = ToolbarCustomisationFlags(15)
-
-const
-  ToolbarColourIds_backgroundColourId* = ToolbarColourIds(16790016)
-  ToolbarColourIds_separatorColourId* = ToolbarColourIds(16790032)
-  ToolbarColourIds_buttonMouseOverBackgroundColourId* = ToolbarColourIds(16790048)
-  ToolbarColourIds_buttonMouseDownBackgroundColourId* = ToolbarColourIds(16790064)
-  ToolbarColourIds_labelTextColourId* = ToolbarColourIds(16790080)
-  ToolbarColourIds_editingModeOutlineColourId* = ToolbarColourIds(16790096)
-  ToolbarColourIds_customisationDialogBackgroundColourId* = ToolbarColourIds(16790112)
-
-const
-  ToolbarItemComponentToolbarEditingMode_normalMode* = ToolbarItemComponentToolbarEditingMode(0)
-  ToolbarItemComponentToolbarEditingMode_editableOnToolbar* = ToolbarItemComponentToolbarEditingMode(1)
-  ToolbarItemComponentToolbarEditingMode_editableOnPalette* = ToolbarItemComponentToolbarEditingMode(2)
-
-const
-  ToolbarItemFactorySpecialItemIds_separatorBarId* = ToolbarItemFactorySpecialItemIds(-1)
-  ToolbarItemFactorySpecialItemIds_spacerId* = ToolbarItemFactorySpecialItemIds(-2)
-  ToolbarItemFactorySpecialItemIds_flexibleSpacerId* = ToolbarItemFactorySpecialItemIds(-3)
-
-const
-  TreeViewItemOpenness_opennessDefault* = TreeViewItemOpenness(0)
-  TreeViewItemOpenness_opennessClosed* = TreeViewItemOpenness(1)
-  TreeViewItemOpenness_opennessOpen* = TreeViewItemOpenness(2)
-
-const
-  TreeViewColourIds_backgroundColourId* = TreeViewColourIds(16778496)
-  TreeViewColourIds_linesColourId* = TreeViewColourIds(16778497)
-  TreeViewColourIds_dragAndDropIndicatorColourId* = TreeViewColourIds(16778498)
-  TreeViewColourIds_selectedItemBackgroundColourId* = TreeViewColourIds(16778499)
-  TreeViewColourIds_oddItemsColourId* = TreeViewColourIds(16778500)
-  TreeViewColourIds_evenItemsColourId* = TreeViewColourIds(16778501)
-
-const
-  AlertWindowColourIds_backgroundColourId* = AlertWindowColourIds(16783360)
-  AlertWindowColourIds_textColourId* = AlertWindowColourIds(16783376)
-  AlertWindowColourIds_outlineColourId* = AlertWindowColourIds(16783392)
-
-const
-  ComponentPeerStyleFlags_windowAppearsOnTaskbar* = ComponentPeerStyleFlags(1)
-  ComponentPeerStyleFlags_windowIsTemporary* = ComponentPeerStyleFlags(2)
-  ComponentPeerStyleFlags_windowIgnoresMouseClicks* = ComponentPeerStyleFlags(4)
-  ComponentPeerStyleFlags_windowHasTitleBar* = ComponentPeerStyleFlags(8)
-  ComponentPeerStyleFlags_windowIsResizable* = ComponentPeerStyleFlags(16)
-  ComponentPeerStyleFlags_windowHasMinimiseButton* = ComponentPeerStyleFlags(32)
-  ComponentPeerStyleFlags_windowHasMaximiseButton* = ComponentPeerStyleFlags(64)
-  ComponentPeerStyleFlags_windowHasCloseButton* = ComponentPeerStyleFlags(128)
-  ComponentPeerStyleFlags_windowHasDropShadow* = ComponentPeerStyleFlags(256)
-  ComponentPeerStyleFlags_windowRepaintedExplicitly* = ComponentPeerStyleFlags(512)
-  ComponentPeerStyleFlags_windowIgnoresKeyPresses* = ComponentPeerStyleFlags(1024)
-  ComponentPeerStyleFlags_windowRequiresSynchronousCoreGraphicsRendering* = ComponentPeerStyleFlags(2048)
-  ComponentPeerStyleFlags_windowIsSemiTransparent* = ComponentPeerStyleFlags(1073741824)
-
-const
-  ComponentPeerStyle_automatic* = ComponentPeerStyle(0)
-  ComponentPeerStyle_light* = ComponentPeerStyle(1)
-  ComponentPeerStyle_dark* = ComponentPeerStyle(2)
-
-const
-  ResizableWindowColourIds_backgroundColourId* = ResizableWindowColourIds(16799488)
-
-const
-  DocumentWindowTitleBarButtons_minimiseButton* = DocumentWindowTitleBarButtons(1)
-  DocumentWindowTitleBarButtons_maximiseButton* = DocumentWindowTitleBarButtons(2)
-  DocumentWindowTitleBarButtons_closeButton* = DocumentWindowTitleBarButtons(4)
-  DocumentWindowTitleBarButtons_allButtons* = DocumentWindowTitleBarButtons(7)
-
-const
-  DocumentWindowColourIds_textColourId* = DocumentWindowColourIds(16799489)
-
-const
-  TooltipWindowColourIds_backgroundColourId* = TooltipWindowColourIds(16784128)
-  TooltipWindowColourIds_textColourId* = TooltipWindowColourIds(16784384)
-  TooltipWindowColourIds_outlineColourId* = TooltipWindowColourIds(16784400)
-
-const
-  MultiDocumentPanelLayoutMode_FloatingWindows* = MultiDocumentPanelLayoutMode(0)
-  MultiDocumentPanelLayoutMode_MaximisedWindowsWithTabs* = MultiDocumentPanelLayoutMode(1)
-
-const
-  SidePanelColourIds_backgroundColour* = SidePanelColourIds(16838657)
-  SidePanelColourIds_titleTextColour* = SidePanelColourIds(16838658)
-  SidePanelColourIds_shadowBaseColour* = SidePanelColourIds(16838659)
-  SidePanelColourIds_dismissButtonNormalColour* = SidePanelColourIds(16838660)
-  SidePanelColourIds_dismissButtonOverColour* = SidePanelColourIds(16838661)
-  SidePanelColourIds_dismissButtonDownColour* = SidePanelColourIds(16838662)
-
-const
-  DirectoryContentsDisplayComponentColourIds_highlightColourId* = DirectoryContentsDisplayComponentColourIds(16778560)
-  DirectoryContentsDisplayComponentColourIds_textColourId* = DirectoryContentsDisplayComponentColourIds(16778561)
-  DirectoryContentsDisplayComponentColourIds_highlightedTextColourId* = DirectoryContentsDisplayComponentColourIds(16778562)
-
-const
-  FileBrowserComponentFileChooserFlags_openMode* = FileBrowserComponentFileChooserFlags(1)
-  FileBrowserComponentFileChooserFlags_saveMode* = FileBrowserComponentFileChooserFlags(2)
-  FileBrowserComponentFileChooserFlags_canSelectFiles* = FileBrowserComponentFileChooserFlags(4)
-  FileBrowserComponentFileChooserFlags_canSelectDirectories* = FileBrowserComponentFileChooserFlags(8)
-  FileBrowserComponentFileChooserFlags_canSelectMultipleItems* = FileBrowserComponentFileChooserFlags(16)
-  FileBrowserComponentFileChooserFlags_useTreeView* = FileBrowserComponentFileChooserFlags(32)
-  FileBrowserComponentFileChooserFlags_filenameBoxIsReadOnly* = FileBrowserComponentFileChooserFlags(64)
-  FileBrowserComponentFileChooserFlags_warnAboutOverwriting* = FileBrowserComponentFileChooserFlags(128)
-  FileBrowserComponentFileChooserFlags_doNotClearFileNameOnRootChange* = FileBrowserComponentFileChooserFlags(256)
-
-const
-  FileBrowserComponentColourIds_currentPathBoxBackgroundColourId* = FileBrowserComponentColourIds(16778816)
-  FileBrowserComponentColourIds_currentPathBoxTextColourId* = FileBrowserComponentColourIds(16778817)
-  FileBrowserComponentColourIds_currentPathBoxArrowColourId* = FileBrowserComponentColourIds(16778818)
-  FileBrowserComponentColourIds_filenameBoxBackgroundColourId* = FileBrowserComponentColourIds(16778819)
-  FileBrowserComponentColourIds_filenameBoxTextColourId* = FileBrowserComponentColourIds(16778820)
-
-const
-  FileChooserDialogBoxColourIds_titleTextColourId* = FileChooserDialogBoxColourIds(16779344)
-
-const
-  FileSearchPathListComponentColourIds_backgroundColourId* = FileSearchPathListComponentColourIds(16793856)
-
-const
-  PropertyComponentColourIds_backgroundColourId* = PropertyComponentColourIds(16810752)
-  PropertyComponentColourIds_labelTextColourId* = PropertyComponentColourIds(16810753)
-
-const
-  BooleanPropertyComponentColourIds_backgroundColourId* = BooleanPropertyComponentColourIds(16836609)
-  BooleanPropertyComponentColourIds_outlineColourId* = BooleanPropertyComponentColourIds(16836611)
-
-const
-  TextPropertyComponentColourIds_backgroundColourId* = TextPropertyComponentColourIds(16835585)
-  TextPropertyComponentColourIds_textColourId* = TextPropertyComponentColourIds(16835586)
-  TextPropertyComponentColourIds_outlineColourId* = TextPropertyComponentColourIds(16835587)
-
-const
-  BubbleComponentBubblePlacement_above* = BubbleComponentBubblePlacement(1)
-  BubbleComponentBubblePlacement_below* = BubbleComponentBubblePlacement(2)
-  BubbleComponentBubblePlacement_left* = BubbleComponentBubblePlacement(4)
-  BubbleComponentBubblePlacement_right* = BubbleComponentBubblePlacement(8)
-
-const
-  BubbleComponentColourIds_backgroundColourId* = BubbleComponentColourIds(16780016)
-  BubbleComponentColourIds_outlineColourId* = BubbleComponentColourIds(16780017)
-
-const
-  FlexItemAlignSelf_autoAlign* = FlexItemAlignSelf(0)
-  FlexItemAlignSelf_flexStart* = FlexItemAlignSelf(1)
-  FlexItemAlignSelf_flexEnd* = FlexItemAlignSelf(2)
-  FlexItemAlignSelf_center* = FlexItemAlignSelf(3)
-  FlexItemAlignSelf_stretch* = FlexItemAlignSelf(4)
-
-const
-  FlexBoxDirection_row* = FlexBoxDirection(0)
-  FlexBoxDirection_rowReverse* = FlexBoxDirection(1)
-  FlexBoxDirection_column* = FlexBoxDirection(2)
-  FlexBoxDirection_columnReverse* = FlexBoxDirection(3)
-
-const
-  FlexBoxWrap_noWrap* = FlexBoxWrap(0)
-  FlexBoxWrap_wrap* = FlexBoxWrap(1)
-  FlexBoxWrap_wrapReverse* = FlexBoxWrap(2)
-
-const
-  FlexBoxAlignContent_stretch* = FlexBoxAlignContent(0)
-  FlexBoxAlignContent_flexStart* = FlexBoxAlignContent(1)
-  FlexBoxAlignContent_flexEnd* = FlexBoxAlignContent(2)
-  FlexBoxAlignContent_center* = FlexBoxAlignContent(3)
-  FlexBoxAlignContent_spaceBetween* = FlexBoxAlignContent(4)
-  FlexBoxAlignContent_spaceAround* = FlexBoxAlignContent(5)
-
-const
-  FlexBoxAlignItems_stretch* = FlexBoxAlignItems(0)
-  FlexBoxAlignItems_flexStart* = FlexBoxAlignItems(1)
-  FlexBoxAlignItems_flexEnd* = FlexBoxAlignItems(2)
-  FlexBoxAlignItems_center* = FlexBoxAlignItems(3)
-
-const
-  FlexBoxJustifyContent_flexStart* = FlexBoxJustifyContent(0)
-  FlexBoxJustifyContent_flexEnd* = FlexBoxJustifyContent(1)
-  FlexBoxJustifyContent_center* = FlexBoxJustifyContent(2)
-  FlexBoxJustifyContent_spaceBetween* = FlexBoxJustifyContent(3)
-  FlexBoxJustifyContent_spaceAround* = FlexBoxJustifyContent(4)
-
-const
-  GridItemKeyword_autoValue* = GridItemKeyword(0)
-
-const
-  GridItemJustifySelf_start* = GridItemJustifySelf(0)
-  GridItemJustifySelf_end* = GridItemJustifySelf(1)
-  GridItemJustifySelf_center* = GridItemJustifySelf(2)
-  GridItemJustifySelf_stretch* = GridItemJustifySelf(3)
-  GridItemJustifySelf_autoValue* = GridItemJustifySelf(4)
-
-const
-  GridItemAlignSelf_start* = GridItemAlignSelf(0)
-  GridItemAlignSelf_end* = GridItemAlignSelf(1)
-  GridItemAlignSelf_center* = GridItemAlignSelf(2)
-  GridItemAlignSelf_stretch* = GridItemAlignSelf(3)
-  GridItemAlignSelf_autoValue* = GridItemAlignSelf(4)
-
-const
-  GridJustifyItems_start* = GridJustifyItems(0)
-  GridJustifyItems_end* = GridJustifyItems(1)
-  GridJustifyItems_center* = GridJustifyItems(2)
-  GridJustifyItems_stretch* = GridJustifyItems(3)
-
-const
-  GridAlignItems_start* = GridAlignItems(0)
-  GridAlignItems_end* = GridAlignItems(1)
-  GridAlignItems_center* = GridAlignItems(2)
-  GridAlignItems_stretch* = GridAlignItems(3)
-
-const
-  GridJustifyContent_start* = GridJustifyContent(0)
-  GridJustifyContent_end* = GridJustifyContent(1)
-  GridJustifyContent_center* = GridJustifyContent(2)
-  GridJustifyContent_stretch* = GridJustifyContent(3)
-  GridJustifyContent_spaceAround* = GridJustifyContent(4)
-  GridJustifyContent_spaceBetween* = GridJustifyContent(5)
-  GridJustifyContent_spaceEvenly* = GridJustifyContent(6)
-
-const
-  GridAlignContent_start* = GridAlignContent(0)
-  GridAlignContent_end* = GridAlignContent(1)
-  GridAlignContent_center* = GridAlignContent(2)
-  GridAlignContent_stretch* = GridAlignContent(3)
-  GridAlignContent_spaceAround* = GridAlignContent(4)
-  GridAlignContent_spaceBetween* = GridAlignContent(5)
-  GridAlignContent_spaceEvenly* = GridAlignContent(6)
-
-const
-  GridAutoFlow_row* = GridAutoFlow(0)
-  GridAutoFlow_column* = GridAutoFlow(1)
-  GridAutoFlow_rowDense* = GridAutoFlow(2)
-  GridAutoFlow_columnDense* = GridAutoFlow(3)
+let AccessibilityActionType_press* {.header: juce_gui_basics, importcpp: "juce::AccessibilityActionType::press".}: AccessibilityActionType
+let AccessibilityActionType_toggle* {.header: juce_gui_basics, importcpp: "juce::AccessibilityActionType::toggle".}: AccessibilityActionType
+let AccessibilityActionType_focus* {.header: juce_gui_basics, importcpp: "juce::AccessibilityActionType::focus".}: AccessibilityActionType
+let AccessibilityActionType_showMenu* {.header: juce_gui_basics, importcpp: "juce::AccessibilityActionType::showMenu".}: AccessibilityActionType
+
+let AccessibilityEvent_valueChanged* {.header: juce_gui_basics, importcpp: "juce::AccessibilityEvent::valueChanged".}: AccessibilityEvent
+let AccessibilityEvent_titleChanged* {.header: juce_gui_basics, importcpp: "juce::AccessibilityEvent::titleChanged".}: AccessibilityEvent
+let AccessibilityEvent_structureChanged* {.header: juce_gui_basics, importcpp: "juce::AccessibilityEvent::structureChanged".}: AccessibilityEvent
+let AccessibilityEvent_textSelectionChanged* {.header: juce_gui_basics, importcpp: "juce::AccessibilityEvent::textSelectionChanged".}: AccessibilityEvent
+let AccessibilityEvent_textChanged* {.header: juce_gui_basics, importcpp: "juce::AccessibilityEvent::textChanged".}: AccessibilityEvent
+let AccessibilityEvent_rowSelectionChanged* {.header: juce_gui_basics, importcpp: "juce::AccessibilityEvent::rowSelectionChanged".}: AccessibilityEvent
+
+let AccessibilityRole_button* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::button".}: AccessibilityRole
+let AccessibilityRole_toggleButton* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::toggleButton".}: AccessibilityRole
+let AccessibilityRole_radioButton* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::radioButton".}: AccessibilityRole
+let AccessibilityRole_comboBox* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::comboBox".}: AccessibilityRole
+let AccessibilityRole_image* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::image".}: AccessibilityRole
+let AccessibilityRole_slider* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::slider".}: AccessibilityRole
+let AccessibilityRole_label* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::label".}: AccessibilityRole
+let AccessibilityRole_staticText* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::staticText".}: AccessibilityRole
+let AccessibilityRole_editableText* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::editableText".}: AccessibilityRole
+let AccessibilityRole_menuItem* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::menuItem".}: AccessibilityRole
+let AccessibilityRole_menuBar* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::menuBar".}: AccessibilityRole
+let AccessibilityRole_popupMenu* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::popupMenu".}: AccessibilityRole
+let AccessibilityRole_table* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::table".}: AccessibilityRole
+let AccessibilityRole_tableHeader* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::tableHeader".}: AccessibilityRole
+let AccessibilityRole_column* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::column".}: AccessibilityRole
+let AccessibilityRole_row* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::row".}: AccessibilityRole
+let AccessibilityRole_cell* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::cell".}: AccessibilityRole
+let AccessibilityRole_hyperlink* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::hyperlink".}: AccessibilityRole
+let AccessibilityRole_list* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::list".}: AccessibilityRole
+let AccessibilityRole_listItem* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::listItem".}: AccessibilityRole
+let AccessibilityRole_tree* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::tree".}: AccessibilityRole
+let AccessibilityRole_treeItem* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::treeItem".}: AccessibilityRole
+let AccessibilityRole_progressBar* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::progressBar".}: AccessibilityRole
+let AccessibilityRole_group* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::group".}: AccessibilityRole
+let AccessibilityRole_dialogWindow* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::dialogWindow".}: AccessibilityRole
+let AccessibilityRole_window* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::window".}: AccessibilityRole
+let AccessibilityRole_scrollBar* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::scrollBar".}: AccessibilityRole
+let AccessibilityRole_tooltip* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::tooltip".}: AccessibilityRole
+let AccessibilityRole_splashScreen* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::splashScreen".}: AccessibilityRole
+let AccessibilityRole_ignored* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::ignored".}: AccessibilityRole
+let AccessibilityRole_unspecified* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRole::unspecified".}: AccessibilityRole
+
+let MessageBoxIconType_NoIcon* {.header: juce_gui_basics, importcpp: "juce::MessageBoxIconType::NoIcon".}: MessageBoxIconType
+let MessageBoxIconType_QuestionIcon* {.header: juce_gui_basics, importcpp: "juce::MessageBoxIconType::QuestionIcon".}: MessageBoxIconType
+let MessageBoxIconType_WarningIcon* {.header: juce_gui_basics, importcpp: "juce::MessageBoxIconType::WarningIcon".}: MessageBoxIconType
+let MessageBoxIconType_InfoIcon* {.header: juce_gui_basics, importcpp: "juce::MessageBoxIconType::InfoIcon".}: MessageBoxIconType
+
+let MouseCursorStandardCursorType_ParentCursor* {.header: juce_gui_basics, importcpp: "juce::MouseCursor::ParentCursor".}: MouseCursorStandardCursorType
+let MouseCursorStandardCursorType_NoCursor* {.header: juce_gui_basics, importcpp: "juce::MouseCursor::NoCursor".}: MouseCursorStandardCursorType
+let MouseCursorStandardCursorType_NormalCursor* {.header: juce_gui_basics, importcpp: "juce::MouseCursor::NormalCursor".}: MouseCursorStandardCursorType
+let MouseCursorStandardCursorType_WaitCursor* {.header: juce_gui_basics, importcpp: "juce::MouseCursor::WaitCursor".}: MouseCursorStandardCursorType
+let MouseCursorStandardCursorType_IBeamCursor* {.header: juce_gui_basics, importcpp: "juce::MouseCursor::IBeamCursor".}: MouseCursorStandardCursorType
+let MouseCursorStandardCursorType_CrosshairCursor* {.header: juce_gui_basics, importcpp: "juce::MouseCursor::CrosshairCursor".}: MouseCursorStandardCursorType
+let MouseCursorStandardCursorType_CopyingCursor* {.header: juce_gui_basics, importcpp: "juce::MouseCursor::CopyingCursor".}: MouseCursorStandardCursorType
+let MouseCursorStandardCursorType_PointingHandCursor* {.header: juce_gui_basics, importcpp: "juce::MouseCursor::PointingHandCursor".}: MouseCursorStandardCursorType
+let MouseCursorStandardCursorType_DraggingHandCursor* {.header: juce_gui_basics, importcpp: "juce::MouseCursor::DraggingHandCursor".}: MouseCursorStandardCursorType
+let MouseCursorStandardCursorType_LeftRightResizeCursor* {.header: juce_gui_basics, importcpp: "juce::MouseCursor::LeftRightResizeCursor".}: MouseCursorStandardCursorType
+let MouseCursorStandardCursorType_UpDownResizeCursor* {.header: juce_gui_basics, importcpp: "juce::MouseCursor::UpDownResizeCursor".}: MouseCursorStandardCursorType
+let MouseCursorStandardCursorType_UpDownLeftRightResizeCursor* {.header: juce_gui_basics, importcpp: "juce::MouseCursor::UpDownLeftRightResizeCursor".}: MouseCursorStandardCursorType
+let MouseCursorStandardCursorType_TopEdgeResizeCursor* {.header: juce_gui_basics, importcpp: "juce::MouseCursor::TopEdgeResizeCursor".}: MouseCursorStandardCursorType
+let MouseCursorStandardCursorType_BottomEdgeResizeCursor* {.header: juce_gui_basics, importcpp: "juce::MouseCursor::BottomEdgeResizeCursor".}: MouseCursorStandardCursorType
+let MouseCursorStandardCursorType_LeftEdgeResizeCursor* {.header: juce_gui_basics, importcpp: "juce::MouseCursor::LeftEdgeResizeCursor".}: MouseCursorStandardCursorType
+let MouseCursorStandardCursorType_RightEdgeResizeCursor* {.header: juce_gui_basics, importcpp: "juce::MouseCursor::RightEdgeResizeCursor".}: MouseCursorStandardCursorType
+let MouseCursorStandardCursorType_TopLeftCornerResizeCursor* {.header: juce_gui_basics, importcpp: "juce::MouseCursor::TopLeftCornerResizeCursor".}: MouseCursorStandardCursorType
+let MouseCursorStandardCursorType_TopRightCornerResizeCursor* {.header: juce_gui_basics, importcpp: "juce::MouseCursor::TopRightCornerResizeCursor".}: MouseCursorStandardCursorType
+let MouseCursorStandardCursorType_BottomLeftCornerResizeCursor* {.header: juce_gui_basics, importcpp: "juce::MouseCursor::BottomLeftCornerResizeCursor".}: MouseCursorStandardCursorType
+let MouseCursorStandardCursorType_BottomRightCornerResizeCursor* {.header: juce_gui_basics, importcpp: "juce::MouseCursor::BottomRightCornerResizeCursor".}: MouseCursorStandardCursorType
+let MouseCursorStandardCursorType_NumStandardCursorTypes* {.header: juce_gui_basics, importcpp: "juce::MouseCursor::NumStandardCursorTypes".}: MouseCursorStandardCursorType
+
+let ModifierKeysFlags_noModifiers* {.header: juce_gui_basics, importcpp: "juce::ModifierKeys::noModifiers".}: ModifierKeysFlags
+let ModifierKeysFlags_shiftModifier* {.header: juce_gui_basics, importcpp: "juce::ModifierKeys::shiftModifier".}: ModifierKeysFlags
+let ModifierKeysFlags_ctrlModifier* {.header: juce_gui_basics, importcpp: "juce::ModifierKeys::ctrlModifier".}: ModifierKeysFlags
+let ModifierKeysFlags_altModifier* {.header: juce_gui_basics, importcpp: "juce::ModifierKeys::altModifier".}: ModifierKeysFlags
+let ModifierKeysFlags_leftButtonModifier* {.header: juce_gui_basics, importcpp: "juce::ModifierKeys::leftButtonModifier".}: ModifierKeysFlags
+let ModifierKeysFlags_rightButtonModifier* {.header: juce_gui_basics, importcpp: "juce::ModifierKeys::rightButtonModifier".}: ModifierKeysFlags
+let ModifierKeysFlags_middleButtonModifier* {.header: juce_gui_basics, importcpp: "juce::ModifierKeys::middleButtonModifier".}: ModifierKeysFlags
+let ModifierKeysFlags_backButtonModifier* {.header: juce_gui_basics, importcpp: "juce::ModifierKeys::backButtonModifier".}: ModifierKeysFlags
+let ModifierKeysFlags_forwardButtonModifier* {.header: juce_gui_basics, importcpp: "juce::ModifierKeys::forwardButtonModifier".}: ModifierKeysFlags
+let ModifierKeysFlags_commandModifier* {.header: juce_gui_basics, importcpp: "juce::ModifierKeys::commandModifier".}: ModifierKeysFlags
+let ModifierKeysFlags_popupMenuClickModifier* {.header: juce_gui_basics, importcpp: "juce::ModifierKeys::popupMenuClickModifier".}: ModifierKeysFlags
+let ModifierKeysFlags_allKeyboardModifiers* {.header: juce_gui_basics, importcpp: "juce::ModifierKeys::allKeyboardModifiers".}: ModifierKeysFlags
+let ModifierKeysFlags_allMouseButtonModifiers* {.header: juce_gui_basics, importcpp: "juce::ModifierKeys::allMouseButtonModifiers".}: ModifierKeysFlags
+let ModifierKeysFlags_ctrlAltCommandModifiers* {.header: juce_gui_basics, importcpp: "juce::ModifierKeys::ctrlAltCommandModifiers".}: ModifierKeysFlags
+
+let MouseInputSourceInputSourceType_mouse* {.header: juce_gui_basics, importcpp: "juce::MouseInputSource::mouse".}: MouseInputSourceInputSourceType
+let MouseInputSourceInputSourceType_touch* {.header: juce_gui_basics, importcpp: "juce::MouseInputSource::touch".}: MouseInputSourceInputSourceType
+let MouseInputSourceInputSourceType_pen* {.header: juce_gui_basics, importcpp: "juce::MouseInputSource::pen".}: MouseInputSourceInputSourceType
+
+let FocusTraverserSkipDisabledComponents_no* {.header: juce_gui_basics, importcpp: "juce::FocusTraverser::SkipDisabledComponents::no".}: FocusTraverserSkipDisabledComponents
+let FocusTraverserSkipDisabledComponents_yes* {.header: juce_gui_basics, importcpp: "juce::FocusTraverser::SkipDisabledComponents::yes".}: FocusTraverserSkipDisabledComponents
+
+let ComponentWindowControlKind_client* {.header: juce_gui_basics, importcpp: "juce::Component::WindowControlKind::client".}: ComponentWindowControlKind
+let ComponentWindowControlKind_caption* {.header: juce_gui_basics, importcpp: "juce::Component::WindowControlKind::caption".}: ComponentWindowControlKind
+let ComponentWindowControlKind_minimise* {.header: juce_gui_basics, importcpp: "juce::Component::WindowControlKind::minimise".}: ComponentWindowControlKind
+let ComponentWindowControlKind_maximise* {.header: juce_gui_basics, importcpp: "juce::Component::WindowControlKind::maximise".}: ComponentWindowControlKind
+let ComponentWindowControlKind_close* {.header: juce_gui_basics, importcpp: "juce::Component::WindowControlKind::close".}: ComponentWindowControlKind
+let ComponentWindowControlKind_sizeTop* {.header: juce_gui_basics, importcpp: "juce::Component::WindowControlKind::sizeTop".}: ComponentWindowControlKind
+let ComponentWindowControlKind_sizeLeft* {.header: juce_gui_basics, importcpp: "juce::Component::WindowControlKind::sizeLeft".}: ComponentWindowControlKind
+let ComponentWindowControlKind_sizeRight* {.header: juce_gui_basics, importcpp: "juce::Component::WindowControlKind::sizeRight".}: ComponentWindowControlKind
+let ComponentWindowControlKind_sizeBottom* {.header: juce_gui_basics, importcpp: "juce::Component::WindowControlKind::sizeBottom".}: ComponentWindowControlKind
+let ComponentWindowControlKind_sizeTopLeft* {.header: juce_gui_basics, importcpp: "juce::Component::WindowControlKind::sizeTopLeft".}: ComponentWindowControlKind
+let ComponentWindowControlKind_sizeTopRight* {.header: juce_gui_basics, importcpp: "juce::Component::WindowControlKind::sizeTopRight".}: ComponentWindowControlKind
+let ComponentWindowControlKind_sizeBottomLeft* {.header: juce_gui_basics, importcpp: "juce::Component::WindowControlKind::sizeBottomLeft".}: ComponentWindowControlKind
+let ComponentWindowControlKind_sizeBottomRight* {.header: juce_gui_basics, importcpp: "juce::Component::WindowControlKind::sizeBottomRight".}: ComponentWindowControlKind
+
+let ComponentFocusContainerType_none* {.header: juce_gui_basics, importcpp: "juce::Component::FocusContainerType::none".}: ComponentFocusContainerType
+let ComponentFocusContainerType_focusContainer* {.header: juce_gui_basics, importcpp: "juce::Component::FocusContainerType::focusContainer".}: ComponentFocusContainerType
+let ComponentFocusContainerType_keyboardFocusContainer* {.header: juce_gui_basics, importcpp: "juce::Component::FocusContainerType::keyboardFocusContainer".}: ComponentFocusContainerType
+
+let ComponentFocusChangeType_focusChangedByMouseClick* {.header: juce_gui_basics, importcpp: "juce::Component::focusChangedByMouseClick".}: ComponentFocusChangeType
+let ComponentFocusChangeType_focusChangedByTabKey* {.header: juce_gui_basics, importcpp: "juce::Component::focusChangedByTabKey".}: ComponentFocusChangeType
+let ComponentFocusChangeType_focusChangedDirectly* {.header: juce_gui_basics, importcpp: "juce::Component::focusChangedDirectly".}: ComponentFocusChangeType
+
+let ComponentFocusChangeDirection_unknown* {.header: juce_gui_basics, importcpp: "juce::Component::FocusChangeDirection::unknown".}: ComponentFocusChangeDirection
+let ComponentFocusChangeDirection_forward* {.header: juce_gui_basics, importcpp: "juce::Component::FocusChangeDirection::forward".}: ComponentFocusChangeDirection
+let ComponentFocusChangeDirection_backward* {.header: juce_gui_basics, importcpp: "juce::Component::FocusChangeDirection::backward".}: ComponentFocusChangeDirection
+
+let DesktopDisplayOrientation_upright* {.header: juce_gui_basics, importcpp: "juce::Desktop::upright".}: DesktopDisplayOrientation
+let DesktopDisplayOrientation_upsideDown* {.header: juce_gui_basics, importcpp: "juce::Desktop::upsideDown".}: DesktopDisplayOrientation
+let DesktopDisplayOrientation_rotatedClockwise* {.header: juce_gui_basics, importcpp: "juce::Desktop::rotatedClockwise".}: DesktopDisplayOrientation
+let DesktopDisplayOrientation_rotatedAntiClockwise* {.header: juce_gui_basics, importcpp: "juce::Desktop::rotatedAntiClockwise".}: DesktopDisplayOrientation
+let DesktopDisplayOrientation_allOrientations* {.header: juce_gui_basics, importcpp: "juce::Desktop::allOrientations".}: DesktopDisplayOrientation
+
+let CaretComponentColourIds_caretColourId* {.header: juce_gui_basics, importcpp: "juce::CaretComponent::caretColourId".}: CaretComponentColourIds
+
+let TextInputTargetVirtualKeyboardType_textKeyboard* {.header: juce_gui_basics, importcpp: "juce::TextInputTarget::textKeyboard".}: TextInputTargetVirtualKeyboardType
+let TextInputTargetVirtualKeyboardType_numericKeyboard* {.header: juce_gui_basics, importcpp: "juce::TextInputTarget::numericKeyboard".}: TextInputTargetVirtualKeyboardType
+let TextInputTargetVirtualKeyboardType_decimalKeyboard* {.header: juce_gui_basics, importcpp: "juce::TextInputTarget::decimalKeyboard".}: TextInputTargetVirtualKeyboardType
+let TextInputTargetVirtualKeyboardType_urlKeyboard* {.header: juce_gui_basics, importcpp: "juce::TextInputTarget::urlKeyboard".}: TextInputTargetVirtualKeyboardType
+let TextInputTargetVirtualKeyboardType_emailAddressKeyboard* {.header: juce_gui_basics, importcpp: "juce::TextInputTarget::emailAddressKeyboard".}: TextInputTargetVirtualKeyboardType
+let TextInputTargetVirtualKeyboardType_phoneNumberKeyboard* {.header: juce_gui_basics, importcpp: "juce::TextInputTarget::phoneNumberKeyboard".}: TextInputTargetVirtualKeyboardType
+let TextInputTargetVirtualKeyboardType_passwordKeyboard* {.header: juce_gui_basics, importcpp: "juce::TextInputTarget::passwordKeyboard".}: TextInputTargetVirtualKeyboardType
+
+let ApplicationCommandInfoCommandFlags_isDisabled* {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandInfo::isDisabled".}: ApplicationCommandInfoCommandFlags
+let ApplicationCommandInfoCommandFlags_isTicked* {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandInfo::isTicked".}: ApplicationCommandInfoCommandFlags
+let ApplicationCommandInfoCommandFlags_wantsKeyUpDownCallbacks* {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandInfo::wantsKeyUpDownCallbacks".}: ApplicationCommandInfoCommandFlags
+let ApplicationCommandInfoCommandFlags_hiddenFromKeyEditor* {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandInfo::hiddenFromKeyEditor".}: ApplicationCommandInfoCommandFlags
+let ApplicationCommandInfoCommandFlags_readOnlyInKeyEditor* {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandInfo::readOnlyInKeyEditor".}: ApplicationCommandInfoCommandFlags
+let ApplicationCommandInfoCommandFlags_dontTriggerVisualFeedback* {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandInfo::dontTriggerVisualFeedback".}: ApplicationCommandInfoCommandFlags
+
+let ButtonConnectedEdgeFlags_ConnectedOnLeft* {.header: juce_gui_basics, importcpp: "juce::Button::ConnectedOnLeft".}: ButtonConnectedEdgeFlags
+let ButtonConnectedEdgeFlags_ConnectedOnRight* {.header: juce_gui_basics, importcpp: "juce::Button::ConnectedOnRight".}: ButtonConnectedEdgeFlags
+let ButtonConnectedEdgeFlags_ConnectedOnTop* {.header: juce_gui_basics, importcpp: "juce::Button::ConnectedOnTop".}: ButtonConnectedEdgeFlags
+let ButtonConnectedEdgeFlags_ConnectedOnBottom* {.header: juce_gui_basics, importcpp: "juce::Button::ConnectedOnBottom".}: ButtonConnectedEdgeFlags
+
+let ButtonButtonState_buttonNormal* {.header: juce_gui_basics, importcpp: "juce::Button::buttonNormal".}: ButtonButtonState
+let ButtonButtonState_buttonOver* {.header: juce_gui_basics, importcpp: "juce::Button::buttonOver".}: ButtonButtonState
+let ButtonButtonState_buttonDown* {.header: juce_gui_basics, importcpp: "juce::Button::buttonDown".}: ButtonButtonState
+
+let DrawableButtonButtonStyle_ImageFitted* {.header: juce_gui_basics, importcpp: "juce::DrawableButton::ImageFitted".}: DrawableButtonButtonStyle
+let DrawableButtonButtonStyle_ImageRaw* {.header: juce_gui_basics, importcpp: "juce::DrawableButton::ImageRaw".}: DrawableButtonButtonStyle
+let DrawableButtonButtonStyle_ImageAboveTextLabel* {.header: juce_gui_basics, importcpp: "juce::DrawableButton::ImageAboveTextLabel".}: DrawableButtonButtonStyle
+let DrawableButtonButtonStyle_ImageOnButtonBackground* {.header: juce_gui_basics, importcpp: "juce::DrawableButton::ImageOnButtonBackground".}: DrawableButtonButtonStyle
+let DrawableButtonButtonStyle_ImageOnButtonBackgroundOriginalSize* {.header: juce_gui_basics, importcpp: "juce::DrawableButton::ImageOnButtonBackgroundOriginalSize".}: DrawableButtonButtonStyle
+let DrawableButtonButtonStyle_ImageStretched* {.header: juce_gui_basics, importcpp: "juce::DrawableButton::ImageStretched".}: DrawableButtonButtonStyle
+
+let DrawableButtonColourIds_textColourId* {.header: juce_gui_basics, importcpp: "juce::DrawableButton::textColourId".}: DrawableButtonColourIds
+let DrawableButtonColourIds_textColourOnId* {.header: juce_gui_basics, importcpp: "juce::DrawableButton::textColourOnId".}: DrawableButtonColourIds
+let DrawableButtonColourIds_backgroundColourId* {.header: juce_gui_basics, importcpp: "juce::DrawableButton::backgroundColourId".}: DrawableButtonColourIds
+let DrawableButtonColourIds_backgroundOnColourId* {.header: juce_gui_basics, importcpp: "juce::DrawableButton::backgroundOnColourId".}: DrawableButtonColourIds
+
+let HyperlinkButtonColourIds_textColourId* {.header: juce_gui_basics, importcpp: "juce::HyperlinkButton::textColourId".}: HyperlinkButtonColourIds
+
+let TextButtonColourIds_buttonColourId* {.header: juce_gui_basics, importcpp: "juce::TextButton::buttonColourId".}: TextButtonColourIds
+let TextButtonColourIds_buttonOnColourId* {.header: juce_gui_basics, importcpp: "juce::TextButton::buttonOnColourId".}: TextButtonColourIds
+let TextButtonColourIds_textColourOffId* {.header: juce_gui_basics, importcpp: "juce::TextButton::textColourOffId".}: TextButtonColourIds
+let TextButtonColourIds_textColourOnId* {.header: juce_gui_basics, importcpp: "juce::TextButton::textColourOnId".}: TextButtonColourIds
+
+let ToggleButtonColourIds_textColourId* {.header: juce_gui_basics, importcpp: "juce::ToggleButton::textColourId".}: ToggleButtonColourIds
+let ToggleButtonColourIds_tickColourId* {.header: juce_gui_basics, importcpp: "juce::ToggleButton::tickColourId".}: ToggleButtonColourIds
+let ToggleButtonColourIds_tickDisabledColourId* {.header: juce_gui_basics, importcpp: "juce::ToggleButton::tickDisabledColourId".}: ToggleButtonColourIds
+
+let GroupComponentColourIds_outlineColourId* {.header: juce_gui_basics, importcpp: "juce::GroupComponent::outlineColourId".}: GroupComponentColourIds
+let GroupComponentColourIds_textColourId* {.header: juce_gui_basics, importcpp: "juce::GroupComponent::textColourId".}: GroupComponentColourIds
+
+let ResizableEdgeComponentEdge_leftEdge* {.header: juce_gui_basics, importcpp: "juce::ResizableEdgeComponent::leftEdge".}: ResizableEdgeComponentEdge
+let ResizableEdgeComponentEdge_rightEdge* {.header: juce_gui_basics, importcpp: "juce::ResizableEdgeComponent::rightEdge".}: ResizableEdgeComponentEdge
+let ResizableEdgeComponentEdge_topEdge* {.header: juce_gui_basics, importcpp: "juce::ResizableEdgeComponent::topEdge".}: ResizableEdgeComponentEdge
+let ResizableEdgeComponentEdge_bottomEdge* {.header: juce_gui_basics, importcpp: "juce::ResizableEdgeComponent::bottomEdge".}: ResizableEdgeComponentEdge
+
+let ScrollBarColourIds_backgroundColourId* {.header: juce_gui_basics, importcpp: "juce::ScrollBar::backgroundColourId".}: ScrollBarColourIds
+let ScrollBarColourIds_thumbColourId* {.header: juce_gui_basics, importcpp: "juce::ScrollBar::thumbColourId".}: ScrollBarColourIds
+let ScrollBarColourIds_trackColourId* {.header: juce_gui_basics, importcpp: "juce::ScrollBar::trackColourId".}: ScrollBarColourIds
+
+let TabBarButtonExtraComponentPlacement_beforeText* {.header: juce_gui_basics, importcpp: "juce::TabBarButton::beforeText".}: TabBarButtonExtraComponentPlacement
+let TabBarButtonExtraComponentPlacement_afterText* {.header: juce_gui_basics, importcpp: "juce::TabBarButton::afterText".}: TabBarButtonExtraComponentPlacement
+
+let TabbedButtonBarOrientation_TabsAtTop* {.header: juce_gui_basics, importcpp: "juce::TabbedButtonBar::TabsAtTop".}: TabbedButtonBarOrientation
+let TabbedButtonBarOrientation_TabsAtBottom* {.header: juce_gui_basics, importcpp: "juce::TabbedButtonBar::TabsAtBottom".}: TabbedButtonBarOrientation
+let TabbedButtonBarOrientation_TabsAtLeft* {.header: juce_gui_basics, importcpp: "juce::TabbedButtonBar::TabsAtLeft".}: TabbedButtonBarOrientation
+let TabbedButtonBarOrientation_TabsAtRight* {.header: juce_gui_basics, importcpp: "juce::TabbedButtonBar::TabsAtRight".}: TabbedButtonBarOrientation
+
+let TabbedButtonBarColourIds_tabOutlineColourId* {.header: juce_gui_basics, importcpp: "juce::TabbedButtonBar::tabOutlineColourId".}: TabbedButtonBarColourIds
+let TabbedButtonBarColourIds_tabTextColourId* {.header: juce_gui_basics, importcpp: "juce::TabbedButtonBar::tabTextColourId".}: TabbedButtonBarColourIds
+let TabbedButtonBarColourIds_frontOutlineColourId* {.header: juce_gui_basics, importcpp: "juce::TabbedButtonBar::frontOutlineColourId".}: TabbedButtonBarColourIds
+let TabbedButtonBarColourIds_frontTextColourId* {.header: juce_gui_basics, importcpp: "juce::TabbedButtonBar::frontTextColourId".}: TabbedButtonBarColourIds
+
+let TabbedComponentColourIds_backgroundColourId* {.header: juce_gui_basics, importcpp: "juce::TabbedComponent::backgroundColourId".}: TabbedComponentColourIds
+let TabbedComponentColourIds_outlineColourId* {.header: juce_gui_basics, importcpp: "juce::TabbedComponent::outlineColourId".}: TabbedComponentColourIds
+
+let AccessibilityHandlerAnnouncementPriority_low* {.header: juce_gui_basics, importcpp: "juce::AccessibilityHandler::AnnouncementPriority::low".}: AccessibilityHandlerAnnouncementPriority
+let AccessibilityHandlerAnnouncementPriority_medium* {.header: juce_gui_basics, importcpp: "juce::AccessibilityHandler::AnnouncementPriority::medium".}: AccessibilityHandlerAnnouncementPriority
+let AccessibilityHandlerAnnouncementPriority_high* {.header: juce_gui_basics, importcpp: "juce::AccessibilityHandler::AnnouncementPriority::high".}: AccessibilityHandlerAnnouncementPriority
+
+let ViewportScrollOnDragMode_never* {.header: juce_gui_basics, importcpp: "juce::Viewport::ScrollOnDragMode::never".}: ViewportScrollOnDragMode
+let ViewportScrollOnDragMode_nonHover* {.header: juce_gui_basics, importcpp: "juce::Viewport::ScrollOnDragMode::nonHover".}: ViewportScrollOnDragMode
+let ViewportScrollOnDragMode_all* {.header: juce_gui_basics, importcpp: "juce::Viewport::ScrollOnDragMode::all".}: ViewportScrollOnDragMode
+
+let PopupMenuColourIds_backgroundColourId* {.header: juce_gui_basics, importcpp: "juce::PopupMenu::backgroundColourId".}: PopupMenuColourIds
+let PopupMenuColourIds_textColourId* {.header: juce_gui_basics, importcpp: "juce::PopupMenu::textColourId".}: PopupMenuColourIds
+let PopupMenuColourIds_headerTextColourId* {.header: juce_gui_basics, importcpp: "juce::PopupMenu::headerTextColourId".}: PopupMenuColourIds
+let PopupMenuColourIds_highlightedBackgroundColourId* {.header: juce_gui_basics, importcpp: "juce::PopupMenu::highlightedBackgroundColourId".}: PopupMenuColourIds
+let PopupMenuColourIds_highlightedTextColourId* {.header: juce_gui_basics, importcpp: "juce::PopupMenu::highlightedTextColourId".}: PopupMenuColourIds
+
+let RelativePointPathElementType_nullElement* {.header: juce_gui_basics, importcpp: "juce::RelativePointPath::nullElement".}: RelativePointPathElementType
+let RelativePointPathElementType_startSubPathElement* {.header: juce_gui_basics, importcpp: "juce::RelativePointPath::startSubPathElement".}: RelativePointPathElementType
+let RelativePointPathElementType_closeSubPathElement* {.header: juce_gui_basics, importcpp: "juce::RelativePointPath::closeSubPathElement".}: RelativePointPathElementType
+let RelativePointPathElementType_lineToElement* {.header: juce_gui_basics, importcpp: "juce::RelativePointPath::lineToElement".}: RelativePointPathElementType
+let RelativePointPathElementType_quadraticToElement* {.header: juce_gui_basics, importcpp: "juce::RelativePointPath::quadraticToElement".}: RelativePointPathElementType
+let RelativePointPathElementType_cubicToElement* {.header: juce_gui_basics, importcpp: "juce::RelativePointPath::cubicToElement".}: RelativePointPathElementType
+
+let TextEditorColourIds_backgroundColourId* {.header: juce_gui_basics, importcpp: "juce::TextEditor::backgroundColourId".}: TextEditorColourIds
+let TextEditorColourIds_textColourId* {.header: juce_gui_basics, importcpp: "juce::TextEditor::textColourId".}: TextEditorColourIds
+let TextEditorColourIds_highlightColourId* {.header: juce_gui_basics, importcpp: "juce::TextEditor::highlightColourId".}: TextEditorColourIds
+let TextEditorColourIds_highlightedTextColourId* {.header: juce_gui_basics, importcpp: "juce::TextEditor::highlightedTextColourId".}: TextEditorColourIds
+let TextEditorColourIds_outlineColourId* {.header: juce_gui_basics, importcpp: "juce::TextEditor::outlineColourId".}: TextEditorColourIds
+let TextEditorColourIds_focusedOutlineColourId* {.header: juce_gui_basics, importcpp: "juce::TextEditor::focusedOutlineColourId".}: TextEditorColourIds
+let TextEditorColourIds_shadowColourId* {.header: juce_gui_basics, importcpp: "juce::TextEditor::shadowColourId".}: TextEditorColourIds
+
+let LabelColourIds_backgroundColourId* {.header: juce_gui_basics, importcpp: "juce::Label::backgroundColourId".}: LabelColourIds
+let LabelColourIds_textColourId* {.header: juce_gui_basics, importcpp: "juce::Label::textColourId".}: LabelColourIds
+let LabelColourIds_outlineColourId* {.header: juce_gui_basics, importcpp: "juce::Label::outlineColourId".}: LabelColourIds
+let LabelColourIds_backgroundWhenEditingColourId* {.header: juce_gui_basics, importcpp: "juce::Label::backgroundWhenEditingColourId".}: LabelColourIds
+let LabelColourIds_textWhenEditingColourId* {.header: juce_gui_basics, importcpp: "juce::Label::textWhenEditingColourId".}: LabelColourIds
+let LabelColourIds_outlineWhenEditingColourId* {.header: juce_gui_basics, importcpp: "juce::Label::outlineWhenEditingColourId".}: LabelColourIds
+
+let ComboBoxColourIds_backgroundColourId* {.header: juce_gui_basics, importcpp: "juce::ComboBox::backgroundColourId".}: ComboBoxColourIds
+let ComboBoxColourIds_textColourId* {.header: juce_gui_basics, importcpp: "juce::ComboBox::textColourId".}: ComboBoxColourIds
+let ComboBoxColourIds_outlineColourId* {.header: juce_gui_basics, importcpp: "juce::ComboBox::outlineColourId".}: ComboBoxColourIds
+let ComboBoxColourIds_buttonColourId* {.header: juce_gui_basics, importcpp: "juce::ComboBox::buttonColourId".}: ComboBoxColourIds
+let ComboBoxColourIds_arrowColourId* {.header: juce_gui_basics, importcpp: "juce::ComboBox::arrowColourId".}: ComboBoxColourIds
+let ComboBoxColourIds_focusedOutlineColourId* {.header: juce_gui_basics, importcpp: "juce::ComboBox::focusedOutlineColourId".}: ComboBoxColourIds
+
+let ListBoxColourIds_backgroundColourId* {.header: juce_gui_basics, importcpp: "juce::ListBox::backgroundColourId".}: ListBoxColourIds
+let ListBoxColourIds_outlineColourId* {.header: juce_gui_basics, importcpp: "juce::ListBox::outlineColourId".}: ListBoxColourIds
+let ListBoxColourIds_textColourId* {.header: juce_gui_basics, importcpp: "juce::ListBox::textColourId".}: ListBoxColourIds
+
+let ProgressBarStyle_linear* {.header: juce_gui_basics, importcpp: "juce::ProgressBar::Style::linear".}: ProgressBarStyle
+let ProgressBarStyle_circular* {.header: juce_gui_basics, importcpp: "juce::ProgressBar::Style::circular".}: ProgressBarStyle
+
+let ProgressBarColourIds_backgroundColourId* {.header: juce_gui_basics, importcpp: "juce::ProgressBar::backgroundColourId".}: ProgressBarColourIds
+let ProgressBarColourIds_foregroundColourId* {.header: juce_gui_basics, importcpp: "juce::ProgressBar::foregroundColourId".}: ProgressBarColourIds
+
+let SliderSliderStyle_LinearHorizontal* {.header: juce_gui_basics, importcpp: "juce::Slider::LinearHorizontal".}: SliderSliderStyle
+let SliderSliderStyle_LinearVertical* {.header: juce_gui_basics, importcpp: "juce::Slider::LinearVertical".}: SliderSliderStyle
+let SliderSliderStyle_LinearBar* {.header: juce_gui_basics, importcpp: "juce::Slider::LinearBar".}: SliderSliderStyle
+let SliderSliderStyle_LinearBarVertical* {.header: juce_gui_basics, importcpp: "juce::Slider::LinearBarVertical".}: SliderSliderStyle
+let SliderSliderStyle_Rotary* {.header: juce_gui_basics, importcpp: "juce::Slider::Rotary".}: SliderSliderStyle
+let SliderSliderStyle_RotaryHorizontalDrag* {.header: juce_gui_basics, importcpp: "juce::Slider::RotaryHorizontalDrag".}: SliderSliderStyle
+let SliderSliderStyle_RotaryVerticalDrag* {.header: juce_gui_basics, importcpp: "juce::Slider::RotaryVerticalDrag".}: SliderSliderStyle
+let SliderSliderStyle_RotaryHorizontalVerticalDrag* {.header: juce_gui_basics, importcpp: "juce::Slider::RotaryHorizontalVerticalDrag".}: SliderSliderStyle
+let SliderSliderStyle_IncDecButtons* {.header: juce_gui_basics, importcpp: "juce::Slider::IncDecButtons".}: SliderSliderStyle
+let SliderSliderStyle_TwoValueHorizontal* {.header: juce_gui_basics, importcpp: "juce::Slider::TwoValueHorizontal".}: SliderSliderStyle
+let SliderSliderStyle_TwoValueVertical* {.header: juce_gui_basics, importcpp: "juce::Slider::TwoValueVertical".}: SliderSliderStyle
+let SliderSliderStyle_ThreeValueHorizontal* {.header: juce_gui_basics, importcpp: "juce::Slider::ThreeValueHorizontal".}: SliderSliderStyle
+let SliderSliderStyle_ThreeValueVertical* {.header: juce_gui_basics, importcpp: "juce::Slider::ThreeValueVertical".}: SliderSliderStyle
+
+let SliderTextEntryBoxPosition_NoTextBox* {.header: juce_gui_basics, importcpp: "juce::Slider::NoTextBox".}: SliderTextEntryBoxPosition
+let SliderTextEntryBoxPosition_TextBoxLeft* {.header: juce_gui_basics, importcpp: "juce::Slider::TextBoxLeft".}: SliderTextEntryBoxPosition
+let SliderTextEntryBoxPosition_TextBoxRight* {.header: juce_gui_basics, importcpp: "juce::Slider::TextBoxRight".}: SliderTextEntryBoxPosition
+let SliderTextEntryBoxPosition_TextBoxAbove* {.header: juce_gui_basics, importcpp: "juce::Slider::TextBoxAbove".}: SliderTextEntryBoxPosition
+let SliderTextEntryBoxPosition_TextBoxBelow* {.header: juce_gui_basics, importcpp: "juce::Slider::TextBoxBelow".}: SliderTextEntryBoxPosition
+
+let SliderDragMode_notDragging* {.header: juce_gui_basics, importcpp: "juce::Slider::notDragging".}: SliderDragMode
+let SliderDragMode_absoluteDrag* {.header: juce_gui_basics, importcpp: "juce::Slider::absoluteDrag".}: SliderDragMode
+let SliderDragMode_velocityDrag* {.header: juce_gui_basics, importcpp: "juce::Slider::velocityDrag".}: SliderDragMode
+
+let SliderIncDecButtonMode_incDecButtonsNotDraggable* {.header: juce_gui_basics, importcpp: "juce::Slider::incDecButtonsNotDraggable".}: SliderIncDecButtonMode
+let SliderIncDecButtonMode_incDecButtonsDraggable_AutoDirection* {.header: juce_gui_basics, importcpp: "juce::Slider::incDecButtonsDraggable_AutoDirection".}: SliderIncDecButtonMode
+let SliderIncDecButtonMode_incDecButtonsDraggable_Horizontal* {.header: juce_gui_basics, importcpp: "juce::Slider::incDecButtonsDraggable_Horizontal".}: SliderIncDecButtonMode
+let SliderIncDecButtonMode_incDecButtonsDraggable_Vertical* {.header: juce_gui_basics, importcpp: "juce::Slider::incDecButtonsDraggable_Vertical".}: SliderIncDecButtonMode
+
+let SliderColourIds_backgroundColourId* {.header: juce_gui_basics, importcpp: "juce::Slider::backgroundColourId".}: SliderColourIds
+let SliderColourIds_thumbColourId* {.header: juce_gui_basics, importcpp: "juce::Slider::thumbColourId".}: SliderColourIds
+let SliderColourIds_trackColourId* {.header: juce_gui_basics, importcpp: "juce::Slider::trackColourId".}: SliderColourIds
+let SliderColourIds_rotarySliderFillColourId* {.header: juce_gui_basics, importcpp: "juce::Slider::rotarySliderFillColourId".}: SliderColourIds
+let SliderColourIds_rotarySliderOutlineColourId* {.header: juce_gui_basics, importcpp: "juce::Slider::rotarySliderOutlineColourId".}: SliderColourIds
+let SliderColourIds_textBoxTextColourId* {.header: juce_gui_basics, importcpp: "juce::Slider::textBoxTextColourId".}: SliderColourIds
+let SliderColourIds_textBoxBackgroundColourId* {.header: juce_gui_basics, importcpp: "juce::Slider::textBoxBackgroundColourId".}: SliderColourIds
+let SliderColourIds_textBoxHighlightColourId* {.header: juce_gui_basics, importcpp: "juce::Slider::textBoxHighlightColourId".}: SliderColourIds
+let SliderColourIds_textBoxOutlineColourId* {.header: juce_gui_basics, importcpp: "juce::Slider::textBoxOutlineColourId".}: SliderColourIds
+
+let TableHeaderComponentColumnPropertyFlags_visible* {.header: juce_gui_basics, importcpp: "juce::TableHeaderComponent::visible".}: TableHeaderComponentColumnPropertyFlags
+let TableHeaderComponentColumnPropertyFlags_resizable* {.header: juce_gui_basics, importcpp: "juce::TableHeaderComponent::resizable".}: TableHeaderComponentColumnPropertyFlags
+let TableHeaderComponentColumnPropertyFlags_draggable* {.header: juce_gui_basics, importcpp: "juce::TableHeaderComponent::draggable".}: TableHeaderComponentColumnPropertyFlags
+let TableHeaderComponentColumnPropertyFlags_appearsOnColumnMenu* {.header: juce_gui_basics, importcpp: "juce::TableHeaderComponent::appearsOnColumnMenu".}: TableHeaderComponentColumnPropertyFlags
+let TableHeaderComponentColumnPropertyFlags_sortable* {.header: juce_gui_basics, importcpp: "juce::TableHeaderComponent::sortable".}: TableHeaderComponentColumnPropertyFlags
+let TableHeaderComponentColumnPropertyFlags_sortedForwards* {.header: juce_gui_basics, importcpp: "juce::TableHeaderComponent::sortedForwards".}: TableHeaderComponentColumnPropertyFlags
+let TableHeaderComponentColumnPropertyFlags_sortedBackwards* {.header: juce_gui_basics, importcpp: "juce::TableHeaderComponent::sortedBackwards".}: TableHeaderComponentColumnPropertyFlags
+let TableHeaderComponentColumnPropertyFlags_defaultFlags* {.header: juce_gui_basics, importcpp: "juce::TableHeaderComponent::defaultFlags".}: TableHeaderComponentColumnPropertyFlags
+let TableHeaderComponentColumnPropertyFlags_notResizable* {.header: juce_gui_basics, importcpp: "juce::TableHeaderComponent::notResizable".}: TableHeaderComponentColumnPropertyFlags
+let TableHeaderComponentColumnPropertyFlags_notResizableOrSortable* {.header: juce_gui_basics, importcpp: "juce::TableHeaderComponent::notResizableOrSortable".}: TableHeaderComponentColumnPropertyFlags
+let TableHeaderComponentColumnPropertyFlags_notSortable* {.header: juce_gui_basics, importcpp: "juce::TableHeaderComponent::notSortable".}: TableHeaderComponentColumnPropertyFlags
+
+let TableHeaderComponentColourIds_textColourId* {.header: juce_gui_basics, importcpp: "juce::TableHeaderComponent::textColourId".}: TableHeaderComponentColourIds
+let TableHeaderComponentColourIds_backgroundColourId* {.header: juce_gui_basics, importcpp: "juce::TableHeaderComponent::backgroundColourId".}: TableHeaderComponentColourIds
+let TableHeaderComponentColourIds_outlineColourId* {.header: juce_gui_basics, importcpp: "juce::TableHeaderComponent::outlineColourId".}: TableHeaderComponentColourIds
+let TableHeaderComponentColourIds_highlightColourId* {.header: juce_gui_basics, importcpp: "juce::TableHeaderComponent::highlightColourId".}: TableHeaderComponentColourIds
+
+let ToolbarToolbarItemStyle_iconsOnly* {.header: juce_gui_basics, importcpp: "juce::Toolbar::iconsOnly".}: ToolbarToolbarItemStyle
+let ToolbarToolbarItemStyle_iconsWithText* {.header: juce_gui_basics, importcpp: "juce::Toolbar::iconsWithText".}: ToolbarToolbarItemStyle
+let ToolbarToolbarItemStyle_textOnly* {.header: juce_gui_basics, importcpp: "juce::Toolbar::textOnly".}: ToolbarToolbarItemStyle
+
+let ToolbarCustomisationFlags_allowIconsOnlyChoice* {.header: juce_gui_basics, importcpp: "juce::Toolbar::allowIconsOnlyChoice".}: ToolbarCustomisationFlags
+let ToolbarCustomisationFlags_allowIconsWithTextChoice* {.header: juce_gui_basics, importcpp: "juce::Toolbar::allowIconsWithTextChoice".}: ToolbarCustomisationFlags
+let ToolbarCustomisationFlags_allowTextOnlyChoice* {.header: juce_gui_basics, importcpp: "juce::Toolbar::allowTextOnlyChoice".}: ToolbarCustomisationFlags
+let ToolbarCustomisationFlags_showResetToDefaultsButton* {.header: juce_gui_basics, importcpp: "juce::Toolbar::showResetToDefaultsButton".}: ToolbarCustomisationFlags
+let ToolbarCustomisationFlags_allCustomisationOptionsEnabled* {.header: juce_gui_basics, importcpp: "juce::Toolbar::allCustomisationOptionsEnabled".}: ToolbarCustomisationFlags
+
+let ToolbarColourIds_backgroundColourId* {.header: juce_gui_basics, importcpp: "juce::Toolbar::backgroundColourId".}: ToolbarColourIds
+let ToolbarColourIds_separatorColourId* {.header: juce_gui_basics, importcpp: "juce::Toolbar::separatorColourId".}: ToolbarColourIds
+let ToolbarColourIds_buttonMouseOverBackgroundColourId* {.header: juce_gui_basics, importcpp: "juce::Toolbar::buttonMouseOverBackgroundColourId".}: ToolbarColourIds
+let ToolbarColourIds_buttonMouseDownBackgroundColourId* {.header: juce_gui_basics, importcpp: "juce::Toolbar::buttonMouseDownBackgroundColourId".}: ToolbarColourIds
+let ToolbarColourIds_labelTextColourId* {.header: juce_gui_basics, importcpp: "juce::Toolbar::labelTextColourId".}: ToolbarColourIds
+let ToolbarColourIds_editingModeOutlineColourId* {.header: juce_gui_basics, importcpp: "juce::Toolbar::editingModeOutlineColourId".}: ToolbarColourIds
+let ToolbarColourIds_customisationDialogBackgroundColourId* {.header: juce_gui_basics, importcpp: "juce::Toolbar::customisationDialogBackgroundColourId".}: ToolbarColourIds
+
+let ToolbarItemComponentToolbarEditingMode_normalMode* {.header: juce_gui_basics, importcpp: "juce::ToolbarItemComponent::normalMode".}: ToolbarItemComponentToolbarEditingMode
+let ToolbarItemComponentToolbarEditingMode_editableOnToolbar* {.header: juce_gui_basics, importcpp: "juce::ToolbarItemComponent::editableOnToolbar".}: ToolbarItemComponentToolbarEditingMode
+let ToolbarItemComponentToolbarEditingMode_editableOnPalette* {.header: juce_gui_basics, importcpp: "juce::ToolbarItemComponent::editableOnPalette".}: ToolbarItemComponentToolbarEditingMode
+
+let ToolbarItemFactorySpecialItemIds_separatorBarId* {.header: juce_gui_basics, importcpp: "juce::ToolbarItemFactory::separatorBarId".}: ToolbarItemFactorySpecialItemIds
+let ToolbarItemFactorySpecialItemIds_spacerId* {.header: juce_gui_basics, importcpp: "juce::ToolbarItemFactory::spacerId".}: ToolbarItemFactorySpecialItemIds
+let ToolbarItemFactorySpecialItemIds_flexibleSpacerId* {.header: juce_gui_basics, importcpp: "juce::ToolbarItemFactory::flexibleSpacerId".}: ToolbarItemFactorySpecialItemIds
+
+let TreeViewItemOpenness_opennessDefault* {.header: juce_gui_basics, importcpp: "juce::TreeViewItem::Openness::opennessDefault".}: TreeViewItemOpenness
+let TreeViewItemOpenness_opennessClosed* {.header: juce_gui_basics, importcpp: "juce::TreeViewItem::Openness::opennessClosed".}: TreeViewItemOpenness
+let TreeViewItemOpenness_opennessOpen* {.header: juce_gui_basics, importcpp: "juce::TreeViewItem::Openness::opennessOpen".}: TreeViewItemOpenness
+
+let TreeViewColourIds_backgroundColourId* {.header: juce_gui_basics, importcpp: "juce::TreeView::backgroundColourId".}: TreeViewColourIds
+let TreeViewColourIds_linesColourId* {.header: juce_gui_basics, importcpp: "juce::TreeView::linesColourId".}: TreeViewColourIds
+let TreeViewColourIds_dragAndDropIndicatorColourId* {.header: juce_gui_basics, importcpp: "juce::TreeView::dragAndDropIndicatorColourId".}: TreeViewColourIds
+let TreeViewColourIds_selectedItemBackgroundColourId* {.header: juce_gui_basics, importcpp: "juce::TreeView::selectedItemBackgroundColourId".}: TreeViewColourIds
+let TreeViewColourIds_oddItemsColourId* {.header: juce_gui_basics, importcpp: "juce::TreeView::oddItemsColourId".}: TreeViewColourIds
+let TreeViewColourIds_evenItemsColourId* {.header: juce_gui_basics, importcpp: "juce::TreeView::evenItemsColourId".}: TreeViewColourIds
+
+let AlertWindowColourIds_backgroundColourId* {.header: juce_gui_basics, importcpp: "juce::AlertWindow::backgroundColourId".}: AlertWindowColourIds
+let AlertWindowColourIds_textColourId* {.header: juce_gui_basics, importcpp: "juce::AlertWindow::textColourId".}: AlertWindowColourIds
+let AlertWindowColourIds_outlineColourId* {.header: juce_gui_basics, importcpp: "juce::AlertWindow::outlineColourId".}: AlertWindowColourIds
+
+let ComponentPeerStyleFlags_windowAppearsOnTaskbar* {.header: juce_gui_basics, importcpp: "juce::ComponentPeer::windowAppearsOnTaskbar".}: ComponentPeerStyleFlags
+let ComponentPeerStyleFlags_windowIsTemporary* {.header: juce_gui_basics, importcpp: "juce::ComponentPeer::windowIsTemporary".}: ComponentPeerStyleFlags
+let ComponentPeerStyleFlags_windowIgnoresMouseClicks* {.header: juce_gui_basics, importcpp: "juce::ComponentPeer::windowIgnoresMouseClicks".}: ComponentPeerStyleFlags
+let ComponentPeerStyleFlags_windowHasTitleBar* {.header: juce_gui_basics, importcpp: "juce::ComponentPeer::windowHasTitleBar".}: ComponentPeerStyleFlags
+let ComponentPeerStyleFlags_windowIsResizable* {.header: juce_gui_basics, importcpp: "juce::ComponentPeer::windowIsResizable".}: ComponentPeerStyleFlags
+let ComponentPeerStyleFlags_windowHasMinimiseButton* {.header: juce_gui_basics, importcpp: "juce::ComponentPeer::windowHasMinimiseButton".}: ComponentPeerStyleFlags
+let ComponentPeerStyleFlags_windowHasMaximiseButton* {.header: juce_gui_basics, importcpp: "juce::ComponentPeer::windowHasMaximiseButton".}: ComponentPeerStyleFlags
+let ComponentPeerStyleFlags_windowHasCloseButton* {.header: juce_gui_basics, importcpp: "juce::ComponentPeer::windowHasCloseButton".}: ComponentPeerStyleFlags
+let ComponentPeerStyleFlags_windowHasDropShadow* {.header: juce_gui_basics, importcpp: "juce::ComponentPeer::windowHasDropShadow".}: ComponentPeerStyleFlags
+let ComponentPeerStyleFlags_windowRepaintedExplicitly* {.header: juce_gui_basics, importcpp: "juce::ComponentPeer::windowRepaintedExplicitly".}: ComponentPeerStyleFlags
+let ComponentPeerStyleFlags_windowIgnoresKeyPresses* {.header: juce_gui_basics, importcpp: "juce::ComponentPeer::windowIgnoresKeyPresses".}: ComponentPeerStyleFlags
+let ComponentPeerStyleFlags_windowRequiresSynchronousCoreGraphicsRendering* {.header: juce_gui_basics, importcpp: "juce::ComponentPeer::windowRequiresSynchronousCoreGraphicsRendering".}: ComponentPeerStyleFlags
+let ComponentPeerStyleFlags_windowIsSemiTransparent* {.header: juce_gui_basics, importcpp: "juce::ComponentPeer::windowIsSemiTransparent".}: ComponentPeerStyleFlags
+
+let ComponentPeerStyle_automatic* {.header: juce_gui_basics, importcpp: "juce::ComponentPeer::Style::automatic".}: ComponentPeerStyle
+let ComponentPeerStyle_light* {.header: juce_gui_basics, importcpp: "juce::ComponentPeer::Style::light".}: ComponentPeerStyle
+let ComponentPeerStyle_dark* {.header: juce_gui_basics, importcpp: "juce::ComponentPeer::Style::dark".}: ComponentPeerStyle
+
+let ResizableWindowColourIds_backgroundColourId* {.header: juce_gui_basics, importcpp: "juce::ResizableWindow::backgroundColourId".}: ResizableWindowColourIds
+
+let DocumentWindowTitleBarButtons_minimiseButton* {.header: juce_gui_basics, importcpp: "juce::DocumentWindow::minimiseButton".}: DocumentWindowTitleBarButtons
+let DocumentWindowTitleBarButtons_maximiseButton* {.header: juce_gui_basics, importcpp: "juce::DocumentWindow::maximiseButton".}: DocumentWindowTitleBarButtons
+let DocumentWindowTitleBarButtons_closeButton* {.header: juce_gui_basics, importcpp: "juce::DocumentWindow::closeButton".}: DocumentWindowTitleBarButtons
+let DocumentWindowTitleBarButtons_allButtons* {.header: juce_gui_basics, importcpp: "juce::DocumentWindow::allButtons".}: DocumentWindowTitleBarButtons
+
+let DocumentWindowColourIds_textColourId* {.header: juce_gui_basics, importcpp: "juce::DocumentWindow::textColourId".}: DocumentWindowColourIds
+
+let TooltipWindowColourIds_backgroundColourId* {.header: juce_gui_basics, importcpp: "juce::TooltipWindow::backgroundColourId".}: TooltipWindowColourIds
+let TooltipWindowColourIds_textColourId* {.header: juce_gui_basics, importcpp: "juce::TooltipWindow::textColourId".}: TooltipWindowColourIds
+let TooltipWindowColourIds_outlineColourId* {.header: juce_gui_basics, importcpp: "juce::TooltipWindow::outlineColourId".}: TooltipWindowColourIds
+
+let MultiDocumentPanelLayoutMode_FloatingWindows* {.header: juce_gui_basics, importcpp: "juce::MultiDocumentPanel::FloatingWindows".}: MultiDocumentPanelLayoutMode
+let MultiDocumentPanelLayoutMode_MaximisedWindowsWithTabs* {.header: juce_gui_basics, importcpp: "juce::MultiDocumentPanel::MaximisedWindowsWithTabs".}: MultiDocumentPanelLayoutMode
+
+let SidePanelColourIds_backgroundColour* {.header: juce_gui_basics, importcpp: "juce::SidePanel::backgroundColour".}: SidePanelColourIds
+let SidePanelColourIds_titleTextColour* {.header: juce_gui_basics, importcpp: "juce::SidePanel::titleTextColour".}: SidePanelColourIds
+let SidePanelColourIds_shadowBaseColour* {.header: juce_gui_basics, importcpp: "juce::SidePanel::shadowBaseColour".}: SidePanelColourIds
+let SidePanelColourIds_dismissButtonNormalColour* {.header: juce_gui_basics, importcpp: "juce::SidePanel::dismissButtonNormalColour".}: SidePanelColourIds
+let SidePanelColourIds_dismissButtonOverColour* {.header: juce_gui_basics, importcpp: "juce::SidePanel::dismissButtonOverColour".}: SidePanelColourIds
+let SidePanelColourIds_dismissButtonDownColour* {.header: juce_gui_basics, importcpp: "juce::SidePanel::dismissButtonDownColour".}: SidePanelColourIds
+
+let DirectoryContentsDisplayComponentColourIds_highlightColourId* {.header: juce_gui_basics, importcpp: "juce::DirectoryContentsDisplayComponent::highlightColourId".}: DirectoryContentsDisplayComponentColourIds
+let DirectoryContentsDisplayComponentColourIds_textColourId* {.header: juce_gui_basics, importcpp: "juce::DirectoryContentsDisplayComponent::textColourId".}: DirectoryContentsDisplayComponentColourIds
+let DirectoryContentsDisplayComponentColourIds_highlightedTextColourId* {.header: juce_gui_basics, importcpp: "juce::DirectoryContentsDisplayComponent::highlightedTextColourId".}: DirectoryContentsDisplayComponentColourIds
+
+let FileBrowserComponentFileChooserFlags_openMode* {.header: juce_gui_basics, importcpp: "juce::FileBrowserComponent::openMode".}: FileBrowserComponentFileChooserFlags
+let FileBrowserComponentFileChooserFlags_saveMode* {.header: juce_gui_basics, importcpp: "juce::FileBrowserComponent::saveMode".}: FileBrowserComponentFileChooserFlags
+let FileBrowserComponentFileChooserFlags_canSelectFiles* {.header: juce_gui_basics, importcpp: "juce::FileBrowserComponent::canSelectFiles".}: FileBrowserComponentFileChooserFlags
+let FileBrowserComponentFileChooserFlags_canSelectDirectories* {.header: juce_gui_basics, importcpp: "juce::FileBrowserComponent::canSelectDirectories".}: FileBrowserComponentFileChooserFlags
+let FileBrowserComponentFileChooserFlags_canSelectMultipleItems* {.header: juce_gui_basics, importcpp: "juce::FileBrowserComponent::canSelectMultipleItems".}: FileBrowserComponentFileChooserFlags
+let FileBrowserComponentFileChooserFlags_useTreeView* {.header: juce_gui_basics, importcpp: "juce::FileBrowserComponent::useTreeView".}: FileBrowserComponentFileChooserFlags
+let FileBrowserComponentFileChooserFlags_filenameBoxIsReadOnly* {.header: juce_gui_basics, importcpp: "juce::FileBrowserComponent::filenameBoxIsReadOnly".}: FileBrowserComponentFileChooserFlags
+let FileBrowserComponentFileChooserFlags_warnAboutOverwriting* {.header: juce_gui_basics, importcpp: "juce::FileBrowserComponent::warnAboutOverwriting".}: FileBrowserComponentFileChooserFlags
+let FileBrowserComponentFileChooserFlags_doNotClearFileNameOnRootChange* {.header: juce_gui_basics, importcpp: "juce::FileBrowserComponent::doNotClearFileNameOnRootChange".}: FileBrowserComponentFileChooserFlags
+
+let FileBrowserComponentColourIds_currentPathBoxBackgroundColourId* {.header: juce_gui_basics, importcpp: "juce::FileBrowserComponent::currentPathBoxBackgroundColourId".}: FileBrowserComponentColourIds
+let FileBrowserComponentColourIds_currentPathBoxTextColourId* {.header: juce_gui_basics, importcpp: "juce::FileBrowserComponent::currentPathBoxTextColourId".}: FileBrowserComponentColourIds
+let FileBrowserComponentColourIds_currentPathBoxArrowColourId* {.header: juce_gui_basics, importcpp: "juce::FileBrowserComponent::currentPathBoxArrowColourId".}: FileBrowserComponentColourIds
+let FileBrowserComponentColourIds_filenameBoxBackgroundColourId* {.header: juce_gui_basics, importcpp: "juce::FileBrowserComponent::filenameBoxBackgroundColourId".}: FileBrowserComponentColourIds
+let FileBrowserComponentColourIds_filenameBoxTextColourId* {.header: juce_gui_basics, importcpp: "juce::FileBrowserComponent::filenameBoxTextColourId".}: FileBrowserComponentColourIds
+
+let FileChooserDialogBoxColourIds_titleTextColourId* {.header: juce_gui_basics, importcpp: "juce::FileChooserDialogBox::titleTextColourId".}: FileChooserDialogBoxColourIds
+
+let FileSearchPathListComponentColourIds_backgroundColourId* {.header: juce_gui_basics, importcpp: "juce::FileSearchPathListComponent::backgroundColourId".}: FileSearchPathListComponentColourIds
+
+let PropertyComponentColourIds_backgroundColourId* {.header: juce_gui_basics, importcpp: "juce::PropertyComponent::backgroundColourId".}: PropertyComponentColourIds
+let PropertyComponentColourIds_labelTextColourId* {.header: juce_gui_basics, importcpp: "juce::PropertyComponent::labelTextColourId".}: PropertyComponentColourIds
+
+let BooleanPropertyComponentColourIds_backgroundColourId* {.header: juce_gui_basics, importcpp: "juce::BooleanPropertyComponent::backgroundColourId".}: BooleanPropertyComponentColourIds
+let BooleanPropertyComponentColourIds_outlineColourId* {.header: juce_gui_basics, importcpp: "juce::BooleanPropertyComponent::outlineColourId".}: BooleanPropertyComponentColourIds
+
+let TextPropertyComponentColourIds_backgroundColourId* {.header: juce_gui_basics, importcpp: "juce::TextPropertyComponent::backgroundColourId".}: TextPropertyComponentColourIds
+let TextPropertyComponentColourIds_textColourId* {.header: juce_gui_basics, importcpp: "juce::TextPropertyComponent::textColourId".}: TextPropertyComponentColourIds
+let TextPropertyComponentColourIds_outlineColourId* {.header: juce_gui_basics, importcpp: "juce::TextPropertyComponent::outlineColourId".}: TextPropertyComponentColourIds
+
+let BubbleComponentBubblePlacement_above* {.header: juce_gui_basics, importcpp: "juce::BubbleComponent::above".}: BubbleComponentBubblePlacement
+let BubbleComponentBubblePlacement_below* {.header: juce_gui_basics, importcpp: "juce::BubbleComponent::below".}: BubbleComponentBubblePlacement
+let BubbleComponentBubblePlacement_left* {.header: juce_gui_basics, importcpp: "juce::BubbleComponent::left".}: BubbleComponentBubblePlacement
+let BubbleComponentBubblePlacement_right* {.header: juce_gui_basics, importcpp: "juce::BubbleComponent::right".}: BubbleComponentBubblePlacement
+
+let BubbleComponentColourIds_backgroundColourId* {.header: juce_gui_basics, importcpp: "juce::BubbleComponent::backgroundColourId".}: BubbleComponentColourIds
+let BubbleComponentColourIds_outlineColourId* {.header: juce_gui_basics, importcpp: "juce::BubbleComponent::outlineColourId".}: BubbleComponentColourIds
+
+let FlexItemAlignSelf_autoAlign* {.header: juce_gui_basics, importcpp: "juce::FlexItem::AlignSelf::autoAlign".}: FlexItemAlignSelf
+let FlexItemAlignSelf_flexStart* {.header: juce_gui_basics, importcpp: "juce::FlexItem::AlignSelf::flexStart".}: FlexItemAlignSelf
+let FlexItemAlignSelf_flexEnd* {.header: juce_gui_basics, importcpp: "juce::FlexItem::AlignSelf::flexEnd".}: FlexItemAlignSelf
+let FlexItemAlignSelf_center* {.header: juce_gui_basics, importcpp: "juce::FlexItem::AlignSelf::center".}: FlexItemAlignSelf
+let FlexItemAlignSelf_stretch* {.header: juce_gui_basics, importcpp: "juce::FlexItem::AlignSelf::stretch".}: FlexItemAlignSelf
+
+let FlexBoxDirection_row* {.header: juce_gui_basics, importcpp: "juce::FlexBox::Direction::row".}: FlexBoxDirection
+let FlexBoxDirection_rowReverse* {.header: juce_gui_basics, importcpp: "juce::FlexBox::Direction::rowReverse".}: FlexBoxDirection
+let FlexBoxDirection_column* {.header: juce_gui_basics, importcpp: "juce::FlexBox::Direction::column".}: FlexBoxDirection
+let FlexBoxDirection_columnReverse* {.header: juce_gui_basics, importcpp: "juce::FlexBox::Direction::columnReverse".}: FlexBoxDirection
+
+let FlexBoxWrap_noWrap* {.header: juce_gui_basics, importcpp: "juce::FlexBox::Wrap::noWrap".}: FlexBoxWrap
+let FlexBoxWrap_wrap* {.header: juce_gui_basics, importcpp: "juce::FlexBox::Wrap::wrap".}: FlexBoxWrap
+let FlexBoxWrap_wrapReverse* {.header: juce_gui_basics, importcpp: "juce::FlexBox::Wrap::wrapReverse".}: FlexBoxWrap
+
+let FlexBoxAlignContent_stretch* {.header: juce_gui_basics, importcpp: "juce::FlexBox::AlignContent::stretch".}: FlexBoxAlignContent
+let FlexBoxAlignContent_flexStart* {.header: juce_gui_basics, importcpp: "juce::FlexBox::AlignContent::flexStart".}: FlexBoxAlignContent
+let FlexBoxAlignContent_flexEnd* {.header: juce_gui_basics, importcpp: "juce::FlexBox::AlignContent::flexEnd".}: FlexBoxAlignContent
+let FlexBoxAlignContent_center* {.header: juce_gui_basics, importcpp: "juce::FlexBox::AlignContent::center".}: FlexBoxAlignContent
+let FlexBoxAlignContent_spaceBetween* {.header: juce_gui_basics, importcpp: "juce::FlexBox::AlignContent::spaceBetween".}: FlexBoxAlignContent
+let FlexBoxAlignContent_spaceAround* {.header: juce_gui_basics, importcpp: "juce::FlexBox::AlignContent::spaceAround".}: FlexBoxAlignContent
+
+let FlexBoxAlignItems_stretch* {.header: juce_gui_basics, importcpp: "juce::FlexBox::AlignItems::stretch".}: FlexBoxAlignItems
+let FlexBoxAlignItems_flexStart* {.header: juce_gui_basics, importcpp: "juce::FlexBox::AlignItems::flexStart".}: FlexBoxAlignItems
+let FlexBoxAlignItems_flexEnd* {.header: juce_gui_basics, importcpp: "juce::FlexBox::AlignItems::flexEnd".}: FlexBoxAlignItems
+let FlexBoxAlignItems_center* {.header: juce_gui_basics, importcpp: "juce::FlexBox::AlignItems::center".}: FlexBoxAlignItems
+
+let FlexBoxJustifyContent_flexStart* {.header: juce_gui_basics, importcpp: "juce::FlexBox::JustifyContent::flexStart".}: FlexBoxJustifyContent
+let FlexBoxJustifyContent_flexEnd* {.header: juce_gui_basics, importcpp: "juce::FlexBox::JustifyContent::flexEnd".}: FlexBoxJustifyContent
+let FlexBoxJustifyContent_center* {.header: juce_gui_basics, importcpp: "juce::FlexBox::JustifyContent::center".}: FlexBoxJustifyContent
+let FlexBoxJustifyContent_spaceBetween* {.header: juce_gui_basics, importcpp: "juce::FlexBox::JustifyContent::spaceBetween".}: FlexBoxJustifyContent
+let FlexBoxJustifyContent_spaceAround* {.header: juce_gui_basics, importcpp: "juce::FlexBox::JustifyContent::spaceAround".}: FlexBoxJustifyContent
+
+let GridItemKeyword_autoValue* {.header: juce_gui_basics, importcpp: "juce::GridItem::Keyword::autoValue".}: GridItemKeyword
+
+let GridItemJustifySelf_start* {.header: juce_gui_basics, importcpp: "juce::GridItem::JustifySelf::start".}: GridItemJustifySelf
+let GridItemJustifySelf_end* {.header: juce_gui_basics, importcpp: "juce::GridItem::JustifySelf::end".}: GridItemJustifySelf
+let GridItemJustifySelf_center* {.header: juce_gui_basics, importcpp: "juce::GridItem::JustifySelf::center".}: GridItemJustifySelf
+let GridItemJustifySelf_stretch* {.header: juce_gui_basics, importcpp: "juce::GridItem::JustifySelf::stretch".}: GridItemJustifySelf
+let GridItemJustifySelf_autoValue* {.header: juce_gui_basics, importcpp: "juce::GridItem::JustifySelf::autoValue".}: GridItemJustifySelf
+
+let GridItemAlignSelf_start* {.header: juce_gui_basics, importcpp: "juce::GridItem::AlignSelf::start".}: GridItemAlignSelf
+let GridItemAlignSelf_end* {.header: juce_gui_basics, importcpp: "juce::GridItem::AlignSelf::end".}: GridItemAlignSelf
+let GridItemAlignSelf_center* {.header: juce_gui_basics, importcpp: "juce::GridItem::AlignSelf::center".}: GridItemAlignSelf
+let GridItemAlignSelf_stretch* {.header: juce_gui_basics, importcpp: "juce::GridItem::AlignSelf::stretch".}: GridItemAlignSelf
+let GridItemAlignSelf_autoValue* {.header: juce_gui_basics, importcpp: "juce::GridItem::AlignSelf::autoValue".}: GridItemAlignSelf
+
+let GridJustifyItems_start* {.header: juce_gui_basics, importcpp: "juce::Grid::JustifyItems::start".}: GridJustifyItems
+let GridJustifyItems_end* {.header: juce_gui_basics, importcpp: "juce::Grid::JustifyItems::end".}: GridJustifyItems
+let GridJustifyItems_center* {.header: juce_gui_basics, importcpp: "juce::Grid::JustifyItems::center".}: GridJustifyItems
+let GridJustifyItems_stretch* {.header: juce_gui_basics, importcpp: "juce::Grid::JustifyItems::stretch".}: GridJustifyItems
+
+let GridAlignItems_start* {.header: juce_gui_basics, importcpp: "juce::Grid::AlignItems::start".}: GridAlignItems
+let GridAlignItems_end* {.header: juce_gui_basics, importcpp: "juce::Grid::AlignItems::end".}: GridAlignItems
+let GridAlignItems_center* {.header: juce_gui_basics, importcpp: "juce::Grid::AlignItems::center".}: GridAlignItems
+let GridAlignItems_stretch* {.header: juce_gui_basics, importcpp: "juce::Grid::AlignItems::stretch".}: GridAlignItems
+
+let GridJustifyContent_start* {.header: juce_gui_basics, importcpp: "juce::Grid::JustifyContent::start".}: GridJustifyContent
+let GridJustifyContent_end* {.header: juce_gui_basics, importcpp: "juce::Grid::JustifyContent::end".}: GridJustifyContent
+let GridJustifyContent_center* {.header: juce_gui_basics, importcpp: "juce::Grid::JustifyContent::center".}: GridJustifyContent
+let GridJustifyContent_stretch* {.header: juce_gui_basics, importcpp: "juce::Grid::JustifyContent::stretch".}: GridJustifyContent
+let GridJustifyContent_spaceAround* {.header: juce_gui_basics, importcpp: "juce::Grid::JustifyContent::spaceAround".}: GridJustifyContent
+let GridJustifyContent_spaceBetween* {.header: juce_gui_basics, importcpp: "juce::Grid::JustifyContent::spaceBetween".}: GridJustifyContent
+let GridJustifyContent_spaceEvenly* {.header: juce_gui_basics, importcpp: "juce::Grid::JustifyContent::spaceEvenly".}: GridJustifyContent
+
+let GridAlignContent_start* {.header: juce_gui_basics, importcpp: "juce::Grid::AlignContent::start".}: GridAlignContent
+let GridAlignContent_end* {.header: juce_gui_basics, importcpp: "juce::Grid::AlignContent::end".}: GridAlignContent
+let GridAlignContent_center* {.header: juce_gui_basics, importcpp: "juce::Grid::AlignContent::center".}: GridAlignContent
+let GridAlignContent_stretch* {.header: juce_gui_basics, importcpp: "juce::Grid::AlignContent::stretch".}: GridAlignContent
+let GridAlignContent_spaceAround* {.header: juce_gui_basics, importcpp: "juce::Grid::AlignContent::spaceAround".}: GridAlignContent
+let GridAlignContent_spaceBetween* {.header: juce_gui_basics, importcpp: "juce::Grid::AlignContent::spaceBetween".}: GridAlignContent
+let GridAlignContent_spaceEvenly* {.header: juce_gui_basics, importcpp: "juce::Grid::AlignContent::spaceEvenly".}: GridAlignContent
+
+let GridAutoFlow_row* {.header: juce_gui_basics, importcpp: "juce::Grid::AutoFlow::row".}: GridAutoFlow
+let GridAutoFlow_column* {.header: juce_gui_basics, importcpp: "juce::Grid::AutoFlow::column".}: GridAutoFlow
+let GridAutoFlow_rowDense* {.header: juce_gui_basics, importcpp: "juce::Grid::AutoFlow::rowDense".}: GridAutoFlow
+let GridAutoFlow_columnDense* {.header: juce_gui_basics, importcpp: "juce::Grid::AutoFlow::columnDense".}: GridAutoFlow
 
 const
   GridItem_useDefaultValue*: cint = -2
@@ -1537,7 +1450,7 @@ proc addDefaultKeypress*(this: var ApplicationCommandInfo, keyCode: cint, modifi
 
 proc makeApplicationCommandTarget*(): ApplicationCommandTarget {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandTarget(@)".}
 proc getNextCommandTarget*(this: var ApplicationCommandTarget): ptr ApplicationCommandTarget {.header: juce_gui_basics, importcpp: "#.getNextCommandTarget()".}
-# proc getAllCommands*(this: var ApplicationCommandTarget, commands: Array[CommandID]) {.header: juce_gui_basics, importcpp: "#.getAllCommands(@)".}
+proc getAllCommands*(this: var ApplicationCommandTarget, commands: Array[cint]) {.header: juce_gui_basics, importcpp: "#.getAllCommands(@)".}
 proc getCommandInfo*(this: var ApplicationCommandTarget, commandID: cint, result: var ApplicationCommandInfo) {.header: juce_gui_basics, importcpp: "#.getCommandInfo(@)".}
 proc perform*(this: var ApplicationCommandTarget, info: ApplicationCommandTargetInvocationInfo): bool {.header: juce_gui_basics, importcpp: "#.perform(@)".}
 proc invoke*(this: var ApplicationCommandTarget, invocationInfo: ApplicationCommandTargetInvocationInfo, asynchronously: bool): bool {.header: juce_gui_basics, importcpp: "#.invoke(@)".}
@@ -1558,7 +1471,7 @@ proc getCommandForID*(this: ApplicationCommandManager, commandID: cint): ptr App
 proc getNameOfCommand*(this: ApplicationCommandManager, commandID: cint): String {.header: juce_gui_basics, importcpp: "#.getNameOfCommand(@)".}
 proc getDescriptionOfCommand*(this: ApplicationCommandManager, commandID: cint): String {.header: juce_gui_basics, importcpp: "#.getDescriptionOfCommand(@)".}
 proc getCommandCategories*(this: ApplicationCommandManager): StringArray {.header: juce_gui_basics, importcpp: "#.getCommandCategories()".}
-# proc getCommandsInCategory*(this: ApplicationCommandManager, categoryName: String): Array[CommandID] {.header: juce_gui_basics, importcpp: "#.getCommandsInCategory(@)".}
+proc getCommandsInCategory*(this: ApplicationCommandManager, categoryName: String): Array[cint] {.header: juce_gui_basics, importcpp: "#.getCommandsInCategory(@)".}
 proc getKeyMappings*(this: ApplicationCommandManager): ptr KeyPressMappingSet {.header: juce_gui_basics, importcpp: "#.getKeyMappings()".}
 proc invokeDirectly*(this: var ApplicationCommandManager, commandID: cint, asynchronously: bool): bool {.header: juce_gui_basics, importcpp: "#.invokeDirectly(@)".}
 proc invoke*(this: var ApplicationCommandManager, invocationInfo: ApplicationCommandTargetInvocationInfo, asynchronously: bool): bool {.header: juce_gui_basics, importcpp: "#.invoke(@)".}
@@ -2612,8 +2525,8 @@ proc getValue*(this: Slider): float64 {.header: juce_gui_basics, importcpp: "#.g
 proc getValueObject*(this: var Slider): var Value {.header: juce_gui_basics, importcpp: "#.getValueObject()".}
 proc setRange*(this: var Slider, newMinimum: float64, newMaximum: float64, newInterval: float64 = 0) {.header: juce_gui_basics, importcpp: "#.setRange(@)".}
 proc setRange*(this: var Slider, newRange: Range[cdouble], newInterval: float64) {.header: juce_gui_basics, importcpp: "#.setRange(@)".}
-# proc setNormalisableRange*(this: var Slider, newNormalisableRange: NormalisableRange<double>) {.header: juce_gui_basics, importcpp: "#.setNormalisableRange(@)".}
-# proc getNormalisableRange*(this: Slider): NormalisableRange<double> {.header: juce_gui_basics, importcpp: "#.getNormalisableRange()".}
+proc setNormalisableRange*(this: var Slider, newNormalisableRange: NormalisableRange[cdouble]) {.header: juce_gui_basics, importcpp: "#.setNormalisableRange(@)".}
+proc getNormalisableRange*(this: Slider): NormalisableRange[cdouble] {.header: juce_gui_basics, importcpp: "#.getNormalisableRange()".}
 proc getRange*(this: Slider): Range[cdouble] {.header: juce_gui_basics, importcpp: "#.getRange()".}
 proc getMaximum*(this: Slider): float64 {.header: juce_gui_basics, importcpp: "#.getMaximum()".}
 proc getMinimum*(this: Slider): float64 {.header: juce_gui_basics, importcpp: "#.getMinimum()".}
@@ -3478,7 +3391,7 @@ proc resumed*(this: var JUCEApplicationImpl) {.header: juce_gui_basics, importcp
 # proc unhandledException*(this: var JUCEApplicationImpl, e: ptr std::exception, sourceFilename: String, lineNumber: cint) {.header: juce_gui_basics, importcpp: "#.unhandledException(@)".}
 proc getNextCommandTarget*(this: var JUCEApplicationImpl): ptr ApplicationCommandTarget {.header: juce_gui_basics, importcpp: "#.getNextCommandTarget()".}
 proc getCommandInfo*(this: var JUCEApplicationImpl, arg1: cint, arg2: var ApplicationCommandInfo) {.header: juce_gui_basics, importcpp: "#.getCommandInfo(@)".}
-# proc getAllCommands*(this: var JUCEApplicationImpl, arg1: Array[CommandID]) {.header: juce_gui_basics, importcpp: "#.getAllCommands(@)".}
+proc getAllCommands*(this: var JUCEApplicationImpl, arg1: Array[cint]) {.header: juce_gui_basics, importcpp: "#.getAllCommands(@)".}
 proc perform*(this: var JUCEApplicationImpl, arg1: ApplicationCommandTargetInvocationInfo): bool {.header: juce_gui_basics, importcpp: "#.perform(@)".}
 
 proc setAllowedPlacement*(this: var BubbleComponent, newPlacement: cint) {.header: juce_gui_basics, importcpp: "#.setAllowedPlacement(@)".}

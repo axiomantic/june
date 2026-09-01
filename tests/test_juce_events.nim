@@ -3,6 +3,9 @@ import june
 
 # Enums had no binding at all before, so any parameter typed by one had no
 # spelling and its proc was commented out.
+#
+# Each constant binds to its C++ enumerator by name rather than to a number, so
+# asserting the values checks that the name resolves to the right enumerator.
 proc testEnums() =
   doAssert NotificationType_dontSendNotification.cint == 0
   doAssert NotificationType_sendNotification.cint == 1

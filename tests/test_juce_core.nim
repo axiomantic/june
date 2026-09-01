@@ -54,3 +54,13 @@ proc testUniquePtr() =
 
 testUniquePtr()
 
+proc testNormalisableRange() =
+  # How a Slider describes its range: a value mapped onto 0..1.
+  let range = makeNormalisableRange(0.0, 100.0)
+  doAssert range.convertTo0to1(50.0) == 0.5
+  doAssert range.convertFrom0to1(0.25) == 25.0
+  doAssert range.getRange().getStart() == 0.0
+  doAssert range.getRange().getEnd() == 100.0
+
+testNormalisableRange()
+

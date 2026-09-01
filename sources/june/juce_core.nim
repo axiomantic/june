@@ -173,151 +173,130 @@ type
   ZipFileOverwriteFiles* {.header: juce_core, importcpp: "juce::ZipFile::OverwriteFiles".} = distinct cint
   ZipFileFollowSymlinks* {.header: juce_core, importcpp: "juce::ZipFile::FollowSymlinks".} = distinct cint
 
-const
-  IncrementRef_no* = IncrementRef(0)
-  IncrementRef_yes* = IncrementRef(1)
+let IncrementRef_no* {.header: juce_core, importcpp: "juce::IncrementRef::no".}: IncrementRef
+let IncrementRef_yes* {.header: juce_core, importcpp: "juce::IncrementRef::yes".}: IncrementRef
 
-const
-  SystemStatsOperatingSystemType_UnknownOS* = SystemStatsOperatingSystemType(0)
-  SystemStatsOperatingSystemType_MacOSX* = SystemStatsOperatingSystemType(256)
-  SystemStatsOperatingSystemType_Windows* = SystemStatsOperatingSystemType(512)
-  SystemStatsOperatingSystemType_Linux* = SystemStatsOperatingSystemType(1024)
-  SystemStatsOperatingSystemType_Android* = SystemStatsOperatingSystemType(2048)
-  SystemStatsOperatingSystemType_iOS* = SystemStatsOperatingSystemType(4096)
-  SystemStatsOperatingSystemType_WASM* = SystemStatsOperatingSystemType(8192)
-  SystemStatsOperatingSystemType_MacOSX_10_7* = SystemStatsOperatingSystemType(263)
-  SystemStatsOperatingSystemType_MacOSX_10_8* = SystemStatsOperatingSystemType(264)
-  SystemStatsOperatingSystemType_MacOSX_10_9* = SystemStatsOperatingSystemType(265)
-  SystemStatsOperatingSystemType_MacOSX_10_10* = SystemStatsOperatingSystemType(266)
-  SystemStatsOperatingSystemType_MacOSX_10_11* = SystemStatsOperatingSystemType(267)
-  SystemStatsOperatingSystemType_MacOSX_10_12* = SystemStatsOperatingSystemType(268)
-  SystemStatsOperatingSystemType_MacOSX_10_13* = SystemStatsOperatingSystemType(269)
-  SystemStatsOperatingSystemType_MacOSX_10_14* = SystemStatsOperatingSystemType(270)
-  SystemStatsOperatingSystemType_MacOSX_10_15* = SystemStatsOperatingSystemType(271)
-  SystemStatsOperatingSystemType_MacOS_11* = SystemStatsOperatingSystemType(272)
-  SystemStatsOperatingSystemType_MacOS_12* = SystemStatsOperatingSystemType(273)
-  SystemStatsOperatingSystemType_MacOS_13* = SystemStatsOperatingSystemType(274)
-  SystemStatsOperatingSystemType_MacOS_14* = SystemStatsOperatingSystemType(275)
-  SystemStatsOperatingSystemType_MacOS_15* = SystemStatsOperatingSystemType(276)
-  SystemStatsOperatingSystemType_MacOS_26* = SystemStatsOperatingSystemType(277)
-  SystemStatsOperatingSystemType_Win2000* = SystemStatsOperatingSystemType(513)
-  SystemStatsOperatingSystemType_WinXP* = SystemStatsOperatingSystemType(514)
-  SystemStatsOperatingSystemType_WinVista* = SystemStatsOperatingSystemType(515)
-  SystemStatsOperatingSystemType_Windows7* = SystemStatsOperatingSystemType(516)
-  SystemStatsOperatingSystemType_Windows8_0* = SystemStatsOperatingSystemType(517)
-  SystemStatsOperatingSystemType_Windows8_1* = SystemStatsOperatingSystemType(518)
-  SystemStatsOperatingSystemType_Windows10* = SystemStatsOperatingSystemType(519)
-  SystemStatsOperatingSystemType_Windows11* = SystemStatsOperatingSystemType(520)
+let SystemStatsOperatingSystemType_UnknownOS* {.header: juce_core, importcpp: "juce::SystemStats::UnknownOS".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_MacOSX* {.header: juce_core, importcpp: "juce::SystemStats::MacOSX".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_Windows* {.header: juce_core, importcpp: "juce::SystemStats::Windows".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_Linux* {.header: juce_core, importcpp: "juce::SystemStats::Linux".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_Android* {.header: juce_core, importcpp: "juce::SystemStats::Android".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_iOS* {.header: juce_core, importcpp: "juce::SystemStats::iOS".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_WASM* {.header: juce_core, importcpp: "juce::SystemStats::WASM".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_MacOSX_10_7* {.header: juce_core, importcpp: "juce::SystemStats::MacOSX_10_7".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_MacOSX_10_8* {.header: juce_core, importcpp: "juce::SystemStats::MacOSX_10_8".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_MacOSX_10_9* {.header: juce_core, importcpp: "juce::SystemStats::MacOSX_10_9".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_MacOSX_10_10* {.header: juce_core, importcpp: "juce::SystemStats::MacOSX_10_10".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_MacOSX_10_11* {.header: juce_core, importcpp: "juce::SystemStats::MacOSX_10_11".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_MacOSX_10_12* {.header: juce_core, importcpp: "juce::SystemStats::MacOSX_10_12".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_MacOSX_10_13* {.header: juce_core, importcpp: "juce::SystemStats::MacOSX_10_13".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_MacOSX_10_14* {.header: juce_core, importcpp: "juce::SystemStats::MacOSX_10_14".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_MacOSX_10_15* {.header: juce_core, importcpp: "juce::SystemStats::MacOSX_10_15".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_MacOS_11* {.header: juce_core, importcpp: "juce::SystemStats::MacOS_11".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_MacOS_12* {.header: juce_core, importcpp: "juce::SystemStats::MacOS_12".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_MacOS_13* {.header: juce_core, importcpp: "juce::SystemStats::MacOS_13".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_MacOS_14* {.header: juce_core, importcpp: "juce::SystemStats::MacOS_14".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_MacOS_15* {.header: juce_core, importcpp: "juce::SystemStats::MacOS_15".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_MacOS_26* {.header: juce_core, importcpp: "juce::SystemStats::MacOS_26".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_Win2000* {.header: juce_core, importcpp: "juce::SystemStats::Win2000".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_WinXP* {.header: juce_core, importcpp: "juce::SystemStats::WinXP".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_WinVista* {.header: juce_core, importcpp: "juce::SystemStats::WinVista".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_Windows7* {.header: juce_core, importcpp: "juce::SystemStats::Windows7".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_Windows8_0* {.header: juce_core, importcpp: "juce::SystemStats::Windows8_0".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_Windows8_1* {.header: juce_core, importcpp: "juce::SystemStats::Windows8_1".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_Windows10* {.header: juce_core, importcpp: "juce::SystemStats::Windows10".}: SystemStatsOperatingSystemType
+let SystemStatsOperatingSystemType_Windows11* {.header: juce_core, importcpp: "juce::SystemStats::Windows11".}: SystemStatsOperatingSystemType
 
-const
-  SystemStatsMachineIdFlags_macAddresses* = SystemStatsMachineIdFlags(1)
-  SystemStatsMachineIdFlags_fileSystemId* = SystemStatsMachineIdFlags(2)
-  SystemStatsMachineIdFlags_legacyUniqueId* = SystemStatsMachineIdFlags(4)
-  SystemStatsMachineIdFlags_uniqueId* = SystemStatsMachineIdFlags(8)
+let SystemStatsMachineIdFlags_macAddresses* {.header: juce_core, importcpp: "juce::SystemStats::MachineIdFlags::macAddresses".}: SystemStatsMachineIdFlags
+let SystemStatsMachineIdFlags_fileSystemId* {.header: juce_core, importcpp: "juce::SystemStats::MachineIdFlags::fileSystemId".}: SystemStatsMachineIdFlags
+let SystemStatsMachineIdFlags_legacyUniqueId* {.header: juce_core, importcpp: "juce::SystemStats::MachineIdFlags::legacyUniqueId".}: SystemStatsMachineIdFlags
+let SystemStatsMachineIdFlags_uniqueId* {.header: juce_core, importcpp: "juce::SystemStats::MachineIdFlags::uniqueId".}: SystemStatsMachineIdFlags
 
-const
-  JSONSpacing_none* = JSONSpacing(0)
-  JSONSpacing_singleLine* = JSONSpacing(1)
-  JSONSpacing_multiLine* = JSONSpacing(2)
+let JSONSpacing_none* {.header: juce_core, importcpp: "juce::JSON::Spacing::none".}: JSONSpacing
+let JSONSpacing_singleLine* {.header: juce_core, importcpp: "juce::JSON::Spacing::singleLine".}: JSONSpacing
+let JSONSpacing_multiLine* {.header: juce_core, importcpp: "juce::JSON::Spacing::multiLine".}: JSONSpacing
 
-const
-  JSONEncoding_utf8* = JSONEncoding(0)
-  JSONEncoding_ascii* = JSONEncoding(1)
+let JSONEncoding_utf8* {.header: juce_core, importcpp: "juce::JSON::Encoding::utf8".}: JSONEncoding
+let JSONEncoding_ascii* {.header: juce_core, importcpp: "juce::JSON::Encoding::ascii".}: JSONEncoding
 
-const
-  FileTypesOfFileToFind_findDirectories* = FileTypesOfFileToFind(1)
-  FileTypesOfFileToFind_findFiles* = FileTypesOfFileToFind(2)
-  FileTypesOfFileToFind_findFilesAndDirectories* = FileTypesOfFileToFind(3)
-  FileTypesOfFileToFind_ignoreHiddenFiles* = FileTypesOfFileToFind(4)
+let FileTypesOfFileToFind_findDirectories* {.header: juce_core, importcpp: "juce::File::findDirectories".}: FileTypesOfFileToFind
+let FileTypesOfFileToFind_findFiles* {.header: juce_core, importcpp: "juce::File::findFiles".}: FileTypesOfFileToFind
+let FileTypesOfFileToFind_findFilesAndDirectories* {.header: juce_core, importcpp: "juce::File::findFilesAndDirectories".}: FileTypesOfFileToFind
+let FileTypesOfFileToFind_ignoreHiddenFiles* {.header: juce_core, importcpp: "juce::File::ignoreHiddenFiles".}: FileTypesOfFileToFind
 
-const
-  FileFollowSymlinks_no* = FileFollowSymlinks(0)
-  FileFollowSymlinks_noCycles* = FileFollowSymlinks(1)
-  FileFollowSymlinks_yes* = FileFollowSymlinks(2)
+let FileFollowSymlinks_no* {.header: juce_core, importcpp: "juce::File::FollowSymlinks::no".}: FileFollowSymlinks
+let FileFollowSymlinks_noCycles* {.header: juce_core, importcpp: "juce::File::FollowSymlinks::noCycles".}: FileFollowSymlinks
+let FileFollowSymlinks_yes* {.header: juce_core, importcpp: "juce::File::FollowSymlinks::yes".}: FileFollowSymlinks
 
-const
-  FileSpecialLocationType_userHomeDirectory* = FileSpecialLocationType(0)
-  FileSpecialLocationType_userDocumentsDirectory* = FileSpecialLocationType(1)
-  FileSpecialLocationType_userDesktopDirectory* = FileSpecialLocationType(2)
-  FileSpecialLocationType_userMusicDirectory* = FileSpecialLocationType(3)
-  FileSpecialLocationType_userMoviesDirectory* = FileSpecialLocationType(4)
-  FileSpecialLocationType_userPicturesDirectory* = FileSpecialLocationType(5)
-  FileSpecialLocationType_userApplicationDataDirectory* = FileSpecialLocationType(6)
-  FileSpecialLocationType_commonApplicationDataDirectory* = FileSpecialLocationType(7)
-  FileSpecialLocationType_commonDocumentsDirectory* = FileSpecialLocationType(8)
-  FileSpecialLocationType_tempDirectory* = FileSpecialLocationType(9)
-  FileSpecialLocationType_currentExecutableFile* = FileSpecialLocationType(10)
-  FileSpecialLocationType_currentApplicationFile* = FileSpecialLocationType(11)
-  FileSpecialLocationType_invokedExecutableFile* = FileSpecialLocationType(12)
-  FileSpecialLocationType_hostApplicationPath* = FileSpecialLocationType(13)
-  FileSpecialLocationType_globalApplicationsDirectory* = FileSpecialLocationType(14)
+let FileSpecialLocationType_userHomeDirectory* {.header: juce_core, importcpp: "juce::File::userHomeDirectory".}: FileSpecialLocationType
+let FileSpecialLocationType_userDocumentsDirectory* {.header: juce_core, importcpp: "juce::File::userDocumentsDirectory".}: FileSpecialLocationType
+let FileSpecialLocationType_userDesktopDirectory* {.header: juce_core, importcpp: "juce::File::userDesktopDirectory".}: FileSpecialLocationType
+let FileSpecialLocationType_userMusicDirectory* {.header: juce_core, importcpp: "juce::File::userMusicDirectory".}: FileSpecialLocationType
+let FileSpecialLocationType_userMoviesDirectory* {.header: juce_core, importcpp: "juce::File::userMoviesDirectory".}: FileSpecialLocationType
+let FileSpecialLocationType_userPicturesDirectory* {.header: juce_core, importcpp: "juce::File::userPicturesDirectory".}: FileSpecialLocationType
+let FileSpecialLocationType_userApplicationDataDirectory* {.header: juce_core, importcpp: "juce::File::userApplicationDataDirectory".}: FileSpecialLocationType
+let FileSpecialLocationType_commonApplicationDataDirectory* {.header: juce_core, importcpp: "juce::File::commonApplicationDataDirectory".}: FileSpecialLocationType
+let FileSpecialLocationType_commonDocumentsDirectory* {.header: juce_core, importcpp: "juce::File::commonDocumentsDirectory".}: FileSpecialLocationType
+let FileSpecialLocationType_tempDirectory* {.header: juce_core, importcpp: "juce::File::tempDirectory".}: FileSpecialLocationType
+let FileSpecialLocationType_currentExecutableFile* {.header: juce_core, importcpp: "juce::File::currentExecutableFile".}: FileSpecialLocationType
+let FileSpecialLocationType_currentApplicationFile* {.header: juce_core, importcpp: "juce::File::currentApplicationFile".}: FileSpecialLocationType
+let FileSpecialLocationType_invokedExecutableFile* {.header: juce_core, importcpp: "juce::File::invokedExecutableFile".}: FileSpecialLocationType
+let FileSpecialLocationType_hostApplicationPath* {.header: juce_core, importcpp: "juce::File::hostApplicationPath".}: FileSpecialLocationType
+let FileSpecialLocationType_globalApplicationsDirectory* {.header: juce_core, importcpp: "juce::File::globalApplicationsDirectory".}: FileSpecialLocationType
 
-const
-  MemoryMappedFileAccessMode_readOnly* = MemoryMappedFileAccessMode(0)
-  MemoryMappedFileAccessMode_readWrite* = MemoryMappedFileAccessMode(1)
+let MemoryMappedFileAccessMode_readOnly* {.header: juce_core, importcpp: "juce::MemoryMappedFile::readOnly".}: MemoryMappedFileAccessMode
+let MemoryMappedFileAccessMode_readWrite* {.header: juce_core, importcpp: "juce::MemoryMappedFile::readWrite".}: MemoryMappedFileAccessMode
 
-const
-  TemporaryFileOptionFlags_useHiddenFile* = TemporaryFileOptionFlags(1)
-  TemporaryFileOptionFlags_putNumbersInBrackets* = TemporaryFileOptionFlags(2)
+let TemporaryFileOptionFlags_useHiddenFile* {.header: juce_core, importcpp: "juce::TemporaryFile::useHiddenFile".}: TemporaryFileOptionFlags
+let TemporaryFileOptionFlags_putNumbersInBrackets* {.header: juce_core, importcpp: "juce::TemporaryFile::putNumbersInBrackets".}: TemporaryFileOptionFlags
 
-const
-  ExpressionType_constantType* = ExpressionType(0)
-  ExpressionType_functionType* = ExpressionType(1)
-  ExpressionType_operatorType* = ExpressionType(2)
-  ExpressionType_symbolType* = ExpressionType(3)
+let ExpressionType_constantType* {.header: juce_core, importcpp: "juce::Expression::constantType".}: ExpressionType
+let ExpressionType_functionType* {.header: juce_core, importcpp: "juce::Expression::functionType".}: ExpressionType
+let ExpressionType_operatorType* {.header: juce_core, importcpp: "juce::Expression::operatorType".}: ExpressionType
+let ExpressionType_symbolType* {.header: juce_core, importcpp: "juce::Expression::symbolType".}: ExpressionType
 
-const
-  RuntimePermissionsPermissionID_recordAudio* = RuntimePermissionsPermissionID(1)
-  RuntimePermissionsPermissionID_bluetoothMidi* = RuntimePermissionsPermissionID(2)
-  RuntimePermissionsPermissionID_readExternalStorage* = RuntimePermissionsPermissionID(3)
-  RuntimePermissionsPermissionID_writeExternalStorage* = RuntimePermissionsPermissionID(4)
-  RuntimePermissionsPermissionID_camera* = RuntimePermissionsPermissionID(5)
-  RuntimePermissionsPermissionID_readMediaAudio* = RuntimePermissionsPermissionID(6)
-  RuntimePermissionsPermissionID_readMediaImages* = RuntimePermissionsPermissionID(7)
-  RuntimePermissionsPermissionID_readMediaVideo* = RuntimePermissionsPermissionID(8)
-  RuntimePermissionsPermissionID_postNotification* = RuntimePermissionsPermissionID(9)
+let RuntimePermissionsPermissionID_recordAudio* {.header: juce_core, importcpp: "juce::RuntimePermissions::recordAudio".}: RuntimePermissionsPermissionID
+let RuntimePermissionsPermissionID_bluetoothMidi* {.header: juce_core, importcpp: "juce::RuntimePermissions::bluetoothMidi".}: RuntimePermissionsPermissionID
+let RuntimePermissionsPermissionID_readExternalStorage* {.header: juce_core, importcpp: "juce::RuntimePermissions::readExternalStorage".}: RuntimePermissionsPermissionID
+let RuntimePermissionsPermissionID_writeExternalStorage* {.header: juce_core, importcpp: "juce::RuntimePermissions::writeExternalStorage".}: RuntimePermissionsPermissionID
+let RuntimePermissionsPermissionID_camera* {.header: juce_core, importcpp: "juce::RuntimePermissions::camera".}: RuntimePermissionsPermissionID
+let RuntimePermissionsPermissionID_readMediaAudio* {.header: juce_core, importcpp: "juce::RuntimePermissions::readMediaAudio".}: RuntimePermissionsPermissionID
+let RuntimePermissionsPermissionID_readMediaImages* {.header: juce_core, importcpp: "juce::RuntimePermissions::readMediaImages".}: RuntimePermissionsPermissionID
+let RuntimePermissionsPermissionID_readMediaVideo* {.header: juce_core, importcpp: "juce::RuntimePermissions::readMediaVideo".}: RuntimePermissionsPermissionID
+let RuntimePermissionsPermissionID_postNotification* {.header: juce_core, importcpp: "juce::RuntimePermissions::postNotification".}: RuntimePermissionsPermissionID
 
-const
-  ChildProcessStreamFlags_wantStdOut* = ChildProcessStreamFlags(1)
-  ChildProcessStreamFlags_wantStdErr* = ChildProcessStreamFlags(2)
+let ChildProcessStreamFlags_wantStdOut* {.header: juce_core, importcpp: "juce::ChildProcess::wantStdOut".}: ChildProcessStreamFlags
+let ChildProcessStreamFlags_wantStdErr* {.header: juce_core, importcpp: "juce::ChildProcess::wantStdErr".}: ChildProcessStreamFlags
 
-const
-  ProcessProcessPriority_LowPriority* = ProcessProcessPriority(0)
-  ProcessProcessPriority_NormalPriority* = ProcessProcessPriority(1)
-  ProcessProcessPriority_HighPriority* = ProcessProcessPriority(2)
-  ProcessProcessPriority_RealtimePriority* = ProcessProcessPriority(3)
+let ProcessProcessPriority_LowPriority* {.header: juce_core, importcpp: "juce::Process::LowPriority".}: ProcessProcessPriority
+let ProcessProcessPriority_NormalPriority* {.header: juce_core, importcpp: "juce::Process::NormalPriority".}: ProcessProcessPriority
+let ProcessProcessPriority_HighPriority* {.header: juce_core, importcpp: "juce::Process::HighPriority".}: ProcessProcessPriority
+let ProcessProcessPriority_RealtimePriority* {.header: juce_core, importcpp: "juce::Process::RealtimePriority".}: ProcessProcessPriority
 
-const
-  ThreadPriority_highest* = ThreadPriority(2)
-  ThreadPriority_high* = ThreadPriority(1)
-  ThreadPriority_normal* = ThreadPriority(0)
-  ThreadPriority_low* = ThreadPriority(-1)
-  ThreadPriority_background* = ThreadPriority(-2)
+let ThreadPriority_highest* {.header: juce_core, importcpp: "juce::Thread::Priority::highest".}: ThreadPriority
+let ThreadPriority_high* {.header: juce_core, importcpp: "juce::Thread::Priority::high".}: ThreadPriority
+let ThreadPriority_normal* {.header: juce_core, importcpp: "juce::Thread::Priority::normal".}: ThreadPriority
+let ThreadPriority_low* {.header: juce_core, importcpp: "juce::Thread::Priority::low".}: ThreadPriority
+let ThreadPriority_background* {.header: juce_core, importcpp: "juce::Thread::Priority::background".}: ThreadPriority
 
-const
-  ThreadPoolJobJobStatus_jobHasFinished* = ThreadPoolJobJobStatus(0)
-  ThreadPoolJobJobStatus_jobNeedsRunningAgain* = ThreadPoolJobJobStatus(1)
+let ThreadPoolJobJobStatus_jobHasFinished* {.header: juce_core, importcpp: "juce::ThreadPoolJob::jobHasFinished".}: ThreadPoolJobJobStatus
+let ThreadPoolJobJobStatus_jobNeedsRunningAgain* {.header: juce_core, importcpp: "juce::ThreadPoolJob::jobNeedsRunningAgain".}: ThreadPoolJobJobStatus
 
-const
-  URLParameterHandling_inAddress* = URLParameterHandling(0)
-  URLParameterHandling_inPostData* = URLParameterHandling(1)
+let URLParameterHandling_inAddress* {.header: juce_core, importcpp: "juce::URL::ParameterHandling::inAddress".}: URLParameterHandling
+let URLParameterHandling_inPostData* {.header: juce_core, importcpp: "juce::URL::ParameterHandling::inPostData".}: URLParameterHandling
 
-const
-  GZIPCompressorOutputStreamWindowBitsValues_windowBitsRaw* = GZIPCompressorOutputStreamWindowBitsValues(-15)
-  GZIPCompressorOutputStreamWindowBitsValues_windowBitsGZIP* = GZIPCompressorOutputStreamWindowBitsValues(31)
+let GZIPCompressorOutputStreamWindowBitsValues_windowBitsRaw* {.header: juce_core, importcpp: "juce::GZIPCompressorOutputStream::windowBitsRaw".}: GZIPCompressorOutputStreamWindowBitsValues
+let GZIPCompressorOutputStreamWindowBitsValues_windowBitsGZIP* {.header: juce_core, importcpp: "juce::GZIPCompressorOutputStream::windowBitsGZIP".}: GZIPCompressorOutputStreamWindowBitsValues
 
-const
-  GZIPDecompressorInputStreamFormat_zlibFormat* = GZIPDecompressorInputStreamFormat(0)
-  GZIPDecompressorInputStreamFormat_deflateFormat* = GZIPDecompressorInputStreamFormat(1)
-  GZIPDecompressorInputStreamFormat_gzipFormat* = GZIPDecompressorInputStreamFormat(2)
+let GZIPDecompressorInputStreamFormat_zlibFormat* {.header: juce_core, importcpp: "juce::GZIPDecompressorInputStream::zlibFormat".}: GZIPDecompressorInputStreamFormat
+let GZIPDecompressorInputStreamFormat_deflateFormat* {.header: juce_core, importcpp: "juce::GZIPDecompressorInputStream::deflateFormat".}: GZIPDecompressorInputStreamFormat
+let GZIPDecompressorInputStreamFormat_gzipFormat* {.header: juce_core, importcpp: "juce::GZIPDecompressorInputStream::gzipFormat".}: GZIPDecompressorInputStreamFormat
 
-const
-  ZipFileOverwriteFiles_no* = ZipFileOverwriteFiles(0)
-  ZipFileOverwriteFiles_yes* = ZipFileOverwriteFiles(1)
+let ZipFileOverwriteFiles_no* {.header: juce_core, importcpp: "juce::ZipFile::OverwriteFiles::no".}: ZipFileOverwriteFiles
+let ZipFileOverwriteFiles_yes* {.header: juce_core, importcpp: "juce::ZipFile::OverwriteFiles::yes".}: ZipFileOverwriteFiles
 
-const
-  ZipFileFollowSymlinks_no* = ZipFileFollowSymlinks(0)
-  ZipFileFollowSymlinks_yes* = ZipFileFollowSymlinks(1)
+let ZipFileFollowSymlinks_no* {.header: juce_core, importcpp: "juce::ZipFile::FollowSymlinks::no".}: ZipFileFollowSymlinks
+let ZipFileFollowSymlinks_yes* {.header: juce_core, importcpp: "juce::ZipFile::FollowSymlinks::yes".}: ZipFileFollowSymlinks
 
 const
   CharPointer_UTF8_byteOrderMark1*: cint = 239
