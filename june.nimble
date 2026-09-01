@@ -20,6 +20,12 @@ task test, "Runs the test suite":
   exec "nim cpp -r tests/test_juce_graphics.nim"
   exec "nim cpp -r tests/test_juce_gui_basics.nim"
 
+task examples, "Compile every example":
+  # Compile only: they open a window. CI runs the same check, because the
+  # examples are reproduced in the README.
+  exec "nim cpp -c examples/custom_component.nim"
+  exec "nim cpp -c examples/test_app.nim"
+
 task juce_debug, "Build juce (debug)":
   exec "cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_OSX_DEPLOYMENT_TARGET=11.6 && cmake --build build"
 
