@@ -1172,7 +1172,11 @@ def run_main(juce_module_name, juce_class_name_to_export):
             if ("<" in rendered or "::" in rendered or "(" in rendered
                     or is_c_array(rendered)
                     or not type_is_declared(rendered, declared_type_names)):
-                comment, reason = "# ", "a type that cannot be spelled in Nim"
+                comment = "# "
+                # Only when nothing more specific has been established: a
+                # begin() whose return type is also unspellable is still best
+                # described as an iterator the Nim ones replace.
+                reason = reason or "a type that cannot be spelled in Nim"
 
             declaration = nim_method_def.format(**{
                 "comment": comment,

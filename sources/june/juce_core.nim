@@ -649,7 +649,7 @@ proc copyToUTF16*(this: String, destBuffer: ptr int16, maxBufferSizeBytes: uint6
 proc copyToUTF32*(this: String, destBuffer: ptr uint16, maxBufferSizeBytes: uint64): uint64 {.header: juce_core, importcpp: "#.copyToUTF32(@)".}
 proc preallocateBytes*(this: var String, numBytesNeeded: uint64) {.header: juce_core, importcpp: "#.preallocateBytes(@)".}
 proc swapWith*(this: var String, other: var String) {.header: juce_core, importcpp: "#.swapWith(@)".}
-# proc toCFString*(this: String): ptr struct __CFString {.header: juce_core, importcpp: "#.toCFString()".}  # a type that cannot be spelled in Nim
+# proc toCFString*(this: String): ptr struct __CFString {.header: juce_core, importcpp: "#.toCFString()".}  # a platform type with no Nim spelling
 proc convertToPrecomposedUnicode*(this: String): String {.header: juce_core, importcpp: "#.convertToPrecomposedUnicode()".}
 proc getReferenceCount*(this: String): cint {.header: juce_core, importcpp: "#.getReferenceCount()".}
 
@@ -751,8 +751,8 @@ proc prepareToWrite*(this: AbstractFifo, numToWrite: cint, startIndex1: var cint
 proc finishedWrite*(this: var AbstractFifo, numWritten: cint) {.header: juce_core, importcpp: "#.finishedWrite(@)".}
 proc prepareToRead*(this: AbstractFifo, numWanted: cint, startIndex1: var cint, blockSize1: var cint, startIndex2: var cint, blockSize2: var cint) {.header: juce_core, importcpp: "#.prepareToRead(@)".}
 proc finishedRead*(this: var AbstractFifo, numRead: cint) {.header: juce_core, importcpp: "#.finishedRead(@)".}
-# proc read*(this: var AbstractFifo, numToRead: cint): ScopedRead {.header: juce_core, importcpp: "#.read(@)".}  # a type that cannot be spelled in Nim
-# proc write*(this: var AbstractFifo, numToWrite: cint): ScopedWrite {.header: juce_core, importcpp: "#.write(@)".}  # a type that cannot be spelled in Nim
+# proc read*(this: var AbstractFifo, numToRead: cint): ScopedRead {.header: juce_core, importcpp: "#.read(@)".}  # excluded deliberately: see skip_class_method
+# proc write*(this: var AbstractFifo, numToWrite: cint): ScopedWrite {.header: juce_core, importcpp: "#.write(@)".}  # excluded deliberately: see skip_class_method
 proc `==`*(this: AbstractFifo, other: AbstractFifo): bool {.error: "juce::AbstractFifo defines no operator==; compare a property instead".}
 
 proc makeSingleThreadedAbstractFifo*(): SingleThreadedAbstractFifo {.header: juce_core, importcpp: "juce::SingleThreadedAbstractFifo(@)".}
@@ -941,7 +941,7 @@ proc addHelpCommand*(this: var ConsoleApplication, helpArgument: String, helpMes
 proc printCommandList*(this: ConsoleApplication, arg1: ArgumentList) {.header: juce_core, importcpp: "#.printCommandList(@)".}
 proc printCommandDetails*(this: ConsoleApplication, arg1: ArgumentList, arg2: ConsoleApplicationCommand) {.header: juce_core, importcpp: "#.printCommandDetails(@)".}
 # proc findAndRunCommand*(this: ConsoleApplication, arg1: ArgumentList, optionMustBeFirstArg: bool = false): cint {.header: juce_core, importcpp: "#.findAndRunCommand(@)".}  # excluded deliberately: see skip_class_method
-# proc findAndRunCommand*(this: ConsoleApplication, argc: cint, argv: ptr char[]): cint {.header: juce_core, importcpp: "#.findAndRunCommand(@)".}  # a type that cannot be spelled in Nim
+# proc findAndRunCommand*(this: ConsoleApplication, argc: cint, argv: ptr char[]): cint {.header: juce_core, importcpp: "#.findAndRunCommand(@)".}  # excluded deliberately: see skip_class_method
 proc findCommand*(this: ConsoleApplication, arg1: ArgumentList, optionMustBeFirstArg: bool): ptr ConsoleApplicationCommand {.header: juce_core, importcpp: "#.findCommand(@)".}
 proc getCommands*(this: ConsoleApplication): CppVector[ConsoleApplicationCommand] {.header: juce_core, importcpp: "#.getCommands()".}
 proc `==`*(this: ConsoleApplication, other: ConsoleApplication): bool {.error: "juce::ConsoleApplication defines no operator==; compare a property instead".}
@@ -1823,7 +1823,7 @@ proc createOutputStream*(this: URL): UniquePtr[OutputStream] {.header: juce_core
 proc readEntireBinaryStream*(this: URL, destData: var MemoryBlock, usePostCommand: bool = false): bool {.header: juce_core, importcpp: "#.readEntireBinaryStream(@)".}
 proc readEntireTextStream*(this: URL, usePostCommand: bool = false): String {.header: juce_core, importcpp: "#.readEntireTextStream(@)".}
 proc readEntireXmlStream*(this: URL, usePostCommand: bool = false): UniquePtr[XmlElement] {.header: juce_core, importcpp: "#.readEntireXmlStream(@)".}
-# proc createInputStream*(this: URL, doPostLikeRequest: bool, progressCallback: ptr bool (pointer, int, int) = nil, progressCallbackContext: pointer = nil, extraHeaders: String, connectionTimeOutMs: cint = 0, responseHeaders: ptr StringPairArray = nil, statusCode: ptr cint = nil, numRedirectsToFollow: cint = 5, httpRequestCmd: String): UniquePtr[InputStream] {.header: juce_core, importcpp: "#.createInputStream(@)".}  # a type that cannot be spelled in Nim
+# proc createInputStream*(this: URL, doPostLikeRequest: bool, progressCallback: ptr bool (pointer, int, int) = nil, progressCallbackContext: pointer = nil, extraHeaders: String, connectionTimeOutMs: cint = 0, responseHeaders: ptr StringPairArray = nil, statusCode: ptr cint = nil, numRedirectsToFollow: cint = 5, httpRequestCmd: String): UniquePtr[InputStream] {.header: juce_core, importcpp: "#.createInputStream(@)".}  # excluded deliberately: see skip_class_method
 
 proc makeWebInputStream*(url: URL, addParametersToRequestBody: bool): WebInputStream {.header: juce_core, importcpp: "juce::WebInputStream(@)".}
 proc withExtraHeaders*(this: var WebInputStream, extraHeaders: String): var WebInputStream {.header: juce_core, importcpp: "#.withExtraHeaders(@)".}
@@ -1959,8 +1959,8 @@ proc getAllSubText*(this: XmlElement): String {.header: juce_core, importcpp: "#
 proc getChildElementAllSubText*(this: XmlElement, childTagName: StringRef, defaultReturnValue: String): String {.header: juce_core, importcpp: "#.getChildElementAllSubText(@)".}
 proc addTextElement*(this: var XmlElement, text: String) {.header: juce_core, importcpp: "#.addTextElement(@)".}
 proc deleteAllTextElements*(this: var XmlElement) {.header: juce_core, importcpp: "#.deleteAllTextElements()".}
-# proc getChildIterator*(this: XmlElement): Iterator<GetNextElement> {.header: juce_core, importcpp: "#.getChildIterator()".}  # a type that cannot be spelled in Nim
-# proc getChildWithTagNameIterator*(this: XmlElement, name: StringRef): Iterator<GetNextElementWithTagName> {.header: juce_core, importcpp: "#.getChildWithTagNameIterator(@)".}  # a type that cannot be spelled in Nim
+# proc getChildIterator*(this: XmlElement): Iterator<GetNextElement> {.header: juce_core, importcpp: "#.getChildIterator()".}  # excluded deliberately: see skip_class_method
+# proc getChildWithTagNameIterator*(this: XmlElement, name: StringRef): Iterator<GetNextElementWithTagName> {.header: juce_core, importcpp: "#.getChildWithTagNameIterator(@)".}  # excluded deliberately: see skip_class_method
 # proc getAttributeIterator*(this: XmlElement): AttributeIterator {.header: juce_core, importcpp: "#.getAttributeIterator()".}  # a type that cannot be spelled in Nim
 proc macroBasedForLoop*(this: XmlElement) {.header: juce_core, importcpp: "#.macroBasedForLoop()".}
 proc createDocument*(this: XmlElement, dtdToUse: StringRef, allOnOneLine: bool = false, includeXmlHeader: bool = true, encodingType: StringRef, lineWrapLength: cint = 60): String {.header: juce_core, importcpp: "#.createDocument(@)".}
