@@ -265,8 +265,8 @@ Hand-written additions live in the ``*_lifting.nim`` files and in
   ``CustomButton``, ``CustomTimer``, ``CustomAsyncUpdater``,
   ``CustomActionListener``, ``CustomChangeListener``, ``CustomSlider``,
   ``CustomLabel`` and ``CustomLookAndFeel``, plus the ``JUCEApplication`` and
-  ``DocumentWindow`` that were already there. Most of those JUCE classes have a pure virtual, so they
-  could not be instantiated without a subclass at all.
+  ``DocumentWindow`` that were already there. Most of those JUCE classes have a
+  pure virtual, so they could not be instantiated without a subclass at all.
 
 Instantiate a class template with ``cint`` or ``cfloat``, never Nim's ``int`` or
 ``float``. Nim puts the parameter's C++ name into the template, and Nim's
