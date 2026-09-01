@@ -126,6 +126,6 @@ jobs:
           # window, and a runner has no display.
           for example in examples/*.nim; do
             echo "::group::$example"
-            "$nim_bin" cpp -c --hints:off "$example"
+            "$nim_bin" cpp -c --hints:off "$example" || exit 1
             echo "::endgroup::"
           done
