@@ -223,6 +223,9 @@ template_heads = {
     # with a capital O, so the lowercase name is unambiguous.
     "optional": "CppOptional",
     "std::vector": "CppVector",
+    "std::map": "CppMap",
+    "std::unordered_map": "CppUnorderedMap",
+    "std::array": "CppArray",
     "Rectangle": "Rectangle",
     "Point": "Point",
     "Line": "Line",
@@ -445,7 +448,7 @@ known_builtin_types = {
     "cint", "cuint", "clong", "culong", "clonglong", "culonglong",
     "cfloat", "cdouble", "constChar", "constPointer",
     "UniquePtr", "CppOptional", "CppVector",
-    "CppString",
+    "CppString", "CppMap", "CppUnorderedMap", "CppArray",
     "Rectangle", "Point", "Line", "BorderSize", "Range",
     "Array", "OwnedArray", "ReferenceCountedObjectPtr",
     "Span", "RectangleList", "Parallelogram", "SparseSet", "Optional",
