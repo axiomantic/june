@@ -1022,3 +1022,7 @@ proc `==`*(this: ImagePixelDataNativeExtensions, other: ImagePixelDataNativeExte
 
 include juce_graphics_lifting
 
+proc `$`*(this: Path): string = $this.toString()
+proc `$`*(this: Colour): string = $this.toString()
+proc `$`*(this: FontFeatureTag): string = $this.toString()
+proc `$`*(this: Font): string = $this.toString()

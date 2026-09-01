@@ -234,6 +234,10 @@ long>`` that JUCE never instantiates.
 A proc whose types cannot be spelled in Nim is emitted as a comment rather than
 omitted, so what is missing stays visible in the generated file.
 
+``$`` uses JUCE's ``toString`` where there is one. Nim's own ``$`` prints
+``()`` for these, because an ``importcpp`` object declares no fields and there
+is nothing to show.
+
 Comparing two values of a type JUCE gives no ``operator==`` is a compile error
 naming the type. Nim would otherwise compare an ``importcpp`` object
 structurally, and those declare no fields, so it compared nothing and reported

@@ -86,3 +86,14 @@ proc testOperators() =
 
 testOperators()
 
+proc testDollar() =
+  # Nim's default $ prints "()" for these: an importcpp object declares no
+  # fields, so there is nothing for it to show. Where JUCE has a toString, $
+  # uses it.
+  doAssert $makeIdentifier("colour") == "colour"
+  doAssert $makejuce_var(42.cint) == "42"
+  doAssert $makeString("hello") == "hello"
+  doAssert ($makeUuid()).len == 32
+
+testDollar()
+

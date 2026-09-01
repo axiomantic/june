@@ -20,3 +20,13 @@
 converter toJustification*(flags: JustificationFlags): Justification {.noinit.} =
     makeJustification(flags.cint)
 
+# Declared here rather than beside the types in june_juce_types: String is not
+# declared until juce_core, which is included after it, and $ on a String comes
+# from juce_core_lifting, later still. Nim's default $ prints "()" for an
+# importcpp object, which declares no fields.
+proc toString*[T](this: Rectangle[T]): String {.header: juce_graphics, importcpp: "#.toString()".}
+proc toString*[T](this: Point[T]): String {.header: juce_graphics, importcpp: "#.toString()".}
+
+proc `$`*[T](this: Rectangle[T]): string = $this.toString()
+proc `$`*[T](this: Point[T]): string = $this.toString()
+

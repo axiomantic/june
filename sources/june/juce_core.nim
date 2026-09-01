@@ -2093,3 +2093,12 @@ proc `==`*(this: AndroidDocumentInputSource, other: AndroidDocumentInputSource):
 
 include juce_core_lifting
 
+proc `$`*(this: MemoryBlock): string = $this.toString()
+proc `$`*(this: Identifier): string = $this.toString()
+proc `$`*(this: Uuid): string = $this.toString()
+proc `$`*(this: juce_var): string = $this.toString()
+proc `$`*(this: MemoryOutputStream): string = $this.toString()
+proc `$`*(this: FileSearchPath): string = $this.toString()
+proc `$`*(this: Expression): string = $this.toString()
+proc `$`*(this: IPAddress): string = $this.toString()
+proc `$`*(this: MACAddress): string = $this.toString()

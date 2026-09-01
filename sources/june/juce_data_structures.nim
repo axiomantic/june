@@ -173,3 +173,4 @@ proc `==`*(this: ApplicationProperties, other: ApplicationProperties): bool {.er
 
 include juce_data_structures_lifting
 
+proc `$`*(this: Value): string = $this.toString()

@@ -3868,3 +3868,8 @@ proc `==`*(this: AccessibilityNativeHandle, other: AccessibilityNativeHandle): b
 
 include juce_gui_basics_lifting
 
+proc `$`*(this: RelativeCoordinate): string = $this.toString()
+proc `$`*(this: RelativePoint): string = $this.toString()
+proc `$`*(this: RelativeRectangle): string = $this.toString()
+proc `$`*(this: TableHeaderComponent): string = $this.toString()
+proc `$`*(this: Toolbar): string = $this.toString()

@@ -51,6 +51,10 @@ proc testGeometry() =
   doAssert makePoint(1.cint, 2.cint) != makePoint(3.cint, 4.cint)
   doAssert makeLine(0.cfloat, 0.cfloat, 3.cfloat, 4.cfloat) != makeLine(1.cfloat, 1.cfloat, 2.cfloat, 2.cfloat)
 
+  # $ goes through JUCE's toString. Without it Nim prints "()".
+  doAssert $makeRectangle(1.cint, 2.cint, 3.cint, 4.cint) == "1 2 3 4"
+  doAssert $makePoint(5.cint, 6.cint) == "5, 6"
+
 proc testDrawing() =
   let img = makeImage(ImagePixelFormat_ARGB, 40.cint, 30.cint, true)
   doAssert img.getWidth() == 40
