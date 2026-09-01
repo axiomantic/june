@@ -110,7 +110,11 @@ jobs:
         run: |
           nim_bin=$(echo "$HOME"/.nimble/pkgs2/nim-${{ matrix.nim-version }}-*/bin/nim)
           test -x "$nim_bin" || { echo "::error::no Nim ${{ matrix.nim-version }} at $nim_bin"; exit 1; }
-          "$nim_bin" --version | head -1
+          # sed rather than head: head closes the pipe after the first line, and
+          # Nim writing the rest of its version banner into a closed pipe raises
+          # an IOError that pipefail turns into a failed step. It is a race, so
+          # it only fires sometimes.
+          "$nim_bin" --version | sed -n '1p'
           # `|| exit 1` rather than relying on the `-e` that GitHub's default
           # bash carries: nothing in this file states that the step depends on
           # it, so a later edit to `shell:` or a pipe added to the command would
