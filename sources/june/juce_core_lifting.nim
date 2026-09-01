@@ -41,3 +41,17 @@ converter toStringRef*(text: string): StringRef = makeStringRef(toConstChar(text
     constexpr bool operator== (Range other) const noexcept
     constexpr bool operator!= (Range other) const noexcept
 ]#
+
+# The containers a caller loops over. JUCE exposes begin() and end() for some of
+# these, which have no Nim spelling; the indexed accessors express the same loop.
+iterator items*(this: StringArray): String =
+    for index in 0 ..< this.size():
+        yield this[index]
+
+iterator items*(this: XmlElement): ptr XmlElement =
+    for index in 0 ..< this.getNumChildElements():
+        yield this.getChildElement(index)
+
+iterator pairs*(this: NamedValueSet): tuple[name: Identifier, value: juce_var] =
+    for index in 0 ..< this.size():
+        yield (this.getName(index), this.getValueAt(index))

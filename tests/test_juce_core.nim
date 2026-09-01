@@ -167,3 +167,26 @@ proc testVarArrayTypes() =
   doAssert elements.size() == 0.csize_t
 
 testVarArrayTypes()
+
+# The container loops. Without these a caller writes the index loop by hand,
+# because JUCE's begin() and end() have no Nim spelling.
+proc testContainerIteration() =
+  var names = makeStringArray()
+  names.add(makeString("alpha"))
+  names.add(makeString("beta"))
+
+  var seen: seq[string] = @[]
+  for name in names:
+    seen.add($name)
+  doAssert seen == @["alpha", "beta"], "iterated " & $seen
+
+  var settings = makeNamedValueSet()
+  discard settings.set(makeIdentifier("width"), makejuce_var(320.cint))
+  discard settings.set(makeIdentifier("height"), makejuce_var(240.cint))
+
+  var keys: seq[string] = @[]
+  for name, value in settings:
+    keys.add($name.toString())
+  doAssert keys == @["width", "height"], "keys " & $keys
+
+testContainerIteration()
