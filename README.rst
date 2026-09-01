@@ -52,7 +52,14 @@ the tests directly, which reports properly:
 CI does the latter for this reason.
 
 
-Or build the example application (tweak nim.cfg if needed).
+Compile the examples.
+
+.. code-block:: bash
+
+  nimble examples
+
+
+Or build and run the example application (tweak nim.cfg if needed).
 
 .. code-block:: bash
 
