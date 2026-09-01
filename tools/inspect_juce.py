@@ -331,7 +331,16 @@ def remap_template_arg(spelling, *args):
         # type spelled `var` that no Nim file can contain.
         result = remap_class_name(result)
         if "::" in result:
-            return None
+            # A nested name is bound under the concatenation of its enclosing
+            # class and its own name - juce::ProgressBar::Style is
+            # ProgressBarStyle - and that rename reached parameter types but not
+            # template arguments. Guessing here is safe: a name that is not
+            # declared is caught by the check at the emit site, which comments
+            # the proc out exactly as an unresolved one already is.
+            qualifiers = [part for part in result.split("::") if part and part != "juce"]
+            result = "".join(qualifiers)
+            for table in args:
+                result = table.get(result, result)
 
     if result is None:
         return None

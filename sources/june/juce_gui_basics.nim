@@ -3003,7 +3003,7 @@ proc getTextEditor*(this: AlertWindow, nameOfTextEditor: String): ptr TextEditor
 proc addComboBox*(this: var AlertWindow, name: String, items: StringArray, onScreenLabel: String) {.header: juce_gui_basics, importcpp: "#.addComboBox(@)".}
 proc getComboBoxComponent*(this: AlertWindow, nameOfList: String): ptr ComboBox {.header: juce_gui_basics, importcpp: "#.getComboBoxComponent(@)".}
 proc addTextBlock*(this: var AlertWindow, text: String) {.header: juce_gui_basics, importcpp: "#.addTextBlock(@)".}
-# proc addProgressBarComponent*(this: var AlertWindow, progressValue: var float64, style: std::optional<ProgressBar::Style>) {.header: juce_gui_basics, importcpp: "#.addProgressBarComponent(@)".}  # a type that cannot be spelled in Nim
+proc addProgressBarComponent*(this: var AlertWindow, progressValue: var float64, style: CppOptional[ProgressBarStyle]) {.header: juce_gui_basics, importcpp: "#.addProgressBarComponent(@)".}
 proc addCustomComponent*(this: var AlertWindow, component: ptr Component) {.header: juce_gui_basics, importcpp: "#.addCustomComponent(@)".}
 proc getNumCustomComponents*(this: AlertWindow): cint {.header: juce_gui_basics, importcpp: "#.getNumCustomComponents()".}
 proc getCustomComponent*(this: AlertWindow, index: cint): ptr Component {.header: juce_gui_basics, importcpp: "#.getCustomComponent(@)".}
