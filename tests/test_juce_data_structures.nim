@@ -14,8 +14,8 @@ proc testValueTree() =
   doAssert $tree.getType().toString() == "node"
   doAssert tree.getNumProperties() == 0
 
-  discard tree.setProperty(colourId, makejuce_var(0xff0000), nil)
-  discard tree.setProperty(sizeId, makejuce_var(42), nil)
+  discard tree.setProperty(colourId, makejuce_var(0xff0000.cint), nil)
+  discard tree.setProperty(sizeId, makejuce_var(42.cint), nil)
   doAssert tree.getNumProperties() == 2
   doAssert tree.hasProperty(colourId)
   doAssert not tree.hasProperty(makeIdentifier("missing"))

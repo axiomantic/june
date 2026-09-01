@@ -20,6 +20,8 @@ converter toNimString*(text: String): string = text.toRawUTF8
 
 # StringRef
 converter toStringRef*(text: String): StringRef = makeStringRef(text)
+# StringRef does not own its characters, so this is only safe for the duration
+# of the call it is passed to - the same contract StringRef has in C++.
 converter toStringRef*(text: string): StringRef = makeStringRef(toConstChar(text))
 
 #[

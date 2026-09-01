@@ -49,6 +49,12 @@ nim_constructor_def = """{comment}proc make{class_name}*({method_args}): {class_
 
 def remap_type(t, *args):
     remap_table = {
+        # C++ int is 32 bits and Nim's int is 64. Mapping it to Nim's int made
+        # distinct C++ overloads collapse onto the same emitted signature:
+        # var(int) and var(int64) both became juce::var(NI), which g++ rejects
+        # as ambiguous. C++ float is likewise 32 bits, not Nim's 64.
+        "int": "cint",
+        "float": "cfloat",
         "short": "int16",
         "long": "int64",
         "double": "float64",
@@ -89,6 +95,25 @@ def remap_type(t, *args):
         "var::NativeFunctionArgs": "juce_varNativeFunctionArgs",
         "NamedValueSet::NamedValue": "NamedValueSetNamedValue"
     }
+
+    # A nested type is spelled bare, and the same bare name can belong to
+    # several classes: Slider, PopupMenu and others each have an "Options". The
+    # declaration knows its own owner, so ask it rather than guess from the name.
+    declaration = t.get_declaration()
+    if declaration is not None and declaration.kind in (
+            CursorKind.CLASS_DECL, CursorKind.STRUCT_DECL, CursorKind.ENUM_DECL):
+        owner = declaration.semantic_parent
+        if (owner is not None and owner.kind in (CursorKind.CLASS_DECL, CursorKind.STRUCT_DECL)
+                and declaration.spelling and owner.spelling):
+            qualified_nested = f"juce::{owner.spelling}::{declaration.spelling}"
+            for table in args:
+                if qualified_nested in table:
+                    resolved_nested = table[qualified_nested]
+                    is_reference = "&" in t.spelling
+                    is_const_ref = t.spelling.strip().startswith("const")
+                    if is_reference and not is_const_ref:
+                        return f"var {resolved_nested}"
+                    return resolved_nested
 
     parts = list(filter(lambda part: part, t.spelling.split(" ")))
 
@@ -293,6 +318,39 @@ wrapped_by_lifting = {
     ("String", "toRawUTF8"): "toRawUTF8Impl",
 }
 
+# Types a Nim string reaches through a converter. A class with more than one
+# single-argument constructor among these is ambiguous at every literal call:
+# makeIdentifier("x") matches both the constChar and the String overload. Nim 2
+# picks one, Nim 1.6 refuses.
+string_like_types = ("String", "constChar", "StringRef")
+
+def preferred_string_constructor(constructor_types, class_name):
+    """Of the string-like single-argument constructors, the one to keep.
+
+    String wins: a Nim string converts to it, and a String value passes
+    straight through, so keeping it costs no caller anything.
+    """
+    # The class's own type is its copy constructor, which is dropped anyway.
+    available = {types[0] for types in constructor_types
+                 if len(types) == 1 and types[0] in string_like_types
+                 and types[0] != class_name}
+    if len(available) < 2:
+        return None
+
+    # StringRef keeps both. Its String overload is safe and the converter needs
+    # it, its constChar overload is the one that must not go through a temporary,
+    # and the ambiguity only affects makeStringRef("literal") - which nobody
+    # writes, because a string reaches a StringRef parameter by converter.
+    if class_name == "StringRef":
+        return None
+
+    # Otherwise String wins: a Nim string converts to it and a String value
+    # passes straight through, so no caller loses.
+    for candidate in string_like_types:
+        if candidate in available:
+            return candidate
+    return None
+
 def remap_wrapped_method_name(class_name, method_name):
     return wrapped_by_lifting.get((class_name, method_name), method_name)
 
@@ -368,14 +426,25 @@ def remap_method_name(method_name):
     return remap_identifier(method_name)
 
 def remap_operator_name(class_name, method_name):
+    # Nim can spell these, so bind them as the operators they are. They used to
+    # be mangled into `Colour==`, which is a legal identifier and useless: the
+    # whole point of binding an operator is to write a == b.
+    nim_operators = {
+        "operator==": "`==`",
+        "operator<": "`<`",
+        "operator<=": "`<=`",
+        "operator+": "`+`",
+        "operator-": "`-`",
+        "operator*": "`*`",
+        "operator/": "`/`",
+        "operator[]": "`[]`",
+    }
+    if method_name in nim_operators:
+        return nim_operators[method_name]
+
     remap_table = {
-        "operator[]": f"`{class_name}[]`",
-        "operator==": f"`{class_name}==`",
-        "operator!=": f"`{class_name}!=`",
-        "operator<": f"`{class_name}<`",
-        "operator<=": f"`{class_name}<=`",
-        "operator>": f"`{class_name}>`",
-        "operator>=": f"`{class_name}>=`",
+        # != > and >= are not bound: Nim derives != from ==, and reverses > and
+        # >= from < and <=, so binding them creates ambiguous overloads.
         "operator=": f"`{class_name}=`",
         "operator+=": f"`{class_name}+=`",
         "operator-=": f"`{class_name}-=`",
@@ -474,6 +543,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
     emitted_declarations = set()
     declared_type_names = set()
     enum_remap = {}
+    global_nested_remap = {}
 
     base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -621,7 +691,11 @@ def run_main(juce_module_name, juce_class_name_to_export):
         class_inner[c.spelling] = inner_classes
 
         qualified_name = f"juce::{c.spelling}"
-        class_juce_map[qualified_name] = c.spelling
+        # For a class the lifting layer subclasses, point at the generated base.
+        # The exported subclass is declared in a file included later, so the
+        # generated module cannot name it, and inheritance means a caller can
+        # still pass the subclass.
+        class_juce_map[qualified_name] = remap_exported_class_name(c.spelling)
 
     print(nim_prolog_def.format(**{
         "licence": nim_licence_header,
@@ -710,6 +784,24 @@ def run_main(juce_module_name, juce_class_name_to_export):
         for ic in class_inner[c.spelling]:
             declared_type_names.add(f"{remap_class_name(c.spelling)}{ic.spelling}")
 
+    # A nested type is often referenced from a class other than its owner, and
+    # arrives spelled bare there too: Component's drag-and-drop methods take a
+    # "SourceDetails" that belongs to DragAndDropTarget. Map those globally, but
+    # only where exactly one class owns the name - two classes with an "Options"
+    # cannot be told apart from the spelling alone.
+    nested_owners = {}
+    for c in class_map.values():
+        for ic in class_inner.get(c.spelling, []):
+            nested_owners.setdefault(ic.spelling, set()).add(f"{remap_class_name(c.spelling)}{ic.spelling}")
+        for node in c.get_children():
+            if (node.kind == CursorKind.ENUM_DECL and not is_anonymous_enum(node)
+                    and node.access_specifier == AccessSpecifier.PUBLIC):
+                nested_owners.setdefault(node.spelling, set()).add(f"{remap_class_name(c.spelling)}{node.spelling}")
+
+    for name, owners in nested_owners.items():
+        if len(owners) == 1 and f"juce::{name}" not in class_juce_map:
+            global_nested_remap[name] = next(iter(owners))
+
     for c in module_classes:
         if juce_class_name_to_export is not None and c.spelling != juce_class_name_to_export:
             continue
@@ -742,6 +834,19 @@ def run_main(juce_module_name, juce_class_name_to_export):
             if f"juce::{node.spelling}" not in class_juce_map:
                 remap_inner_classes[node.spelling] = mapped_enum
 
+        # Member typedefs. X::Ptr is a ReferenceCountedObjectPtr<X> and
+        # CharPointer_UTF8::CharType is a char; neither is a class, so nothing
+        # declared them and every proc using one was commented out.
+        for node in c.get_children():
+            if (node.kind not in (CursorKind.TYPEDEF_DECL, CursorKind.TYPE_ALIAS_DECL)
+                    or node.access_specifier != AccessSpecifier.PUBLIC):
+                continue
+            resolved = remap_type(node.underlying_typedef_type,
+                                  remap_inner_classes, enum_remap, class_juce_map, global_nested_remap)
+            if resolved and "<" not in resolved and "::" not in resolved and not is_c_array(resolved):
+                remap_inner_classes.setdefault(node.spelling, resolved)
+                remap_inner_classes.setdefault(f"juce::{c.spelling}::{node.spelling}", resolved)
+
         if c.spelling in done_classes:
             continue
         done_classes.add(c.spelling)
@@ -752,15 +857,29 @@ def run_main(juce_module_name, juce_class_name_to_export):
         # Constructors. Nothing generated these before, so a type could be
         # named but never built: an Identifier had no way into existence, which
         # is most of why ValueTree was unusable.
-        for ctor in filter(lambda x: x.kind == CursorKind.CONSTRUCTOR, c.get_children()):
-            if ctor.access_specifier != AccessSpecifier.PUBLIC:
-                continue
+        public_constructors = [x for x in c.get_children()
+                               if x.kind == CursorKind.CONSTRUCTOR
+                               and x.access_specifier == AccessSpecifier.PUBLIC]
 
+        def constructor_arg_types(ctor):
+            return [remap_type(a.type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap)
+                    for a in ctor.get_arguments()]
+
+        keep_string_constructor = preferred_string_constructor(
+            [constructor_arg_types(x) for x in public_constructors], class_name)
+
+        for ctor in public_constructors:
             ctor_args, ctor_types = [], []
             for count, arg in enumerate(ctor.get_arguments()):
-                argument_type = remap_type(arg.type, remap_inner_classes, enum_remap, class_juce_map)
+                argument_type = remap_type(arg.type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap)
                 ctor_args.append(f"{remap_argument_name(arg.spelling, count)}: {argument_type}")
                 ctor_types.append(argument_type)
+
+            if (keep_string_constructor is not None and len(ctor_types) == 1
+                    and ctor_types[0] in string_like_types
+                    and ctor_types[0] != class_name
+                    and ctor_types[0] != keep_string_constructor):
+                continue
 
             # A copy or move constructor would just shadow the plain one.
             if len(ctor_types) == 1 and ctor_types[0].replace("var ", "").replace("lent ", "") == class_name:
@@ -811,7 +930,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
                     default_value = f" = {default_value}"
 
                 spelling = remap_argument_name(arg.spelling, count)
-                argument_type = remap_type(arg.type, remap_inner_classes, enum_remap, class_juce_map)
+                argument_type = remap_type(arg.type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap)
 
                 # A default is only kept where the literal is already a value of
                 # the parameter's type here. The converters that would make, say,
@@ -838,7 +957,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
 
             return_type = ""
             if m.result_type.spelling != "void":
-                return_type = f": {remap_type(m.result_type, remap_inner_classes, enum_remap, class_juce_map)}"
+                return_type = f": {remap_type(m.result_type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap)}"
 
             if m.result_type.spelling in ["CFStringRef", "OSType"]:
                 comment = "# "

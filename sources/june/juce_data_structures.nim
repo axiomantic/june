@@ -32,13 +32,13 @@ const
 
 proc perform*(this: var UndoableAction): bool {.header: juce_data_structures, importcpp: "#.perform()".}
 proc undo*(this: var UndoableAction): bool {.header: juce_data_structures, importcpp: "#.undo()".}
-proc getSizeInUnits*(this: var UndoableAction): int {.header: juce_data_structures, importcpp: "#.getSizeInUnits()".}
+proc getSizeInUnits*(this: var UndoableAction): cint {.header: juce_data_structures, importcpp: "#.getSizeInUnits()".}
 proc createCoalescedAction*(this: var UndoableAction, nextAction: ptr UndoableAction): ptr UndoableAction {.header: juce_data_structures, importcpp: "#.createCoalescedAction(@)".}
 
-proc makeUndoManager*(maxNumberOfUnitsToKeep: int, minimumTransactionsToKeep: int): UndoManager {.header: juce_data_structures, importcpp: "juce::UndoManager(@)".}
+proc makeUndoManager*(maxNumberOfUnitsToKeep: cint, minimumTransactionsToKeep: cint): UndoManager {.header: juce_data_structures, importcpp: "juce::UndoManager(@)".}
 proc clearUndoHistory*(this: var UndoManager) {.header: juce_data_structures, importcpp: "#.clearUndoHistory()".}
-proc getNumberOfUnitsTakenUpByStoredCommands*(this: UndoManager): int {.header: juce_data_structures, importcpp: "#.getNumberOfUnitsTakenUpByStoredCommands()".}
-proc setMaxNumberOfStoredUnits*(this: var UndoManager, maxNumberOfUnitsToKeep: int, minimumTransactionsToKeep: int) {.header: juce_data_structures, importcpp: "#.setMaxNumberOfStoredUnits(@)".}
+proc getNumberOfUnitsTakenUpByStoredCommands*(this: UndoManager): cint {.header: juce_data_structures, importcpp: "#.getNumberOfUnitsTakenUpByStoredCommands()".}
+proc setMaxNumberOfStoredUnits*(this: var UndoManager, maxNumberOfUnitsToKeep: cint, minimumTransactionsToKeep: cint) {.header: juce_data_structures, importcpp: "#.setMaxNumberOfStoredUnits(@)".}
 proc perform*(this: var UndoManager, action: ptr UndoableAction): bool {.header: juce_data_structures, importcpp: "#.perform(@)".}
 proc perform*(this: var UndoManager, action: ptr UndoableAction, actionName: String): bool {.header: juce_data_structures, importcpp: "#.perform(@)".}
 proc beginNewTransaction*(this: var UndoManager) {.header: juce_data_structures, importcpp: "#.beginNewTransaction()".}
@@ -52,7 +52,7 @@ proc getUndoDescription*(this: UndoManager): String {.header: juce_data_structur
 proc getUndoDescriptions*(this: UndoManager): StringArray {.header: juce_data_structures, importcpp: "#.getUndoDescriptions()".}
 proc getTimeOfUndoTransaction*(this: UndoManager): Time {.header: juce_data_structures, importcpp: "#.getTimeOfUndoTransaction()".}
 proc getActionsInCurrentTransaction*(this: UndoManager, actionsFound: Array[UndoableAction]) {.header: juce_data_structures, importcpp: "#.getActionsInCurrentTransaction(@)".}
-proc getNumActionsInCurrentTransaction*(this: UndoManager): int {.header: juce_data_structures, importcpp: "#.getNumActionsInCurrentTransaction()".}
+proc getNumActionsInCurrentTransaction*(this: UndoManager): cint {.header: juce_data_structures, importcpp: "#.getNumActionsInCurrentTransaction()".}
 proc canRedo*(this: UndoManager): bool {.header: juce_data_structures, importcpp: "#.canRedo()".}
 proc redo*(this: var UndoManager): bool {.header: juce_data_structures, importcpp: "#.redo()".}
 proc getRedoDescription*(this: UndoManager): String {.header: juce_data_structures, importcpp: "#.getRedoDescription()".}
@@ -70,8 +70,8 @@ proc `Value=`*(this: var Value, newValue: juce_var): var Value {.header: juce_da
 proc `Value=`*(this: var Value, arg1: lent Value): var Value {.header: juce_data_structures, importcpp: "#.operator=(@)".}
 proc referTo*(this: var Value, valueToReferTo: Value) {.header: juce_data_structures, importcpp: "#.referTo(@)".}
 proc refersToSameSourceAs*(this: Value, other: Value): bool {.header: juce_data_structures, importcpp: "#.refersToSameSourceAs(@)".}
-proc `Value==`*(this: Value, other: Value): bool {.header: juce_data_structures, importcpp: "#.operator==(@)".}
-proc `Value!=`*(this: Value, other: Value): bool {.header: juce_data_structures, importcpp: "#.operator!=(@)".}
+proc `==`*(this: Value, other: Value): bool {.header: juce_data_structures, importcpp: "#.operator==(@)".}
+# proc operator!=*(this: Value, other: Value): bool {.header: juce_data_structures, importcpp: "#.operator!=(@)".}
 proc addListener*(this: var Value, listener: ptr ValueListener) {.header: juce_data_structures, importcpp: "#.addListener(@)".}
 proc removeListener*(this: var Value, listener: ptr ValueListener) {.header: juce_data_structures, importcpp: "#.removeListener(@)".}
 proc getValueSource*(this: var Value): var ValueValueSource {.header: juce_data_structures, importcpp: "#.getValueSource()".}
@@ -80,8 +80,8 @@ proc makeValueTree*(): ValueTree {.header: juce_data_structures, importcpp: "juc
 proc makeValueTree*(`type`: Identifier): ValueTree {.header: juce_data_structures, importcpp: "juce::ValueTree(@)".}
 # proc makeValueTree*(`type`: Identifier, properties: std::initializer_list<NamedValueSet::NamedValue>, subTrees: std::initializer_list<ValueTree>): ValueTree {.header: juce_data_structures, importcpp: "juce::ValueTree(@)".}
 proc `ValueTree=`*(this: var ValueTree, arg1: ValueTree): var ValueTree {.header: juce_data_structures, importcpp: "#.operator=(@)".}
-proc `ValueTree==`*(this: ValueTree, arg1: ValueTree): bool {.header: juce_data_structures, importcpp: "#.operator==(@)".}
-proc `ValueTree!=`*(this: ValueTree, arg1: ValueTree): bool {.header: juce_data_structures, importcpp: "#.operator!=(@)".}
+proc `==`*(this: ValueTree, arg1: ValueTree): bool {.header: juce_data_structures, importcpp: "#.operator==(@)".}
+# proc operator!=*(this: ValueTree, arg1: ValueTree): bool {.header: juce_data_structures, importcpp: "#.operator!=(@)".}
 proc isEquivalentTo*(this: ValueTree, arg1: ValueTree): bool {.header: juce_data_structures, importcpp: "#.isEquivalentTo(@)".}
 proc isValid*(this: ValueTree): bool {.header: juce_data_structures, importcpp: "#.isValid()".}
 proc createCopy*(this: ValueTree): ValueTree {.header: juce_data_structures, importcpp: "#.createCopy()".}
@@ -92,30 +92,30 @@ proc hasType*(this: ValueTree, typeName: Identifier): bool {.header: juce_data_s
 proc getProperty*(this: ValueTree, name: Identifier): juce_var {.header: juce_data_structures, importcpp: "#.getProperty(@)".}
 proc getProperty*(this: ValueTree, name: Identifier, defaultReturnValue: juce_var): juce_var {.header: juce_data_structures, importcpp: "#.getProperty(@)".}
 proc getPropertyPointer*(this: ValueTree, name: Identifier): ptr juce_var {.header: juce_data_structures, importcpp: "#.getPropertyPointer(@)".}
-proc `ValueTree[]`*(this: ValueTree, name: Identifier): juce_var {.header: juce_data_structures, importcpp: "#.operator[](@)".}
+proc `[]`*(this: ValueTree, name: Identifier): juce_var {.header: juce_data_structures, importcpp: "#.operator[](@)".}
 proc setProperty*(this: var ValueTree, name: Identifier, newValue: juce_var, undoManager: ptr UndoManager): var ValueTree {.header: juce_data_structures, importcpp: "#.setProperty(@)".}
 proc hasProperty*(this: ValueTree, name: Identifier): bool {.header: juce_data_structures, importcpp: "#.hasProperty(@)".}
 proc removeProperty*(this: var ValueTree, name: Identifier, undoManager: ptr UndoManager) {.header: juce_data_structures, importcpp: "#.removeProperty(@)".}
 proc removeAllProperties*(this: var ValueTree, undoManager: ptr UndoManager) {.header: juce_data_structures, importcpp: "#.removeAllProperties(@)".}
-proc getNumProperties*(this: ValueTree): int {.header: juce_data_structures, importcpp: "#.getNumProperties()".}
-proc getPropertyName*(this: ValueTree, index: int): Identifier {.header: juce_data_structures, importcpp: "#.getPropertyName(@)".}
+proc getNumProperties*(this: ValueTree): cint {.header: juce_data_structures, importcpp: "#.getNumProperties()".}
+proc getPropertyName*(this: ValueTree, index: cint): Identifier {.header: juce_data_structures, importcpp: "#.getPropertyName(@)".}
 proc getPropertyAsValue*(this: var ValueTree, name: Identifier, undoManager: ptr UndoManager, shouldUpdateSynchronously: bool = false): Value {.header: juce_data_structures, importcpp: "#.getPropertyAsValue(@)".}
-proc getNumChildren*(this: ValueTree): int {.header: juce_data_structures, importcpp: "#.getNumChildren()".}
-proc getChild*(this: ValueTree, index: int): ValueTree {.header: juce_data_structures, importcpp: "#.getChild(@)".}
+proc getNumChildren*(this: ValueTree): cint {.header: juce_data_structures, importcpp: "#.getNumChildren()".}
+proc getChild*(this: ValueTree, index: cint): ValueTree {.header: juce_data_structures, importcpp: "#.getChild(@)".}
 proc getChildWithName*(this: ValueTree, `type`: Identifier): ValueTree {.header: juce_data_structures, importcpp: "#.getChildWithName(@)".}
 proc getOrCreateChildWithName*(this: var ValueTree, `type`: Identifier, undoManager: ptr UndoManager): ValueTree {.header: juce_data_structures, importcpp: "#.getOrCreateChildWithName(@)".}
 proc getChildWithProperty*(this: ValueTree, propertyName: Identifier, propertyValue: juce_var): ValueTree {.header: juce_data_structures, importcpp: "#.getChildWithProperty(@)".}
-proc addChild*(this: var ValueTree, child: ValueTree, index: int, undoManager: ptr UndoManager) {.header: juce_data_structures, importcpp: "#.addChild(@)".}
+proc addChild*(this: var ValueTree, child: ValueTree, index: cint, undoManager: ptr UndoManager) {.header: juce_data_structures, importcpp: "#.addChild(@)".}
 proc appendChild*(this: var ValueTree, child: ValueTree, undoManager: ptr UndoManager) {.header: juce_data_structures, importcpp: "#.appendChild(@)".}
 proc removeChild*(this: var ValueTree, child: ValueTree, undoManager: ptr UndoManager) {.header: juce_data_structures, importcpp: "#.removeChild(@)".}
-proc removeChild*(this: var ValueTree, childIndex: int, undoManager: ptr UndoManager) {.header: juce_data_structures, importcpp: "#.removeChild(@)".}
+proc removeChild*(this: var ValueTree, childIndex: cint, undoManager: ptr UndoManager) {.header: juce_data_structures, importcpp: "#.removeChild(@)".}
 proc removeAllChildren*(this: var ValueTree, undoManager: ptr UndoManager) {.header: juce_data_structures, importcpp: "#.removeAllChildren(@)".}
-proc moveChild*(this: var ValueTree, currentIndex: int, newIndex: int, undoManager: ptr UndoManager) {.header: juce_data_structures, importcpp: "#.moveChild(@)".}
+proc moveChild*(this: var ValueTree, currentIndex: cint, newIndex: cint, undoManager: ptr UndoManager) {.header: juce_data_structures, importcpp: "#.moveChild(@)".}
 proc isAChildOf*(this: ValueTree, possibleParent: ValueTree): bool {.header: juce_data_structures, importcpp: "#.isAChildOf(@)".}
-proc indexOf*(this: ValueTree, child: ValueTree): int {.header: juce_data_structures, importcpp: "#.indexOf(@)".}
+proc indexOf*(this: ValueTree, child: ValueTree): cint {.header: juce_data_structures, importcpp: "#.indexOf(@)".}
 proc getParent*(this: ValueTree): ValueTree {.header: juce_data_structures, importcpp: "#.getParent()".}
 proc getRoot*(this: ValueTree): ValueTree {.header: juce_data_structures, importcpp: "#.getRoot()".}
-proc getSibling*(this: ValueTree, delta: int): ValueTree {.header: juce_data_structures, importcpp: "#.getSibling(@)".}
+proc getSibling*(this: ValueTree, delta: cint): ValueTree {.header: juce_data_structures, importcpp: "#.getSibling(@)".}
 # proc begin*(this: ValueTree): ValueTreeIterator {.header: juce_data_structures, importcpp: "#.begin()".}
 # proc `end`*(this: ValueTree): ValueTreeIterator {.header: juce_data_structures, importcpp: "#.end()".}
 proc createXml*(this: ValueTree): UniquePtr[XmlElement] {.header: juce_data_structures, importcpp: "#.createXml()".}
@@ -125,7 +125,7 @@ proc addListener*(this: var ValueTree, listener: ptr ValueTreeListener) {.header
 proc removeListener*(this: var ValueTree, listener: ptr ValueTreeListener) {.header: juce_data_structures, importcpp: "#.removeListener(@)".}
 proc setPropertyExcludingListener*(this: var ValueTree, listenerToExclude: ptr ValueTreeListener, name: Identifier, newValue: juce_var, undoManager: ptr UndoManager): var ValueTree {.header: juce_data_structures, importcpp: "#.setPropertyExcludingListener(@)".}
 proc sendPropertyChangeMessage*(this: var ValueTree, property: Identifier) {.header: juce_data_structures, importcpp: "#.sendPropertyChangeMessage(@)".}
-proc getReferenceCount*(this: ValueTree): int {.header: juce_data_structures, importcpp: "#.getReferenceCount()".}
+proc getReferenceCount*(this: ValueTree): cint {.header: juce_data_structures, importcpp: "#.getReferenceCount()".}
 
 proc makeValueTreeSynchroniser*(tree: ValueTree): ValueTreeSynchroniser {.header: juce_data_structures, importcpp: "juce::ValueTreeSynchroniser(@)".}
 proc stateChanged*(this: var ValueTreeSynchroniser, encodedChange: constPointer, encodedChangeSize: csize_t) {.header: juce_data_structures, importcpp: "#.stateChanged(@)".}
