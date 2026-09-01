@@ -19,6 +19,13 @@ type
 # compile into a C++ copy that does not exist. Reject it at compile time.
 proc `=copy`*[T](dst: var UniquePtr[T], src: UniquePtr[T]) {.error: "a UniquePtr cannot be copied".}
 
+# Declaring =copy makes Nim synthesise the other lifetime hooks, and the
+# synthesised =destroy is emitted for the uninstantiated generic: it comes out
+# as `std::unique_ptr<'0>&`, with the pattern never substituted, and does not
+# compile. Supplying an empty one keeps Nim from writing that. It has nothing to
+# do: the value is a C++ object, so its own destructor runs at scope exit.
+proc `=destroy`*[T](this: var UniquePtr[T]) = discard
+
 proc get*[T](this: UniquePtr[T]): ptr T {.importcpp: "#.get()".}
 proc release*[T](this: var UniquePtr[T]): ptr T {.importcpp: "#.release()".}
 proc reset*[T](this: var UniquePtr[T]) {.importcpp: "#.reset()".}
