@@ -221,3 +221,86 @@ proc testSliderAndLabel() =
 
 testSliderAndLabel()
 
+
+# LookAndFeel is how a JUCE application is themed. The assertion that matters is
+# that an override installed from Nim is the one JUCE calls when it draws a
+# widget, rather than the LookAndFeel_V4 drawing it would otherwise use.
+
+# LookAndFeel is how a JUCE application is themed. The assertion that matters is
+# that an override installed from Nim is the one JUCE calls when it draws a
+# widget, rather than the LookAndFeel_V4 drawing it would otherwise use.
+proc testLookAndFeel() =
+  initialiseJuce_GUI()
+
+  var backgrounds = 0
+  var labels = 0
+  var rotaries = 0
+  var rotaryWidth = 0.cint
+  var rotaryEndAngle = 0.cfloat
+
+  # Everything JUCE owns is destroyed inside this block. A juce::Button holds a
+  # repeat timer, and destroying one after shutdownJuce_GUI trips the assertion
+  # that a timer has outlived the platform event system.
+  block:
+    let laf = newCustomLookAndFeel()
+    doAssert CustomLookAndFeel is LookAndFeel_V4
+    doAssert CustomLookAndFeel is LookAndFeel
+
+    laf[].setDrawButtonBackgroundHandler(
+      proc(g: ptr Graphics, button: ptr Button, colour: ptr Colour,
+           highlighted: bool, down: bool) = backgrounds += 1)
+    laf[].setDrawLabelHandler(proc(g: ptr Graphics, label: ptr Label) = labels += 1)
+    # The rotary handler is the one with cint and cfloat parameters, so it is
+    # what checks that the C++ std::function and the Nim one agree on widths:
+    # a mismatch either fails to compile or delivers garbage sizes.
+    laf[].setDrawRotarySliderHandler(
+      proc(g: ptr Graphics, x, y, width, height: cint,
+           pos, startAngle, endAngle: cfloat, slider: ptr Slider) =
+        rotaries += 1
+        rotaryWidth = width
+        rotaryEndAngle = endAngle)
+
+    let image = makeImage(ImagePixelFormat_ARGB, 80.cint, 40.cint, true)
+    var graphics = makeGraphics(image)
+
+    # A TextButton rather than a CustomButton: drawButtonBackground is called
+    # from TextButton::paintButton, which a CustomButton overrides.
+    block:
+      var button = makeTextButton()
+      button.setLookAndFeel(laf)
+      button.setBounds(0.cint, 0.cint, 80.cint, 20.cint)
+      button.paintEntireComponent(graphics, false)
+      button.setLookAndFeel(nil)
+
+    block:
+      var slider = makeSlider()
+      slider.setSliderStyle(SliderSliderStyle_Rotary)
+      slider.setLookAndFeel(laf)
+      slider.setBounds(0.cint, 0.cint, 64.cint, 64.cint)
+      slider.paintEntireComponent(graphics, false)
+      slider.setLookAndFeel(nil)
+
+    let label = newCustomLabel()
+    label[].setLookAndFeel(laf)
+    label[].setBounds(0.cint, 20.cint, 80.cint, 20.cint)
+    label[].setText("hi", NotificationType_dontSendNotification)
+    label[].paintEntireComponent(graphics, false)
+    label[].setLookAndFeel(nil)
+    cdelete label
+    cdelete laf
+
+  doAssert backgrounds > 0, "drawButtonBackground override was not called"
+  doAssert labels > 0, "drawLabel override was not called"
+  doAssert rotaries > 0, "drawRotarySlider override was not called"
+  # A range rather than an exact width: JUCE passes the rotary area, which
+  # excludes the text box, so the exact number is a layout detail. What is being
+  # checked is that a cint and a cfloat survive the round trip as themselves --
+  # a width disagreement shows up here as a wild number, not a near miss.
+  doAssert rotaryWidth > 0 and rotaryWidth <= 64,
+           "the cint width arrived as " & $rotaryWidth
+  doAssert rotaryEndAngle > 0.0'f32 and rotaryEndAngle < 100.0'f32,
+           "the cfloat end angle arrived as " & $rotaryEndAngle
+
+  shutdownJuce_GUI()
+
+testLookAndFeel()

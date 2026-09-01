@@ -163,3 +163,48 @@ defineCppClassInternal CustomLabel of Label:
 
 proc newCustomLabel*(): ptr CustomLabel {.importcpp: "(new june::CustomLabel)".}
 
+
+# LookAndFeel =================================================================
+#
+# Subclassing a LookAndFeel is how a JUCE application is themed: every widget
+# asks its LookAndFeel to draw it, so overriding one method restyles every
+# button or slider at once without touching the widgets themselves.
+#
+# LookAndFeel_V4 is the base rather than LookAndFeel, because LookAndFeel is
+# abstract - the drawing methods are pure virtual on the per-widget
+# LookAndFeelMethods mixins - and V4 is the only version that supplies a colour
+# scheme. An override that is left unset falls through to the V4 drawing.
+
+defineCppClassInternal CustomLookAndFeel of LookAndFeel_V4:
+    include "juce_gui_basics/juce_gui_basics.h"
+    proc drawButtonBackground(g: varref[Graphics], button: varref[Button],
+                              backgroundColour: constptr[Colour],
+                              shouldDrawButtonAsHighlighted: bool,
+                              shouldDrawButtonAsDown: bool) = discard
+    proc drawLabel(g: varref[Graphics], label: varref[Label]) = discard
+    proc drawRotarySlider(g: varref[Graphics], x: cint, y: cint, width: cint, height: cint,
+                          sliderPosProportional: cfloat, rotaryStartAngle: cfloat,
+                          rotaryEndAngle: cfloat, slider: varref[Slider]) = discard
+
+proc newCustomLookAndFeel*(): ptr CustomLookAndFeel {.importcpp: "(new june::CustomLookAndFeel)".}
+
+proc setDrawButtonBackgroundHandler*(this: var CustomLookAndFeel,
+                                     handler: proc(g: ptr Graphics, button: ptr Button,
+                                                   backgroundColour: ptr Colour,
+                                                   highlighted: bool, down: bool) {.closure.}) =
+    let bound: CppFunctionObjectN5[ptr Graphics, ptr Button, ptr Colour, bool, bool] = bindClosure(handler)
+    this.onDrawButtonBackground = bound
+
+proc setDrawLabelHandler*(this: var CustomLookAndFeel,
+                          handler: proc(g: ptr Graphics, label: ptr Label) {.closure.}) =
+    let bound: CppFunctionObjectN2[ptr Graphics, ptr Label] = bindClosure(handler)
+    this.onDrawLabel = bound
+
+proc setDrawRotarySliderHandler*(this: var CustomLookAndFeel,
+                                 handler: proc(g: ptr Graphics, x, y, width, height: cint,
+                                               sliderPosProportional, rotaryStartAngle,
+                                               rotaryEndAngle: cfloat,
+                                               slider: ptr Slider) {.closure.}) =
+    let bound: CppFunctionObjectN9[ptr Graphics, cint, cint, cint, cint,
+                                   cfloat, cfloat, cfloat, ptr Slider] = bindClosure(handler)
+    this.onDrawRotarySlider = bound
