@@ -109,3 +109,25 @@ proc testStdString() =
 
 testStdString()
 
+
+# The generator comments out every operator!=, operator> and operator>= it
+# finds, which reads like 82 missing bindings. Nim derives all three from
+# operator==, operator< and operator<= through templates in system, so they are
+# already usable. This asserts that, rather than leaving it to be rediscovered.
+proc testDerivedComparisonOperators() =
+  let a = makeString("alpha")
+  let b = makeString("beta")
+
+  doAssert a == a
+  doAssert a != b            # derived from `==`
+  doAssert not (a != a)
+
+  doAssert a < b
+  doAssert b > a             # derived from `<`
+  doAssert not (a > b)
+
+  let identifierA = makeIdentifier("alpha")
+  doAssert identifierA <= makeStringRef(b)
+  doAssert makeStringRef(b) >= identifierA   # derived from `<=`
+
+testDerivedComparisonOperators()
