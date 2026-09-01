@@ -214,6 +214,10 @@ cpp_value_types = {
 template_heads = {
     "std::unique_ptr": "UniquePtr",
     "std::optional": "CppOptional",
+    # A method declared with `auto` reports its deduced return type unqualified,
+    # so std::optional arrives as a bare `optional`. juce::Optional is spelled
+    # with a capital O, so the lowercase name is unambiguous.
+    "optional": "CppOptional",
     "std::vector": "CppVector",
     "Rectangle": "Rectangle",
     "Point": "Point",
@@ -255,6 +259,12 @@ def remap_template(spelling, *args):
     half-translated type would be a Nim syntax error rather than a binding that
     is merely unavailable.
     """
+    # The same `auto` deduction keeps the alias it was written through, giving
+    # `optional<decay_t<float>>`. std::decay_t is the identity for the value
+    # types JUCE uses it with, so unwrapping it resolves the type the way the
+    # explicitly typed overload of the same method already resolves.
+    spelling = re.sub(r"(?:std::)?decay_t\s*<\s*([^<>]*?)\s*>", r"\1", spelling)
+
     match = re.match(r"^([A-Za-z_][A-Za-z0-9_:]*)\s*<(.*)>$", spelling.strip())
     if not match:
         return None

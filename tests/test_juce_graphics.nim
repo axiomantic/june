@@ -96,3 +96,21 @@ testDrawing()
 testText()
 shutdownJuce_GUI()
 
+
+# FontOptions declares these two with `auto`, so the deduced return type arrives
+# from libclang as optional<decay_t<float>> rather than std::optional<float>.
+# This is the check that they resolve, and that a std::optional round-trips.
+proc testFontOptionsOverrides() =
+  let plain = makeFontOptions()
+  doAssert not plain.getAscentOverride().hasValue()
+
+  let withAscent = plain.withAscentOverride(makeCppOptional(0.25'f32))
+  doAssert withAscent.getAscentOverride().hasValue()
+  doAssert withAscent.getAscentOverride().value() == 0.25'f32
+  doAssert withAscent.getAscentOverride().valueOr(-1.0'f32) == 0.25'f32
+
+  let cleared = withAscent.withAscentOverride(makeCppOptionalEmpty[cfloat]())
+  doAssert not cleared.getAscentOverride().hasValue()
+  doAssert cleared.getAscentOverride().valueOr(-1.0'f32) == -1.0'f32
+
+testFontOptionsOverrides()

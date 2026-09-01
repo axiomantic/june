@@ -745,8 +745,8 @@ proc getHorizontalScale*(this: FontOptions): cfloat {.header: juce_graphics, imp
 proc getFallbackEnabled*(this: FontOptions): bool {.header: juce_graphics, importcpp: "#.getFallbackEnabled()".}
 proc getUnderline*(this: FontOptions): bool {.header: juce_graphics, importcpp: "#.getUnderline()".}
 proc getMetricsKind*(this: FontOptions): TypefaceMetricsKind {.header: juce_graphics, importcpp: "#.getMetricsKind()".}
-# proc getAscentOverride*(this: FontOptions): optional<decay_t< float >> {.header: juce_graphics, importcpp: "#.getAscentOverride()".}
-# proc getDescentOverride*(this: FontOptions): optional<decay_t< float >> {.header: juce_graphics, importcpp: "#.getDescentOverride()".}
+proc getAscentOverride*(this: FontOptions): CppOptional[cfloat] {.header: juce_graphics, importcpp: "#.getAscentOverride()".}
+proc getDescentOverride*(this: FontOptions): CppOptional[cfloat] {.header: juce_graphics, importcpp: "#.getDescentOverride()".}
 proc getFeatureSettings*(this: FontOptions): Span[FontFeatureSetting] {.header: juce_graphics, importcpp: "#.getFeatureSettings()".}
 proc `==`*(this: FontOptions, other: FontOptions): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: FontOptions, other: FontOptions): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}
