@@ -5,6 +5,7 @@ import typing
 import argparse
 import glob
 import re
+from clang.cindex import TypeKind
 
 from clang_base_enumerations import CursorKind, AccessSpecifier
 
@@ -93,7 +94,31 @@ def remap_type(t, *args):
     # A nested type is spelled bare, and the same bare name can belong to
     # several classes: Slider, PopupMenu and others each have an "Options". The
     # declaration knows its own owner, so ask it rather than guess from the name.
-    declaration = t.get_declaration()
+    # A pointer or reference has no declaration of its own; the thing it points
+    # at does. Without this, `Expression::Scope *` never resolves and keeps the
+    # C++ qualification that makes it invalid Nim.
+    target = t
+    prefix = ""
+    if t.kind == TypeKind.POINTER:
+        target = t.get_pointee()
+        prefix = "ptr "
+    elif t.kind in (TypeKind.LVALUEREFERENCE, TypeKind.RVALUEREFERENCE):
+        target = t.get_pointee()
+        prefix = "" if target.is_const_qualified() else "var "
+
+    declaration = target.get_declaration()
+
+    # A member typedef names a type rather than being one: X::Ptr is a
+    # ReferenceCountedObjectPtr<X>. Resolve through it before anything else.
+    if declaration is not None and declaration.kind in (
+            CursorKind.TYPEDEF_DECL, CursorKind.TYPE_ALIAS_DECL):
+        underlying = remap_type(declaration.underlying_typedef_type, *args)
+        # A function typedef, such as MessageCallbackFunction, has no Nim
+        # spelling here and resolves to nonsense like "pointer(pointer)".
+        if (underlying and "<" not in underlying and "::" not in underlying
+                and "(" not in underlying and not is_c_array(underlying)):
+            return f"{prefix}{underlying}"
+
     if declaration is not None and declaration.kind in (
             CursorKind.CLASS_DECL, CursorKind.STRUCT_DECL, CursorKind.ENUM_DECL):
         owner = declaration.semantic_parent
@@ -102,12 +127,7 @@ def remap_type(t, *args):
             qualified_nested = f"juce::{owner.spelling}::{declaration.spelling}"
             for table in args:
                 if qualified_nested in table:
-                    resolved_nested = table[qualified_nested]
-                    is_reference = "&" in t.spelling
-                    is_const_ref = t.spelling.strip().startswith("const")
-                    if is_reference and not is_const_ref:
-                        return f"var {resolved_nested}"
-                    return resolved_nested
+                    return f"{prefix}{table[qualified_nested]}"
 
     parts = list(filter(lambda part: part, t.spelling.split(" ")))
 
@@ -198,6 +218,7 @@ template_heads = {
     "Span": "Span",
     "RectangleList": "RectangleList",
     "Parallelogram": "Parallelogram",
+    "SparseSet": "SparseSet",
 }
 
 def split_template_args(text):
@@ -370,7 +391,7 @@ known_builtin_types = {
     "UniquePtr", "CppOptional", "CppVector",
     "Rectangle", "Point", "Line", "BorderSize", "Range",
     "Array", "OwnedArray", "ReferenceCountedObjectPtr",
-    "Span", "RectangleList", "Parallelogram",
+    "Span", "RectangleList", "Parallelogram", "SparseSet",
 }
 known_builtin_types.update(f"CppFunctionObjectN{n}" for n in range(10))
 known_builtin_types.update(f"CppFunctionObjectR{n}" for n in range(10))
@@ -686,6 +707,12 @@ def run_main(juce_module_name, juce_class_name_to_export):
         # still pass the subclass.
         class_juce_map[qualified_name] = remap_exported_class_name(c.spelling)
 
+        # Inside its own module the class is spelled bare, so the qualified key
+        # never matches and a renamed class keeps its original name in the
+        # signature - a name nothing in that file declares.
+        if c.spelling in subclassed_by_lifting:
+            class_juce_map[c.spelling] = subclassed_by_lifting[c.spelling]
+
     print(nim_prolog_def.format(**{
         "juce_module_name": juce_module_name,
         "juce_module_prefix": juce_module_prefix,
@@ -773,23 +800,17 @@ def run_main(juce_module_name, juce_class_name_to_export):
         for ic in class_inner[c.spelling]:
             declared_type_names.add(f"{remap_class_name(c.spelling)}{ic.spelling}")
 
-    # A nested type is often referenced from a class other than its owner, and
-    # arrives spelled bare there too: Component's drag-and-drop methods take a
-    # "SourceDetails" that belongs to DragAndDropTarget. Map those globally, but
-    # only where exactly one class owns the name - two classes with an "Options"
-    # cannot be told apart from the spelling alone.
-    nested_owners = {}
+    # Every nested type, keyed by its qualified name. remap_type reaches these
+    # through the declaration's semantic parent, so an Options owned by another
+    # class resolves to that class's, and nothing is matched by spelling alone -
+    # several classes have an Options, and a bare-name table would have to guess.
     for c in class_map.values():
         for ic in class_inner.get(c.spelling, []):
-            nested_owners.setdefault(ic.spelling, set()).add(f"{remap_class_name(c.spelling)}{ic.spelling}")
+            global_nested_remap[f"juce::{c.spelling}::{ic.spelling}"] = f"{remap_class_name(c.spelling)}{ic.spelling}"
         for node in c.get_children():
             if (node.kind == CursorKind.ENUM_DECL and not is_anonymous_enum(node)
                     and node.access_specifier == AccessSpecifier.PUBLIC):
-                nested_owners.setdefault(node.spelling, set()).add(f"{remap_class_name(c.spelling)}{node.spelling}")
-
-    for name, owners in nested_owners.items():
-        if len(owners) == 1 and f"juce::{name}" not in class_juce_map:
-            global_nested_remap[name] = next(iter(owners))
+                global_nested_remap[f"juce::{c.spelling}::{node.spelling}"] = f"{remap_class_name(c.spelling)}{node.spelling}"
 
     for c in module_classes:
         if juce_class_name_to_export is not None and c.spelling != juce_class_name_to_export:
@@ -875,7 +896,8 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 continue
 
             rendered = ", ".join(ctor_types)
-            ctor_invalid = ("<" in rendered or "::" in rendered or is_c_array(rendered)
+            ctor_invalid = ("<" in rendered or "::" in rendered or "(" in rendered
+                            or is_c_array(rendered)
                             or not type_is_declared(rendered, declared_type_names))
             ctor_comment = "# " if ctor_invalid else ""
 
@@ -962,7 +984,8 @@ def run_main(juce_module_name, juce_class_name_to_export):
             # made "false" look like an undeclared name and commented out every
             # proc that had one.
             rendered = ", ".join(argument_types) + return_type
-            if ("<" in rendered or "::" in rendered or is_c_array(rendered)
+            if ("<" in rendered or "::" in rendered or "(" in rendered
+                    or is_c_array(rendered)
                     or not type_is_declared(rendered, declared_type_names)):
                 comment = "# "
 

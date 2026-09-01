@@ -1072,7 +1072,7 @@ proc withNewPosition*(this: MouseEvent, newPosition: Point[cint]): MouseEvent {.
 
 
 proc makeKeyPress*(): KeyPress {.header: juce_gui_basics, importcpp: "juce::KeyPress(@)".}
-proc makeKeyPress*(keyCode: cint, modifiers: ModifierKeys, textCharacter: uint32): KeyPress {.header: juce_gui_basics, importcpp: "juce::KeyPress(@)".}
+proc makeKeyPress*(keyCode: cint, modifiers: ModifierKeys, textCharacter: uint16): KeyPress {.header: juce_gui_basics, importcpp: "juce::KeyPress(@)".}
 proc makeKeyPress*(keyCode: cint): KeyPress {.header: juce_gui_basics, importcpp: "juce::KeyPress(@)".}
 proc `KeyPress=`*(this: var KeyPress, arg1: KeyPress): var KeyPress {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
 proc `==`*(this: KeyPress, other: KeyPress): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
@@ -1082,7 +1082,7 @@ proc `==`*(this: KeyPress, keyCode: cint): bool {.header: juce_gui_basics, impor
 proc isValid*(this: KeyPress): bool {.header: juce_gui_basics, importcpp: "#.isValid()".}
 proc getKeyCode*(this: KeyPress): cint {.header: juce_gui_basics, importcpp: "#.getKeyCode()".}
 proc getModifiers*(this: KeyPress): ModifierKeys {.header: juce_gui_basics, importcpp: "#.getModifiers()".}
-proc getTextCharacter*(this: KeyPress): uint32 {.header: juce_gui_basics, importcpp: "#.getTextCharacter()".}
+proc getTextCharacter*(this: KeyPress): uint16 {.header: juce_gui_basics, importcpp: "#.getTextCharacter()".}
 proc isKeyCode*(this: KeyPress, keyCodeToCompare: cint): bool {.header: juce_gui_basics, importcpp: "#.isKeyCode(@)".}
 proc getTextDescription*(this: KeyPress): String {.header: juce_gui_basics, importcpp: "#.getTextDescription()".}
 proc getTextDescriptionWithIcons*(this: KeyPress): String {.header: juce_gui_basics, importcpp: "#.getTextDescriptionWithIcons()".}
@@ -1315,7 +1315,7 @@ proc addComponentListener*(this: var Component, newListener: ptr ComponentListen
 proc removeComponentListener*(this: var Component, listenerToRemove: ptr ComponentListener) {.header: juce_gui_basics, importcpp: "#.removeComponentListener(@)".}
 proc postCommandMessage*(this: var Component, commandId: cint) {.header: juce_gui_basics, importcpp: "#.postCommandMessage(@)".}
 proc handleCommandMessage*(this: var Component, commandId: cint) {.header: juce_gui_basics, importcpp: "#.handleCommandMessage(@)".}
-# proc enterModalState*(this: var Component, takeKeyboardFocus: bool = true, callback: ptr ModalComponentManager::Callback = nil, deleteWhenDismissed: bool = false) {.header: juce_gui_basics, importcpp: "#.enterModalState(@)".}
+proc enterModalState*(this: var Component, takeKeyboardFocus: bool = true, callback: ptr ModalComponentManagerCallback = nil, deleteWhenDismissed: bool = false) {.header: juce_gui_basics, importcpp: "#.enterModalState(@)".}
 proc exitModalState*(this: var Component, returnValue: cint = 0) {.header: juce_gui_basics, importcpp: "#.exitModalState(@)".}
 proc isCurrentlyModal*(this: Component, onlyConsiderForemostModalComponent: bool = true): bool {.header: juce_gui_basics, importcpp: "#.isCurrentlyModal(@)".}
 proc isCurrentlyBlockedByAnotherModalComponent*(this: Component): bool {.header: juce_gui_basics, importcpp: "#.isCurrentlyBlockedByAnotherModalComponent()".}
@@ -1522,7 +1522,7 @@ proc getCharIndexForPoint*(this: TextInputTarget, point: Point[cint]): cint {.he
 proc getTextBounds*(this: TextInputTarget, textRange: Range[cint]): RectangleList[cint] {.header: juce_gui_basics, importcpp: "#.getTextBounds(@)".}
 proc getKeyboardType*(this: var TextInputTarget): TextInputTargetVirtualKeyboardType {.header: juce_gui_basics, importcpp: "#.getKeyboardType()".}
 
-proc makeApplicationCommandInfo*(commandID: int): ApplicationCommandInfo {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandInfo(@)".}
+proc makeApplicationCommandInfo*(commandID: cint): ApplicationCommandInfo {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandInfo(@)".}
 proc setInfo*(this: var ApplicationCommandInfo, shortName: String, description: String, categoryName: String, flags: cint) {.header: juce_gui_basics, importcpp: "#.setInfo(@)".}
 proc setActive*(this: var ApplicationCommandInfo, isActive: bool) {.header: juce_gui_basics, importcpp: "#.setActive(@)".}
 proc setTicked*(this: var ApplicationCommandInfo, isTicked: bool) {.header: juce_gui_basics, importcpp: "#.setTicked(@)".}
@@ -1531,51 +1531,51 @@ proc addDefaultKeypress*(this: var ApplicationCommandInfo, keyCode: cint, modifi
 proc makeApplicationCommandTarget*(): ApplicationCommandTarget {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandTarget(@)".}
 proc getNextCommandTarget*(this: var ApplicationCommandTarget): ptr ApplicationCommandTarget {.header: juce_gui_basics, importcpp: "#.getNextCommandTarget()".}
 # proc getAllCommands*(this: var ApplicationCommandTarget, commands: Array[CommandID]) {.header: juce_gui_basics, importcpp: "#.getAllCommands(@)".}
-proc getCommandInfo*(this: var ApplicationCommandTarget, commandID: int, result: var ApplicationCommandInfo) {.header: juce_gui_basics, importcpp: "#.getCommandInfo(@)".}
+proc getCommandInfo*(this: var ApplicationCommandTarget, commandID: cint, result: var ApplicationCommandInfo) {.header: juce_gui_basics, importcpp: "#.getCommandInfo(@)".}
 proc perform*(this: var ApplicationCommandTarget, info: ApplicationCommandTargetInvocationInfo): bool {.header: juce_gui_basics, importcpp: "#.perform(@)".}
 proc invoke*(this: var ApplicationCommandTarget, invocationInfo: ApplicationCommandTargetInvocationInfo, asynchronously: bool): bool {.header: juce_gui_basics, importcpp: "#.invoke(@)".}
-proc invokeDirectly*(this: var ApplicationCommandTarget, commandID: int, asynchronously: bool): bool {.header: juce_gui_basics, importcpp: "#.invokeDirectly(@)".}
-proc getTargetForCommand*(this: var ApplicationCommandTarget, commandID: int): ptr ApplicationCommandTarget {.header: juce_gui_basics, importcpp: "#.getTargetForCommand(@)".}
-proc isCommandActive*(this: var ApplicationCommandTarget, commandID: int): bool {.header: juce_gui_basics, importcpp: "#.isCommandActive(@)".}
+proc invokeDirectly*(this: var ApplicationCommandTarget, commandID: cint, asynchronously: bool): bool {.header: juce_gui_basics, importcpp: "#.invokeDirectly(@)".}
+proc getTargetForCommand*(this: var ApplicationCommandTarget, commandID: cint): ptr ApplicationCommandTarget {.header: juce_gui_basics, importcpp: "#.getTargetForCommand(@)".}
+proc isCommandActive*(this: var ApplicationCommandTarget, commandID: cint): bool {.header: juce_gui_basics, importcpp: "#.isCommandActive(@)".}
 proc findFirstTargetParentComponent*(this: var ApplicationCommandTarget): ptr ApplicationCommandTarget {.header: juce_gui_basics, importcpp: "#.findFirstTargetParentComponent()".}
 
 proc makeApplicationCommandManager*(): ApplicationCommandManager {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandManager(@)".}
 proc clearCommands*(this: var ApplicationCommandManager) {.header: juce_gui_basics, importcpp: "#.clearCommands()".}
 proc registerCommand*(this: var ApplicationCommandManager, newCommand: ApplicationCommandInfo) {.header: juce_gui_basics, importcpp: "#.registerCommand(@)".}
 proc registerAllCommandsForTarget*(this: var ApplicationCommandManager, target: ptr ApplicationCommandTarget) {.header: juce_gui_basics, importcpp: "#.registerAllCommandsForTarget(@)".}
-proc removeCommand*(this: var ApplicationCommandManager, commandID: int) {.header: juce_gui_basics, importcpp: "#.removeCommand(@)".}
+proc removeCommand*(this: var ApplicationCommandManager, commandID: cint) {.header: juce_gui_basics, importcpp: "#.removeCommand(@)".}
 proc commandStatusChanged*(this: var ApplicationCommandManager) {.header: juce_gui_basics, importcpp: "#.commandStatusChanged()".}
 proc getNumCommands*(this: ApplicationCommandManager): cint {.header: juce_gui_basics, importcpp: "#.getNumCommands()".}
 proc getCommandForIndex*(this: ApplicationCommandManager, index: cint): ptr ApplicationCommandInfo {.header: juce_gui_basics, importcpp: "#.getCommandForIndex(@)".}
-proc getCommandForID*(this: ApplicationCommandManager, commandID: int): ptr ApplicationCommandInfo {.header: juce_gui_basics, importcpp: "#.getCommandForID(@)".}
-proc getNameOfCommand*(this: ApplicationCommandManager, commandID: int): String {.header: juce_gui_basics, importcpp: "#.getNameOfCommand(@)".}
-proc getDescriptionOfCommand*(this: ApplicationCommandManager, commandID: int): String {.header: juce_gui_basics, importcpp: "#.getDescriptionOfCommand(@)".}
+proc getCommandForID*(this: ApplicationCommandManager, commandID: cint): ptr ApplicationCommandInfo {.header: juce_gui_basics, importcpp: "#.getCommandForID(@)".}
+proc getNameOfCommand*(this: ApplicationCommandManager, commandID: cint): String {.header: juce_gui_basics, importcpp: "#.getNameOfCommand(@)".}
+proc getDescriptionOfCommand*(this: ApplicationCommandManager, commandID: cint): String {.header: juce_gui_basics, importcpp: "#.getDescriptionOfCommand(@)".}
 proc getCommandCategories*(this: ApplicationCommandManager): StringArray {.header: juce_gui_basics, importcpp: "#.getCommandCategories()".}
 # proc getCommandsInCategory*(this: ApplicationCommandManager, categoryName: String): Array[CommandID] {.header: juce_gui_basics, importcpp: "#.getCommandsInCategory(@)".}
 proc getKeyMappings*(this: ApplicationCommandManager): ptr KeyPressMappingSet {.header: juce_gui_basics, importcpp: "#.getKeyMappings()".}
-proc invokeDirectly*(this: var ApplicationCommandManager, commandID: int, asynchronously: bool): bool {.header: juce_gui_basics, importcpp: "#.invokeDirectly(@)".}
-# proc invoke*(this: var ApplicationCommandManager, invocationInfo: ApplicationCommandTarget::InvocationInfo, asynchronously: bool): bool {.header: juce_gui_basics, importcpp: "#.invoke(@)".}
-proc getFirstCommandTarget*(this: var ApplicationCommandManager, commandID: int): ptr ApplicationCommandTarget {.header: juce_gui_basics, importcpp: "#.getFirstCommandTarget(@)".}
+proc invokeDirectly*(this: var ApplicationCommandManager, commandID: cint, asynchronously: bool): bool {.header: juce_gui_basics, importcpp: "#.invokeDirectly(@)".}
+proc invoke*(this: var ApplicationCommandManager, invocationInfo: ApplicationCommandTargetInvocationInfo, asynchronously: bool): bool {.header: juce_gui_basics, importcpp: "#.invoke(@)".}
+proc getFirstCommandTarget*(this: var ApplicationCommandManager, commandID: cint): ptr ApplicationCommandTarget {.header: juce_gui_basics, importcpp: "#.getFirstCommandTarget(@)".}
 proc setFirstCommandTarget*(this: var ApplicationCommandManager, newTarget: ptr ApplicationCommandTarget) {.header: juce_gui_basics, importcpp: "#.setFirstCommandTarget(@)".}
-proc getTargetForCommand*(this: var ApplicationCommandManager, commandID: int, upToDateInfo: var ApplicationCommandInfo): ptr ApplicationCommandTarget {.header: juce_gui_basics, importcpp: "#.getTargetForCommand(@)".}
+proc getTargetForCommand*(this: var ApplicationCommandManager, commandID: cint, upToDateInfo: var ApplicationCommandInfo): ptr ApplicationCommandTarget {.header: juce_gui_basics, importcpp: "#.getTargetForCommand(@)".}
 proc addListener*(this: var ApplicationCommandManager, listener: ptr ApplicationCommandManagerListener) {.header: juce_gui_basics, importcpp: "#.addListener(@)".}
 proc removeListener*(this: var ApplicationCommandManager, listener: ptr ApplicationCommandManagerListener) {.header: juce_gui_basics, importcpp: "#.removeListener(@)".}
 
-# proc applicationCommandInvoked*(this: var ApplicationCommandManagerListener, arg1: ApplicationCommandTarget::InvocationInfo) {.header: juce_gui_basics, importcpp: "#.applicationCommandInvoked(@)".}
+proc applicationCommandInvoked*(this: var ApplicationCommandManagerListener, arg1: ApplicationCommandTargetInvocationInfo) {.header: juce_gui_basics, importcpp: "#.applicationCommandInvoked(@)".}
 proc applicationCommandListChanged*(this: var ApplicationCommandManagerListener) {.header: juce_gui_basics, importcpp: "#.applicationCommandListChanged()".}
 
 proc makeKeyPressMappingSet*(arg1: var ApplicationCommandManager): KeyPressMappingSet {.header: juce_gui_basics, importcpp: "juce::KeyPressMappingSet(@)".}
 proc getCommandManager*(this: KeyPressMappingSet): var ApplicationCommandManager {.header: juce_gui_basics, importcpp: "#.getCommandManager()".}
-proc getKeyPressesAssignedToCommand*(this: KeyPressMappingSet, commandID: int): Array[KeyPress] {.header: juce_gui_basics, importcpp: "#.getKeyPressesAssignedToCommand(@)".}
-proc addKeyPress*(this: var KeyPressMappingSet, commandID: int, newKeyPress: KeyPress, insertIndex: cint = -1) {.header: juce_gui_basics, importcpp: "#.addKeyPress(@)".}
+proc getKeyPressesAssignedToCommand*(this: KeyPressMappingSet, commandID: cint): Array[KeyPress] {.header: juce_gui_basics, importcpp: "#.getKeyPressesAssignedToCommand(@)".}
+proc addKeyPress*(this: var KeyPressMappingSet, commandID: cint, newKeyPress: KeyPress, insertIndex: cint = -1) {.header: juce_gui_basics, importcpp: "#.addKeyPress(@)".}
 proc resetToDefaultMappings*(this: var KeyPressMappingSet) {.header: juce_gui_basics, importcpp: "#.resetToDefaultMappings()".}
-proc resetToDefaultMapping*(this: var KeyPressMappingSet, commandID: int) {.header: juce_gui_basics, importcpp: "#.resetToDefaultMapping(@)".}
+proc resetToDefaultMapping*(this: var KeyPressMappingSet, commandID: cint) {.header: juce_gui_basics, importcpp: "#.resetToDefaultMapping(@)".}
 proc clearAllKeyPresses*(this: var KeyPressMappingSet) {.header: juce_gui_basics, importcpp: "#.clearAllKeyPresses()".}
-proc clearAllKeyPresses*(this: var KeyPressMappingSet, commandID: int) {.header: juce_gui_basics, importcpp: "#.clearAllKeyPresses(@)".}
-proc removeKeyPress*(this: var KeyPressMappingSet, commandID: int, keyPressIndex: cint) {.header: juce_gui_basics, importcpp: "#.removeKeyPress(@)".}
+proc clearAllKeyPresses*(this: var KeyPressMappingSet, commandID: cint) {.header: juce_gui_basics, importcpp: "#.clearAllKeyPresses(@)".}
+proc removeKeyPress*(this: var KeyPressMappingSet, commandID: cint, keyPressIndex: cint) {.header: juce_gui_basics, importcpp: "#.removeKeyPress(@)".}
 proc removeKeyPress*(this: var KeyPressMappingSet, keypress: KeyPress) {.header: juce_gui_basics, importcpp: "#.removeKeyPress(@)".}
-proc containsMapping*(this: KeyPressMappingSet, commandID: int, keyPress: KeyPress): bool {.header: juce_gui_basics, importcpp: "#.containsMapping(@)".}
-proc findCommandForKeyPress*(this: KeyPressMappingSet, keyPress: KeyPress): int {.header: juce_gui_basics, importcpp: "#.findCommandForKeyPress(@)".}
+proc containsMapping*(this: KeyPressMappingSet, commandID: cint, keyPress: KeyPress): bool {.header: juce_gui_basics, importcpp: "#.containsMapping(@)".}
+proc findCommandForKeyPress*(this: KeyPressMappingSet, keyPress: KeyPress): cint {.header: juce_gui_basics, importcpp: "#.findCommandForKeyPress(@)".}
 proc restoreFromXml*(this: var KeyPressMappingSet, xmlVersion: XmlElement): bool {.header: juce_gui_basics, importcpp: "#.restoreFromXml(@)".}
 proc createXml*(this: KeyPressMappingSet, saveDifferencesFromDefaultSet: bool): UniquePtr[XmlElement] {.header: juce_gui_basics, importcpp: "#.createXml(@)".}
 proc keyPressed*(this: var KeyPressMappingSet, arg1: KeyPress, arg2: ptr Component): bool {.header: juce_gui_basics, importcpp: "#.keyPressed(@)".}
@@ -1598,8 +1598,8 @@ proc getRadioGroupId*(this: Button): cint {.header: juce_gui_basics, importcpp: 
 proc addListener*(this: var Button, newListener: ptr ButtonListener) {.header: juce_gui_basics, importcpp: "#.addListener(@)".}
 proc removeListener*(this: var Button, listener: ptr ButtonListener) {.header: juce_gui_basics, importcpp: "#.removeListener(@)".}
 proc triggerClick*(this: var Button) {.header: juce_gui_basics, importcpp: "#.triggerClick()".}
-proc setCommandToTrigger*(this: var Button, commandManagerToUse: ptr ApplicationCommandManager, commandID: int, generateTooltip: bool) {.header: juce_gui_basics, importcpp: "#.setCommandToTrigger(@)".}
-proc getCommandID*(this: Button): int {.header: juce_gui_basics, importcpp: "#.getCommandID()".}
+proc setCommandToTrigger*(this: var Button, commandManagerToUse: ptr ApplicationCommandManager, commandID: cint, generateTooltip: bool) {.header: juce_gui_basics, importcpp: "#.setCommandToTrigger(@)".}
+proc getCommandID*(this: Button): cint {.header: juce_gui_basics, importcpp: "#.getCommandID()".}
 proc addShortcut*(this: var Button, arg1: KeyPress) {.header: juce_gui_basics, importcpp: "#.addShortcut(@)".}
 proc clearShortcuts*(this: var Button) {.header: juce_gui_basics, importcpp: "#.clearShortcuts()".}
 proc isRegisteredForShortcut*(this: Button, arg1: KeyPress): bool {.header: juce_gui_basics, importcpp: "#.isRegisteredForShortcut(@)".}
@@ -1653,7 +1653,7 @@ proc setImages*(this: var ImageButton, resizeButtonNowToFitThisImage: bool, resc
 proc getNormalImage*(this: ImageButton): Image {.header: juce_gui_basics, importcpp: "#.getNormalImage()".}
 proc getOverImage*(this: ImageButton): Image {.header: juce_gui_basics, importcpp: "#.getOverImage()".}
 proc getDownImage*(this: ImageButton): Image {.header: juce_gui_basics, importcpp: "#.getDownImage()".}
-# proc setImageResamplingQuality*(this: var ImageButton, newQuality: Graphics::ResamplingQuality) {.header: juce_gui_basics, importcpp: "#.setImageResamplingQuality(@)".}
+# proc setImageResamplingQuality*(this: var ImageButton, newQuality: GraphicsResamplingQuality) {.header: juce_gui_basics, importcpp: "#.setImageResamplingQuality(@)".}
 
 proc makeShapeButton*(name: String, normalColour: Colour, overColour: Colour, downColour: Colour): ShapeButton {.header: juce_gui_basics, importcpp: "juce::ShapeButton(@)".}
 proc setShape*(this: var ShapeButton, newShape: Path, resizeNowToFitThisShape: bool, maintainShapeProportions: bool, hasDropShadow: bool) {.header: juce_gui_basics, importcpp: "#.setShape(@)".}
@@ -2046,7 +2046,7 @@ proc addItem*(this: var PopupMenu, itemText: String, isEnabled: bool, isTicked: 
 proc addItem*(this: var PopupMenu, itemResultID: cint, itemText: String, isEnabled: bool = true, isTicked: bool = false) {.header: juce_gui_basics, importcpp: "#.addItem(@)".}
 proc addItem*(this: var PopupMenu, itemResultID: cint, itemText: String, isEnabled: bool, isTicked: bool, iconToUse: Image) {.header: juce_gui_basics, importcpp: "#.addItem(@)".}
 proc addItem*(this: var PopupMenu, itemResultID: cint, itemText: String, isEnabled: bool, isTicked: bool, iconToUse: UniquePtr[Drawable]) {.header: juce_gui_basics, importcpp: "#.addItem(@)".}
-proc addCommandItem*(this: var PopupMenu, commandManager: ptr ApplicationCommandManager, commandID: int, displayName: String, iconToUse: UniquePtr[Drawable]) {.header: juce_gui_basics, importcpp: "#.addCommandItem(@)".}
+proc addCommandItem*(this: var PopupMenu, commandManager: ptr ApplicationCommandManager, commandID: cint, displayName: String, iconToUse: UniquePtr[Drawable]) {.header: juce_gui_basics, importcpp: "#.addCommandItem(@)".}
 proc addColouredItem*(this: var PopupMenu, itemResultID: cint, itemText: String, itemTextColour: Colour, isEnabled: bool = true, isTicked: bool = false, iconToUse: Image) {.header: juce_gui_basics, importcpp: "#.addColouredItem(@)".}
 proc addColouredItem*(this: var PopupMenu, itemResultID: cint, itemText: String, itemTextColour: Colour, isEnabled: bool, isTicked: bool, iconToUse: UniquePtr[Drawable]) {.header: juce_gui_basics, importcpp: "#.addColouredItem(@)".}
 proc addCustomItem*(this: var PopupMenu, itemResultID: cint, customComponent: UniquePtr[PopupMenuCustomComponent], optionalSubMenu: UniquePtr[PopupMenu], itemTitle: String) {.header: juce_gui_basics, importcpp: "#.addCustomItem(@)".}
@@ -2061,7 +2061,7 @@ proc getNumItems*(this: PopupMenu): cint {.header: juce_gui_basics, importcpp: "
 proc containsCommandItem*(this: PopupMenu, commandID: cint): bool {.header: juce_gui_basics, importcpp: "#.containsCommandItem(@)".}
 proc containsAnyActiveItems*(this: PopupMenu): bool {.header: juce_gui_basics, importcpp: "#.containsAnyActiveItems()".}
 proc showMenuAsync*(this: var PopupMenu, options: PopupMenuOptions) {.header: juce_gui_basics, importcpp: "#.showMenuAsync(@)".}
-# proc showMenuAsync*(this: var PopupMenu, options: PopupMenuOptions, callback: ptr ModalComponentManager::Callback) {.header: juce_gui_basics, importcpp: "#.showMenuAsync(@)".}
+proc showMenuAsync*(this: var PopupMenu, options: PopupMenuOptions, callback: ptr ModalComponentManagerCallback) {.header: juce_gui_basics, importcpp: "#.showMenuAsync(@)".}
 proc showMenuAsync*(this: var PopupMenu, options: PopupMenuOptions, callback: CppFunctionObjectN1[cint]) {.header: juce_gui_basics, importcpp: "#.showMenuAsync(@)".}
 proc setLookAndFeel*(this: var PopupMenu, newLookAndFeel: ptr LookAndFeel) {.header: juce_gui_basics, importcpp: "#.setLookAndFeel(@)".}
 proc drawPopupMenuItem*(this: var PopupMenu, arg1: var Graphics, arg2: cint, arg3: cint, arg4: bool, arg5: bool, arg6: bool, arg7: bool, arg8: bool, arg9: String, arg10: String, arg11: ptr Image, arg12: ptr Colour): cint {.header: juce_gui_basics, importcpp: "#.drawPopupMenuItem(@)".}
@@ -2075,7 +2075,7 @@ proc getMenuBarNames*(this: var MenuBarModel): StringArray {.header: juce_gui_ba
 proc getMenuForIndex*(this: var MenuBarModel, topLevelMenuIndex: cint, menuName: String): PopupMenu {.header: juce_gui_basics, importcpp: "#.getMenuForIndex(@)".}
 proc menuItemSelected*(this: var MenuBarModel, menuItemID: cint, topLevelMenuIndex: cint) {.header: juce_gui_basics, importcpp: "#.menuItemSelected(@)".}
 proc menuBarActivated*(this: var MenuBarModel, isActive: bool) {.header: juce_gui_basics, importcpp: "#.menuBarActivated(@)".}
-# proc applicationCommandInvoked*(this: var MenuBarModel, arg1: ApplicationCommandTarget::InvocationInfo) {.header: juce_gui_basics, importcpp: "#.applicationCommandInvoked(@)".}
+proc applicationCommandInvoked*(this: var MenuBarModel, arg1: ApplicationCommandTargetInvocationInfo) {.header: juce_gui_basics, importcpp: "#.applicationCommandInvoked(@)".}
 proc applicationCommandListChanged*(this: var MenuBarModel) {.header: juce_gui_basics, importcpp: "#.applicationCommandListChanged()".}
 proc handleAsyncUpdate*(this: var MenuBarModel) {.header: juce_gui_basics, importcpp: "#.handleAsyncUpdate()".}
 proc handleMenuBarActivate*(this: var MenuBarModel, isActive: bool) {.header: juce_gui_basics, importcpp: "#.handleMenuBarActivate(@)".}
@@ -2095,7 +2095,7 @@ proc mouseMove*(this: var MenuBarComponent, arg1: MouseEvent) {.header: juce_gui
 proc handleCommandMessage*(this: var MenuBarComponent, commandId: cint) {.header: juce_gui_basics, importcpp: "#.handleCommandMessage(@)".}
 proc keyPressed*(this: var MenuBarComponent, arg1: KeyPress): bool {.header: juce_gui_basics, importcpp: "#.keyPressed(@)".}
 proc menuBarItemsChanged*(this: var MenuBarComponent, arg1: ptr MenuBarModel) {.header: juce_gui_basics, importcpp: "#.menuBarItemsChanged(@)".}
-# proc menuCommandInvoked*(this: var MenuBarComponent, arg1: ptr MenuBarModel, arg2: ApplicationCommandTarget::InvocationInfo) {.header: juce_gui_basics, importcpp: "#.menuCommandInvoked(@)".}
+proc menuCommandInvoked*(this: var MenuBarComponent, arg1: ptr MenuBarModel, arg2: ApplicationCommandTargetInvocationInfo) {.header: juce_gui_basics, importcpp: "#.menuCommandInvoked(@)".}
 proc createAccessibilityHandler*(this: var MenuBarComponent): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
 
 proc makeRelativeCoordinate*(): RelativeCoordinate {.header: juce_gui_basics, importcpp: "juce::RelativeCoordinate(@)".}
@@ -2106,11 +2106,11 @@ proc `RelativeCoordinate=`*(this: var RelativeCoordinate, arg1: RelativeCoordina
 proc `RelativeCoordinate=`*(this: var RelativeCoordinate, arg1: lent RelativeCoordinate): var RelativeCoordinate {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
 proc `==`*(this: RelativeCoordinate, arg1: RelativeCoordinate): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: RelativeCoordinate, arg1: RelativeCoordinate): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}
-# proc resolve*(this: RelativeCoordinate, evaluationScope: ptr Expression::Scope): float64 {.header: juce_gui_basics, importcpp: "#.resolve(@)".}
-# proc references*(this: RelativeCoordinate, coordName: String, evaluationScope: ptr Expression::Scope): bool {.header: juce_gui_basics, importcpp: "#.references(@)".}
-# proc isRecursive*(this: RelativeCoordinate, evaluationScope: ptr Expression::Scope): bool {.header: juce_gui_basics, importcpp: "#.isRecursive(@)".}
+proc resolve*(this: RelativeCoordinate, evaluationScope: ptr ExpressionScope): float64 {.header: juce_gui_basics, importcpp: "#.resolve(@)".}
+proc references*(this: RelativeCoordinate, coordName: String, evaluationScope: ptr ExpressionScope): bool {.header: juce_gui_basics, importcpp: "#.references(@)".}
+proc isRecursive*(this: RelativeCoordinate, evaluationScope: ptr ExpressionScope): bool {.header: juce_gui_basics, importcpp: "#.isRecursive(@)".}
 proc isDynamic*(this: RelativeCoordinate): bool {.header: juce_gui_basics, importcpp: "#.isDynamic()".}
-# proc moveToAbsolute*(this: var RelativeCoordinate, absoluteTargetPosition: float64, evaluationScope: ptr Expression::Scope) {.header: juce_gui_basics, importcpp: "#.moveToAbsolute(@)".}
+proc moveToAbsolute*(this: var RelativeCoordinate, absoluteTargetPosition: float64, evaluationScope: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.moveToAbsolute(@)".}
 proc getExpression*(this: RelativeCoordinate): Expression {.header: juce_gui_basics, importcpp: "#.getExpression()".}
 proc toString*(this: RelativeCoordinate): String {.header: juce_gui_basics, importcpp: "#.toString()".}
 
@@ -2136,8 +2136,8 @@ proc makeRelativePoint*(x: RelativeCoordinate, y: RelativeCoordinate): RelativeP
 proc makeRelativePoint*(stringVersion: String): RelativePoint {.header: juce_gui_basics, importcpp: "juce::RelativePoint(@)".}
 proc `==`*(this: RelativePoint, arg1: RelativePoint): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: RelativePoint, arg1: RelativePoint): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}
-# proc resolve*(this: RelativePoint, evaluationContext: ptr Expression::Scope): Point[cfloat] {.header: juce_gui_basics, importcpp: "#.resolve(@)".}
-# proc moveToAbsolute*(this: var RelativePoint, newPos: Point[cfloat], evaluationContext: ptr Expression::Scope) {.header: juce_gui_basics, importcpp: "#.moveToAbsolute(@)".}
+proc resolve*(this: RelativePoint, evaluationContext: ptr ExpressionScope): Point[cfloat] {.header: juce_gui_basics, importcpp: "#.resolve(@)".}
+proc moveToAbsolute*(this: var RelativePoint, newPos: Point[cfloat], evaluationContext: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.moveToAbsolute(@)".}
 proc toString*(this: RelativePoint): String {.header: juce_gui_basics, importcpp: "#.toString()".}
 proc isDynamic*(this: RelativePoint): bool {.header: juce_gui_basics, importcpp: "#.isDynamic()".}
 
@@ -2147,11 +2147,11 @@ proc makeRelativeRectangle*(left: RelativeCoordinate, right: RelativeCoordinate,
 proc makeRelativeRectangle*(stringVersion: String): RelativeRectangle {.header: juce_gui_basics, importcpp: "juce::RelativeRectangle(@)".}
 proc `==`*(this: RelativeRectangle, arg1: RelativeRectangle): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: RelativeRectangle, arg1: RelativeRectangle): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}
-# proc resolve*(this: RelativeRectangle, scope: ptr Expression::Scope): Rectangle[cfloat] {.header: juce_gui_basics, importcpp: "#.resolve(@)".}
-# proc moveToAbsolute*(this: var RelativeRectangle, newPos: Rectangle[cfloat], scope: ptr Expression::Scope) {.header: juce_gui_basics, importcpp: "#.moveToAbsolute(@)".}
+proc resolve*(this: RelativeRectangle, scope: ptr ExpressionScope): Rectangle[cfloat] {.header: juce_gui_basics, importcpp: "#.resolve(@)".}
+proc moveToAbsolute*(this: var RelativeRectangle, newPos: Rectangle[cfloat], scope: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.moveToAbsolute(@)".}
 proc isDynamic*(this: RelativeRectangle): bool {.header: juce_gui_basics, importcpp: "#.isDynamic()".}
 proc toString*(this: RelativeRectangle): String {.header: juce_gui_basics, importcpp: "#.toString()".}
-# proc renameSymbol*(this: var RelativeRectangle, oldSymbol: Expression::Symbol, newName: String, scope: Expression::Scope) {.header: juce_gui_basics, importcpp: "#.renameSymbol(@)".}
+proc renameSymbol*(this: var RelativeRectangle, oldSymbol: ExpressionSymbol, newName: String, scope: ExpressionScope) {.header: juce_gui_basics, importcpp: "#.renameSymbol(@)".}
 proc applyToComponent*(this: RelativeRectangle, component: var Component) {.header: juce_gui_basics, importcpp: "#.applyToComponent(@)".}
 
 proc makeRelativeCoordinatePositionerBase*(arg1: var Component): RelativeCoordinatePositionerBase {.header: juce_gui_basics, importcpp: "juce::RelativeCoordinatePositionerBase(@)".}
@@ -2169,11 +2169,11 @@ proc makeRelativeParallelogram*(): RelativeParallelogram {.header: juce_gui_basi
 proc makeRelativeParallelogram*(simpleRectangle: Rectangle[cfloat]): RelativeParallelogram {.header: juce_gui_basics, importcpp: "juce::RelativeParallelogram(@)".}
 proc makeRelativeParallelogram*(topLeft: RelativePoint, topRight: RelativePoint, bottomLeft: RelativePoint): RelativeParallelogram {.header: juce_gui_basics, importcpp: "juce::RelativeParallelogram(@)".}
 proc makeRelativeParallelogram*(topLeft: String, topRight: String, bottomLeft: String): RelativeParallelogram {.header: juce_gui_basics, importcpp: "juce::RelativeParallelogram(@)".}
-# proc resolveThreePoints*(this: RelativeParallelogram, points: ptr Point[cfloat], scope: ptr Expression::Scope) {.header: juce_gui_basics, importcpp: "#.resolveThreePoints(@)".}
-# proc resolveFourCorners*(this: RelativeParallelogram, points: ptr Point[cfloat], scope: ptr Expression::Scope) {.header: juce_gui_basics, importcpp: "#.resolveFourCorners(@)".}
-# proc getBounds*(this: RelativeParallelogram, scope: ptr Expression::Scope): Rectangle[cfloat] {.header: juce_gui_basics, importcpp: "#.getBounds(@)".}
-# proc getPath*(this: RelativeParallelogram, path: var Path, scope: ptr Expression::Scope) {.header: juce_gui_basics, importcpp: "#.getPath(@)".}
-# proc resetToPerpendicular*(this: var RelativeParallelogram, scope: ptr Expression::Scope): AffineTransform {.header: juce_gui_basics, importcpp: "#.resetToPerpendicular(@)".}
+proc resolveThreePoints*(this: RelativeParallelogram, points: ptr Point[cfloat], scope: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.resolveThreePoints(@)".}
+proc resolveFourCorners*(this: RelativeParallelogram, points: ptr Point[cfloat], scope: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.resolveFourCorners(@)".}
+proc getBounds*(this: RelativeParallelogram, scope: ptr ExpressionScope): Rectangle[cfloat] {.header: juce_gui_basics, importcpp: "#.getBounds(@)".}
+proc getPath*(this: RelativeParallelogram, path: var Path, scope: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.getPath(@)".}
+proc resetToPerpendicular*(this: var RelativeParallelogram, scope: ptr ExpressionScope): AffineTransform {.header: juce_gui_basics, importcpp: "#.resetToPerpendicular(@)".}
 proc isDynamic*(this: RelativeParallelogram): bool {.header: juce_gui_basics, importcpp: "#.isDynamic()".}
 proc `==`*(this: RelativeParallelogram, arg1: RelativeParallelogram): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: RelativeParallelogram, arg1: RelativeParallelogram): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}
@@ -2182,7 +2182,7 @@ proc makeRelativePointPath*(): RelativePointPath {.header: juce_gui_basics, impo
 proc makeRelativePointPath*(path: Path): RelativePointPath {.header: juce_gui_basics, importcpp: "juce::RelativePointPath(@)".}
 proc `==`*(this: RelativePointPath, arg1: RelativePointPath): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: RelativePointPath, arg1: RelativePointPath): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}
-# proc createPath*(this: RelativePointPath, path: var Path, scope: ptr Expression::Scope) {.header: juce_gui_basics, importcpp: "#.createPath(@)".}
+proc createPath*(this: RelativePointPath, path: var Path, scope: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.createPath(@)".}
 proc containsAnyDynamicPoints*(this: RelativePointPath): bool {.header: juce_gui_basics, importcpp: "#.containsAnyDynamicPoints()".}
 proc swapWith*(this: var RelativePointPath, arg1: var RelativePointPath) {.header: juce_gui_basics, importcpp: "#.swapWith(@)".}
 proc addElement*(this: var RelativePointPath, newElement: ptr RelativePointPathElementBase) {.header: juce_gui_basics, importcpp: "#.addElement(@)".}
@@ -2228,7 +2228,7 @@ proc getOverlayColour*(this: DrawableImage): Colour {.header: juce_gui_basics, i
 proc setBoundingBox*(this: var DrawableImage, newBounds: Parallelogram[cfloat]) {.header: juce_gui_basics, importcpp: "#.setBoundingBox(@)".}
 proc setBoundingBox*(this: var DrawableImage, newBounds: Rectangle[cfloat]) {.header: juce_gui_basics, importcpp: "#.setBoundingBox(@)".}
 proc getBoundingBox*(this: DrawableImage): Parallelogram[cfloat] {.header: juce_gui_basics, importcpp: "#.getBoundingBox()".}
-# proc setImageResamplingQuality*(this: var DrawableImage, newQuality: Graphics::ResamplingQuality) {.header: juce_gui_basics, importcpp: "#.setImageResamplingQuality(@)".}
+# proc setImageResamplingQuality*(this: var DrawableImage, newQuality: GraphicsResamplingQuality) {.header: juce_gui_basics, importcpp: "#.setImageResamplingQuality(@)".}
 proc paint*(this: var DrawableImage, arg1: var Graphics) {.header: juce_gui_basics, importcpp: "#.paint(@)".}
 proc hitTest*(this: var DrawableImage, x: cint, y: cint): bool {.header: juce_gui_basics, importcpp: "#.hitTest(@)".}
 proc createCopy*(this: DrawableImage): UniquePtr[Drawable] {.header: juce_gui_basics, importcpp: "#.createCopy()".}
@@ -2273,7 +2273,7 @@ proc getOutlineAsPath*(this: DrawableText): Path {.header: juce_gui_basics, impo
 proc replaceColour*(this: var DrawableText, originalColour: Colour, replacementColour: Colour): bool {.header: juce_gui_basics, importcpp: "#.replaceColour(@)".}
 proc createAccessibilityHandler*(this: var DrawableText): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
 
-proc makeTextEditor*(componentName: String, passwordCharacter: uint32): TextEditor {.header: juce_gui_basics, importcpp: "juce::TextEditor(@)".}
+proc makeTextEditor*(componentName: String, passwordCharacter: uint16): TextEditor {.header: juce_gui_basics, importcpp: "juce::TextEditor(@)".}
 proc setMultiLine*(this: var TextEditor, shouldBeMultiLine: bool, shouldWordWrap: bool = true) {.header: juce_gui_basics, importcpp: "#.setMultiLine(@)".}
 proc isMultiLine*(this: TextEditor): bool {.header: juce_gui_basics, importcpp: "#.isMultiLine()".}
 proc setReturnKeyStartsNewLine*(this: var TextEditor, shouldStartNewLine: bool) {.header: juce_gui_basics, importcpp: "#.setReturnKeyStartsNewLine(@)".}
@@ -2287,8 +2287,8 @@ proc setCaretVisible*(this: var TextEditor, shouldBeVisible: bool) {.header: juc
 proc isCaretVisible*(this: TextEditor): bool {.header: juce_gui_basics, importcpp: "#.isCaretVisible()".}
 proc setScrollbarsShown*(this: var TextEditor, shouldBeEnabled: bool) {.header: juce_gui_basics, importcpp: "#.setScrollbarsShown(@)".}
 proc areScrollbarsShown*(this: TextEditor): bool {.header: juce_gui_basics, importcpp: "#.areScrollbarsShown()".}
-proc setPasswordCharacter*(this: var TextEditor, passwordCharacter: uint32) {.header: juce_gui_basics, importcpp: "#.setPasswordCharacter(@)".}
-proc getPasswordCharacter*(this: TextEditor): uint32 {.header: juce_gui_basics, importcpp: "#.getPasswordCharacter()".}
+proc setPasswordCharacter*(this: var TextEditor, passwordCharacter: uint16) {.header: juce_gui_basics, importcpp: "#.setPasswordCharacter(@)".}
+proc getPasswordCharacter*(this: TextEditor): uint16 {.header: juce_gui_basics, importcpp: "#.getPasswordCharacter()".}
 proc setPopupMenuEnabled*(this: var TextEditor, menuEnabled: bool) {.header: juce_gui_basics, importcpp: "#.setPopupMenuEnabled(@)".}
 proc isPopupMenuEnabled*(this: TextEditor): bool {.header: juce_gui_basics, importcpp: "#.isPopupMenuEnabled()".}
 proc isPopupMenuCurrentlyActive*(this: TextEditor): bool {.header: juce_gui_basics, importcpp: "#.isPopupMenuCurrentlyActive()".}
@@ -2497,7 +2497,7 @@ proc selectedRowsChanged*(this: var ListBoxModel, lastRowSelected: cint) {.heade
 proc deleteKeyPressed*(this: var ListBoxModel, lastRowSelected: cint) {.header: juce_gui_basics, importcpp: "#.deleteKeyPressed(@)".}
 proc returnKeyPressed*(this: var ListBoxModel, lastRowSelected: cint) {.header: juce_gui_basics, importcpp: "#.returnKeyPressed(@)".}
 proc listWasScrolled*(this: var ListBoxModel) {.header: juce_gui_basics, importcpp: "#.listWasScrolled()".}
-# proc getDragSourceDescription*(this: var ListBoxModel, rowsToDescribe: SparseSet<int>): juce_var {.header: juce_gui_basics, importcpp: "#.getDragSourceDescription(@)".}
+proc getDragSourceDescription*(this: var ListBoxModel, rowsToDescribe: SparseSet[cint]): juce_var {.header: juce_gui_basics, importcpp: "#.getDragSourceDescription(@)".}
 proc mayDragToExternalWindows*(this: ListBoxModel): bool {.header: juce_gui_basics, importcpp: "#.mayDragToExternalWindows()".}
 proc getTooltipForRow*(this: var ListBoxModel, row: cint): String {.header: juce_gui_basics, importcpp: "#.getTooltipForRow(@)".}
 proc getMouseCursorForRow*(this: var ListBoxModel, row: cint): MouseCursor {.header: juce_gui_basics, importcpp: "#.getMouseCursorForRow(@)".}
@@ -2516,8 +2516,8 @@ proc selectRangeOfRows*(this: var ListBox, firstRow: cint, lastRow: cint, dontSc
 proc deselectRow*(this: var ListBox, rowNumber: cint) {.header: juce_gui_basics, importcpp: "#.deselectRow(@)".}
 proc deselectAllRows*(this: var ListBox) {.header: juce_gui_basics, importcpp: "#.deselectAllRows()".}
 proc flipRowSelection*(this: var ListBox, rowNumber: cint) {.header: juce_gui_basics, importcpp: "#.flipRowSelection(@)".}
-# proc getSelectedRows*(this: ListBox): SparseSet<int> {.header: juce_gui_basics, importcpp: "#.getSelectedRows()".}
-# proc setSelectedRows*(this: var ListBox, setOfRowsToBeSelected: SparseSet<int>, sendNotificationEventToModel: NotificationType) {.header: juce_gui_basics, importcpp: "#.setSelectedRows(@)".}
+proc getSelectedRows*(this: ListBox): SparseSet[cint] {.header: juce_gui_basics, importcpp: "#.getSelectedRows()".}
+# proc setSelectedRows*(this: var ListBox, setOfRowsToBeSelected: SparseSet[cint], sendNotificationEventToModel: NotificationType) {.header: juce_gui_basics, importcpp: "#.setSelectedRows(@)".}
 proc isRowSelected*(this: ListBox, rowNumber: cint): bool {.header: juce_gui_basics, importcpp: "#.isRowSelected(@)".}
 proc getNumSelectedRows*(this: ListBox): cint {.header: juce_gui_basics, importcpp: "#.getNumSelectedRows()".}
 proc getSelectedRow*(this: ListBox, index: cint = 0): cint {.header: juce_gui_basics, importcpp: "#.getSelectedRow(@)".}
@@ -2544,7 +2544,7 @@ proc getHeaderComponent*(this: ListBox): ptr Component {.header: juce_gui_basics
 proc setMinimumContentWidth*(this: var ListBox, newMinimumWidth: cint) {.header: juce_gui_basics, importcpp: "#.setMinimumContentWidth(@)".}
 proc getVisibleContentWidth*(this: ListBox): cint {.header: juce_gui_basics, importcpp: "#.getVisibleContentWidth()".}
 proc repaintRow*(this: var ListBox, rowNumber: cint) {.header: juce_gui_basics, importcpp: "#.repaintRow(@)".}
-# proc createSnapshotOfRows*(this: var ListBox, rows: SparseSet<int>, x: var cint, y: var cint): ScaledImage {.header: juce_gui_basics, importcpp: "#.createSnapshotOfRows(@)".}
+proc createSnapshotOfRows*(this: var ListBox, rows: SparseSet[cint], x: var cint, y: var cint): ScaledImage {.header: juce_gui_basics, importcpp: "#.createSnapshotOfRows(@)".}
 proc getViewport*(this: ListBox): ptr Viewport {.header: juce_gui_basics, importcpp: "#.getViewport()".}
 proc keyPressed*(this: var ListBox, arg1: KeyPress): bool {.header: juce_gui_basics, importcpp: "#.keyPressed(@)".}
 proc keyStateChanged*(this: var ListBox, isKeyDown: bool): bool {.header: juce_gui_basics, importcpp: "#.keyStateChanged(@)".}
@@ -2556,9 +2556,9 @@ proc mouseWheelMove*(this: var ListBox, arg1: MouseEvent, arg2: MouseWheelDetail
 proc mouseUp*(this: var ListBox, arg1: MouseEvent) {.header: juce_gui_basics, importcpp: "#.mouseUp(@)".}
 proc colourChanged*(this: var ListBox) {.header: juce_gui_basics, importcpp: "#.colourChanged()".}
 proc parentHierarchyChanged*(this: var ListBox) {.header: juce_gui_basics, importcpp: "#.parentHierarchyChanged()".}
-# proc startDragAndDrop*(this: var ListBox, arg1: MouseEvent, rowsToDrag: SparseSet<int>, dragDescription: juce_var, allowDraggingToOtherWindows: bool) {.header: juce_gui_basics, importcpp: "#.startDragAndDrop(@)".}
+proc startDragAndDrop*(this: var ListBox, arg1: MouseEvent, rowsToDrag: SparseSet[cint], dragDescription: juce_var, allowDraggingToOtherWindows: bool) {.header: juce_gui_basics, importcpp: "#.startDragAndDrop(@)".}
 proc createAccessibilityHandler*(this: var ListBox): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
-# proc setSelectedRows*(this: var ListBox, arg1: SparseSet<int>, arg2: bool) {.header: juce_gui_basics, importcpp: "#.setSelectedRows(@)".}
+proc setSelectedRows*(this: var ListBox, arg1: SparseSet[cint], arg2: bool) {.header: juce_gui_basics, importcpp: "#.setSelectedRows(@)".}
 proc getModel*(this: ListBox): ptr ListBoxModel {.header: juce_gui_basics, importcpp: "#.getModel()".}
 
 proc makeProgressBar*(progress: var float64): ProgressBar {.header: juce_gui_basics, importcpp: "juce::ProgressBar(@)".}
@@ -2740,7 +2740,7 @@ proc selectedRowsChanged*(this: var TableListBoxModel, lastRowSelected: cint) {.
 proc deleteKeyPressed*(this: var TableListBoxModel, lastRowSelected: cint) {.header: juce_gui_basics, importcpp: "#.deleteKeyPressed(@)".}
 proc returnKeyPressed*(this: var TableListBoxModel, lastRowSelected: cint) {.header: juce_gui_basics, importcpp: "#.returnKeyPressed(@)".}
 proc listWasScrolled*(this: var TableListBoxModel) {.header: juce_gui_basics, importcpp: "#.listWasScrolled()".}
-# proc getDragSourceDescription*(this: var TableListBoxModel, currentlySelectedRows: SparseSet<int>): juce_var {.header: juce_gui_basics, importcpp: "#.getDragSourceDescription(@)".}
+proc getDragSourceDescription*(this: var TableListBoxModel, currentlySelectedRows: SparseSet[cint]): juce_var {.header: juce_gui_basics, importcpp: "#.getDragSourceDescription(@)".}
 proc mayDragToExternalWindows*(this: TableListBoxModel): bool {.header: juce_gui_basics, importcpp: "#.mayDragToExternalWindows()".}
 
 proc makeTableListBox*(componentName: String, model: ptr TableListBoxModel): TableListBox {.header: juce_gui_basics, importcpp: "juce::TableListBox(@)".}
@@ -2808,7 +2808,7 @@ proc getItemId*(this: ToolbarItemComponent): cint {.header: juce_gui_basics, imp
 proc getToolbar*(this: ToolbarItemComponent): ptr Toolbar {.header: juce_gui_basics, importcpp: "#.getToolbar()".}
 proc isToolbarVertical*(this: ToolbarItemComponent): bool {.header: juce_gui_basics, importcpp: "#.isToolbarVertical()".}
 proc getStyle*(this: ToolbarItemComponent): ToolbarToolbarItemStyle {.header: juce_gui_basics, importcpp: "#.getStyle()".}
-# proc setStyle*(this: var ToolbarItemComponent, newStyle: Toolbar::ToolbarItemStyle) {.header: juce_gui_basics, importcpp: "#.setStyle(@)".}
+proc setStyle*(this: var ToolbarItemComponent, newStyle: ToolbarToolbarItemStyle) {.header: juce_gui_basics, importcpp: "#.setStyle(@)".}
 proc getContentArea*(this: ToolbarItemComponent): Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.getContentArea()".}
 proc getToolbarItemSizes*(this: var ToolbarItemComponent, toolbarThickness: cint, isToolbarVertical: bool, preferredSize: var cint, minSize: var cint, maxSize: var cint): bool {.header: juce_gui_basics, importcpp: "#.getToolbarItemSizes(@)".}
 proc paintButtonArea*(this: var ToolbarItemComponent, g: var Graphics, width: cint, height: cint, isMouseOver: bool, isMouseDown: bool) {.header: juce_gui_basics, importcpp: "#.paintButtonArea(@)".}
@@ -2889,8 +2889,8 @@ proc getAccessibilityName*(this: var TreeViewItem): String {.header: juce_gui_ba
 proc getDragSourceDescription*(this: var TreeViewItem): juce_var {.header: juce_gui_basics, importcpp: "#.getDragSourceDescription()".}
 proc isInterestedInFileDrag*(this: var TreeViewItem, files: StringArray): bool {.header: juce_gui_basics, importcpp: "#.isInterestedInFileDrag(@)".}
 proc filesDropped*(this: var TreeViewItem, files: StringArray, insertIndex: cint) {.header: juce_gui_basics, importcpp: "#.filesDropped(@)".}
-# proc isInterestedInDragSource*(this: var TreeViewItem, dragSourceDetails: DragAndDropTarget::SourceDetails): bool {.header: juce_gui_basics, importcpp: "#.isInterestedInDragSource(@)".}
-# proc itemDropped*(this: var TreeViewItem, dragSourceDetails: DragAndDropTarget::SourceDetails, insertIndex: cint) {.header: juce_gui_basics, importcpp: "#.itemDropped(@)".}
+proc isInterestedInDragSource*(this: var TreeViewItem, dragSourceDetails: DragAndDropTargetSourceDetails): bool {.header: juce_gui_basics, importcpp: "#.isInterestedInDragSource(@)".}
+proc itemDropped*(this: var TreeViewItem, dragSourceDetails: DragAndDropTargetSourceDetails, insertIndex: cint) {.header: juce_gui_basics, importcpp: "#.itemDropped(@)".}
 proc setDrawsInLeftMargin*(this: var TreeViewItem, canDrawInLeftMargin: bool) {.header: juce_gui_basics, importcpp: "#.setDrawsInLeftMargin(@)".}
 proc setDrawsInRightMargin*(this: var TreeViewItem, canDrawInRightMargin: bool) {.header: juce_gui_basics, importcpp: "#.setDrawsInRightMargin(@)".}
 proc getOpennessState*(this: TreeViewItem): UniquePtr[XmlElement] {.header: juce_gui_basics, importcpp: "#.getOpennessState()".}
@@ -3048,7 +3048,7 @@ proc setNonFullScreenBounds*(this: var ComponentPeer, newBounds: Rectangle[cint]
 proc getNonFullScreenBounds*(this: ComponentPeer): Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.getNonFullScreenBounds()".}
 proc setIcon*(this: var ComponentPeer, newIcon: Image) {.header: juce_gui_basics, importcpp: "#.setIcon(@)".}
 proc setConstrainer*(this: var ComponentPeer, newConstrainer: ptr ComponentBoundsConstrainer) {.header: juce_gui_basics, importcpp: "#.setConstrainer(@)".}
-# proc startHostManagedResize*(this: var ComponentPeer, mouseDownPosition: Point[cint], zone: ResizableBorderComponent::Zone) {.header: juce_gui_basics, importcpp: "#.startHostManagedResize(@)".}
+proc startHostManagedResize*(this: var ComponentPeer, mouseDownPosition: Point[cint], zone: ResizableBorderComponentZone) {.header: juce_gui_basics, importcpp: "#.startHostManagedResize(@)".}
 proc getConstrainer*(this: ComponentPeer): ptr ComponentBoundsConstrainer {.header: juce_gui_basics, importcpp: "#.getConstrainer()".}
 proc contains*(this: ComponentPeer, localPos: Point[cint], trueIfInAChildWindow: bool): bool {.header: juce_gui_basics, importcpp: "#.contains(@)".}
 proc getFrameSizeIfPresent*(this: ComponentPeer): ComponentPeerOptionalBorderSize {.header: juce_gui_basics, importcpp: "#.getFrameSizeIfPresent()".}
@@ -3065,7 +3065,7 @@ proc grabFocus*(this: var ComponentPeer) {.header: juce_gui_basics, importcpp: "
 proc handleFocusGain*(this: var ComponentPeer) {.header: juce_gui_basics, importcpp: "#.handleFocusGain()".}
 proc handleFocusLoss*(this: var ComponentPeer) {.header: juce_gui_basics, importcpp: "#.handleFocusLoss()".}
 proc getLastFocusedSubcomponent*(this: ComponentPeer): ptr Component {.header: juce_gui_basics, importcpp: "#.getLastFocusedSubcomponent()".}
-proc handleKeyPress*(this: var ComponentPeer, keyCode: cint, textCharacter: uint32): bool {.header: juce_gui_basics, importcpp: "#.handleKeyPress(@)".}
+proc handleKeyPress*(this: var ComponentPeer, keyCode: cint, textCharacter: uint16): bool {.header: juce_gui_basics, importcpp: "#.handleKeyPress(@)".}
 proc handleKeyPress*(this: var ComponentPeer, key: KeyPress): bool {.header: juce_gui_basics, importcpp: "#.handleKeyPress(@)".}
 proc handleKeyUpOrDown*(this: var ComponentPeer, isKeyDown: bool): bool {.header: juce_gui_basics, importcpp: "#.handleKeyUpOrDown(@)".}
 proc handleModifierKeysChange*(this: var ComponentPeer) {.header: juce_gui_basics, importcpp: "#.handleModifierKeysChange()".}
@@ -3095,7 +3095,7 @@ proc getCustomPlatformScaleFactor*(this: ComponentPeer): CppOptional[cdouble] {.
 proc setHasChangedSinceSaved*(this: var ComponentPeer, arg1: bool) {.header: juce_gui_basics, importcpp: "#.setHasChangedSinceSaved(@)".}
 proc setAppStyle*(this: var ComponentPeer, s: ComponentPeerStyle) {.header: juce_gui_basics, importcpp: "#.setAppStyle(@)".}
 proc getAppStyle*(this: ComponentPeer): ComponentPeerStyle {.header: juce_gui_basics, importcpp: "#.getAppStyle()".}
-# proc getNumFramesPainted*(this: ComponentPeer): uint64_t {.header: juce_gui_basics, importcpp: "#.getNumFramesPainted()".}
+proc getNumFramesPainted*(this: ComponentPeer): uint64 {.header: juce_gui_basics, importcpp: "#.getNumFramesPainted()".}
 # proc setMultimonitorPositionOverride*(this: var ComponentPeer, pendingPosition: Point[cint]): Disabler {.header: juce_gui_basics, importcpp: "#.setMultimonitorPositionOverride(@)".}
 proc getMultimonitorPositionOverride*(this: ComponentPeer): CppOptional[Point[cint]] {.header: juce_gui_basics, importcpp: "#.getMultimonitorPositionOverride()".}
 
@@ -3470,7 +3470,7 @@ proc suspended*(this: var JUCEApplicationImpl) {.header: juce_gui_basics, import
 proc resumed*(this: var JUCEApplicationImpl) {.header: juce_gui_basics, importcpp: "#.resumed()".}
 # proc unhandledException*(this: var JUCEApplicationImpl, e: ptr std::exception, sourceFilename: String, lineNumber: cint) {.header: juce_gui_basics, importcpp: "#.unhandledException(@)".}
 proc getNextCommandTarget*(this: var JUCEApplicationImpl): ptr ApplicationCommandTarget {.header: juce_gui_basics, importcpp: "#.getNextCommandTarget()".}
-proc getCommandInfo*(this: var JUCEApplicationImpl, arg1: int, arg2: var ApplicationCommandInfo) {.header: juce_gui_basics, importcpp: "#.getCommandInfo(@)".}
+proc getCommandInfo*(this: var JUCEApplicationImpl, arg1: cint, arg2: var ApplicationCommandInfo) {.header: juce_gui_basics, importcpp: "#.getCommandInfo(@)".}
 # proc getAllCommands*(this: var JUCEApplicationImpl, arg1: Array[CommandID]) {.header: juce_gui_basics, importcpp: "#.getAllCommands(@)".}
 proc perform*(this: var JUCEApplicationImpl, arg1: ApplicationCommandTargetInvocationInfo): bool {.header: juce_gui_basics, importcpp: "#.perform(@)".}
 
@@ -3486,10 +3486,10 @@ proc makeLookAndFeel*(): LookAndFeel {.header: juce_gui_basics, importcpp: "juce
 proc findColour*(this: LookAndFeel, colourId: cint): Colour {.header: juce_gui_basics, importcpp: "#.findColour(@)".}
 proc setColour*(this: var LookAndFeel, colourId: cint, colour: Colour) {.header: juce_gui_basics, importcpp: "#.setColour(@)".}
 proc isColourSpecified*(this: LookAndFeel, colourId: cint): bool {.header: juce_gui_basics, importcpp: "#.isColourSpecified(@)".}
-# proc getTypefaceForFont*(this: var LookAndFeel, arg1: Font): Typeface::Ptr {.header: juce_gui_basics, importcpp: "#.getTypefaceForFont(@)".}
+proc getTypefaceForFont*(this: var LookAndFeel, arg1: Font): ReferenceCountedObjectPtr[Typeface] {.header: juce_gui_basics, importcpp: "#.getTypefaceForFont(@)".}
 # proc getDefaultMetricsKind*(this: LookAndFeel): TypefaceMetricsKind {.header: juce_gui_basics, importcpp: "#.getDefaultMetricsKind()".}
 proc withDefaultMetrics*(this: LookAndFeel, opt: FontOptions): FontOptions {.header: juce_gui_basics, importcpp: "#.withDefaultMetrics(@)".}
-# proc setDefaultSansSerifTypeface*(this: var LookAndFeel, newDefaultTypeface: Typeface::Ptr) {.header: juce_gui_basics, importcpp: "#.setDefaultSansSerifTypeface(@)".}
+proc setDefaultSansSerifTypeface*(this: var LookAndFeel, newDefaultTypeface: ReferenceCountedObjectPtr[Typeface]) {.header: juce_gui_basics, importcpp: "#.setDefaultSansSerifTypeface(@)".}
 proc setDefaultSansSerifTypefaceName*(this: var LookAndFeel, newName: String) {.header: juce_gui_basics, importcpp: "#.setDefaultSansSerifTypefaceName(@)".}
 proc setUsingNativeAlertWindows*(this: var LookAndFeel, shouldUseNativeAlerts: bool) {.header: juce_gui_basics, importcpp: "#.setUsingNativeAlertWindows(@)".}
 proc isUsingNativeAlertWindows*(this: var LookAndFeel): bool {.header: juce_gui_basics, importcpp: "#.isUsingNativeAlertWindows()".}
@@ -3548,17 +3548,17 @@ proc drawBubble*(this: var LookAndFeel_V2, arg1: var Graphics, arg2: var BubbleC
 proc setComponentEffectForBubbleComponent*(this: var LookAndFeel_V2, bubbleComponent: var BubbleComponent) {.header: juce_gui_basics, importcpp: "#.setComponentEffectForBubbleComponent(@)".}
 proc drawLasso*(this: var LookAndFeel_V2, arg1: var Graphics, arg2: var Component) {.header: juce_gui_basics, importcpp: "#.drawLasso(@)".}
 proc drawPopupMenuBackground*(this: var LookAndFeel_V2, arg1: var Graphics, width: cint, height: cint) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuBackground(@)".}
-# proc drawPopupMenuBackgroundWithOptions*(this: var LookAndFeel_V2, arg1: var Graphics, width: cint, height: cint, arg4: PopupMenu::Options) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuBackgroundWithOptions(@)".}
+proc drawPopupMenuBackgroundWithOptions*(this: var LookAndFeel_V2, arg1: var Graphics, width: cint, height: cint, arg4: PopupMenuOptions) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuBackgroundWithOptions(@)".}
 proc drawPopupMenuItem*(this: var LookAndFeel_V2, arg1: var Graphics, area: Rectangle[cint], isSeparator: bool, isActive: bool, isHighlighted: bool, isTicked: bool, hasSubMenu: bool, text: String, shortcutKeyText: String, icon: ptr Drawable, textColour: ptr Colour) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuItem(@)".}
-# proc drawPopupMenuItemWithOptions*(this: var LookAndFeel_V2, arg1: var Graphics, area: Rectangle[cint], isHighlighted: bool, item: PopupMenu::Item, arg5: PopupMenu::Options) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuItemWithOptions(@)".}
+proc drawPopupMenuItemWithOptions*(this: var LookAndFeel_V2, arg1: var Graphics, area: Rectangle[cint], isHighlighted: bool, item: PopupMenuItem, arg5: PopupMenuOptions) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuItemWithOptions(@)".}
 proc drawPopupMenuSectionHeader*(this: var LookAndFeel_V2, arg1: var Graphics, area: Rectangle[cint], sectionName: String) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuSectionHeader(@)".}
-# proc drawPopupMenuSectionHeaderWithOptions*(this: var LookAndFeel_V2, arg1: var Graphics, area: Rectangle[cint], sectionName: String, arg4: PopupMenu::Options) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuSectionHeaderWithOptions(@)".}
+proc drawPopupMenuSectionHeaderWithOptions*(this: var LookAndFeel_V2, arg1: var Graphics, area: Rectangle[cint], sectionName: String, arg4: PopupMenuOptions) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuSectionHeaderWithOptions(@)".}
 proc getPopupMenuFont*(this: var LookAndFeel_V2): Font {.header: juce_gui_basics, importcpp: "#.getPopupMenuFont()".}
 proc drawPopupMenuUpDownArrow*(this: var LookAndFeel_V2, arg1: var Graphics, width: cint, height: cint, isScrollUpArrow: bool) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuUpDownArrow(@)".}
-# proc drawPopupMenuUpDownArrowWithOptions*(this: var LookAndFeel_V2, arg1: var Graphics, width: cint, height: cint, isScrollUpArrow: bool, arg5: PopupMenu::Options) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuUpDownArrowWithOptions(@)".}
+proc drawPopupMenuUpDownArrowWithOptions*(this: var LookAndFeel_V2, arg1: var Graphics, width: cint, height: cint, isScrollUpArrow: bool, arg5: PopupMenuOptions) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuUpDownArrowWithOptions(@)".}
 proc getIdealPopupMenuItemSize*(this: var LookAndFeel_V2, text: String, isSeparator: bool, standardMenuItemHeight: cint, idealWidth: var cint, idealHeight: var cint) {.header: juce_gui_basics, importcpp: "#.getIdealPopupMenuItemSize(@)".}
-# proc getIdealPopupMenuItemSizeWithOptions*(this: var LookAndFeel_V2, text: String, isSeparator: bool, standardMenuItemHeight: cint, idealWidth: var cint, idealHeight: var cint, arg6: PopupMenu::Options) {.header: juce_gui_basics, importcpp: "#.getIdealPopupMenuItemSizeWithOptions(@)".}
-# proc getIdealPopupMenuSectionHeaderSizeWithOptions*(this: var LookAndFeel_V2, text: String, standardMenuItemHeight: cint, idealWidth: var cint, idealHeight: var cint, arg5: PopupMenu::Options) {.header: juce_gui_basics, importcpp: "#.getIdealPopupMenuSectionHeaderSizeWithOptions(@)".}
+proc getIdealPopupMenuItemSizeWithOptions*(this: var LookAndFeel_V2, text: String, isSeparator: bool, standardMenuItemHeight: cint, idealWidth: var cint, idealHeight: var cint, arg6: PopupMenuOptions) {.header: juce_gui_basics, importcpp: "#.getIdealPopupMenuItemSizeWithOptions(@)".}
+proc getIdealPopupMenuSectionHeaderSizeWithOptions*(this: var LookAndFeel_V2, text: String, standardMenuItemHeight: cint, idealWidth: var cint, idealHeight: var cint, arg5: PopupMenuOptions) {.header: juce_gui_basics, importcpp: "#.getIdealPopupMenuSectionHeaderSizeWithOptions(@)".}
 proc getMenuWindowFlags*(this: var LookAndFeel_V2): cint {.header: juce_gui_basics, importcpp: "#.getMenuWindowFlags()".}
 proc preparePopupMenuWindow*(this: var LookAndFeel_V2, arg1: var Component) {.header: juce_gui_basics, importcpp: "#.preparePopupMenuWindow(@)".}
 proc drawMenuBarBackground*(this: var LookAndFeel_V2, arg1: var Graphics, width: cint, height: cint, isMouseOverBar: bool, arg5: var MenuBarComponent) {.header: juce_gui_basics, importcpp: "#.drawMenuBarBackground(@)".}
@@ -3566,17 +3566,17 @@ proc getMenuBarItemWidth*(this: var LookAndFeel_V2, arg1: var MenuBarComponent, 
 proc getMenuBarFont*(this: var LookAndFeel_V2, arg1: var MenuBarComponent, itemIndex: cint, itemText: String): Font {.header: juce_gui_basics, importcpp: "#.getMenuBarFont(@)".}
 proc getDefaultMenuBarHeight*(this: var LookAndFeel_V2): cint {.header: juce_gui_basics, importcpp: "#.getDefaultMenuBarHeight()".}
 proc drawMenuBarItem*(this: var LookAndFeel_V2, arg1: var Graphics, width: cint, height: cint, itemIndex: cint, itemText: String, isMouseOverItem: bool, isMenuOpen: bool, isMouseOverBar: bool, arg9: var MenuBarComponent) {.header: juce_gui_basics, importcpp: "#.drawMenuBarItem(@)".}
-# proc getParentComponentForMenuOptions*(this: var LookAndFeel_V2, options: PopupMenu::Options): ptr Component {.header: juce_gui_basics, importcpp: "#.getParentComponentForMenuOptions(@)".}
-# proc shouldPopupMenuScaleWithTargetComponent*(this: var LookAndFeel_V2, options: PopupMenu::Options): bool {.header: juce_gui_basics, importcpp: "#.shouldPopupMenuScaleWithTargetComponent(@)".}
+proc getParentComponentForMenuOptions*(this: var LookAndFeel_V2, options: PopupMenuOptions): ptr Component {.header: juce_gui_basics, importcpp: "#.getParentComponentForMenuOptions(@)".}
+proc shouldPopupMenuScaleWithTargetComponent*(this: var LookAndFeel_V2, options: PopupMenuOptions): bool {.header: juce_gui_basics, importcpp: "#.shouldPopupMenuScaleWithTargetComponent(@)".}
 proc getPopupMenuBorderSize*(this: var LookAndFeel_V2): cint {.header: juce_gui_basics, importcpp: "#.getPopupMenuBorderSize()".}
-# proc getPopupMenuBorderSizeWithOptions*(this: var LookAndFeel_V2, arg1: PopupMenu::Options): cint {.header: juce_gui_basics, importcpp: "#.getPopupMenuBorderSizeWithOptions(@)".}
-# proc drawPopupMenuColumnSeparatorWithOptions*(this: var LookAndFeel_V2, g: var Graphics, bounds: Rectangle[cint], arg3: PopupMenu::Options) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuColumnSeparatorWithOptions(@)".}
-# proc getPopupMenuColumnSeparatorWidthWithOptions*(this: var LookAndFeel_V2, arg1: PopupMenu::Options): cint {.header: juce_gui_basics, importcpp: "#.getPopupMenuColumnSeparatorWidthWithOptions(@)".}
+proc getPopupMenuBorderSizeWithOptions*(this: var LookAndFeel_V2, arg1: PopupMenuOptions): cint {.header: juce_gui_basics, importcpp: "#.getPopupMenuBorderSizeWithOptions(@)".}
+proc drawPopupMenuColumnSeparatorWithOptions*(this: var LookAndFeel_V2, g: var Graphics, bounds: Rectangle[cint], arg3: PopupMenuOptions) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuColumnSeparatorWithOptions(@)".}
+proc getPopupMenuColumnSeparatorWidthWithOptions*(this: var LookAndFeel_V2, arg1: PopupMenuOptions): cint {.header: juce_gui_basics, importcpp: "#.getPopupMenuColumnSeparatorWidthWithOptions(@)".}
 proc drawComboBox*(this: var LookAndFeel_V2, arg1: var Graphics, width: cint, height: cint, isMouseButtonDown: bool, buttonX: cint, buttonY: cint, buttonW: cint, buttonH: cint, arg9: var ComboBox) {.header: juce_gui_basics, importcpp: "#.drawComboBox(@)".}
 proc getComboBoxFont*(this: var LookAndFeel_V2, arg1: var ComboBox): Font {.header: juce_gui_basics, importcpp: "#.getComboBoxFont(@)".}
 proc createComboBoxTextBox*(this: var LookAndFeel_V2, arg1: var ComboBox): ptr Label {.header: juce_gui_basics, importcpp: "#.createComboBoxTextBox(@)".}
 proc positionComboBoxText*(this: var LookAndFeel_V2, arg1: var ComboBox, arg2: var Label) {.header: juce_gui_basics, importcpp: "#.positionComboBoxText(@)".}
-# proc getOptionsForComboBoxPopupMenu*(this: var LookAndFeel_V2, arg1: var ComboBox, arg2: var Label): PopupMenu::Options {.header: juce_gui_basics, importcpp: "#.getOptionsForComboBoxPopupMenu(@)".}
+proc getOptionsForComboBoxPopupMenu*(this: var LookAndFeel_V2, arg1: var ComboBox, arg2: var Label): PopupMenuOptions {.header: juce_gui_basics, importcpp: "#.getOptionsForComboBoxPopupMenu(@)".}
 proc drawComboBoxTextWhenNothingSelected*(this: var LookAndFeel_V2, arg1: var Graphics, arg2: var ComboBox, arg3: var Label) {.header: juce_gui_basics, importcpp: "#.drawComboBoxTextWhenNothingSelected(@)".}
 proc drawLabel*(this: var LookAndFeel_V2, arg1: var Graphics, arg2: var Label) {.header: juce_gui_basics, importcpp: "#.drawLabel(@)".}
 proc getLabelFont*(this: var LookAndFeel_V2, arg1: var Label): Font {.header: juce_gui_basics, importcpp: "#.getLabelFont(@)".}
@@ -3592,7 +3592,7 @@ proc createSliderTextBox*(this: var LookAndFeel_V2, arg1: var Slider): ptr Label
 proc getSliderEffect*(this: var LookAndFeel_V2, arg1: var Slider): ptr ImageEffectFilter {.header: juce_gui_basics, importcpp: "#.getSliderEffect(@)".}
 proc getSliderPopupFont*(this: var LookAndFeel_V2, arg1: var Slider): Font {.header: juce_gui_basics, importcpp: "#.getSliderPopupFont(@)".}
 proc getSliderPopupPlacement*(this: var LookAndFeel_V2, arg1: var Slider): cint {.header: juce_gui_basics, importcpp: "#.getSliderPopupPlacement(@)".}
-# proc getSliderLayout*(this: var LookAndFeel_V2, arg1: var Slider): Slider::SliderLayout {.header: juce_gui_basics, importcpp: "#.getSliderLayout(@)".}
+proc getSliderLayout*(this: var LookAndFeel_V2, arg1: var Slider): SliderSliderLayout {.header: juce_gui_basics, importcpp: "#.getSliderLayout(@)".}
 proc getTooltipBounds*(this: var LookAndFeel_V2, tipText: String, screenPos: Point[cint], parentArea: Rectangle[cint]): Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.getTooltipBounds(@)".}
 proc drawTooltip*(this: var LookAndFeel_V2, arg1: var Graphics, text: String, width: cint, height: cint) {.header: juce_gui_basics, importcpp: "#.drawTooltip(@)".}
 proc createFilenameComponentBrowseButton*(this: var LookAndFeel_V2, text: String): ptr Button {.header: juce_gui_basics, importcpp: "#.createFilenameComponentBrowseButton(@)".}
@@ -3602,9 +3602,9 @@ proc drawCornerResizer*(this: var LookAndFeel_V2, arg1: var Graphics, w: cint, h
 proc drawResizableFrame*(this: var LookAndFeel_V2, arg1: var Graphics, w: cint, h: cint, arg4: BorderSize[cint]) {.header: juce_gui_basics, importcpp: "#.drawResizableFrame(@)".}
 proc fillResizableWindowBackground*(this: var LookAndFeel_V2, arg1: var Graphics, w: cint, h: cint, arg4: BorderSize[cint], arg5: var ResizableWindow) {.header: juce_gui_basics, importcpp: "#.fillResizableWindowBackground(@)".}
 proc drawResizableWindowBorder*(this: var LookAndFeel_V2, arg1: var Graphics, w: cint, h: cint, border: BorderSize[cint], arg5: var ResizableWindow) {.header: juce_gui_basics, importcpp: "#.drawResizableWindowBorder(@)".}
-# proc drawDocumentWindowTitleBar*(this: var LookAndFeel_V2, arg1: var DocumentWindow, arg2: var Graphics, w: cint, h: cint, titleSpaceX: cint, titleSpaceW: cint, icon: ptr Image, drawTitleTextOnLeft: bool) {.header: juce_gui_basics, importcpp: "#.drawDocumentWindowTitleBar(@)".}
+proc drawDocumentWindowTitleBar*(this: var LookAndFeel_V2, arg1: var DocumentWindowImpl, arg2: var Graphics, w: cint, h: cint, titleSpaceX: cint, titleSpaceW: cint, icon: ptr Image, drawTitleTextOnLeft: bool) {.header: juce_gui_basics, importcpp: "#.drawDocumentWindowTitleBar(@)".}
 proc createDocumentWindowButton*(this: var LookAndFeel_V2, buttonType: cint): ptr Button {.header: juce_gui_basics, importcpp: "#.createDocumentWindowButton(@)".}
-# proc positionDocumentWindowButtons*(this: var LookAndFeel_V2, arg1: var DocumentWindow, titleBarX: cint, titleBarY: cint, titleBarW: cint, titleBarH: cint, minimiseButton: ptr Button, maximiseButton: ptr Button, closeButton: ptr Button, positionTitleBarButtonsOnLeft: bool) {.header: juce_gui_basics, importcpp: "#.positionDocumentWindowButtons(@)".}
+proc positionDocumentWindowButtons*(this: var LookAndFeel_V2, arg1: var DocumentWindowImpl, titleBarX: cint, titleBarY: cint, titleBarW: cint, titleBarH: cint, minimiseButton: ptr Button, maximiseButton: ptr Button, closeButton: ptr Button, positionTitleBarButtonsOnLeft: bool) {.header: juce_gui_basics, importcpp: "#.positionDocumentWindowButtons(@)".}
 proc createDropShadowerForComponent*(this: var LookAndFeel_V2, arg1: var Component): UniquePtr[DropShadower] {.header: juce_gui_basics, importcpp: "#.createDropShadowerForComponent(@)".}
 proc createFocusOutlineForComponent*(this: var LookAndFeel_V2, arg1: var Component): UniquePtr[FocusOutline] {.header: juce_gui_basics, importcpp: "#.createFocusOutlineForComponent(@)".}
 proc drawStretchableLayoutResizerBar*(this: var LookAndFeel_V2, arg1: var Graphics, w: cint, h: cint, isVerticalBar: bool, isMouseOver: bool, isMouseDragging: bool) {.header: juce_gui_basics, importcpp: "#.drawStretchableLayoutResizerBar(@)".}
@@ -3661,7 +3661,7 @@ proc createSliderButton*(this: var LookAndFeel_V1, arg1: var Slider, isIncrement
 proc getSliderEffect*(this: var LookAndFeel_V1, arg1: var Slider): ptr ImageEffectFilter {.header: juce_gui_basics, importcpp: "#.getSliderEffect(@)".}
 proc drawCornerResizer*(this: var LookAndFeel_V1, arg1: var Graphics, w: cint, h: cint, isMouseOver: bool, isMouseDragging: bool) {.header: juce_gui_basics, importcpp: "#.drawCornerResizer(@)".}
 proc createDocumentWindowButton*(this: var LookAndFeel_V1, buttonType: cint): ptr Button {.header: juce_gui_basics, importcpp: "#.createDocumentWindowButton(@)".}
-# proc positionDocumentWindowButtons*(this: var LookAndFeel_V1, arg1: var DocumentWindow, titleBarX: cint, titleBarY: cint, titleBarW: cint, titleBarH: cint, minimiseButton: ptr Button, maximiseButton: ptr Button, closeButton: ptr Button, positionTitleBarButtonsOnLeft: bool) {.header: juce_gui_basics, importcpp: "#.positionDocumentWindowButtons(@)".}
+proc positionDocumentWindowButtons*(this: var LookAndFeel_V1, arg1: var DocumentWindowImpl, titleBarX: cint, titleBarY: cint, titleBarW: cint, titleBarH: cint, minimiseButton: ptr Button, maximiseButton: ptr Button, closeButton: ptr Button, positionTitleBarButtonsOnLeft: bool) {.header: juce_gui_basics, importcpp: "#.positionDocumentWindowButtons(@)".}
 
 proc makeLookAndFeel_V3*(): LookAndFeel_V3 {.header: juce_gui_basics, importcpp: "juce::LookAndFeel_V3(@)".}
 proc drawButtonBackground*(this: var LookAndFeel_V3, arg1: var Graphics, arg2: var Button, backgroundColour: Colour, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.header: juce_gui_basics, importcpp: "#.drawButtonBackground(@)".}
@@ -3693,8 +3693,8 @@ proc makeLookAndFeel_V4*(arg1: LookAndFeel_V4ColourScheme): LookAndFeel_V4 {.hea
 proc setColourScheme*(this: var LookAndFeel_V4, arg1: LookAndFeel_V4ColourScheme) {.header: juce_gui_basics, importcpp: "#.setColourScheme(@)".}
 proc getCurrentColourScheme*(this: var LookAndFeel_V4): var LookAndFeel_V4ColourScheme {.header: juce_gui_basics, importcpp: "#.getCurrentColourScheme()".}
 proc createDocumentWindowButton*(this: var LookAndFeel_V4, arg1: cint): ptr Button {.header: juce_gui_basics, importcpp: "#.createDocumentWindowButton(@)".}
-# proc positionDocumentWindowButtons*(this: var LookAndFeel_V4, arg1: var DocumentWindow, arg2: cint, arg3: cint, arg4: cint, arg5: cint, arg6: ptr Button, arg7: ptr Button, arg8: ptr Button, arg9: bool) {.header: juce_gui_basics, importcpp: "#.positionDocumentWindowButtons(@)".}
-# proc drawDocumentWindowTitleBar*(this: var LookAndFeel_V4, arg1: var DocumentWindow, arg2: var Graphics, arg3: cint, arg4: cint, arg5: cint, arg6: cint, arg7: ptr Image, arg8: bool) {.header: juce_gui_basics, importcpp: "#.drawDocumentWindowTitleBar(@)".}
+proc positionDocumentWindowButtons*(this: var LookAndFeel_V4, arg1: var DocumentWindowImpl, arg2: cint, arg3: cint, arg4: cint, arg5: cint, arg6: ptr Button, arg7: ptr Button, arg8: ptr Button, arg9: bool) {.header: juce_gui_basics, importcpp: "#.positionDocumentWindowButtons(@)".}
+proc drawDocumentWindowTitleBar*(this: var LookAndFeel_V4, arg1: var DocumentWindowImpl, arg2: var Graphics, arg3: cint, arg4: cint, arg5: cint, arg6: cint, arg7: ptr Image, arg8: bool) {.header: juce_gui_basics, importcpp: "#.drawDocumentWindowTitleBar(@)".}
 proc getTextButtonFont*(this: var LookAndFeel_V4, arg1: var TextButton, buttonHeight: cint): Font {.header: juce_gui_basics, importcpp: "#.getTextButtonFont(@)".}
 proc drawButtonBackground*(this: var LookAndFeel_V4, arg1: var Graphics, arg2: var Button, backgroundColour: Colour, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.header: juce_gui_basics, importcpp: "#.drawButtonBackground(@)".}
 proc drawToggleButton*(this: var LookAndFeel_V4, arg1: var Graphics, arg2: var ToggleButton, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.header: juce_gui_basics, importcpp: "#.drawToggleButton(@)".}

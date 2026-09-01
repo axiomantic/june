@@ -23,6 +23,35 @@ Requirements
       libfontconfig1-dev libx11-dev libxext-dev libxinerama-dev \
       libxrandr-dev libxcursor-dev libxcomposite-dev libcurl4-openssl-dev
 
+----------------
+What Is Bound
+----------------
+
+The bindings are generated from the JUCE headers by ``tools/inspect_juce.py``.
+Hand-written additions live in the ``*_lifting.nim`` files and in
+``june_juce_types.nim``.
+
+- Classes, with their inheritance, so a ``TextButton`` accepts every
+  ``Component`` method.
+- Constructors, as ``make<ClassName>`` procs.
+- Enums, as distinct integer types. Enumerators are prefixed with the type name:
+  ``JustificationFlags_centred``, ``NotificationType_sendNotification``.
+- Operators. ``==``, ``<``, ``<=``, ``+``, ``-``, ``*``, ``/`` and ``[]`` are
+  bound as Nim operators; ``!=``, ``>`` and ``>=`` follow from them.
+- The class templates: ``Rectangle``, ``Point``, ``Line``, ``BorderSize``,
+  ``Range``, ``Array``, ``OwnedArray``, ``Span``, ``RectangleList``,
+  ``SparseSet`` and ``ReferenceCountedObjectPtr``.
+- The standard library types JUCE exposes: ``std::unique_ptr``,
+  ``std::optional``, ``std::vector`` and ``std::function``.
+
+Instantiate a class template with ``cint`` or ``cfloat``, never Nim's ``int`` or
+``float``. Nim puts the parameter's C++ name into the template, and Nim's
+``int`` is 64-bit, so ``Rectangle[int]`` asks for a ``juce::Rectangle<long
+long>`` that JUCE never instantiates.
+
+A proc whose types cannot be spelled in Nim is emitted as a comment rather than
+omitted, so what is missing stays visible in the generated file.
+
 -----------------
 Build From Source
 -----------------

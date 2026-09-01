@@ -255,7 +255,7 @@ proc createPathWithRoundedCorners*(this: Path, cornerRadius: cfloat): Path {.hea
 proc setUsingNonZeroWinding*(this: var Path, isNonZeroWinding: bool) {.header: juce_graphics, importcpp: "#.setUsingNonZeroWinding(@)".}
 proc isUsingNonZeroWinding*(this: Path): bool {.header: juce_graphics, importcpp: "#.isUsingNonZeroWinding()".}
 proc loadPathFromStream*(this: var Path, source: var InputStream) {.header: juce_graphics, importcpp: "#.loadPathFromStream(@)".}
-proc loadPathFromData*(this: var Path, data: constPointer, numberOfBytes: csize_t) {.header: juce_graphics, importcpp: "#.loadPathFromData(@)".}
+proc loadPathFromData*(this: var Path, data: constPointer, numberOfBytes: uint64) {.header: juce_graphics, importcpp: "#.loadPathFromData(@)".}
 proc writePathToStream*(this: Path, destination: var OutputStream) {.header: juce_graphics, importcpp: "#.writePathToStream(@)".}
 proc toString*(this: Path): String {.header: juce_graphics, importcpp: "#.toString()".}
 proc restoreFromString*(this: var Path, stringVersion: StringRef) {.header: juce_graphics, importcpp: "#.restoreFromString(@)".}
@@ -618,7 +618,7 @@ proc clone*(this: var ImagePixelData): ReferenceCountedObjectPtr[ImagePixelData]
 proc createType*(this: ImagePixelData): UniquePtr[ImageType] {.header: juce_graphics, importcpp: "#.createType()".}
 proc getBackupExtensions*(this: var ImagePixelData): ptr ImagePixelDataBackupExtensions {.header: juce_graphics, importcpp: "#.getBackupExtensions()".}
 proc getBackupExtensions*(this: ImagePixelData): ptr ImagePixelDataBackupExtensions {.header: juce_graphics, importcpp: "#.getBackupExtensions()".}
-# proc initialiseBitmapData*(this: var ImagePixelData, arg1: var Image::BitmapData, x: cint, y: cint, arg4: Image::BitmapData::ReadWriteMode) {.header: juce_graphics, importcpp: "#.initialiseBitmapData(@)".}
+# proc initialiseBitmapData*(this: var ImagePixelData, arg1: var ImageBitmapData, x: cint, y: cint, arg4: Image::BitmapData::ReadWriteMode) {.header: juce_graphics, importcpp: "#.initialiseBitmapData(@)".}
 proc getSharedCount*(this: ImagePixelData): cint {.header: juce_graphics, importcpp: "#.getSharedCount()".}
 proc moveImageSection*(this: var ImagePixelData, destTopLeft: Point[cint], sourceRect: Rectangle[cint]) {.header: juce_graphics, importcpp: "#.moveImageSection(@)".}
 proc applyGaussianBlurEffectInArea*(this: var ImagePixelData, bounds: Rectangle[cint], radius: cfloat) {.header: juce_graphics, importcpp: "#.applyGaussianBlurEffectInArea(@)".}
@@ -633,16 +633,16 @@ proc sendDataChangeMessage*(this: var ImagePixelData) {.header: juce_graphics, i
 proc getNativeExtensions*(this: var ImagePixelData): ImagePixelDataNativeExtensions {.header: juce_graphics, importcpp: "#.getNativeExtensions()".}
 
 proc makeImageType*(): ImageType {.header: juce_graphics, importcpp: "juce::ImageType(@)".}
-# proc create*(this: ImageType, arg1: ImagePixelFormat, width: cint, height: cint, shouldClearImage: bool): ImagePixelData::Ptr {.header: juce_graphics, importcpp: "#.create(@)".}
+proc create*(this: ImageType, arg1: ImagePixelFormat, width: cint, height: cint, shouldClearImage: bool): ReferenceCountedObjectPtr[ImagePixelData] {.header: juce_graphics, importcpp: "#.create(@)".}
 proc getTypeID*(this: ImageType): cint {.header: juce_graphics, importcpp: "#.getTypeID()".}
 proc convert*(this: ImageType, source: Image): Image {.header: juce_graphics, importcpp: "#.convert(@)".}
 
 proc makeSoftwareImageType*(): SoftwareImageType {.header: juce_graphics, importcpp: "juce::SoftwareImageType(@)".}
-# proc create*(this: SoftwareImageType, arg1: ImagePixelFormat, width: cint, height: cint, clearImage: bool): ImagePixelData::Ptr {.header: juce_graphics, importcpp: "#.create(@)".}
+proc create*(this: SoftwareImageType, arg1: ImagePixelFormat, width: cint, height: cint, clearImage: bool): ReferenceCountedObjectPtr[ImagePixelData] {.header: juce_graphics, importcpp: "#.create(@)".}
 proc getTypeID*(this: SoftwareImageType): cint {.header: juce_graphics, importcpp: "#.getTypeID()".}
 
 proc makeNativeImageType*(): NativeImageType {.header: juce_graphics, importcpp: "juce::NativeImageType(@)".}
-# proc create*(this: NativeImageType, arg1: ImagePixelFormat, width: cint, height: cint, clearImage: bool): ImagePixelData::Ptr {.header: juce_graphics, importcpp: "#.create(@)".}
+proc create*(this: NativeImageType, arg1: ImagePixelFormat, width: cint, height: cint, clearImage: bool): ReferenceCountedObjectPtr[ImagePixelData] {.header: juce_graphics, importcpp: "#.create(@)".}
 proc getTypeID*(this: NativeImageType): cint {.header: juce_graphics, importcpp: "#.getTypeID()".}
 
 proc makeFillType*(): FillType {.header: juce_graphics, importcpp: "juce::FillType(@)".}
@@ -695,8 +695,8 @@ proc getOutlineForGlyph*(this: Typeface, glyphNumber: cint, path: var Path) {.he
 proc getGlyphBounds*(this: Typeface, glyphNumber: cint): Rectangle[cfloat] {.header: juce_graphics, importcpp: "#.getGlyphBounds(@)".}
 proc getLayersForGlyph*(this: Typeface, glyphNumber: cint, arg2: AffineTransform): CppVector[GlyphLayer] {.header: juce_graphics, importcpp: "#.getLayersForGlyph(@)".}
 proc getColourGlyphFormats*(this: Typeface): cint {.header: juce_graphics, importcpp: "#.getColourGlyphFormats()".}
-proc getNominalGlyphForCodepoint*(this: Typeface, arg1: uint32): CppOptional[uint32] {.header: juce_graphics, importcpp: "#.getNominalGlyphForCodepoint(@)".}
-# proc createSystemFallback*(this: Typeface, text: String, language: String): Typeface::Ptr {.header: juce_graphics, importcpp: "#.createSystemFallback(@)".}
+proc getNominalGlyphForCodepoint*(this: Typeface, arg1: uint16): CppOptional[uint32] {.header: juce_graphics, importcpp: "#.getNominalGlyphForCodepoint(@)".}
+proc createSystemFallback*(this: Typeface, text: String, language: String): ReferenceCountedObjectPtr[Typeface] {.header: juce_graphics, importcpp: "#.createSystemFallback(@)".}
 proc getSupportedFeatures*(this: Typeface): CppVector[FontFeatureTag] {.header: juce_graphics, importcpp: "#.getSupportedFeatures()".}
 proc getNativeDetails*(this: Typeface): ptr TypefaceNative {.header: juce_graphics, importcpp: "#.getNativeDetails()".}
 
@@ -705,10 +705,10 @@ proc makeFontOptions*(fontHeight: cfloat): FontOptions {.header: juce_graphics, 
 proc makeFontOptions*(fontHeight: cfloat, styleFlags: cint): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions(@)".}
 proc makeFontOptions*(typefaceName: String, fontHeight: cfloat, styleFlags: cint): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions(@)".}
 proc makeFontOptions*(typefaceName: String, typefaceStyle: String, fontHeight: cfloat): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions(@)".}
-# proc makeFontOptions*(typeface: Typeface::Ptr): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions(@)".}
+proc makeFontOptions*(typeface: ReferenceCountedObjectPtr[Typeface]): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions(@)".}
 proc withName*(this: FontOptions, x: String): FontOptions {.header: juce_graphics, importcpp: "#.withName(@)".}
 proc withStyle*(this: FontOptions, x: String): FontOptions {.header: juce_graphics, importcpp: "#.withStyle(@)".}
-# proc withTypeface*(this: FontOptions, x: Typeface::Ptr): FontOptions {.header: juce_graphics, importcpp: "#.withTypeface(@)".}
+proc withTypeface*(this: FontOptions, x: ReferenceCountedObjectPtr[Typeface]): FontOptions {.header: juce_graphics, importcpp: "#.withTypeface(@)".}
 proc withFallbacks*(this: FontOptions, x: CppVector[String]): FontOptions {.header: juce_graphics, importcpp: "#.withFallbacks(@)".}
 proc withFallbackEnabled*(this: FontOptions, x: bool = true): FontOptions {.header: juce_graphics, importcpp: "#.withFallbackEnabled(@)".}
 proc withHeight*(this: FontOptions, x: cfloat): FontOptions {.header: juce_graphics, importcpp: "#.withHeight(@)".}
@@ -725,7 +725,7 @@ proc withFeatureEnabled*(this: FontOptions, tag: FontFeatureTag): FontOptions {.
 proc withFeatureDisabled*(this: FontOptions, tag: FontFeatureTag): FontOptions {.header: juce_graphics, importcpp: "#.withFeatureDisabled(@)".}
 proc getName*(this: FontOptions): String {.header: juce_graphics, importcpp: "#.getName()".}
 proc getStyle*(this: FontOptions): String {.header: juce_graphics, importcpp: "#.getStyle()".}
-# proc getTypeface*(this: FontOptions): Typeface::Ptr {.header: juce_graphics, importcpp: "#.getTypeface()".}
+proc getTypeface*(this: FontOptions): ReferenceCountedObjectPtr[Typeface] {.header: juce_graphics, importcpp: "#.getTypeface()".}
 proc getFallbacks*(this: FontOptions): CppVector[String] {.header: juce_graphics, importcpp: "#.getFallbacks()".}
 proc getHeight*(this: FontOptions): cfloat {.header: juce_graphics, importcpp: "#.getHeight()".}
 proc getPointHeight*(this: FontOptions): cfloat {.header: juce_graphics, importcpp: "#.getPointHeight()".}
@@ -748,7 +748,7 @@ proc makeFont*(options: FontOptions): Font {.header: juce_graphics, importcpp: "
 proc makeFont*(fontHeight: cfloat, styleFlags: cint): Font {.header: juce_graphics, importcpp: "juce::Font(@)".}
 proc makeFont*(typefaceName: String, fontHeight: cfloat, styleFlags: cint): Font {.header: juce_graphics, importcpp: "juce::Font(@)".}
 proc makeFont*(typefaceName: String, typefaceStyle: String, fontHeight: cfloat): Font {.header: juce_graphics, importcpp: "juce::Font(@)".}
-# proc makeFont*(typeface: Typeface::Ptr): Font {.header: juce_graphics, importcpp: "juce::Font(@)".}
+proc makeFont*(typeface: ReferenceCountedObjectPtr[Typeface]): Font {.header: juce_graphics, importcpp: "juce::Font(@)".}
 proc makeFont*(): Font {.header: juce_graphics, importcpp: "juce::Font(@)".}
 proc `Font=`*(this: var Font, other: lent Font): var Font {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc `Font=`*(this: var Font, other: Font): var Font {.header: juce_graphics, importcpp: "#.operator=(@)".}
@@ -802,7 +802,7 @@ proc getDescentOverride*(this: Font): CppOptional[cfloat] {.header: juce_graphic
 proc setDescentOverride*(this: var Font, arg1: CppOptional[cfloat]) {.header: juce_graphics, importcpp: "#.setDescentOverride(@)".}
 proc setSizeAndStyle*(this: var Font, newHeight: cfloat, newStyleFlags: cint, newHorizontalScale: cfloat, newKerningAmount: cfloat) {.header: juce_graphics, importcpp: "#.setSizeAndStyle(@)".}
 proc setSizeAndStyle*(this: var Font, newHeight: cfloat, newStyle: String, newHorizontalScale: cfloat, newKerningAmount: cfloat) {.header: juce_graphics, importcpp: "#.setSizeAndStyle(@)".}
-# proc getTypefacePtr*(this: Font): Typeface::Ptr {.header: juce_graphics, importcpp: "#.getTypefacePtr()".}
+proc getTypefacePtr*(this: Font): ReferenceCountedObjectPtr[Typeface] {.header: juce_graphics, importcpp: "#.getTypefacePtr()".}
 proc findSuitableFontForText*(this: Font, text: String, language: String): Font {.header: juce_graphics, importcpp: "#.findSuitableFontForText(@)".}
 proc toString*(this: Font): String {.header: juce_graphics, importcpp: "#.toString()".}
 proc getNativeDetails*(this: Font): FontNative {.header: juce_graphics, importcpp: "#.getNativeDetails()".}
@@ -837,8 +837,8 @@ proc setFont*(this: var AttributedString, range: Range[cint], font: Font) {.head
 proc setFont*(this: var AttributedString, font: Font) {.header: juce_graphics, importcpp: "#.setFont(@)".}
 
 proc makePositionedGlyph*(): PositionedGlyph {.header: juce_graphics, importcpp: "juce::PositionedGlyph(@)".}
-proc makePositionedGlyph*(font: Font, character: uint32, glyphNumber: cint, anchorX: cfloat, baselineY: cfloat, width: cfloat, isWhitespace: bool): PositionedGlyph {.header: juce_graphics, importcpp: "juce::PositionedGlyph(@)".}
-proc getCharacter*(this: PositionedGlyph): uint32 {.header: juce_graphics, importcpp: "#.getCharacter()".}
+proc makePositionedGlyph*(font: Font, character: uint16, glyphNumber: cint, anchorX: cfloat, baselineY: cfloat, width: cfloat, isWhitespace: bool): PositionedGlyph {.header: juce_graphics, importcpp: "juce::PositionedGlyph(@)".}
+proc getCharacter*(this: PositionedGlyph): uint16 {.header: juce_graphics, importcpp: "#.getCharacter()".}
 proc isWhitespace*(this: PositionedGlyph): bool {.header: juce_graphics, importcpp: "#.isWhitespace()".}
 proc getLeft*(this: PositionedGlyph): cfloat {.header: juce_graphics, importcpp: "#.getLeft()".}
 proc getRight*(this: PositionedGlyph): cfloat {.header: juce_graphics, importcpp: "#.getRight()".}
@@ -936,7 +936,7 @@ proc drawRoundedRectangle*(this: var LowLevelGraphicsContext, r: Rectangle[cfloa
 proc fillRoundedRectangle*(this: var LowLevelGraphicsContext, r: Rectangle[cfloat], cornerSize: cfloat) {.header: juce_graphics, importcpp: "#.fillRoundedRectangle(@)".}
 proc drawEllipse*(this: var LowLevelGraphicsContext, area: Rectangle[cfloat], lineThickness: cfloat) {.header: juce_graphics, importcpp: "#.drawEllipse(@)".}
 proc fillEllipse*(this: var LowLevelGraphicsContext, area: Rectangle[cfloat]) {.header: juce_graphics, importcpp: "#.fillEllipse(@)".}
-# proc getFrameId*(this: LowLevelGraphicsContext): uint64_t {.header: juce_graphics, importcpp: "#.getFrameId()".}
+proc getFrameId*(this: LowLevelGraphicsContext): uint64 {.header: juce_graphics, importcpp: "#.getFrameId()".}
 
 proc makeScaledImage*(): ScaledImage {.header: juce_graphics, importcpp: "juce::ScaledImage(@)".}
 proc makeScaledImage*(imageIn: Image): ScaledImage {.header: juce_graphics, importcpp: "juce::ScaledImage(@)".}
@@ -975,7 +975,7 @@ proc drawImage*(this: var LowLevelGraphicsSoftwareRenderer, im: Image, t: Affine
 proc drawLine*(this: var LowLevelGraphicsSoftwareRenderer, line: Line[cfloat]) {.header: juce_graphics, importcpp: "#.drawLine(@)".}
 proc setFont*(this: var LowLevelGraphicsSoftwareRenderer, newFont: Font) {.header: juce_graphics, importcpp: "#.setFont(@)".}
 proc getFont*(this: var LowLevelGraphicsSoftwareRenderer): Font {.header: juce_graphics, importcpp: "#.getFont()".}
-# proc getFrameId*(this: LowLevelGraphicsSoftwareRenderer): uint64_t {.header: juce_graphics, importcpp: "#.getFrameId()".}
+proc getFrameId*(this: LowLevelGraphicsSoftwareRenderer): uint64 {.header: juce_graphics, importcpp: "#.getFrameId()".}
 proc drawGlyphs*(this: var LowLevelGraphicsSoftwareRenderer, glyphs: Span[uint16], positions: Span[Point[cfloat]], t: AffineTransform) {.header: juce_graphics, importcpp: "#.drawGlyphs(@)".}
 
 proc applyEffect*(this: var ImageEffectFilter, sourceImage: var Image, destContext: var Graphics, scaleFactor: cfloat, alpha: cfloat) {.header: juce_graphics, importcpp: "#.applyEffect(@)".}
