@@ -52,6 +52,29 @@ long>`` that JUCE never instantiates.
 A proc whose types cannot be spelled in Nim is emitted as a comment rather than
 omitted, so what is missing stays visible in the generated file.
 
+--------------------------
+Regenerating The Bindings
+--------------------------
+
+Needed after a JUCE upgrade, or after a change to ``tools/inspect_juce.py``.
+The generator reads the JUCE headers with libclang.
+
+.. code-block:: bash
+
+  python3 -m pip install --user libclang
+
+  for module in juce_core juce_events juce_data_structures juce_graphics juce_gui_basics; do
+    PYTHONPATH=tools python3 tools/inspect_juce.py --module "$module" > "sources/june/$module.nim"
+  done
+
+The generator aborts on a parse error rather than emitting a binding for a type
+it did not resolve. An unresolved type does not stop libclang, it degrades to
+``int``, so a run that printed nothing and emitted a full file used to look
+exactly like a correct one.
+
+Edit the ``*_lifting.nim`` files, never the generated ``juce_*.nim`` files: a
+regeneration overwrites them.
+
 -----------------
 Build From Source
 -----------------
