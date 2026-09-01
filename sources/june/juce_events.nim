@@ -58,7 +58,7 @@ proc hasStopMessageBeenSent*(this: MessageManager): bool {.header: juce_events, 
 # proc callFunctionOnMessageThread*(this: var MessageManager, callback: ptr MessageCallbackFunction, userData: pointer): pointer {.header: juce_events, importcpp: "#.callFunctionOnMessageThread(@)".}
 proc isThisTheMessageThread*(this: MessageManager): bool {.header: juce_events, importcpp: "#.isThisTheMessageThread()".}
 proc setCurrentThreadAsMessageThread*(this: var MessageManager) {.header: juce_events, importcpp: "#.setCurrentThreadAsMessageThread()".}
-# proc getCurrentMessageThread*(this: MessageManager): Thread::ThreadID {.header: juce_events, importcpp: "#.getCurrentMessageThread()".}
+proc getCurrentMessageThread*(this: MessageManager): pointer {.header: juce_events, importcpp: "#.getCurrentMessageThread()".}
 proc currentThreadHasLockedMessageManager*(this: MessageManager): bool {.header: juce_events, importcpp: "#.currentThreadHasLockedMessageManager()".}
 proc registerBroadcastListener*(this: var MessageManager, listener: ptr ActionListener) {.header: juce_events, importcpp: "#.registerBroadcastListener(@)".}
 proc deregisterBroadcastListener*(this: var MessageManager, listener: ptr ActionListener) {.header: juce_events, importcpp: "#.deregisterBroadcastListener(@)".}

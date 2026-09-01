@@ -119,7 +119,7 @@ proc getSibling*(this: ValueTree, delta: cint): ValueTree {.header: juce_data_st
 # proc begin*(this: ValueTree): ValueTreeIterator {.header: juce_data_structures, importcpp: "#.begin()".}
 # proc `end`*(this: ValueTree): ValueTreeIterator {.header: juce_data_structures, importcpp: "#.end()".}
 proc createXml*(this: ValueTree): UniquePtr[XmlElement] {.header: juce_data_structures, importcpp: "#.createXml()".}
-# proc toXmlString*(this: ValueTree, format: XmlElement::TextFormat): String {.header: juce_data_structures, importcpp: "#.toXmlString(@)".}
+proc toXmlString*(this: ValueTree, format: XmlElementTextFormat): String {.header: juce_data_structures, importcpp: "#.toXmlString(@)".}
 proc writeToStream*(this: ValueTree, output: var OutputStream) {.header: juce_data_structures, importcpp: "#.writeToStream(@)".}
 proc addListener*(this: var ValueTree, listener: ptr ValueTreeListener) {.header: juce_data_structures, importcpp: "#.addListener(@)".}
 proc removeListener*(this: var ValueTree, listener: ptr ValueTreeListener) {.header: juce_data_structures, importcpp: "#.removeListener(@)".}
@@ -128,7 +128,7 @@ proc sendPropertyChangeMessage*(this: var ValueTree, property: Identifier) {.hea
 proc getReferenceCount*(this: ValueTree): cint {.header: juce_data_structures, importcpp: "#.getReferenceCount()".}
 
 proc makeValueTreeSynchroniser*(tree: ValueTree): ValueTreeSynchroniser {.header: juce_data_structures, importcpp: "juce::ValueTreeSynchroniser(@)".}
-proc stateChanged*(this: var ValueTreeSynchroniser, encodedChange: constPointer, encodedChangeSize: csize_t) {.header: juce_data_structures, importcpp: "#.stateChanged(@)".}
+proc stateChanged*(this: var ValueTreeSynchroniser, encodedChange: constPointer, encodedChangeSize: uint64) {.header: juce_data_structures, importcpp: "#.stateChanged(@)".}
 proc sendFullSyncCallback*(this: var ValueTreeSynchroniser) {.header: juce_data_structures, importcpp: "#.sendFullSyncCallback()".}
 proc getRoot*(this: var ValueTreeSynchroniser): ValueTree {.header: juce_data_structures, importcpp: "#.getRoot()".}
 
@@ -164,8 +164,8 @@ proc reload*(this: var PropertiesFile): bool {.header: juce_data_structures, imp
 proc getFile*(this: PropertiesFile): File {.header: juce_data_structures, importcpp: "#.getFile()".}
 
 proc makeApplicationProperties*(): ApplicationProperties {.header: juce_data_structures, importcpp: "juce::ApplicationProperties(@)".}
-# proc setStorageParameters*(this: var ApplicationProperties, options: PropertiesFile::Options) {.header: juce_data_structures, importcpp: "#.setStorageParameters(@)".}
-# proc getStorageParameters*(this: ApplicationProperties): PropertiesFile::Options {.header: juce_data_structures, importcpp: "#.getStorageParameters()".}
+proc setStorageParameters*(this: var ApplicationProperties, options: PropertiesFileOptions) {.header: juce_data_structures, importcpp: "#.setStorageParameters(@)".}
+proc getStorageParameters*(this: ApplicationProperties): PropertiesFileOptions {.header: juce_data_structures, importcpp: "#.getStorageParameters()".}
 proc getUserSettings*(this: var ApplicationProperties): ptr PropertiesFile {.header: juce_data_structures, importcpp: "#.getUserSettings()".}
 proc getCommonSettings*(this: var ApplicationProperties, returnUserPropsIfReadOnly: bool): ptr PropertiesFile {.header: juce_data_structures, importcpp: "#.getCommonSettings(@)".}
 proc saveIfNeeded*(this: var ApplicationProperties): bool {.header: juce_data_structures, importcpp: "#.saveIfNeeded()".}

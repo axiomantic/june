@@ -187,3 +187,15 @@ iterator items*[T](this: RectangleList[T]): Rectangle[T] =
   for index in 0.cint ..< this.getNumRectangles():
     yield this.getRectangle(index)
 
+# SparseSet
+type
+    SparseSet*[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::SparseSet".} = object
+
+proc isEmpty*[T](this: SparseSet[T]): bool {.importcpp: "#.isEmpty()".}
+proc size*[T](this: SparseSet[T]): T {.importcpp: "#.size()".}
+proc `[]`*[T](this: SparseSet[T], index: T): T {.importcpp: "#[#]".}
+proc contains*[T](this: SparseSet[T], valueToLookFor: T): bool {.importcpp: "#.contains(@)".}
+proc getNumRanges*[T](this: SparseSet[T]): cint {.importcpp: "#.getNumRanges()".}
+proc getRange*[T](this: SparseSet[T], rangeIndex: cint): Range[T] {.importcpp: "#.getRange(@)".}
+proc getTotalRange*[T](this: SparseSet[T]): Range[T] {.importcpp: "#.getTotalRange()".}
+
