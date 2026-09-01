@@ -254,3 +254,43 @@ proc testThreadPoolJob() =
   doAssert ran == 1, "the job body ran " & $ran & " times"
 
 testThreadPoolJob()
+
+# The generic container iterators. Each one is a hand-written loop over the
+# indexed accessors, so nothing else would catch it going wrong.
+proc testGenericContainerIteration() =
+  var numbers: Array[cint]
+  numbers.add(10.cint)
+  numbers.add(20.cint)
+  numbers.add(30.cint)
+
+  var summed = 0
+  for value in numbers:
+    summed += value
+  doAssert summed == 60, "Array iteration summed " & $summed
+
+  # A Span comes from JUCE rather than being built in Nim: a juce::var holding
+  # an array hands one out.
+  var elements: Array[juce_var]
+  elements.add(makejuce_var(1.cint))
+  elements.add(makejuce_var(2.cint))
+  let arrayVar = makejuce_var(elements)
+
+  var spanned = 0
+  for element in arrayVar.getArrayElements():
+    spanned += 1
+  doAssert spanned == 2, "Span iteration saw " & $spanned & " elements"
+
+testGenericContainerIteration()
+
+# Two JUCE overloads can differ only in the parameter name -- String(int64
+# largeIntegerValue) and String(int64 decimalInteger) -- and both used to be
+# emitted, which made every call matching them ambiguous and so uncallable.
+proc testNoDuplicateOverloads() =
+  doAssert compiles(makeString(5'i64))
+  doAssert compiles(makeString(5'u64))
+  doAssert $makeString(5'i64) == "5"
+
+  doAssert compiles(makejuce_var(makeString("x")))
+  doAssert makejuce_var(makeString("x")).isString()
+
+testNoDuplicateOverloads()
