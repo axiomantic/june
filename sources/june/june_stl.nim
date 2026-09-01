@@ -14,6 +14,7 @@ type
   UniquePtr*[T] {.header: "<memory>", importcpp: "std::unique_ptr<'0>", bycopy.} = object
   CppOptional*[T] {.header: "<optional>", importcpp: "std::optional<'0>", bycopy.} = object
   CppVector*[T] {.header: "<vector>", importcpp: "std::vector<'0>", bycopy.} = object
+  CppString* {.header: "<string>", importcpp: "std::string", bycopy.} = object
 
 # A unique_ptr is the sole owner of its pointee, so copying one in Nim would
 # compile into a C++ copy that does not exist. Reject it at compile time.
@@ -41,3 +42,14 @@ proc `[]`*[T](this: CppVector[T], index: csize_t): T {.importcpp: "#[#]".}
 iterator items*[T](this: CppVector[T]): T =
   for index in 0 ..< this.size():
     yield this[index]
+
+# std::string. JUCE's String.toStdString returns one, which is the usual way out
+# to another C++ library.
+# c_str returns a const char*, and Nim's cstring is char*, so the constness has
+# to be cast away. Nothing writes through it.
+proc cStr*(this: CppString): cstring {.importcpp: "const_cast<char*>(#.c_str())".}
+proc len*(this: CppString): csize_t {.importcpp: "#.size()".}
+proc isEmpty*(this: CppString): bool {.importcpp: "#.empty()".}
+proc `==`*(this: CppString, other: CppString): bool {.importcpp: "# == #".}
+proc `$`*(this: CppString): string = $this.cStr()
+

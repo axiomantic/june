@@ -97,3 +97,15 @@ proc testDollar() =
 
 testDollar()
 
+proc testStdString() =
+  # String.toStdString is the usual way out to another C++ library, and had no
+  # binding because std::string had no spelling.
+  let text = makeString("hello world")
+  let asStd = text.toStdString()
+  doAssert asStd.len == 11
+  doAssert not asStd.isEmpty()
+  doAssert $asStd == "hello world"
+  doAssert $makeString(asStd) == "hello world"
+
+testStdString()
+

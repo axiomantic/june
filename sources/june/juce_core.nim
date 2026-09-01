@@ -520,7 +520,7 @@ proc makeString*(text: CharPointer_UTF32): String {.header: juce_core, importcpp
 proc makeString*(text: CharPointer_UTF32, maxChars: uint64): String {.header: juce_core, importcpp: "juce::String(@)".}
 proc makeString*(start: CharPointer_UTF32, `end`: CharPointer_UTF32): String {.header: juce_core, importcpp: "juce::String(@)".}
 proc makeString*(text: CharPointer_ASCII): String {.header: juce_core, importcpp: "juce::String(@)".}
-# proc makeString*(arg1: std::string): String {.header: juce_core, importcpp: "juce::String(@)".}
+proc makeString*(arg1: CppString): String {.header: juce_core, importcpp: "juce::String(@)".}
 proc makeString*(decimalInteger: cint): String {.header: juce_core, importcpp: "juce::String(@)".}
 proc makeString*(decimalInteger: uint32): String {.header: juce_core, importcpp: "juce::String(@)".}
 proc makeString*(decimalInteger: int16): String {.header: juce_core, importcpp: "juce::String(@)".}
@@ -638,7 +638,7 @@ proc toRawUTF8Impl*(this: String): constChar {.header: juce_core, importcpp: "#.
 proc toUTF16*(this: String): CharPointer_UTF16 {.header: juce_core, importcpp: "#.toUTF16()".}
 proc toUTF32*(this: String): CharPointer_UTF32 {.header: juce_core, importcpp: "#.toUTF32()".}
 proc toWideCharPointer*(this: String): ptr uint16 {.header: juce_core, importcpp: "#.toWideCharPointer()".}
-# proc toStdString*(this: String): std::string {.header: juce_core, importcpp: "#.toStdString()".}
+proc toStdString*(this: String): CppString {.header: juce_core, importcpp: "#.toStdString()".}
 proc getNumBytesAsUTF8*(this: String): uint64 {.header: juce_core, importcpp: "#.getNumBytesAsUTF8()".}
 proc copyToUTF8*(this: String, destBuffer: ptr char, maxBufferSizeBytes: uint64): uint64 {.header: juce_core, importcpp: "#.copyToUTF8(@)".}
 proc copyToUTF16*(this: String, destBuffer: ptr int16, maxBufferSizeBytes: uint64): uint64 {.header: juce_core, importcpp: "#.copyToUTF16(@)".}
@@ -652,7 +652,7 @@ proc getReferenceCount*(this: String): cint {.header: juce_core, importcpp: "#.g
 proc makeStringRef*(stringLiteral: constChar): StringRef {.header: juce_core, importcpp: "juce::StringRef(@)".}
 proc makeStringRef*(stringLiteral: CharPointer_UTF8): StringRef {.header: juce_core, importcpp: "juce::StringRef(@)".}
 proc makeStringRef*(string: String): StringRef {.header: juce_core, importcpp: "juce::StringRef(@)".}
-# proc makeStringRef*(string: std::string): StringRef {.header: juce_core, importcpp: "juce::StringRef(@)".}
+proc makeStringRef*(string: CppString): StringRef {.header: juce_core, importcpp: "juce::StringRef(@)".}
 proc makeStringRef*(): StringRef {.header: juce_core, importcpp: "juce::StringRef(@)".}
 proc isEmpty*(this: StringRef): bool {.header: juce_core, importcpp: "#.isEmpty()".}
 proc isNotEmpty*(this: StringRef): bool {.header: juce_core, importcpp: "#.isNotEmpty()".}
