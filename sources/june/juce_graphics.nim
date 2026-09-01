@@ -190,7 +190,6 @@ proc getOnlyHorizontalFlags*(this: Justification): cint {.header: juce_graphics,
 
 proc makePath*(): Path {.header: juce_graphics, importcpp: "juce::Path(@)".}
 proc `Path=`*(this: var Path, arg1: Path): var Path {.header: juce_graphics, importcpp: "#.operator=(@)".}
-proc `Path=`*(this: var Path, arg1: lent Path): var Path {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc `==`*(this: Path, arg1: Path): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: Path, arg1: Path): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}
 proc isEmpty*(this: Path): bool {.header: juce_graphics, importcpp: "#.isEmpty()".}
@@ -370,7 +369,6 @@ proc makeColourGradient*(): ColourGradient {.header: juce_graphics, importcpp: "
 proc makeColourGradient*(colour1: Colour, x1: cfloat, y1: cfloat, colour2: Colour, x2: cfloat, y2: cfloat, isRadial: bool): ColourGradient {.header: juce_graphics, importcpp: "juce::ColourGradient(@)".}
 proc makeColourGradient*(colour1: Colour, point1: Point[cfloat], colour2: Colour, point2: Point[cfloat], isRadial: bool): ColourGradient {.header: juce_graphics, importcpp: "juce::ColourGradient(@)".}
 proc `ColourGradient=`*(this: var ColourGradient, arg1: ColourGradient): var ColourGradient {.header: juce_graphics, importcpp: "#.operator=(@)".}
-proc `ColourGradient=`*(this: var ColourGradient, arg1: lent ColourGradient): var ColourGradient {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc clearColours*(this: var ColourGradient) {.header: juce_graphics, importcpp: "#.clearColours()".}
 proc addColour*(this: var ColourGradient, proportionAlongGradient: float64, colour: Colour): cint {.header: juce_graphics, importcpp: "#.addColour(@)".}
 proc removeColour*(this: var ColourGradient, index: cint) {.header: juce_graphics, importcpp: "#.removeColour(@)".}
@@ -498,7 +496,6 @@ proc makeGraphics*(arg1: var LowLevelGraphicsContext): Graphics {.header: juce_g
 proc setColour*(this: var Graphics, newColour: Colour) {.header: juce_graphics, importcpp: "#.setColour(@)".}
 proc setOpacity*(this: var Graphics, newOpacity: cfloat) {.header: juce_graphics, importcpp: "#.setOpacity(@)".}
 proc setGradientFill*(this: var Graphics, gradient: ColourGradient) {.header: juce_graphics, importcpp: "#.setGradientFill(@)".}
-proc setGradientFill*(this: var Graphics, gradient: lent ColourGradient) {.header: juce_graphics, importcpp: "#.setGradientFill(@)".}
 proc setTiledImageFill*(this: var Graphics, imageToUse: Image, anchorX: cint, anchorY: cint, opacity: cfloat) {.header: juce_graphics, importcpp: "#.setTiledImageFill(@)".}
 proc setFillType*(this: var Graphics, newFill: FillType) {.header: juce_graphics, importcpp: "#.setFillType(@)".}
 proc setFont*(this: var Graphics, newFont: Font) {.header: juce_graphics, importcpp: "#.setFont(@)".}
@@ -575,7 +572,6 @@ proc makeImage*(format: ImagePixelFormat, imageWidth: cint, imageHeight: cint, c
 proc makeImage*(format: ImagePixelFormat, imageWidth: cint, imageHeight: cint, clearImage: bool, `type`: ImageType): Image {.header: juce_graphics, importcpp: "juce::Image(@)".}
 proc makeImage*(arg1: ReferenceCountedObjectPtr[ImagePixelData]): Image {.header: juce_graphics, importcpp: "juce::Image(@)".}
 proc `Image=`*(this: var Image, arg1: Image): var Image {.header: juce_graphics, importcpp: "#.operator=(@)".}
-proc `Image=`*(this: var Image, arg1: lent Image): var Image {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc `==`*(this: Image, other: Image): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: Image, other: Image): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}
 proc isValid*(this: Image): bool {.header: juce_graphics, importcpp: "#.isValid()".}
@@ -654,10 +650,8 @@ proc `==`*(this: NativeImageType, other: NativeImageType): bool {.error: "juce::
 proc makeFillType*(): FillType {.header: juce_graphics, importcpp: "juce::FillType(@)".}
 proc makeFillType*(colour: Colour): FillType {.header: juce_graphics, importcpp: "juce::FillType(@)".}
 proc makeFillType*(gradient: ColourGradient): FillType {.header: juce_graphics, importcpp: "juce::FillType(@)".}
-proc makeFillType*(gradient: lent ColourGradient): FillType {.header: juce_graphics, importcpp: "juce::FillType(@)".}
 proc makeFillType*(image: Image, transform: AffineTransform): FillType {.header: juce_graphics, importcpp: "juce::FillType(@)".}
 proc `FillType=`*(this: var FillType, arg1: FillType): var FillType {.header: juce_graphics, importcpp: "#.operator=(@)".}
-proc `FillType=`*(this: var FillType, arg1: lent FillType): var FillType {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc isColour*(this: FillType): bool {.header: juce_graphics, importcpp: "#.isColour()".}
 proc isGradient*(this: FillType): bool {.header: juce_graphics, importcpp: "#.isGradient()".}
 proc isTiledImage*(this: FillType): bool {.header: juce_graphics, importcpp: "#.isTiledImage()".}
@@ -761,7 +755,6 @@ proc makeFont*(typefaceName: String, fontHeight: cfloat, styleFlags: cint): Font
 proc makeFont*(typefaceName: String, typefaceStyle: String, fontHeight: cfloat): Font {.header: juce_graphics, importcpp: "juce::Font(@)".}
 proc makeFont*(typeface: ReferenceCountedObjectPtr[Typeface]): Font {.header: juce_graphics, importcpp: "juce::Font(@)".}
 proc makeFont*(): Font {.header: juce_graphics, importcpp: "juce::Font(@)".}
-proc `Font=`*(this: var Font, other: lent Font): var Font {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc `Font=`*(this: var Font, other: Font): var Font {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc `==`*(this: Font, other: Font): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: Font, other: Font): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}
@@ -822,7 +815,6 @@ proc getHeightToPointsFactor*(this: Font): cfloat {.header: juce_graphics, impor
 proc makeAttributedString*(): AttributedString {.header: juce_graphics, importcpp: "juce::AttributedString(@)".}
 proc makeAttributedString*(newString: String): AttributedString {.header: juce_graphics, importcpp: "juce::AttributedString(@)".}
 proc `AttributedString=`*(this: var AttributedString, arg1: AttributedString): var AttributedString {.header: juce_graphics, importcpp: "#.operator=(@)".}
-proc `AttributedString=`*(this: var AttributedString, arg1: lent AttributedString): var AttributedString {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc getText*(this: AttributedString): String {.header: juce_graphics, importcpp: "#.getText()".}
 proc setText*(this: var AttributedString, newText: String) {.header: juce_graphics, importcpp: "#.setText(@)".}
 proc append*(this: var AttributedString, textToAppend: String) {.header: juce_graphics, importcpp: "#.append(@)".}
@@ -868,7 +860,6 @@ proc `==`*(this: PositionedGlyph, other: PositionedGlyph): bool {.error: "juce::
 
 proc makeGlyphArrangement*(): GlyphArrangement {.header: juce_graphics, importcpp: "juce::GlyphArrangement(@)".}
 proc `GlyphArrangement=`*(this: var GlyphArrangement, arg1: GlyphArrangement): var GlyphArrangement {.header: juce_graphics, importcpp: "#.operator=(@)".}
-proc `GlyphArrangement=`*(this: var GlyphArrangement, arg1: lent GlyphArrangement): var GlyphArrangement {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc getNumGlyphs*(this: GlyphArrangement): cint {.header: juce_graphics, importcpp: "#.getNumGlyphs()".}
 proc getGlyph*(this: var GlyphArrangement, index: cint): var PositionedGlyph {.header: juce_graphics, importcpp: "#.getGlyph(@)".}
 # proc begin*(this: GlyphArrangement): ptr PositionedGlyph {.header: juce_graphics, importcpp: "#.begin()".}
@@ -893,7 +884,6 @@ proc `==`*(this: GlyphArrangement, other: GlyphArrangement): bool {.error: "juce
 
 proc makeTextLayout*(): TextLayout {.header: juce_graphics, importcpp: "juce::TextLayout(@)".}
 proc `TextLayout=`*(this: var TextLayout, arg1: TextLayout): var TextLayout {.header: juce_graphics, importcpp: "#.operator=(@)".}
-proc `TextLayout=`*(this: var TextLayout, arg1: lent TextLayout): var TextLayout {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc createLayout*(this: var TextLayout, arg1: AttributedString, maxWidth: cfloat) {.header: juce_graphics, importcpp: "#.createLayout(@)".}
 proc createLayout*(this: var TextLayout, arg1: AttributedString, maxWidth: cfloat, maxHeight: cfloat) {.header: juce_graphics, importcpp: "#.createLayout(@)".}
 proc createLayoutWithBalancedLineLengths*(this: var TextLayout, arg1: AttributedString, maxWidth: cfloat) {.header: juce_graphics, importcpp: "#.createLayoutWithBalancedLineLengths(@)".}

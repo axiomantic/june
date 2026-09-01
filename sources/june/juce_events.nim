@@ -97,7 +97,6 @@ proc `==`*(this: JUCEApplicationBase, other: JUCEApplicationBase): bool {.error:
 
 proc makeScopedJuceInitialiser_GUI*(): ScopedJuceInitialiser_GUI {.header: juce_events, importcpp: "juce::ScopedJuceInitialiser_GUI(@)".}
 proc `ScopedJuceInitialiser_GUI=`*(this: var ScopedJuceInitialiser_GUI, arg1: ScopedJuceInitialiser_GUI): var ScopedJuceInitialiser_GUI {.header: juce_events, importcpp: "#.operator=(@)".}
-proc `ScopedJuceInitialiser_GUI=`*(this: var ScopedJuceInitialiser_GUI, arg1: lent ScopedJuceInitialiser_GUI): var ScopedJuceInitialiser_GUI {.header: juce_events, importcpp: "#.operator=(@)".}
 proc `==`*(this: ScopedJuceInitialiser_GUI, other: ScopedJuceInitialiser_GUI): bool {.error: "juce::ScopedJuceInitialiser_GUI defines no operator==; compare a property instead".}
 
 proc makeMountedVolumeListChangeDetector*(): MountedVolumeListChangeDetector {.header: juce_events, importcpp: "juce::MountedVolumeListChangeDetector(@)".}
@@ -123,7 +122,7 @@ proc handleAsyncUpdate*(this: var AsyncUpdater) {.header: juce_events, importcpp
 proc `==`*(this: AsyncUpdater, other: AsyncUpdater): bool {.error: "juce::AsyncUpdater defines no operator==; compare a property instead".}
 
 proc makeLockingAsyncUpdater*(callbackToUse: CppFunctionObjectN0): LockingAsyncUpdater {.header: juce_events, importcpp: "juce::LockingAsyncUpdater(@)".}
-proc `LockingAsyncUpdater=`*(this: var LockingAsyncUpdater, other: lent LockingAsyncUpdater): var LockingAsyncUpdater {.header: juce_events, importcpp: "#.operator=(@)".}
+proc `LockingAsyncUpdater=`*(this: var LockingAsyncUpdater, other: LockingAsyncUpdater): var LockingAsyncUpdater {.header: juce_events, importcpp: "#.operator=(@)".}
 proc triggerAsyncUpdate*(this: var LockingAsyncUpdater) {.header: juce_events, importcpp: "#.triggerAsyncUpdate()".}
 proc cancelPendingUpdate*(this: var LockingAsyncUpdater) {.header: juce_events, importcpp: "#.cancelPendingUpdate()".}
 proc handleUpdateNowIfNeeded*(this: var LockingAsyncUpdater) {.header: juce_events, importcpp: "#.handleUpdateNowIfNeeded()".}

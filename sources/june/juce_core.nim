@@ -539,7 +539,6 @@ proc hashCode64*(this: String): int64 {.header: juce_core, importcpp: "#.hashCod
 proc hash*(this: String): uint64 {.header: juce_core, importcpp: "#.hash()".}
 proc length*(this: String): cint {.header: juce_core, importcpp: "#.length()".}
 proc `String=`*(this: var String, other: String): var String {.header: juce_core, importcpp: "#.operator=(@)".}
-proc `String=`*(this: var String, other: lent String): var String {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `+=`*(this: var String, stringToAppend: String) {.header: juce_core, importcpp: "#.operator+=(@)".}
 proc `+=`*(this: var String, textToAppend: ptr uint16) {.header: juce_core, importcpp: "#.operator+=(@)".}
 proc `+=`*(this: var String, numberToAppend: cint) {.header: juce_core, importcpp: "#.operator+=(@)".}
@@ -671,7 +670,6 @@ proc makeMemoryBlock*(): MemoryBlock {.header: juce_core, importcpp: "juce::Memo
 proc makeMemoryBlock*(initialSize: uint64, initialiseToZero: bool): MemoryBlock {.header: juce_core, importcpp: "juce::MemoryBlock(@)".}
 proc makeMemoryBlock*(dataToInitialiseFrom: constPointer, sizeInBytes: uint64): MemoryBlock {.header: juce_core, importcpp: "juce::MemoryBlock(@)".}
 proc `MemoryBlock=`*(this: var MemoryBlock, arg1: MemoryBlock): var MemoryBlock {.header: juce_core, importcpp: "#.operator=(@)".}
-proc `MemoryBlock=`*(this: var MemoryBlock, arg1: lent MemoryBlock): var MemoryBlock {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `==`*(this: MemoryBlock, other: MemoryBlock): bool {.header: juce_core, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: MemoryBlock, other: MemoryBlock): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
 proc matches*(this: MemoryBlock, data: constPointer, dataSize: uint64): bool {.header: juce_core, importcpp: "#.matches(@)".}
@@ -730,7 +728,7 @@ proc `==`*(this: NullCheckedInvocation, other: NullCheckedInvocation): bool {.er
 
 proc makeErasedScopeGuard*(): ErasedScopeGuard {.header: juce_core, importcpp: "juce::ErasedScopeGuard(@)".}
 proc makeErasedScopeGuard*(d: CppFunctionObjectN0): ErasedScopeGuard {.header: juce_core, importcpp: "juce::ErasedScopeGuard(@)".}
-proc `ErasedScopeGuard=`*(this: var ErasedScopeGuard, other: lent ErasedScopeGuard): var ErasedScopeGuard {.header: juce_core, importcpp: "#.operator=(@)".}
+proc `ErasedScopeGuard=`*(this: var ErasedScopeGuard, other: ErasedScopeGuard): var ErasedScopeGuard {.header: juce_core, importcpp: "#.operator=(@)".}
 proc reset*(this: var ErasedScopeGuard) {.header: juce_core, importcpp: "#.reset()".}
 proc release*(this: var ErasedScopeGuard) {.header: juce_core, importcpp: "#.release()".}
 proc `ErasedScopeGuard=`*(this: var ErasedScopeGuard, arg1: ErasedScopeGuard): var ErasedScopeGuard {.header: juce_core, importcpp: "#.operator=(@)".}
@@ -773,7 +771,6 @@ proc makeIdentifier*(): Identifier {.header: juce_core, importcpp: "juce::Identi
 proc makeIdentifier*(name: String): Identifier {.header: juce_core, importcpp: "juce::Identifier(@)".}
 proc makeIdentifier*(nameStart: CharPointer_UTF8, nameEnd: CharPointer_UTF8): Identifier {.header: juce_core, importcpp: "juce::Identifier(@)".}
 proc `Identifier=`*(this: var Identifier, other: Identifier): var Identifier {.header: juce_core, importcpp: "#.operator=(@)".}
-proc `Identifier=`*(this: var Identifier, other: lent Identifier): var Identifier {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `==`*(this: Identifier, other: Identifier): bool {.header: juce_core, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: Identifier, other: Identifier): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
 proc `==`*(this: Identifier, other: StringRef): bool {.header: juce_core, importcpp: "#.operator==(@)".}
@@ -796,7 +793,6 @@ proc makeStringArray*(strings: constChar, numberOfStrings: cint): StringArray {.
 proc makeStringArray*(strings: ptr uint16): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
 proc makeStringArray*(strings: ptr uint16, numberOfStrings: cint): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
 proc `StringArray=`*(this: var StringArray, arg1: StringArray): var StringArray {.header: juce_core, importcpp: "#.operator=(@)".}
-proc `StringArray=`*(this: var StringArray, arg1: lent StringArray): var StringArray {.header: juce_core, importcpp: "#.operator=(@)".}
 proc swapWith*(this: var StringArray, arg1: var StringArray) {.header: juce_core, importcpp: "#.swapWith(@)".}
 proc `==`*(this: StringArray, arg1: StringArray): bool {.header: juce_core, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: StringArray, arg1: StringArray): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
@@ -883,7 +879,6 @@ proc failed*(this: Result): bool {.header: juce_core, importcpp: "#.failed()".}
 # proc operator!*(this: Result): bool {.header: juce_core, importcpp: "#.operator!()".}
 proc getErrorMessage*(this: Result): String {.header: juce_core, importcpp: "#.getErrorMessage()".}
 proc `Result=`*(this: var Result, arg1: Result): var Result {.header: juce_core, importcpp: "#.operator=(@)".}
-proc `Result=`*(this: var Result, arg1: lent Result): var Result {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `==`*(this: Result, other: Result): bool {.header: juce_core, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: Result, other: Result): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
 
@@ -957,8 +952,8 @@ proc makejuce_var*(`object`: ptr ReferenceCountedObject): juce_var {.header: juc
 proc makejuce_var*(`method`: CppFunctionObjectR1[juce_var, juce_varNativeFunctionArgs]): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
 proc makejuce_var*(binaryData: constPointer, dataSize: uint64): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
 proc makejuce_var*(binaryData: MemoryBlock): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
-proc makejuce_var*(arg1: lent String): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
-proc makejuce_var*(arg1: lent MemoryBlock): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
+proc makejuce_var*(arg1: String): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
+proc makejuce_var*(arg1: MemoryBlock): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
 proc makejuce_var*(arg1: Array[juce_var]): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
 proc `juce_var=`*(this: var juce_var, valueToCopy: juce_var): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `juce_var=`*(this: var juce_var, value: cint): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
@@ -972,8 +967,8 @@ proc `juce_var=`*(this: var juce_var, value: MemoryBlock): var juce_var {.header
 proc `juce_var=`*(this: var juce_var, value: Array[juce_var]): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `juce_var=`*(this: var juce_var, `object`: ptr ReferenceCountedObject): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `juce_var=`*(this: var juce_var, `method`: CppFunctionObjectR1[juce_var, juce_varNativeFunctionArgs]): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
-proc `juce_var=`*(this: var juce_var, arg1: lent juce_var): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
-proc `juce_var=`*(this: var juce_var, arg1: lent String): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
+proc `juce_var=`*(this: var juce_var, arg1: juce_var): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
+proc `juce_var=`*(this: var juce_var, arg1: String): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
 proc swapWith*(this: var juce_var, other: var juce_var) {.header: juce_core, importcpp: "#.swapWith(@)".}
 proc toString*(this: juce_var): String {.header: juce_core, importcpp: "#.toString()".}
 proc getArray*(this: juce_var): ptr Array[juce_var] {.header: juce_core, importcpp: "#.getArray()".}
@@ -1037,7 +1032,6 @@ proc isEmpty*(this: NamedValueSet): bool {.header: juce_core, importcpp: "#.isEm
 proc `[]`*(this: NamedValueSet, name: Identifier): juce_var {.header: juce_core, importcpp: "#.operator[](@)".}
 proc getWithDefault*(this: NamedValueSet, name: Identifier, defaultReturnValue: juce_var): juce_var {.header: juce_core, importcpp: "#.getWithDefault(@)".}
 proc set*(this: var NamedValueSet, name: Identifier, newValue: juce_var): bool {.header: juce_core, importcpp: "#.set(@)".}
-proc set*(this: var NamedValueSet, name: Identifier, newValue: lent juce_var): bool {.header: juce_core, importcpp: "#.set(@)".}
 proc contains*(this: NamedValueSet, name: Identifier): bool {.header: juce_core, importcpp: "#.contains(@)".}
 proc remove*(this: var NamedValueSet, name: Identifier): bool {.header: juce_core, importcpp: "#.remove(@)".}
 proc getName*(this: NamedValueSet, index: cint): Identifier {.header: juce_core, importcpp: "#.getName(@)".}
@@ -1185,7 +1179,7 @@ proc `==`*(this: BufferedInputStream, other: BufferedInputStream): bool {.error:
 
 proc makeMemoryInputStream*(sourceData: constPointer, sourceDataSize: uint64, keepInternalCopyOfData: bool): MemoryInputStream {.header: juce_core, importcpp: "juce::MemoryInputStream(@)".}
 proc makeMemoryInputStream*(data: MemoryBlock, keepInternalCopyOfData: bool): MemoryInputStream {.header: juce_core, importcpp: "juce::MemoryInputStream(@)".}
-proc makeMemoryInputStream*(blockToTake: lent MemoryBlock): MemoryInputStream {.header: juce_core, importcpp: "juce::MemoryInputStream(@)".}
+proc makeMemoryInputStream*(blockToTake: MemoryBlock): MemoryInputStream {.header: juce_core, importcpp: "juce::MemoryInputStream(@)".}
 proc getData*(this: MemoryInputStream): constPointer {.header: juce_core, importcpp: "#.getData()".}
 proc getDataSize*(this: MemoryInputStream): uint64 {.header: juce_core, importcpp: "#.getDataSize()".}
 proc getPosition*(this: var MemoryInputStream): int64 {.header: juce_core, importcpp: "#.getPosition()".}
@@ -1233,7 +1227,7 @@ proc makeFile*(): File {.header: juce_core, importcpp: "juce::File(@)".}
 proc makeFile*(absolutePath: String): File {.header: juce_core, importcpp: "juce::File(@)".}
 proc `File=`*(this: var File, newAbsolutePath: String): var File {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `File=`*(this: var File, otherFile: File): var File {.header: juce_core, importcpp: "#.operator=(@)".}
-proc `File=`*(this: var File, arg1: lent File): var File {.header: juce_core, importcpp: "#.operator=(@)".}
+proc `File=`*(this: var File, arg1: File): var File {.header: juce_core, importcpp: "#.operator=(@)".}
 proc exists*(this: File): bool {.header: juce_core, importcpp: "#.exists()".}
 proc existsAsFile*(this: File): bool {.header: juce_core, importcpp: "#.existsAsFile()".}
 proc isDirectory*(this: File): bool {.header: juce_core, importcpp: "#.isDirectory()".}
@@ -1445,7 +1439,6 @@ proc makeBigInteger*(): BigInteger {.header: juce_core, importcpp: "juce::BigInt
 proc makeBigInteger*(value: uint32): BigInteger {.header: juce_core, importcpp: "juce::BigInteger(@)".}
 proc makeBigInteger*(value: cint): BigInteger {.header: juce_core, importcpp: "juce::BigInteger(@)".}
 proc makeBigInteger*(value: int64): BigInteger {.header: juce_core, importcpp: "juce::BigInteger(@)".}
-proc `BigInteger=`*(this: var BigInteger, arg1: lent BigInteger): var BigInteger {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `BigInteger=`*(this: var BigInteger, arg1: BigInteger): var BigInteger {.header: juce_core, importcpp: "#.operator=(@)".}
 proc swapWith*(this: var BigInteger, arg1: var BigInteger) {.header: juce_core, importcpp: "#.swapWith(@)".}
 proc `[]`*(this: BigInteger, bit: cint): bool {.header: juce_core, importcpp: "#.operator[](@)".}
@@ -1518,7 +1511,6 @@ proc makeExpression*(): Expression {.header: juce_core, importcpp: "juce::Expres
 proc makeExpression*(constant: float64): Expression {.header: juce_core, importcpp: "juce::Expression(@)".}
 proc makeExpression*(stringToParse: String, parseError: var String): Expression {.header: juce_core, importcpp: "juce::Expression(@)".}
 proc `Expression=`*(this: var Expression, arg1: Expression): var Expression {.header: juce_core, importcpp: "#.operator=(@)".}
-proc `Expression=`*(this: var Expression, arg1: lent Expression): var Expression {.header: juce_core, importcpp: "#.operator=(@)".}
 proc toString*(this: Expression): String {.header: juce_core, importcpp: "#.toString()".}
 proc `+`*(this: Expression, arg1: Expression): Expression {.header: juce_core, importcpp: "#.operator+(@)".}
 proc `-`*(this: Expression, arg1: Expression): Expression {.header: juce_core, importcpp: "#.operator-(@)".}
@@ -1845,7 +1837,6 @@ proc setPosition*(this: var WebInputStream, wantedPos: int64): bool {.header: ju
 proc `==`*(this: WebInputStream, other: WebInputStream): bool {.error: "juce::WebInputStream defines no operator==; compare a property instead".}
 
 proc makeURLInputSource*(url: URL): URLInputSource {.header: juce_core, importcpp: "juce::URLInputSource(@)".}
-proc makeURLInputSource*(url: lent URL): URLInputSource {.header: juce_core, importcpp: "juce::URLInputSource(@)".}
 proc createInputStream*(this: var URLInputSource): ptr InputStream {.header: juce_core, importcpp: "#.createInputStream()".}
 proc createInputStreamFor*(this: var URLInputSource, relatedItemPath: String): ptr InputStream {.header: juce_core, importcpp: "#.createInputStreamFor(@)".}
 proc hashCode*(this: URLInputSource): int64 {.header: juce_core, importcpp: "#.hashCode()".}
@@ -1911,7 +1902,6 @@ proc makeXmlElement*(tagName: String): XmlElement {.header: juce_core, importcpp
 proc makeXmlElement*(tagName: Identifier): XmlElement {.header: juce_core, importcpp: "juce::XmlElement(@)".}
 proc makeXmlElement*(tagNameBegin: CharPointer_UTF8, tagNameEnd: CharPointer_UTF8): XmlElement {.header: juce_core, importcpp: "juce::XmlElement(@)".}
 proc `XmlElement=`*(this: var XmlElement, arg1: XmlElement): var XmlElement {.header: juce_core, importcpp: "#.operator=(@)".}
-proc `XmlElement=`*(this: var XmlElement, arg1: lent XmlElement): var XmlElement {.header: juce_core, importcpp: "#.operator=(@)".}
 proc isEquivalentTo*(this: XmlElement, other: ptr XmlElement, ignoreOrderOfAttributes: bool): bool {.header: juce_core, importcpp: "#.isEquivalentTo(@)".}
 proc toString*(this: XmlElement, format: XmlElementTextFormat): String {.header: juce_core, importcpp: "#.toString(@)".}
 proc writeTo*(this: XmlElement, output: var OutputStream, format: XmlElementTextFormat) {.header: juce_core, importcpp: "#.writeTo(@)".}
@@ -2057,7 +2047,6 @@ proc `==`*(this: AndroidDocumentPermission, other: AndroidDocumentPermission): b
 
 proc makeAndroidDocument*(): AndroidDocument {.header: juce_core, importcpp: "juce::AndroidDocument(@)".}
 proc `AndroidDocument=`*(this: var AndroidDocument, arg1: AndroidDocument): var AndroidDocument {.header: juce_core, importcpp: "#.operator=(@)".}
-proc `AndroidDocument=`*(this: var AndroidDocument, arg1: lent AndroidDocument): var AndroidDocument {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `==`*(this: AndroidDocument, arg1: AndroidDocument): bool {.header: juce_core, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: AndroidDocument, arg1: AndroidDocument): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
 proc deleteDocument*(this: AndroidDocument): bool {.header: juce_core, importcpp: "#.deleteDocument()".}

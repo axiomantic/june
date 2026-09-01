@@ -189,4 +189,13 @@ proc testContainerIteration() =
     keys.add($name.toString())
   doAssert keys == @["width", "height"], "keys " & $keys
 
+  var document = makeXmlElement(makeString("root"))
+  document.addChildElement(cnew makeXmlElement(makeString("first")))
+  document.addChildElement(cnew makeXmlElement(makeString("second")))
+
+  var tags: seq[string] = @[]
+  for child in document:
+    tags.add($child[].getTagName())
+  doAssert tags == @["first", "second"], "tags " & $tags
+
 testContainerIteration()

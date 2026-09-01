@@ -872,7 +872,6 @@ proc makeMouseCursor*(image: Image, hotSpotX: cint, hotSpotY: cint): MouseCursor
 proc makeMouseCursor*(image: Image, hotSpotX: cint, hotSpotY: cint, scaleFactor: cfloat): MouseCursor {.header: juce_gui_basics, importcpp: "juce::MouseCursor(@)".}
 proc makeMouseCursor*(image: ScaledImage, hotSpot: Point[cint]): MouseCursor {.header: juce_gui_basics, importcpp: "juce::MouseCursor(@)".}
 proc `MouseCursor=`*(this: var MouseCursor, arg1: MouseCursor): var MouseCursor {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
-proc `MouseCursor=`*(this: var MouseCursor, arg1: lent MouseCursor): var MouseCursor {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
 proc `==`*(this: MouseCursor, arg1: MouseCursor): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: MouseCursor, arg1: MouseCursor): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}
 proc `==`*(this: MouseCursor, `type`: MouseCursorStandardCursorType): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
@@ -956,7 +955,6 @@ proc hasMouseMovedSignificantlySincePressed*(this: MouseInputSource): bool {.hea
 
 proc makeMouseEvent*(source: MouseInputSource, position: Point[cfloat], modifiers: ModifierKeys, pressure: cfloat, orientation: cfloat, rotation: cfloat, tiltX: cfloat, tiltY: cfloat, eventComponent: ptr Component, originator: ptr Component, eventTime: Time, mouseDownPos: Point[cfloat], mouseDownTime: Time, numberOfClicks: cint, mouseWasDragged: bool): MouseEvent {.header: juce_gui_basics, importcpp: "juce::MouseEvent(@)".}
 proc `MouseEvent=`*(this: var MouseEvent, arg1: MouseEvent): var MouseEvent {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
-proc `MouseEvent=`*(this: var MouseEvent, arg1: lent MouseEvent): var MouseEvent {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
 proc getMouseDownX*(this: MouseEvent): cint {.header: juce_gui_basics, importcpp: "#.getMouseDownX()".}
 proc getMouseDownY*(this: MouseEvent): cint {.header: juce_gui_basics, importcpp: "#.getMouseDownY()".}
 proc getMouseDownPosition*(this: MouseEvent): Point[cint] {.header: juce_gui_basics, importcpp: "#.getMouseDownPosition()".}
@@ -2022,7 +2020,6 @@ proc `==`*(this: Viewport, other: Viewport): bool {.error: "juce::Viewport defin
 
 proc makePopupMenu*(): PopupMenu {.header: juce_gui_basics, importcpp: "juce::PopupMenu(@)".}
 proc `PopupMenu=`*(this: var PopupMenu, arg1: PopupMenu): var PopupMenu {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
-proc `PopupMenu=`*(this: var PopupMenu, arg1: lent PopupMenu): var PopupMenu {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
 proc clear*(this: var PopupMenu) {.header: juce_gui_basics, importcpp: "#.clear()".}
 proc addItem*(this: var PopupMenu, newItem: PopupMenuItem) {.header: juce_gui_basics, importcpp: "#.addItem(@)".}
 proc addItem*(this: var PopupMenu, itemText: String, action: CppFunctionObjectN0) {.header: juce_gui_basics, importcpp: "#.addItem(@)".}
@@ -2090,7 +2087,6 @@ proc makeRelativeCoordinate*(expression: Expression): RelativeCoordinate {.heade
 proc makeRelativeCoordinate*(absoluteDistanceFromOrigin: float64): RelativeCoordinate {.header: juce_gui_basics, importcpp: "juce::RelativeCoordinate(@)".}
 proc makeRelativeCoordinate*(stringVersion: String): RelativeCoordinate {.header: juce_gui_basics, importcpp: "juce::RelativeCoordinate(@)".}
 proc `RelativeCoordinate=`*(this: var RelativeCoordinate, arg1: RelativeCoordinate): var RelativeCoordinate {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
-proc `RelativeCoordinate=`*(this: var RelativeCoordinate, arg1: lent RelativeCoordinate): var RelativeCoordinate {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
 proc `==`*(this: RelativeCoordinate, arg1: RelativeCoordinate): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: RelativeCoordinate, arg1: RelativeCoordinate): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}
 proc resolve*(this: RelativeCoordinate, evaluationScope: ptr ExpressionScope): float64 {.header: juce_gui_basics, importcpp: "#.resolve(@)".}
@@ -2229,7 +2225,6 @@ proc `==`*(this: DrawableImage, other: DrawableImage): bool {.error: "juce::Draw
 
 proc makeDrawablePath*(): DrawablePath {.header: juce_gui_basics, importcpp: "juce::DrawablePath(@)".}
 proc setPath*(this: var DrawablePath, newPath: Path) {.header: juce_gui_basics, importcpp: "#.setPath(@)".}
-proc setPath*(this: var DrawablePath, newPath: lent Path) {.header: juce_gui_basics, importcpp: "#.setPath(@)".}
 proc getPath*(this: DrawablePath): Path {.header: juce_gui_basics, importcpp: "#.getPath()".}
 proc getStrokePath*(this: DrawablePath): Path {.header: juce_gui_basics, importcpp: "#.getStrokePath()".}
 proc createCopy*(this: DrawablePath): UniquePtr[Drawable] {.header: juce_gui_basics, importcpp: "#.createCopy()".}
@@ -2989,7 +2984,7 @@ proc `==`*(this: MessageBoxOptions, other: MessageBoxOptions): bool {.error: "ju
 
 # proc makeScopedMessageBox*(arg1: std::shared_ptr<detail::ScopedMessageBoxImpl>): ScopedMessageBox {.header: juce_gui_basics, importcpp: "juce::ScopedMessageBox(@)".}
 proc makeScopedMessageBox*(): ScopedMessageBox {.header: juce_gui_basics, importcpp: "juce::ScopedMessageBox(@)".}
-proc `ScopedMessageBox=`*(this: var ScopedMessageBox, arg1: lent ScopedMessageBox): var ScopedMessageBox {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
+proc `ScopedMessageBox=`*(this: var ScopedMessageBox, arg1: ScopedMessageBox): var ScopedMessageBox {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
 proc close*(this: var ScopedMessageBox) {.header: juce_gui_basics, importcpp: "#.close()".}
 proc `==`*(this: ScopedMessageBox, other: ScopedMessageBox): bool {.error: "juce::ScopedMessageBox defines no operator==; compare a property instead".}
 
@@ -3208,7 +3203,7 @@ proc `==`*(this: TooltipWindow, other: TooltipWindow): bool {.error: "juce::Tool
 proc makeVBlankAttachment*(): VBlankAttachment {.header: juce_gui_basics, importcpp: "juce::VBlankAttachment(@)".}
 proc makeVBlankAttachment*(c: ptr Component, callbackIn: CppFunctionObjectN0): VBlankAttachment {.header: juce_gui_basics, importcpp: "juce::VBlankAttachment(@)".}
 proc makeVBlankAttachment*(c: ptr Component, callbackIn: CppFunctionObjectN1[cdouble]): VBlankAttachment {.header: juce_gui_basics, importcpp: "juce::VBlankAttachment(@)".}
-proc `VBlankAttachment=`*(this: var VBlankAttachment, other: lent VBlankAttachment): var VBlankAttachment {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
+proc `VBlankAttachment=`*(this: var VBlankAttachment, other: VBlankAttachment): var VBlankAttachment {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
 proc isEmpty*(this: VBlankAttachment): bool {.header: juce_gui_basics, importcpp: "#.isEmpty()".}
 proc `==`*(this: VBlankAttachment, other: VBlankAttachment): bool {.error: "juce::VBlankAttachment defines no operator==; compare a property instead".}
 
