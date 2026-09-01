@@ -107,3 +107,10 @@ jobs:
             "$nim_bin" cpp -r --hints:off "$test_file"
             echo "::endgroup::"
           done
+
+          # The example is reproduced in the README, so an API change that
+          # breaks it breaks the documentation too. Compile only: it opens a
+          # window, which a runner has no display for.
+          echo "::group::examples/test_app.nim"
+          "$nim_bin" cpp -c --hints:off examples/test_app.nim
+          echo "::endgroup::"
