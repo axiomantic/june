@@ -3,6 +3,7 @@ import os
 import clang.cindex
 import typing
 import argparse
+import glob
 
 from clang_base_enumerations import CursorKind, AccessSpecifier
 
@@ -176,6 +177,33 @@ def skip_class_method(class_name, method_name):
 
 #==================================================================================================
 
+def use_system_libclang():
+    """Prefer the toolchain's own libclang.
+
+    A pip-installed libclang cannot find its builtin headers (stdarg.h and the
+    rest), and pointing -I at another toolchain's resource directory puts the C
+    headers ahead of libc++ and breaks the parse a different way. The toolchain
+    library locates its own resources relative to itself, so use it when present
+    and otherwise leave whatever the bindings already resolved.
+    """
+    candidates = []
+    if sys.platform == "darwin":
+        clang_bin = os.popen("xcrun --find clang 2>/dev/null").read().strip()
+        if clang_bin:
+            toolchain = os.path.dirname(os.path.dirname(clang_bin))
+            candidates.append(os.path.join(toolchain, "lib", "libclang.dylib"))
+        candidates.append("/Library/Developer/CommandLineTools/usr/lib/libclang.dylib")
+    else:
+        candidates += sorted(glob.glob("/usr/lib/llvm-*/lib/libclang.so*"), reverse=True)
+        candidates += sorted(glob.glob("/usr/lib/*/libclang-*.so*"), reverse=True)
+
+    for candidate in candidates:
+        if os.path.exists(candidate):
+            clang.cindex.Config.set_library_file(candidate)
+            return
+
+#==================================================================================================
+
 def run_main(juce_module_name, juce_class_name_to_export):
     class_map = {}
     class_inheritance_map = {}
@@ -189,10 +217,49 @@ def run_main(juce_module_name, juce_class_name_to_export):
 
     juce_module_prefix = "../../"
     juce_module_path = f"JUCE/modules/{juce_module_name}/{juce_module_name}.h"
-    juce_args = ["-std=c++17", "-DJUCE_API=", "-DNDEBUG=1"]
+
+    # A JUCE module header names its dependencies as <other_module/other_module.h>,
+    # so without the modules directory on the include path every cross-module type
+    # fails to resolve and libclang reports it as an implicit int. That is silent:
+    # the generator still emits a binding, just one that takes int where it should
+    # take Graphics or String. The module-available defines are needed for the same
+    # reason, since a module header compiles its dependencies out without them.
+    juce_args = [
+        "-x", "c++",
+        "-std=c++17",
+        "-DJUCE_API=",
+        "-DNDEBUG=1",
+        "-DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1",
+        "-DJUCE_STANDALONE_APPLICATION=1",
+        f"-I{os.path.join(base_path, 'JUCE/modules')}",
+    ]
+    for module in ("juce_core", "juce_events", "juce_data_structures",
+                   "juce_graphics", "juce_gui_basics"):
+        juce_args.append(f"-DJUCE_MODULE_AVAILABLE_{module}=1")
+
+    # A .h file is parsed as C unless the language is stated, which fails outright
+    # under current libclang. On macOS the SDK also has to be named explicitly.
+    if sys.platform == "darwin":
+        sdk_path = os.popen("xcrun --show-sdk-path").read().strip()
+        if sdk_path:
+            juce_args += ["-isysroot", sdk_path]
+
+    use_system_libclang()
 
     index = clang.cindex.Index.create()
     translation_unit = index.parse(os.path.join(base_path, juce_module_path), args=juce_args)
+
+    # Fail loudly. An unresolved type does not stop the parse, it degrades to int,
+    # so a run that reports nothing and emits a full file is indistinguishable from
+    # a correct one unless the diagnostics are checked here.
+    errors = [d for d in translation_unit.diagnostics
+              if d.severity >= clang.cindex.Diagnostic.Error]
+    if errors:
+        for d in errors[:10]:
+            print(f"error: {d.spelling}", file=sys.stderr)
+        print(f"error: {len(errors)} parse error(s) in {juce_module_path}; "
+              f"types would degrade to int", file=sys.stderr)
+        sys.exit(1)
 
     top_level = translation_unit.cursor.get_children()
 
