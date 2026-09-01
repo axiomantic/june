@@ -1,4 +1,6 @@
 
+import std/os
+
 import june
 
 # String tests ================================================================
@@ -250,8 +252,16 @@ proc testThreadPoolJob() =
       ThreadPoolJobJobStatus_jobHasFinished)
   pool.addJob(job)
 
-  doAssert pool.removeAllJobs(false, 5000.cint), "the job did not finish in five seconds"
-  doAssert ran == 1, "the job body ran " & $ran & " times"
+  # addJob queues the job. removeAllJobs drops one that has not started yet, so
+  # waiting for the pool to drain can return before the body ever runs -- which
+  # it did, on a slower scheduler. Wait for the job itself.
+  var waitedMs = 0
+  while ran == 0 and waitedMs < 10_000:
+    sleep(10)
+    waitedMs += 10
+
+  doAssert ran == 1, "the job body ran " & $ran & " times after " & $waitedMs & "ms"
+  discard pool.removeAllJobs(true, 2000.cint)
 
 testThreadPoolJob()
 
@@ -294,3 +304,19 @@ proc testNoDuplicateOverloads() =
   doAssert makejuce_var(makeString("x")).isString()
 
 testNoDuplicateOverloads()
+
+# A Nim string reaches String, StringRef and constChar by three separate
+# converters, so an overload set taking more than one of them can be ambiguous.
+# Nim 2 resolves these and Nim 1.6 is stricter, which is why they are asserted
+# here rather than reasoned about: the 1.6 jobs are what answers the question.
+proc testStringLiteralOverloadResolution() =
+  let greeting = makeString("Hello")
+  doAssert greeting.equalsIgnoreCase("hello")
+  doAssert greeting.compare("Hello") == 0
+
+  var pool = makeStringPool()
+  doAssert $pool.getPooledString("x") == "x"
+
+  doAssert makeStringRef(greeting) == makeString("Hello")
+
+testStringLiteralOverloadResolution()
