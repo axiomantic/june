@@ -18,6 +18,34 @@ type
     passAsPointer: bool
 
 
+# The C++ side of a parameter is spelled with the Nim identifier, which is only
+# valid C++ by coincidence. It holds for `bool` and for the bound JUCE classes,
+# and breaks for the fixed-width aliases: `cint` is not a C++ type at all, while
+# plain `int` and `float` are 64-bit in Nim and 32-bit in C++, so the generated
+# std::function would disagree with the one the Nim type produces.
+const cppPrimitiveNames = {
+  "cint": "int",
+  "cuint": "unsigned int",
+  "cfloat": "float",
+  "cdouble": "double",
+  "cchar": "char",
+  "cschar": "signed char",
+  "cuchar": "unsigned char",
+  "cshort": "short",
+  "cushort": "unsigned short",
+  "clong": "long",
+  "culong": "unsigned long",
+  "clonglong": "long long",
+  "culonglong": "unsigned long long",
+}
+
+
+proc cppPrimitiveName(name: string): string {.compiletime.} =
+  for (nimName, cppName) in cppPrimitiveNames:
+    if name == nimName: return cppName
+  result = name
+
+
 proc makeCppType(node: NimNode): CppType {.compiletime.} =
   result = CppType(node: node, nim: newEmptyNode(), ident: "", cpp: "", isConst: false, isPointer: false, isReference: false, passAsPointer: false)
 
@@ -72,7 +100,7 @@ proc makeCppType(node: NimNode): CppType {.compiletime.} =
 
   else:
     result.nim = node
-    result.cpp = $node
+    result.cpp = cppPrimitiveName($node)
 
 
 proc toCppString(cppType: CppType): string =
