@@ -102,8 +102,12 @@ jobs:
           nim_bin=$(echo "$HOME"/.nimble/pkgs2/nim-${{ matrix.nim-version }}-*/bin/nim)
           test -x "$nim_bin" || { echo "::error::no Nim ${{ matrix.nim-version }} at $nim_bin"; exit 1; }
           "$nim_bin" --version | head -1
+          # `|| exit 1` rather than relying on the `-e` that GitHub's default
+          # bash carries: nothing in this file states that the step depends on
+          # it, so a later edit to `shell:` or a pipe added to the command would
+          # turn a red suite green with no other sign.
           for test_file in tests/test_juce_*.nim; do
             echo "::group::$test_file"
-            "$nim_bin" cpp -r --hints:off "$test_file"
+            "$nim_bin" cpp -r --hints:off "$test_file" || exit 1
             echo "::endgroup::"
           done
