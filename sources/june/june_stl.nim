@@ -32,6 +32,11 @@ proc release*[T](this: var UniquePtr[T]): ptr T {.importcpp: "#.release()".}
 proc reset*[T](this: var UniquePtr[T]) {.importcpp: "#.reset()".}
 proc isNil*[T](this: UniquePtr[T]): bool {.importcpp: "(# == nullptr)".}
 
+# `'0` is the return type, so the pattern names std::optional<T> once rather
+# than wrapping the already-optional return type in another one.
+proc makeCppOptional*[T](value: T): CppOptional[T] {.importcpp: "'0(@)", header: "<optional>".}
+proc makeCppOptionalEmpty*[T](): CppOptional[T] {.importcpp: "'0()", header: "<optional>".}
+
 proc hasValue*[T](this: CppOptional[T]): bool {.importcpp: "#.has_value()".}
 proc value*[T](this: CppOptional[T]): T {.importcpp: "#.value()".}
 proc valueOr*[T](this: CppOptional[T], fallback: T): T {.importcpp: "#.value_or(@)".}
