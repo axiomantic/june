@@ -15,10 +15,11 @@ type
     isConst: bool
     isPointer: bool
     isReference: bool
+    passAsPointer: bool
 
 
 proc makeCppType(node: NimNode): CppType {.compiletime.} =
-  result = CppType(node: node, nim: newEmptyNode(), ident: "", cpp: "", isConst: false, isPointer: false, isReference: false)
+  result = CppType(node: node, nim: newEmptyNode(), ident: "", cpp: "", isConst: false, isPointer: false, isReference: false, passAsPointer: false)
 
   var realNode = node
   if realNode.kind == nnkIdentDefs:
@@ -36,6 +37,25 @@ proc makeCppType(node: NimNode): CppType {.compiletime.} =
       result.cpp = $realNode[1]
       result.isConst = true
       result.isReference = true
+    elif ($realNode[0] == "constptr"):
+      # A const reference whose callback receives a pointer. Needed where the
+      # referenced type cannot round-trip through a std::function that takes it
+      # by value: juce::MouseEvent cannot be assigned, so the conversion from
+      # std::function<void(MouseEvent)> has no viable operator=.
+      result.nim = realNode[1]
+      result.cpp = $realNode[1]
+      result.isConst = true
+      result.isReference = true
+      result.passAsPointer = true
+    elif ($realNode[0] == "varref"):
+      # A mutable reference. Overriding a virtual whose parameter is not const
+      # needs one: Component::paint takes a Graphics&, and declaring the
+      # override with a const Graphics& does not match it, so the compiler
+      # reports a non-virtual member function marked override.
+      result.nim = realNode[1]
+      result.cpp = $realNode[1]
+      result.isReference = true
+      result.passAsPointer = true
     else:
       error "Invalid type definition"
 
@@ -67,10 +87,16 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
   if class.kind != nnkInfix or not eqIdent(class[0], "of"):
     error "Invalid node: " & class.lispRepr
 
-  var appendType = if internalClass: "Impl" else: ""
-
   let className = $class[1]
   let parentClassName = $class[2]
+
+  # The generated Nim type inherits the binding of the C++ parent. Where the new
+  # class takes the parent's own name - JUCEApplication of JUCEApplication - the
+  # binding is renamed with an Impl suffix so the two can coexist. Where the
+  # names differ, no rename happened and the parent is named as written, which
+  # is what lets a class be subclassed without displacing it: CustomComponent
+  # derives from Component, and Button stays a Component rather than a sibling.
+  let appendType = if internalClass and className == parentClassName: "Impl" else: ""
 
   # Nim codegen list of functions
   var nimObjectBodyDecl = nnkRecList.newTree()
@@ -121,13 +147,28 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
 
         var argType = makeCppType(param[1])
 
+        # A mutable reference is handed to the callback as a pointer. The
+        # std::function would otherwise have to take the reference by value,
+        # which does not compile for a non-copyable type such as Graphics, and
+        # Nim has no way to spell a reference as a generic argument.
+        let passAsPointer = argType.passAsPointer
+
         # Nim codegen arguments
-        nimFunctionMemberType.add argType.nim
+        if passAsPointer:
+          nimFunctionMemberType.add nnkPtrTy.newTree(argType.nim)
+        else:
+          nimFunctionMemberType.add argType.nim
 
         # Cpp codegen arguments
-        cppFuncPointerSignature &= toCppString(argType)
+        # The std::function takes a non-const pointer even where the override's
+        # parameter is const: Nim has no const-pointer type, so `ptr T` is the
+        # only thing the callback can be declared with, and the two must match.
+        cppFuncPointerSignature &= (if passAsPointer: argType.cpp & "*" else: toCppString(argType))
         cppFuncSignature &= toCppString(argType) & " " & $param[0]
-        cppFuncPointerCallArgs &= $param[0]
+        cppFuncPointerCallArgs &= (
+          if passAsPointer and argType.isConst: "const_cast<" & argType.cpp & "*>(&" & $param[0] & ")"
+          elif passAsPointer: "&" & $param[0]
+          else: $param[0])
 
         if index < len(formalParams):
           cppFuncPointerSignature &= ", "

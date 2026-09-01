@@ -52,6 +52,45 @@ long>`` that JUCE never instantiates.
 A proc whose types cannot be spelled in Nim is emitted as a comment rather than
 omitted, so what is missing stays visible in the generated file.
 
+-----------------------
+Subclassing A Component
+-----------------------
+
+``CustomComponent`` is a ``Component`` whose virtual methods call into Nim.
+
+.. code-block:: nim
+
+  import june
+
+  let component = newCustomComponent()
+  component[].setBounds(makeRectangle(0.cint, 0.cint, 400.cint, 300.cint))
+
+  component[].setPaintHandler(proc(g: ptr Graphics) =
+    g[].setColour(makeColour(50'u8, 62'u8, 68'u8, 255'u8))
+    g[].fillRect(component[].getLocalBounds())
+  )
+
+  component[].setMouseDownHandler(proc(e: ptr MouseEvent) =
+    let p = e[].getPosition()
+    echo "clicked at ", p.getX(), ", ", p.getY()
+  )
+
+  component[].onResized = bindClosure(proc() = discard)
+
+A handler that takes an argument receives a pointer, because the C++ parameter
+is a reference and a ``std::function`` cannot take one by value -- ``Graphics``
+is not copyable and ``MouseEvent`` is not assignable.
+
+Set those through ``setPaintHandler`` and ``setMouseDownHandler`` and the rest,
+rather than assigning ``onPaint`` or ``onMouseDown``: Nim emits the importcpp
+pattern unsubstituted when a ``bindClosure`` call is assigned straight to one of
+those fields. The setters do the binding through a typed temporary, which does
+not hit it.
+
+The no-argument overrides -- ``onResized``, ``onMoved``, ``onVisibilityChanged``,
+``onParentHierarchyChanged``, ``onChildrenChanged`` -- are assigned directly with
+``bindClosure``.
+
 --------------------------
 Regenerating The Bindings
 --------------------------
