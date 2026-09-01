@@ -190,3 +190,34 @@ proc testClosureLifetime() =
 testClosureLifetime()
 
 testUserSubclass()
+
+# Slider and Label have no pure virtual, so both were usable already.
+# Subclassing is how an application reacts to them without a listener.
+proc testSliderAndLabel() =
+  initialiseJuce_GUI()
+
+  block:
+    let slider = newCustomSlider()
+    doAssert CustomSlider is Slider
+    doAssert CustomSlider is Component
+
+    var changes = 0
+    slider[].onValueChanged = bindClosure(proc() = changes += 1)
+    slider[].setRange(0.0, 10.0, 1.0)
+    slider[].setValue(5.0, NotificationType_sendNotificationSync)
+
+    doAssert slider[].getValue() == 5.0
+    doAssert changes > 0, "valueChanged did not reach Nim"
+    cdelete slider
+
+  block:
+    let label = newCustomLabel()
+    doAssert CustomLabel is Label
+    label[].setText("hi", NotificationType_dontSendNotification)
+    doAssert $label[].getText() == "hi"
+    cdelete label
+
+  shutdownJuce_GUI()
+
+testSliderAndLabel()
+

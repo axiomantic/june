@@ -844,6 +844,20 @@ def run_main(juce_module_name, juce_class_name_to_export):
         for ic in class_inner[c.spelling]:
             declared_type_names.add(f"{remap_class_name(c.spelling)}{ic.spelling}")
 
+    # Enums from every module in the translation unit, not only this one. They
+    # are declared by whichever module owns them and june.nim includes them all,
+    # so a NotificationType is in scope inside juce_gui_basics - without this,
+    # every proc taking one was commented out as an unknown type.
+    for entry in juce_namespace:
+        for node in entry.get_children():
+            if node.kind == CursorKind.ENUM_DECL and not is_anonymous_enum(node):
+                declared_type_names.add(node.spelling)
+    for c in class_map.values():
+        for node in c.get_children():
+            if (node.kind == CursorKind.ENUM_DECL and not is_anonymous_enum(node)
+                    and node.access_specifier == AccessSpecifier.PUBLIC):
+                declared_type_names.add(f"{remap_class_name(c.spelling)}{node.spelling}")
+
     # Every nested type, keyed by its qualified name. remap_type reaches these
     # through the declaration's semantic parent, so an Options owned by another
     # class resolves to that class's, and nothing is matched by spelling alone -

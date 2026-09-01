@@ -143,3 +143,23 @@ proc setPaintButtonHandler*(this: var CustomButton,
     let bound: CppFunctionObjectN3[ptr Graphics, bool, bool] = bindClosure(handler)
     this.onPaintButton = bound
 
+# Slider and Label ============================================================
+#
+# Neither has a pure virtual, so both can be used as they are. Subclassing is
+# how an application reacts to them without wiring up a listener.
+
+defineCppClassInternal CustomSlider of Slider:
+    include "juce_gui_basics/juce_gui_basics.h"
+    proc valueChanged() = discard
+    proc startedDragging() = discard
+    proc stoppedDragging() = discard
+
+proc newCustomSlider*(): ptr CustomSlider {.importcpp: "(new june::CustomSlider)".}
+
+defineCppClassInternal CustomLabel of Label:
+    include "juce_gui_basics/juce_gui_basics.h"
+    proc textWasEdited() = discard
+    proc textWasChanged() = discard
+
+proc newCustomLabel*(): ptr CustomLabel {.importcpp: "(new june::CustomLabel)".}
+
