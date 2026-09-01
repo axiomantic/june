@@ -21,7 +21,7 @@ proc createApplication(): ptr JUCEApplication =
     application[].onGetApplicationVersion = bindClosure(proc(): String = "0.1")
 
     application[].onInitialise = bindClosure(proc(commandLine: String) =
-        echo "Starting JUNE App " & commandLine
+        echo "Starting JUNE App " & $commandLine
 
         var windowName = application[].getApplicationName()
 

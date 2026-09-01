@@ -894,6 +894,7 @@ proc mouseUp*(this: var MouseListener, event: MouseEvent) {.header: juce_gui_bas
 proc mouseDoubleClick*(this: var MouseListener, event: MouseEvent) {.header: juce_gui_basics, importcpp: "#.mouseDoubleClick(@)".}
 proc mouseWheelMove*(this: var MouseListener, event: MouseEvent, wheel: MouseWheelDetails) {.header: juce_gui_basics, importcpp: "#.mouseWheelMove(@)".}
 proc mouseMagnify*(this: var MouseListener, event: MouseEvent, scaleFactor: cfloat) {.header: juce_gui_basics, importcpp: "#.mouseMagnify(@)".}
+proc `==`*(this: MouseListener, other: MouseListener): bool {.error: "juce::MouseListener defines no operator==; compare a property instead".}
 
 proc makeModifierKeys*(): ModifierKeys {.header: juce_gui_basics, importcpp: "juce::ModifierKeys(@)".}
 proc makeModifierKeys*(flags: cint): ModifierKeys {.header: juce_gui_basics, importcpp: "juce::ModifierKeys(@)".}
@@ -988,8 +989,11 @@ proc getMouseDownScreenPosition*(this: MouseEvent): Point[cint] {.header: juce_g
 proc getEventRelativeTo*(this: MouseEvent, newComponent: ptr Component): MouseEvent {.header: juce_gui_basics, importcpp: "#.getEventRelativeTo(@)".}
 proc withNewPosition*(this: MouseEvent, newPosition: Point[cfloat]): MouseEvent {.header: juce_gui_basics, importcpp: "#.withNewPosition(@)".}
 proc withNewPosition*(this: MouseEvent, newPosition: Point[cint]): MouseEvent {.header: juce_gui_basics, importcpp: "#.withNewPosition(@)".}
+proc `==`*(this: MouseEvent, other: MouseEvent): bool {.error: "juce::MouseEvent defines no operator==; compare a property instead".}
 
+proc `==`*(this: MouseWheelDetails, other: MouseWheelDetails): bool {.error: "juce::MouseWheelDetails defines no operator==; compare a property instead".}
 
+proc `==`*(this: PenDetails, other: PenDetails): bool {.error: "juce::PenDetails defines no operator==; compare a property instead".}
 
 proc makeKeyPress*(): KeyPress {.header: juce_gui_basics, importcpp: "juce::KeyPress(@)".}
 proc makeKeyPress*(keyCode: cint, modifiers: ModifierKeys, textCharacter: uint16): KeyPress {.header: juce_gui_basics, importcpp: "juce::KeyPress(@)".}
@@ -1010,11 +1014,13 @@ proc isCurrentlyDown*(this: KeyPress): bool {.header: juce_gui_basics, importcpp
 
 proc keyPressed*(this: var KeyListener, key: KeyPress, originatingComponent: ptr Component): bool {.header: juce_gui_basics, importcpp: "#.keyPressed(@)".}
 proc keyStateChanged*(this: var KeyListener, isKeyDown: bool, originatingComponent: ptr Component): bool {.header: juce_gui_basics, importcpp: "#.keyStateChanged(@)".}
+proc `==`*(this: KeyListener, other: KeyListener): bool {.error: "juce::KeyListener defines no operator==; compare a property instead".}
 
 proc getDefaultComponent*(this: var ComponentTraverser, parentComponent: ptr Component): ptr Component {.header: juce_gui_basics, importcpp: "#.getDefaultComponent(@)".}
 proc getNextComponent*(this: var ComponentTraverser, current: ptr Component): ptr Component {.header: juce_gui_basics, importcpp: "#.getNextComponent(@)".}
 proc getPreviousComponent*(this: var ComponentTraverser, current: ptr Component): ptr Component {.header: juce_gui_basics, importcpp: "#.getPreviousComponent(@)".}
 proc getAllComponents*(this: var ComponentTraverser, parentComponent: ptr Component): CppVector[Component] {.header: juce_gui_basics, importcpp: "#.getAllComponents(@)".}
+proc `==`*(this: ComponentTraverser, other: ComponentTraverser): bool {.error: "juce::ComponentTraverser defines no operator==; compare a property instead".}
 
 proc makeFocusTraverser*(): FocusTraverser {.header: juce_gui_basics, importcpp: "juce::FocusTraverser(@)".}
 proc makeFocusTraverser*(skipDisabledComponents: FocusTraverserSkipDisabledComponents): FocusTraverser {.header: juce_gui_basics, importcpp: "juce::FocusTraverser(@)".}
@@ -1022,6 +1028,7 @@ proc getDefaultComponent*(this: var FocusTraverser, parentComponent: ptr Compone
 proc getNextComponent*(this: var FocusTraverser, current: ptr Component): ptr Component {.header: juce_gui_basics, importcpp: "#.getNextComponent(@)".}
 proc getPreviousComponent*(this: var FocusTraverser, current: ptr Component): ptr Component {.header: juce_gui_basics, importcpp: "#.getPreviousComponent(@)".}
 proc getAllComponents*(this: var FocusTraverser, parentComponent: ptr Component): CppVector[Component] {.header: juce_gui_basics, importcpp: "#.getAllComponents(@)".}
+proc `==`*(this: FocusTraverser, other: FocusTraverser): bool {.error: "juce::FocusTraverser defines no operator==; compare a property instead".}
 
 proc clearSingletonInstance*(this: var ModalComponentManager) {.header: juce_gui_basics, importcpp: "#.clearSingletonInstance()".}
 proc getNumModalComponents*(this: ModalComponentManager): cint {.header: juce_gui_basics, importcpp: "#.getNumModalComponents()".}
@@ -1033,8 +1040,11 @@ proc bringModalComponentsToFront*(this: var ModalComponentManager, topOneShouldG
 proc cancelAllModalComponents*(this: var ModalComponentManager): bool {.header: juce_gui_basics, importcpp: "#.cancelAllModalComponents()".}
 proc startModal*(this: var ModalComponentManager, arg1: ModalComponentManagerKey, arg2: ptr Component, autoDelete: bool) {.header: juce_gui_basics, importcpp: "#.startModal(@)".}
 proc endModal*(this: var ModalComponentManager, arg1: ModalComponentManagerKey, arg2: ptr Component, returnValue: cint) {.header: juce_gui_basics, importcpp: "#.endModal(@)".}
+proc `==`*(this: ModalComponentManager, other: ModalComponentManager): bool {.error: "juce::ModalComponentManager defines no operator==; compare a property instead".}
 
+proc `==`*(this: ModalCallbackFunction, other: ModalCallbackFunction): bool {.error: "juce::ModalCallbackFunction defines no operator==; compare a property instead".}
 
+proc `==`*(this: ComponentPaintDiagnostics, other: ComponentPaintDiagnostics): bool {.error: "juce::ComponentPaintDiagnostics defines no operator==; compare a property instead".}
 
 proc componentMovedOrResized*(this: var ComponentListener, component: var Component, wasMoved: bool, wasResized: bool) {.header: juce_gui_basics, importcpp: "#.componentMovedOrResized(@)".}
 proc componentBroughtToFront*(this: var ComponentListener, component: var Component) {.header: juce_gui_basics, importcpp: "#.componentBroughtToFront(@)".}
@@ -1045,12 +1055,14 @@ proc componentNameChanged*(this: var ComponentListener, component: var Component
 proc componentBeingDeleted*(this: var ComponentListener, component: var Component) {.header: juce_gui_basics, importcpp: "#.componentBeingDeleted(@)".}
 proc componentEnablementChanged*(this: var ComponentListener, component: var Component) {.header: juce_gui_basics, importcpp: "#.componentEnablementChanged(@)".}
 proc componentPainted*(this: var ComponentListener, component: var Component, diagnostics: ComponentPaintDiagnostics) {.header: juce_gui_basics, importcpp: "#.componentPainted(@)".}
+proc `==`*(this: ComponentListener, other: ComponentListener): bool {.error: "juce::ComponentListener defines no operator==; compare a property instead".}
 
 proc makeCachedComponentImage*(): CachedComponentImage {.header: juce_gui_basics, importcpp: "juce::CachedComponentImage(@)".}
 proc paint*(this: var CachedComponentImage, arg1: var Graphics) {.header: juce_gui_basics, importcpp: "#.paint(@)".}
 proc invalidateAll*(this: var CachedComponentImage): bool {.header: juce_gui_basics, importcpp: "#.invalidateAll()".}
 proc invalidate*(this: var CachedComponentImage, area: Rectangle[cint]): bool {.header: juce_gui_basics, importcpp: "#.invalidate(@)".}
 proc releaseResources*(this: var CachedComponentImage) {.header: juce_gui_basics, importcpp: "#.releaseResources()".}
+proc `==`*(this: CachedComponentImage, other: CachedComponentImage): bool {.error: "juce::CachedComponentImage defines no operator==; compare a property instead".}
 
 proc makeComponent*(): Component {.header: juce_gui_basics, importcpp: "juce::Component(@)".}
 proc makeComponent*(componentName: String): Component {.header: juce_gui_basics, importcpp: "juce::Component(@)".}
@@ -1270,6 +1282,7 @@ proc invalidateAccessibilityHandler*(this: var Component) {.header: juce_gui_bas
 proc createAccessibilityHandler*(this: var Component): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
 proc setFocusContainer*(this: var Component, shouldBeFocusContainer: bool) {.header: juce_gui_basics, importcpp: "#.setFocusContainer(@)".}
 proc contains*(this: var Component, arg1: cint, arg2: cint) {.header: juce_gui_basics, importcpp: "#.contains(@)".}
+proc `==`*(this: Component, other: Component): bool {.error: "juce::Component defines no operator==; compare a property instead".}
 
 proc makeComponentAnimator*(): ComponentAnimator {.header: juce_gui_basics, importcpp: "juce::ComponentAnimator(@)".}
 proc animateComponent*(this: var ComponentAnimator, component: ptr Component, finalBounds: Rectangle[cint], finalAlpha: cfloat, animationDurationMilliseconds: cint, useProxyComponent: bool, startSpeed: float64, endSpeed: float64) {.header: juce_gui_basics, importcpp: "#.animateComponent(@)".}
@@ -1280,10 +1293,13 @@ proc cancelAllAnimations*(this: var ComponentAnimator, moveComponentsToTheirFina
 proc getComponentDestination*(this: var ComponentAnimator, component: ptr Component): Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.getComponentDestination(@)".}
 proc isAnimating*(this: ComponentAnimator, component: ptr Component): bool {.header: juce_gui_basics, importcpp: "#.isAnimating(@)".}
 proc isAnimating*(this: ComponentAnimator): bool {.header: juce_gui_basics, importcpp: "#.isAnimating()".}
+proc `==`*(this: ComponentAnimator, other: ComponentAnimator): bool {.error: "juce::ComponentAnimator defines no operator==; compare a property instead".}
 
 proc globalFocusChanged*(this: var FocusChangeListener, focusedComponent: ptr Component) {.header: juce_gui_basics, importcpp: "#.globalFocusChanged(@)".}
+proc `==`*(this: FocusChangeListener, other: FocusChangeListener): bool {.error: "juce::FocusChangeListener defines no operator==; compare a property instead".}
 
 proc darkModeSettingChanged*(this: var DarkModeSettingListener) {.header: juce_gui_basics, importcpp: "#.darkModeSettingChanged()".}
+proc `==`*(this: DarkModeSettingListener, other: DarkModeSettingListener): bool {.error: "juce::DarkModeSettingListener defines no operator==; compare a property instead".}
 
 proc getMouseButtonClickCounter*(this: Desktop): cint {.header: juce_gui_basics, importcpp: "#.getMouseButtonClickCounter()".}
 proc getMouseWheelMoveCounter*(this: Desktop): cint {.header: juce_gui_basics, importcpp: "#.getMouseWheelMoveCounter()".}
@@ -1318,6 +1334,7 @@ proc setGlobalScaleFactor*(this: var Desktop, newScaleFactor: cfloat) {.header: 
 proc getGlobalScaleFactor*(this: Desktop): cfloat {.header: juce_gui_basics, importcpp: "#.getGlobalScaleFactor()".}
 proc supportsBorderlessNonClientResize*(this: Desktop): bool {.header: juce_gui_basics, importcpp: "#.supportsBorderlessNonClientResize()".}
 proc isHeadless*(this: Desktop): bool {.header: juce_gui_basics, importcpp: "#.isHeadless()".}
+proc `==`*(this: Desktop, other: Desktop): bool {.error: "juce::Desktop defines no operator==; compare a property instead".}
 
 proc physicalToLogical*(this: Displays, physicalRect: Rectangle[cint], useScaleFactorOfDisplay: ptr DisplaysDisplay = nil): Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.physicalToLogical(@)".}
 proc physicalToLogical*(this: Displays, physicalRect: Rectangle[cfloat], useScaleFactorOfDisplay: ptr DisplaysDisplay = nil): Rectangle[cfloat] {.header: juce_gui_basics, importcpp: "#.physicalToLogical(@)".}
@@ -1338,6 +1355,7 @@ proc getDisplayContaining*(this: Displays, position: Point[cint]): DisplaysDispl
 proc findDisplayForRect*(this: Displays, arg1: Rectangle[cint], isPhysical: bool = false): DisplaysDisplay {.header: juce_gui_basics, importcpp: "#.findDisplayForRect(@)".}
 proc findDisplayForPoint*(this: Displays, arg1: Point[cint], isPhysical: bool = false): DisplaysDisplay {.header: juce_gui_basics, importcpp: "#.findDisplayForPoint(@)".}
 proc getMainDisplay*(this: Displays): DisplaysDisplay {.header: juce_gui_basics, importcpp: "#.getMainDisplay()".}
+proc `==`*(this: Displays, other: Displays): bool {.error: "juce::Displays defines no operator==; compare a property instead".}
 
 proc makeComponentBoundsConstrainer*(): ComponentBoundsConstrainer {.header: juce_gui_basics, importcpp: "juce::ComponentBoundsConstrainer(@)".}
 proc setMinimumWidth*(this: var ComponentBoundsConstrainer, minimumWidth: cint) {.header: juce_gui_basics, importcpp: "#.setMinimumWidth(@)".}
@@ -1364,16 +1382,19 @@ proc resizeEnd*(this: var ComponentBoundsConstrainer) {.header: juce_gui_basics,
 proc setBoundsForComponent*(this: var ComponentBoundsConstrainer, component: ptr Component, bounds: Rectangle[cint], isStretchingTop: bool, isStretchingLeft: bool, isStretchingBottom: bool, isStretchingRight: bool) {.header: juce_gui_basics, importcpp: "#.setBoundsForComponent(@)".}
 proc checkComponentBounds*(this: var ComponentBoundsConstrainer, component: ptr Component) {.header: juce_gui_basics, importcpp: "#.checkComponentBounds(@)".}
 proc applyBoundsToComponent*(this: var ComponentBoundsConstrainer, arg1: var Component, bounds: Rectangle[cint]) {.header: juce_gui_basics, importcpp: "#.applyBoundsToComponent(@)".}
+proc `==`*(this: ComponentBoundsConstrainer, other: ComponentBoundsConstrainer): bool {.error: "juce::ComponentBoundsConstrainer defines no operator==; compare a property instead".}
 
 proc makeBorderedComponentBoundsConstrainer*(): BorderedComponentBoundsConstrainer {.header: juce_gui_basics, importcpp: "juce::BorderedComponentBoundsConstrainer(@)".}
 proc getWrappedConstrainer*(this: BorderedComponentBoundsConstrainer): ptr ComponentBoundsConstrainer {.header: juce_gui_basics, importcpp: "#.getWrappedConstrainer()".}
 proc getAdditionalBorder*(this: BorderedComponentBoundsConstrainer): BorderSize[cint] {.header: juce_gui_basics, importcpp: "#.getAdditionalBorder()".}
 proc checkBounds*(this: var BorderedComponentBoundsConstrainer, bounds: Rectangle[cint], previousBounds: Rectangle[cint], limits: Rectangle[cint], isStretchingTop: bool, isStretchingLeft: bool, isStretchingBottom: bool, isStretchingRight: bool) {.header: juce_gui_basics, importcpp: "#.checkBounds(@)".}
 proc `BorderedComponentBoundsConstrainer=`*(this: var BorderedComponentBoundsConstrainer, arg1: BorderedComponentBoundsConstrainer): var BorderedComponentBoundsConstrainer {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
+proc `==`*(this: BorderedComponentBoundsConstrainer, other: BorderedComponentBoundsConstrainer): bool {.error: "juce::BorderedComponentBoundsConstrainer defines no operator==; compare a property instead".}
 
 proc makeComponentDragger*(): ComponentDragger {.header: juce_gui_basics, importcpp: "juce::ComponentDragger(@)".}
 proc startDraggingComponent*(this: var ComponentDragger, componentToDrag: ptr Component, e: MouseEvent) {.header: juce_gui_basics, importcpp: "#.startDraggingComponent(@)".}
 proc dragComponent*(this: var ComponentDragger, componentToDrag: ptr Component, e: MouseEvent, constrainer: ptr ComponentBoundsConstrainer) {.header: juce_gui_basics, importcpp: "#.dragComponent(@)".}
+proc `==`*(this: ComponentDragger, other: ComponentDragger): bool {.error: "juce::ComponentDragger defines no operator==; compare a property instead".}
 
 proc isInterestedInDragSource*(this: var DragAndDropTarget, dragSourceDetails: DragAndDropTargetSourceDetails): bool {.header: juce_gui_basics, importcpp: "#.isInterestedInDragSource(@)".}
 proc itemDragEnter*(this: var DragAndDropTarget, dragSourceDetails: DragAndDropTargetSourceDetails) {.header: juce_gui_basics, importcpp: "#.itemDragEnter(@)".}
@@ -1381,6 +1402,7 @@ proc itemDragMove*(this: var DragAndDropTarget, dragSourceDetails: DragAndDropTa
 proc itemDragExit*(this: var DragAndDropTarget, dragSourceDetails: DragAndDropTargetSourceDetails) {.header: juce_gui_basics, importcpp: "#.itemDragExit(@)".}
 proc itemDropped*(this: var DragAndDropTarget, dragSourceDetails: DragAndDropTargetSourceDetails) {.header: juce_gui_basics, importcpp: "#.itemDropped(@)".}
 proc shouldDrawDragImageWhenOver*(this: var DragAndDropTarget): bool {.header: juce_gui_basics, importcpp: "#.shouldDrawDragImageWhenOver()".}
+proc `==`*(this: DragAndDropTarget, other: DragAndDropTarget): bool {.error: "juce::DragAndDropTarget defines no operator==; compare a property instead".}
 
 proc makeDragAndDropContainer*(): DragAndDropContainer {.header: juce_gui_basics, importcpp: "juce::DragAndDropContainer(@)".}
 proc startDragging*(this: var DragAndDropContainer, sourceDescription: juce_var, sourceComponent: ptr Component, dragImage: ScaledImage, allowDraggingToOtherJuceWindows: bool = false, imageOffsetFromMouse: ptr Point[cint] = nil, inputSourceCausingDrag: ptr MouseInputSource = nil) {.header: juce_gui_basics, importcpp: "#.startDragging(@)".}
@@ -1393,39 +1415,48 @@ proc setCurrentDragImage*(this: var DragAndDropContainer, newImage: ScaledImage)
 proc setCurrentDragImage*(this: var DragAndDropContainer, newImage: Image) {.header: juce_gui_basics, importcpp: "#.setCurrentDragImage(@)".}
 proc setDragImageForIndex*(this: var DragAndDropContainer, index: cint, newImage: ScaledImage) {.header: juce_gui_basics, importcpp: "#.setDragImageForIndex(@)".}
 proc setDragImageForIndex*(this: var DragAndDropContainer, index: cint, newImage: Image) {.header: juce_gui_basics, importcpp: "#.setDragImageForIndex(@)".}
+proc `==`*(this: DragAndDropContainer, other: DragAndDropContainer): bool {.error: "juce::DragAndDropContainer defines no operator==; compare a property instead".}
 
 proc isInterestedInFileDrag*(this: var FileDragAndDropTarget, files: StringArray): bool {.header: juce_gui_basics, importcpp: "#.isInterestedInFileDrag(@)".}
 proc fileDragEnter*(this: var FileDragAndDropTarget, files: StringArray, x: cint, y: cint) {.header: juce_gui_basics, importcpp: "#.fileDragEnter(@)".}
 proc fileDragMove*(this: var FileDragAndDropTarget, files: StringArray, x: cint, y: cint) {.header: juce_gui_basics, importcpp: "#.fileDragMove(@)".}
 proc fileDragExit*(this: var FileDragAndDropTarget, files: StringArray) {.header: juce_gui_basics, importcpp: "#.fileDragExit(@)".}
 proc filesDropped*(this: var FileDragAndDropTarget, files: StringArray, x: cint, y: cint) {.header: juce_gui_basics, importcpp: "#.filesDropped(@)".}
+proc `==`*(this: FileDragAndDropTarget, other: FileDragAndDropTarget): bool {.error: "juce::FileDragAndDropTarget defines no operator==; compare a property instead".}
 
 proc makeMouseInactivityDetector*(target: var Component): MouseInactivityDetector {.header: juce_gui_basics, importcpp: "juce::MouseInactivityDetector(@)".}
 proc setDelay*(this: var MouseInactivityDetector, newDelayMilliseconds: cint) {.header: juce_gui_basics, importcpp: "#.setDelay(@)".}
 proc setMouseMoveTolerance*(this: var MouseInactivityDetector, pixelsNeededToTrigger: cint) {.header: juce_gui_basics, importcpp: "#.setMouseMoveTolerance(@)".}
 proc addListener*(this: var MouseInactivityDetector, listener: ptr MouseInactivityDetectorListener) {.header: juce_gui_basics, importcpp: "#.addListener(@)".}
 proc removeListener*(this: var MouseInactivityDetector, listener: ptr MouseInactivityDetectorListener) {.header: juce_gui_basics, importcpp: "#.removeListener(@)".}
+proc `==`*(this: MouseInactivityDetector, other: MouseInactivityDetector): bool {.error: "juce::MouseInactivityDetector defines no operator==; compare a property instead".}
 
 proc isInterestedInTextDrag*(this: var TextDragAndDropTarget, text: String): bool {.header: juce_gui_basics, importcpp: "#.isInterestedInTextDrag(@)".}
 proc textDragEnter*(this: var TextDragAndDropTarget, text: String, x: cint, y: cint) {.header: juce_gui_basics, importcpp: "#.textDragEnter(@)".}
 proc textDragMove*(this: var TextDragAndDropTarget, text: String, x: cint, y: cint) {.header: juce_gui_basics, importcpp: "#.textDragMove(@)".}
 proc textDragExit*(this: var TextDragAndDropTarget, text: String) {.header: juce_gui_basics, importcpp: "#.textDragExit(@)".}
 proc textDropped*(this: var TextDragAndDropTarget, text: String, x: cint, y: cint) {.header: juce_gui_basics, importcpp: "#.textDropped(@)".}
+proc `==`*(this: TextDragAndDropTarget, other: TextDragAndDropTarget): bool {.error: "juce::TextDragAndDropTarget defines no operator==; compare a property instead".}
 
 proc getTooltip*(this: var TooltipClient): String {.header: juce_gui_basics, importcpp: "#.getTooltip()".}
+proc `==`*(this: TooltipClient, other: TooltipClient): bool {.error: "juce::TooltipClient defines no operator==; compare a property instead".}
 
 proc setTooltip*(this: var SettableTooltipClient, newTooltip: String) {.header: juce_gui_basics, importcpp: "#.setTooltip(@)".}
 proc getTooltip*(this: var SettableTooltipClient): String {.header: juce_gui_basics, importcpp: "#.getTooltip()".}
+proc `==`*(this: SettableTooltipClient, other: SettableTooltipClient): bool {.error: "juce::SettableTooltipClient defines no operator==; compare a property instead".}
 
 proc makeCaretComponent*(keyFocusOwner: ptr Component): CaretComponent {.header: juce_gui_basics, importcpp: "juce::CaretComponent(@)".}
 proc setCaretPosition*(this: var CaretComponent, characterArea: Rectangle[cint]) {.header: juce_gui_basics, importcpp: "#.setCaretPosition(@)".}
 proc paint*(this: var CaretComponent, arg1: var Graphics) {.header: juce_gui_basics, importcpp: "#.paint(@)".}
+proc `==`*(this: CaretComponent, other: CaretComponent): bool {.error: "juce::CaretComponent defines no operator==; compare a property instead".}
 
 proc getDefaultComponent*(this: var KeyboardFocusTraverser, parentComponent: ptr Component): ptr Component {.header: juce_gui_basics, importcpp: "#.getDefaultComponent(@)".}
 proc getNextComponent*(this: var KeyboardFocusTraverser, current: ptr Component): ptr Component {.header: juce_gui_basics, importcpp: "#.getNextComponent(@)".}
 proc getPreviousComponent*(this: var KeyboardFocusTraverser, current: ptr Component): ptr Component {.header: juce_gui_basics, importcpp: "#.getPreviousComponent(@)".}
 proc getAllComponents*(this: var KeyboardFocusTraverser, parentComponent: ptr Component): CppVector[Component] {.header: juce_gui_basics, importcpp: "#.getAllComponents(@)".}
+proc `==`*(this: KeyboardFocusTraverser, other: KeyboardFocusTraverser): bool {.error: "juce::KeyboardFocusTraverser defines no operator==; compare a property instead".}
 
+proc `==`*(this: SystemClipboard, other: SystemClipboard): bool {.error: "juce::SystemClipboard defines no operator==; compare a property instead".}
 
 proc makeTextInputTarget*(): TextInputTarget {.header: juce_gui_basics, importcpp: "juce::TextInputTarget(@)".}
 proc isTextInputActive*(this: TextInputTarget): bool {.header: juce_gui_basics, importcpp: "#.isTextInputActive()".}
@@ -1441,12 +1472,14 @@ proc getTotalNumChars*(this: TextInputTarget): cint {.header: juce_gui_basics, i
 proc getCharIndexForPoint*(this: TextInputTarget, point: Point[cint]): cint {.header: juce_gui_basics, importcpp: "#.getCharIndexForPoint(@)".}
 proc getTextBounds*(this: TextInputTarget, textRange: Range[cint]): RectangleList[cint] {.header: juce_gui_basics, importcpp: "#.getTextBounds(@)".}
 proc getKeyboardType*(this: var TextInputTarget): TextInputTargetVirtualKeyboardType {.header: juce_gui_basics, importcpp: "#.getKeyboardType()".}
+proc `==`*(this: TextInputTarget, other: TextInputTarget): bool {.error: "juce::TextInputTarget defines no operator==; compare a property instead".}
 
 proc makeApplicationCommandInfo*(commandID: cint): ApplicationCommandInfo {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandInfo(@)".}
 proc setInfo*(this: var ApplicationCommandInfo, shortName: String, description: String, categoryName: String, flags: cint) {.header: juce_gui_basics, importcpp: "#.setInfo(@)".}
 proc setActive*(this: var ApplicationCommandInfo, isActive: bool) {.header: juce_gui_basics, importcpp: "#.setActive(@)".}
 proc setTicked*(this: var ApplicationCommandInfo, isTicked: bool) {.header: juce_gui_basics, importcpp: "#.setTicked(@)".}
 proc addDefaultKeypress*(this: var ApplicationCommandInfo, keyCode: cint, modifiers: ModifierKeys) {.header: juce_gui_basics, importcpp: "#.addDefaultKeypress(@)".}
+proc `==`*(this: ApplicationCommandInfo, other: ApplicationCommandInfo): bool {.error: "juce::ApplicationCommandInfo defines no operator==; compare a property instead".}
 
 proc makeApplicationCommandTarget*(): ApplicationCommandTarget {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandTarget(@)".}
 proc getNextCommandTarget*(this: var ApplicationCommandTarget): ptr ApplicationCommandTarget {.header: juce_gui_basics, importcpp: "#.getNextCommandTarget()".}
@@ -1458,6 +1491,7 @@ proc invokeDirectly*(this: var ApplicationCommandTarget, commandID: cint, asynch
 proc getTargetForCommand*(this: var ApplicationCommandTarget, commandID: cint): ptr ApplicationCommandTarget {.header: juce_gui_basics, importcpp: "#.getTargetForCommand(@)".}
 proc isCommandActive*(this: var ApplicationCommandTarget, commandID: cint): bool {.header: juce_gui_basics, importcpp: "#.isCommandActive(@)".}
 proc findFirstTargetParentComponent*(this: var ApplicationCommandTarget): ptr ApplicationCommandTarget {.header: juce_gui_basics, importcpp: "#.findFirstTargetParentComponent()".}
+proc `==`*(this: ApplicationCommandTarget, other: ApplicationCommandTarget): bool {.error: "juce::ApplicationCommandTarget defines no operator==; compare a property instead".}
 
 proc makeApplicationCommandManager*(): ApplicationCommandManager {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandManager(@)".}
 proc clearCommands*(this: var ApplicationCommandManager) {.header: juce_gui_basics, importcpp: "#.clearCommands()".}
@@ -1480,9 +1514,11 @@ proc setFirstCommandTarget*(this: var ApplicationCommandManager, newTarget: ptr 
 proc getTargetForCommand*(this: var ApplicationCommandManager, commandID: cint, upToDateInfo: var ApplicationCommandInfo): ptr ApplicationCommandTarget {.header: juce_gui_basics, importcpp: "#.getTargetForCommand(@)".}
 proc addListener*(this: var ApplicationCommandManager, listener: ptr ApplicationCommandManagerListener) {.header: juce_gui_basics, importcpp: "#.addListener(@)".}
 proc removeListener*(this: var ApplicationCommandManager, listener: ptr ApplicationCommandManagerListener) {.header: juce_gui_basics, importcpp: "#.removeListener(@)".}
+proc `==`*(this: ApplicationCommandManager, other: ApplicationCommandManager): bool {.error: "juce::ApplicationCommandManager defines no operator==; compare a property instead".}
 
 proc applicationCommandInvoked*(this: var ApplicationCommandManagerListener, arg1: ApplicationCommandTargetInvocationInfo) {.header: juce_gui_basics, importcpp: "#.applicationCommandInvoked(@)".}
 proc applicationCommandListChanged*(this: var ApplicationCommandManagerListener) {.header: juce_gui_basics, importcpp: "#.applicationCommandListChanged()".}
+proc `==`*(this: ApplicationCommandManagerListener, other: ApplicationCommandManagerListener): bool {.error: "juce::ApplicationCommandManagerListener defines no operator==; compare a property instead".}
 
 proc makeKeyPressMappingSet*(arg1: var ApplicationCommandManager): KeyPressMappingSet {.header: juce_gui_basics, importcpp: "juce::KeyPressMappingSet(@)".}
 proc getCommandManager*(this: KeyPressMappingSet): var ApplicationCommandManager {.header: juce_gui_basics, importcpp: "#.getCommandManager()".}
@@ -1501,6 +1537,7 @@ proc createXml*(this: KeyPressMappingSet, saveDifferencesFromDefaultSet: bool): 
 proc keyPressed*(this: var KeyPressMappingSet, arg1: KeyPress, arg2: ptr Component): bool {.header: juce_gui_basics, importcpp: "#.keyPressed(@)".}
 proc keyStateChanged*(this: var KeyPressMappingSet, isKeyDown: bool, arg2: ptr Component): bool {.header: juce_gui_basics, importcpp: "#.keyStateChanged(@)".}
 proc globalFocusChanged*(this: var KeyPressMappingSet, arg1: ptr Component) {.header: juce_gui_basics, importcpp: "#.globalFocusChanged(@)".}
+proc `==`*(this: KeyPressMappingSet, other: KeyPressMappingSet): bool {.error: "juce::KeyPressMappingSet defines no operator==; compare a property instead".}
 
 proc setButtonText*(this: var Button, newText: String) {.header: juce_gui_basics, importcpp: "#.setButtonText(@)".}
 proc getButtonText*(this: Button): String {.header: juce_gui_basics, importcpp: "#.getButtonText()".}
@@ -1537,9 +1574,11 @@ proc isConnectedOnBottom*(this: Button): bool {.header: juce_gui_basics, importc
 proc setState*(this: var Button, newState: ButtonButtonState) {.header: juce_gui_basics, importcpp: "#.setState(@)".}
 proc getState*(this: Button): ButtonButtonState {.header: juce_gui_basics, importcpp: "#.getState()".}
 proc setToggleState*(this: var Button, arg1: bool, arg2: bool) {.header: juce_gui_basics, importcpp: "#.setToggleState(@)".}
+proc `==`*(this: Button, other: Button): bool {.error: "juce::Button defines no operator==; compare a property instead".}
 
 proc makeArrowButton*(buttonName: String, arrowDirection: cfloat, arrowColour: Colour): ArrowButton {.header: juce_gui_basics, importcpp: "juce::ArrowButton(@)".}
 proc paintButton*(this: var ArrowButton, arg1: var Graphics, arg2: bool, arg3: bool) {.header: juce_gui_basics, importcpp: "#.paintButton(@)".}
+proc `==`*(this: ArrowButton, other: ArrowButton): bool {.error: "juce::ArrowButton defines no operator==; compare a property instead".}
 
 proc makeDrawableButton*(buttonName: String, buttonStyle: DrawableButtonButtonStyle): DrawableButton {.header: juce_gui_basics, importcpp: "juce::DrawableButton(@)".}
 proc setImages*(this: var DrawableButton, normalImage: ptr Drawable, overImage: ptr Drawable = nil, downImage: ptr Drawable = nil, disabledImage: ptr Drawable = nil, normalImageOn: ptr Drawable = nil, overImageOn: ptr Drawable = nil, downImageOn: ptr Drawable = nil, disabledImageOn: ptr Drawable = nil) {.header: juce_gui_basics, importcpp: "#.setImages(@)".}
@@ -1557,6 +1596,7 @@ proc buttonStateChanged*(this: var DrawableButton) {.header: juce_gui_basics, im
 proc resized*(this: var DrawableButton) {.header: juce_gui_basics, importcpp: "#.resized()".}
 proc enablementChanged*(this: var DrawableButton) {.header: juce_gui_basics, importcpp: "#.enablementChanged()".}
 proc colourChanged*(this: var DrawableButton) {.header: juce_gui_basics, importcpp: "#.colourChanged()".}
+proc `==`*(this: DrawableButton, other: DrawableButton): bool {.error: "juce::DrawableButton defines no operator==; compare a property instead".}
 
 proc makeHyperlinkButton*(linkText: String, linkURL: URL): HyperlinkButton {.header: juce_gui_basics, importcpp: "juce::HyperlinkButton(@)".}
 proc makeHyperlinkButton*(): HyperlinkButton {.header: juce_gui_basics, importcpp: "juce::HyperlinkButton(@)".}
@@ -1567,6 +1607,7 @@ proc changeWidthToFitText*(this: var HyperlinkButton) {.header: juce_gui_basics,
 proc setJustificationType*(this: var HyperlinkButton, justification: Justification) {.header: juce_gui_basics, importcpp: "#.setJustificationType(@)".}
 proc getJustificationType*(this: HyperlinkButton): Justification {.header: juce_gui_basics, importcpp: "#.getJustificationType()".}
 proc createAccessibilityHandler*(this: var HyperlinkButton): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc `==`*(this: HyperlinkButton, other: HyperlinkButton): bool {.error: "juce::HyperlinkButton defines no operator==; compare a property instead".}
 
 proc makeImageButton*(name: String): ImageButton {.header: juce_gui_basics, importcpp: "juce::ImageButton(@)".}
 proc setImages*(this: var ImageButton, resizeButtonNowToFitThisImage: bool, rescaleImagesWhenButtonSizeChanges: bool, preserveImageProportions: bool, normalImage: Image, imageOpacityWhenNormal: cfloat, overlayColourWhenNormal: Colour, overImage: Image, imageOpacityWhenOver: cfloat, overlayColourWhenOver: Colour, downImage: Image, imageOpacityWhenDown: cfloat, overlayColourWhenDown: Colour, hitTestAlphaThreshold: cfloat = 0.0f) {.header: juce_gui_basics, importcpp: "#.setImages(@)".}
@@ -1574,6 +1615,7 @@ proc getNormalImage*(this: ImageButton): Image {.header: juce_gui_basics, import
 proc getOverImage*(this: ImageButton): Image {.header: juce_gui_basics, importcpp: "#.getOverImage()".}
 proc getDownImage*(this: ImageButton): Image {.header: juce_gui_basics, importcpp: "#.getDownImage()".}
 # proc setImageResamplingQuality*(this: var ImageButton, newQuality: GraphicsResamplingQuality) {.header: juce_gui_basics, importcpp: "#.setImageResamplingQuality(@)".}
+proc `==`*(this: ImageButton, other: ImageButton): bool {.error: "juce::ImageButton defines no operator==; compare a property instead".}
 
 proc makeShapeButton*(name: String, normalColour: Colour, overColour: Colour, downColour: Colour): ShapeButton {.header: juce_gui_basics, importcpp: "juce::ShapeButton(@)".}
 proc setShape*(this: var ShapeButton, newShape: Path, resizeNowToFitThisShape: bool, maintainShapeProportions: bool, hasDropShadow: bool) {.header: juce_gui_basics, importcpp: "#.setShape(@)".}
@@ -1583,6 +1625,7 @@ proc shouldUseOnColours*(this: var ShapeButton, shouldUse: bool) {.header: juce_
 proc setOutline*(this: var ShapeButton, outlineColour: Colour, outlineStrokeWidth: cfloat) {.header: juce_gui_basics, importcpp: "#.setOutline(@)".}
 proc setBorderSize*(this: var ShapeButton, border: BorderSize[cint]) {.header: juce_gui_basics, importcpp: "#.setBorderSize(@)".}
 proc paintButton*(this: var ShapeButton, arg1: var Graphics, arg2: bool, arg3: bool) {.header: juce_gui_basics, importcpp: "#.paintButton(@)".}
+proc `==`*(this: ShapeButton, other: ShapeButton): bool {.error: "juce::ShapeButton defines no operator==; compare a property instead".}
 
 proc makeTextButton*(): TextButton {.header: juce_gui_basics, importcpp: "juce::TextButton(@)".}
 proc makeTextButton*(buttonName: String): TextButton {.header: juce_gui_basics, importcpp: "juce::TextButton(@)".}
@@ -1593,11 +1636,13 @@ proc getBestWidthForHeight*(this: var TextButton, buttonHeight: cint): cint {.he
 proc paintButton*(this: var TextButton, arg1: var Graphics, arg2: bool, arg3: bool) {.header: juce_gui_basics, importcpp: "#.paintButton(@)".}
 proc colourChanged*(this: var TextButton) {.header: juce_gui_basics, importcpp: "#.colourChanged()".}
 proc `TextButton=`*(this: var TextButton, arg1: TextButton): var TextButton {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
+proc `==`*(this: TextButton, other: TextButton): bool {.error: "juce::TextButton defines no operator==; compare a property instead".}
 
 proc makeToggleButton*(): ToggleButton {.header: juce_gui_basics, importcpp: "juce::ToggleButton(@)".}
 proc makeToggleButton*(buttonText: String): ToggleButton {.header: juce_gui_basics, importcpp: "juce::ToggleButton(@)".}
 proc changeWidthToFitText*(this: var ToggleButton) {.header: juce_gui_basics, importcpp: "#.changeWidthToFitText()".}
 proc createAccessibilityHandler*(this: var ToggleButton): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc `==`*(this: ToggleButton, other: ToggleButton): bool {.error: "juce::ToggleButton defines no operator==; compare a property instead".}
 
 proc makeComponentBuilder*(state: ValueTree): ComponentBuilder {.header: juce_gui_basics, importcpp: "juce::ComponentBuilder(@)".}
 proc makeComponentBuilder*(): ComponentBuilder {.header: juce_gui_basics, importcpp: "juce::ComponentBuilder(@)".}
@@ -1611,6 +1656,7 @@ proc registerStandardComponentTypes*(this: var ComponentBuilder) {.header: juce_
 proc setImageProvider*(this: var ComponentBuilder, newImageProvider: ptr ComponentBuilderImageProvider) {.header: juce_gui_basics, importcpp: "#.setImageProvider(@)".}
 proc getImageProvider*(this: ComponentBuilder): ptr ComponentBuilderImageProvider {.header: juce_gui_basics, importcpp: "#.getImageProvider()".}
 proc updateChildComponents*(this: var ComponentBuilder, parent: var Component, children: ValueTree) {.header: juce_gui_basics, importcpp: "#.updateChildComponents(@)".}
+proc `==`*(this: ComponentBuilder, other: ComponentBuilder): bool {.error: "juce::ComponentBuilder defines no operator==; compare a property instead".}
 
 proc makeComponentMovementWatcher*(componentToWatch: ptr Component): ComponentMovementWatcher {.header: juce_gui_basics, importcpp: "juce::ComponentMovementWatcher(@)".}
 proc componentMovedOrResized*(this: var ComponentMovementWatcher, wasMoved: bool, wasResized: bool) {.header: juce_gui_basics, importcpp: "#.componentMovedOrResized(@)".}
@@ -1621,6 +1667,7 @@ proc componentParentHierarchyChanged*(this: var ComponentMovementWatcher, arg1: 
 proc componentMovedOrResized*(this: var ComponentMovementWatcher, arg1: var Component, wasMoved: bool, wasResized: bool) {.header: juce_gui_basics, importcpp: "#.componentMovedOrResized(@)".}
 proc componentBeingDeleted*(this: var ComponentMovementWatcher, arg1: var Component) {.header: juce_gui_basics, importcpp: "#.componentBeingDeleted(@)".}
 proc componentVisibilityChanged*(this: var ComponentMovementWatcher, arg1: var Component) {.header: juce_gui_basics, importcpp: "#.componentVisibilityChanged(@)".}
+proc `==`*(this: ComponentMovementWatcher, other: ComponentMovementWatcher): bool {.error: "juce::ComponentMovementWatcher defines no operator==; compare a property instead".}
 
 proc makeConcertinaPanel*(): ConcertinaPanel {.header: juce_gui_basics, importcpp: "juce::ConcertinaPanel(@)".}
 proc addPanel*(this: var ConcertinaPanel, insertIndex: cint, component: ptr Component, takeOwnership: bool) {.header: juce_gui_basics, importcpp: "#.addPanel(@)".}
@@ -1633,6 +1680,7 @@ proc setMaximumPanelSize*(this: var ConcertinaPanel, panelComponent: ptr Compone
 proc setPanelHeaderSize*(this: var ConcertinaPanel, panelComponent: ptr Component, headerSize: cint) {.header: juce_gui_basics, importcpp: "#.setPanelHeaderSize(@)".}
 proc setCustomPanelHeader*(this: var ConcertinaPanel, panelComponent: ptr Component, customHeaderComponent: ptr Component, takeOwnership: bool) {.header: juce_gui_basics, importcpp: "#.setCustomPanelHeader(@)".}
 proc createAccessibilityHandler*(this: var ConcertinaPanel): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc `==`*(this: ConcertinaPanel, other: ConcertinaPanel): bool {.error: "juce::ConcertinaPanel defines no operator==; compare a property instead".}
 
 proc makeGroupComponent*(componentName: String, labelText: String): GroupComponent {.header: juce_gui_basics, importcpp: "juce::GroupComponent(@)".}
 proc setText*(this: var GroupComponent, newText: String) {.header: juce_gui_basics, importcpp: "#.setText(@)".}
@@ -1643,16 +1691,20 @@ proc paint*(this: var GroupComponent, arg1: var Graphics) {.header: juce_gui_bas
 proc enablementChanged*(this: var GroupComponent) {.header: juce_gui_basics, importcpp: "#.enablementChanged()".}
 proc colourChanged*(this: var GroupComponent) {.header: juce_gui_basics, importcpp: "#.colourChanged()".}
 proc createAccessibilityHandler*(this: var GroupComponent): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc `==`*(this: GroupComponent, other: GroupComponent): bool {.error: "juce::GroupComponent defines no operator==; compare a property instead".}
 
 proc makeResizableBorderComponent*(componentToResize: ptr Component, constrainer: ptr ComponentBoundsConstrainer): ResizableBorderComponent {.header: juce_gui_basics, importcpp: "juce::ResizableBorderComponent(@)".}
 proc setBorderThickness*(this: var ResizableBorderComponent, newBorderSize: BorderSize[cint]) {.header: juce_gui_basics, importcpp: "#.setBorderThickness(@)".}
 proc getBorderThickness*(this: ResizableBorderComponent): BorderSize[cint] {.header: juce_gui_basics, importcpp: "#.getBorderThickness()".}
 proc getCurrentZone*(this: ResizableBorderComponent): ResizableBorderComponentZone {.header: juce_gui_basics, importcpp: "#.getCurrentZone()".}
+proc `==`*(this: ResizableBorderComponent, other: ResizableBorderComponent): bool {.error: "juce::ResizableBorderComponent defines no operator==; compare a property instead".}
 
 proc makeResizableCornerComponent*(componentToResize: ptr Component, constrainer: ptr ComponentBoundsConstrainer): ResizableCornerComponent {.header: juce_gui_basics, importcpp: "juce::ResizableCornerComponent(@)".}
+proc `==`*(this: ResizableCornerComponent, other: ResizableCornerComponent): bool {.error: "juce::ResizableCornerComponent defines no operator==; compare a property instead".}
 
 proc makeResizableEdgeComponent*(componentToResize: ptr Component, constrainer: ptr ComponentBoundsConstrainer, edgeToResize: ResizableEdgeComponentEdge): ResizableEdgeComponent {.header: juce_gui_basics, importcpp: "juce::ResizableEdgeComponent(@)".}
 proc isVertical*(this: ResizableEdgeComponent): bool {.header: juce_gui_basics, importcpp: "#.isVertical()".}
+proc `==`*(this: ResizableEdgeComponent, other: ResizableEdgeComponent): bool {.error: "juce::ResizableEdgeComponent defines no operator==; compare a property instead".}
 
 proc makeScrollBar*(isVertical: bool): ScrollBar {.header: juce_gui_basics, importcpp: "juce::ScrollBar(@)".}
 proc isVertical*(this: ScrollBar): bool {.header: juce_gui_basics, importcpp: "#.isVertical()".}
@@ -1690,6 +1742,7 @@ proc resized*(this: var ScrollBar) {.header: juce_gui_basics, importcpp: "#.resi
 proc parentHierarchyChanged*(this: var ScrollBar) {.header: juce_gui_basics, importcpp: "#.parentHierarchyChanged()".}
 proc setVisible*(this: var ScrollBar, arg1: bool) {.header: juce_gui_basics, importcpp: "#.setVisible(@)".}
 proc createAccessibilityHandler*(this: var ScrollBar): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc `==`*(this: ScrollBar, other: ScrollBar): bool {.error: "juce::ScrollBar defines no operator==; compare a property instead".}
 
 proc makeStretchableLayoutManager*(): StretchableLayoutManager {.header: juce_gui_basics, importcpp: "juce::StretchableLayoutManager(@)".}
 proc setItemLayout*(this: var StretchableLayoutManager, itemIndex: cint, minimumSize: float64, maximumSize: float64, preferredSize: float64) {.header: juce_gui_basics, importcpp: "#.setItemLayout(@)".}
@@ -1700,18 +1753,21 @@ proc getItemCurrentPosition*(this: StretchableLayoutManager, itemIndex: cint): c
 proc getItemCurrentAbsoluteSize*(this: StretchableLayoutManager, itemIndex: cint): cint {.header: juce_gui_basics, importcpp: "#.getItemCurrentAbsoluteSize(@)".}
 proc getItemCurrentRelativeSize*(this: StretchableLayoutManager, itemIndex: cint): float64 {.header: juce_gui_basics, importcpp: "#.getItemCurrentRelativeSize(@)".}
 proc setItemPosition*(this: var StretchableLayoutManager, itemIndex: cint, newPosition: cint) {.header: juce_gui_basics, importcpp: "#.setItemPosition(@)".}
+proc `==`*(this: StretchableLayoutManager, other: StretchableLayoutManager): bool {.error: "juce::StretchableLayoutManager defines no operator==; compare a property instead".}
 
 proc makeStretchableLayoutResizerBar*(layoutToUse: ptr StretchableLayoutManager, itemIndexInLayout: cint, isBarVertical: bool): StretchableLayoutResizerBar {.header: juce_gui_basics, importcpp: "juce::StretchableLayoutResizerBar(@)".}
 proc hasBeenMoved*(this: var StretchableLayoutResizerBar) {.header: juce_gui_basics, importcpp: "#.hasBeenMoved()".}
 proc paint*(this: var StretchableLayoutResizerBar, arg1: var Graphics) {.header: juce_gui_basics, importcpp: "#.paint(@)".}
 proc mouseDown*(this: var StretchableLayoutResizerBar, arg1: MouseEvent) {.header: juce_gui_basics, importcpp: "#.mouseDown(@)".}
 proc mouseDrag*(this: var StretchableLayoutResizerBar, arg1: MouseEvent) {.header: juce_gui_basics, importcpp: "#.mouseDrag(@)".}
+proc `==`*(this: StretchableLayoutResizerBar, other: StretchableLayoutResizerBar): bool {.error: "juce::StretchableLayoutResizerBar defines no operator==; compare a property instead".}
 
 proc makeStretchableObjectResizer*(): StretchableObjectResizer {.header: juce_gui_basics, importcpp: "juce::StretchableObjectResizer(@)".}
 proc addItem*(this: var StretchableObjectResizer, currentSize: float64, minSize: float64, maxSize: float64, order: cint = 0) {.header: juce_gui_basics, importcpp: "#.addItem(@)".}
 proc resizeToFit*(this: var StretchableObjectResizer, targetSize: float64) {.header: juce_gui_basics, importcpp: "#.resizeToFit(@)".}
 proc getNumItems*(this: StretchableObjectResizer): cint {.header: juce_gui_basics, importcpp: "#.getNumItems()".}
 proc getItemSize*(this: StretchableObjectResizer, index: cint): float64 {.header: juce_gui_basics, importcpp: "#.getItemSize(@)".}
+proc `==`*(this: StretchableObjectResizer, other: StretchableObjectResizer): bool {.error: "juce::StretchableObjectResizer defines no operator==; compare a property instead".}
 
 proc makeTabBarButton*(name: String, ownerBar: var TabbedButtonBar): TabBarButton {.header: juce_gui_basics, importcpp: "juce::TabBarButton(@)".}
 proc getTabbedButtonBar*(this: TabBarButton): var TabbedButtonBar {.header: juce_gui_basics, importcpp: "#.getTabbedButtonBar()".}
@@ -1729,6 +1785,7 @@ proc clicked*(this: var TabBarButton, arg1: ModifierKeys) {.header: juce_gui_bas
 proc hitTest*(this: var TabBarButton, x: cint, y: cint): bool {.header: juce_gui_basics, importcpp: "#.hitTest(@)".}
 proc resized*(this: var TabBarButton) {.header: juce_gui_basics, importcpp: "#.resized()".}
 proc childBoundsChanged*(this: var TabBarButton, arg1: ptr Component) {.header: juce_gui_basics, importcpp: "#.childBoundsChanged(@)".}
+proc `==`*(this: TabBarButton, other: TabBarButton): bool {.error: "juce::TabBarButton defines no operator==; compare a property instead".}
 
 proc makeTabbedButtonBar*(orientation: TabbedButtonBarOrientation): TabbedButtonBar {.header: juce_gui_basics, importcpp: "juce::TabbedButtonBar(@)".}
 proc setOrientation*(this: var TabbedButtonBar, orientation: TabbedButtonBarOrientation) {.header: juce_gui_basics, importcpp: "#.setOrientation(@)".}
@@ -1757,6 +1814,7 @@ proc paint*(this: var TabbedButtonBar, arg1: var Graphics) {.header: juce_gui_ba
 proc resized*(this: var TabbedButtonBar) {.header: juce_gui_basics, importcpp: "#.resized()".}
 proc lookAndFeelChanged*(this: var TabbedButtonBar) {.header: juce_gui_basics, importcpp: "#.lookAndFeelChanged()".}
 proc createAccessibilityHandler*(this: var TabbedButtonBar): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc `==`*(this: TabbedButtonBar, other: TabbedButtonBar): bool {.error: "juce::TabbedButtonBar defines no operator==; compare a property instead".}
 
 proc makeTabbedComponent*(orientation: TabbedButtonBarOrientation): TabbedComponent {.header: juce_gui_basics, importcpp: "juce::TabbedComponent(@)".}
 proc setOrientation*(this: var TabbedComponent, orientation: TabbedButtonBarOrientation) {.header: juce_gui_basics, importcpp: "#.setOrientation(@)".}
@@ -1786,10 +1844,12 @@ proc paint*(this: var TabbedComponent, arg1: var Graphics) {.header: juce_gui_ba
 proc resized*(this: var TabbedComponent) {.header: juce_gui_basics, importcpp: "#.resized()".}
 proc lookAndFeelChanged*(this: var TabbedComponent) {.header: juce_gui_basics, importcpp: "#.lookAndFeelChanged()".}
 proc createAccessibilityHandler*(this: var TabbedComponent): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc `==`*(this: TabbedComponent, other: TabbedComponent): bool {.error: "juce::TabbedComponent defines no operator==; compare a property instead".}
 
 proc getDisclosureLevel*(this: AccessibilityCellInterface): cint {.header: juce_gui_basics, importcpp: "#.getDisclosureLevel()".}
 proc getTableHandler*(this: AccessibilityCellInterface): ptr AccessibilityHandler {.header: juce_gui_basics, importcpp: "#.getTableHandler()".}
 proc getDisclosedRows*(this: AccessibilityCellInterface): CppVector[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.getDisclosedRows()".}
+proc `==`*(this: AccessibilityCellInterface, other: AccessibilityCellInterface): bool {.error: "juce::AccessibilityCellInterface defines no operator==; compare a property instead".}
 
 proc getNumRows*(this: AccessibilityTableInterface): cint {.header: juce_gui_basics, importcpp: "#.getNumRows()".}
 proc getNumColumns*(this: AccessibilityTableInterface): cint {.header: juce_gui_basics, importcpp: "#.getNumColumns()".}
@@ -1799,6 +1859,7 @@ proc getHeaderHandler*(this: AccessibilityTableInterface): ptr AccessibilityHand
 # proc getRowSpan*(this: AccessibilityTableInterface, arg1: AccessibilityHandler): Optional<Span> {.header: juce_gui_basics, importcpp: "#.getRowSpan(@)".}
 # proc getColumnSpan*(this: AccessibilityTableInterface, arg1: AccessibilityHandler): Optional<Span> {.header: juce_gui_basics, importcpp: "#.getColumnSpan(@)".}
 proc showCell*(this: AccessibilityTableInterface, arg1: AccessibilityHandler) {.header: juce_gui_basics, importcpp: "#.showCell(@)".}
+proc `==`*(this: AccessibilityTableInterface, other: AccessibilityTableInterface): bool {.error: "juce::AccessibilityTableInterface defines no operator==; compare a property instead".}
 
 proc isDisplayingProtectedText*(this: AccessibilityTextInterface): bool {.header: juce_gui_basics, importcpp: "#.isDisplayingProtectedText()".}
 proc isReadOnly*(this: AccessibilityTextInterface): bool {.header: juce_gui_basics, importcpp: "#.isReadOnly()".}
@@ -1811,6 +1872,7 @@ proc getAllText*(this: AccessibilityTextInterface): String {.header: juce_gui_ba
 proc setText*(this: var AccessibilityTextInterface, newText: String) {.header: juce_gui_basics, importcpp: "#.setText(@)".}
 proc getTextBounds*(this: AccessibilityTextInterface, textRange: Range[cint]): RectangleList[cint] {.header: juce_gui_basics, importcpp: "#.getTextBounds(@)".}
 proc getOffsetAtPoint*(this: AccessibilityTextInterface, point: Point[cint]): cint {.header: juce_gui_basics, importcpp: "#.getOffsetAtPoint(@)".}
+proc `==`*(this: AccessibilityTextInterface, other: AccessibilityTextInterface): bool {.error: "juce::AccessibilityTextInterface defines no operator==; compare a property instead".}
 
 proc isReadOnly*(this: AccessibilityValueInterface): bool {.header: juce_gui_basics, importcpp: "#.isReadOnly()".}
 proc getCurrentValue*(this: AccessibilityValueInterface): float64 {.header: juce_gui_basics, importcpp: "#.getCurrentValue()".}
@@ -1818,6 +1880,7 @@ proc getCurrentValueAsString*(this: AccessibilityValueInterface): String {.heade
 proc setValue*(this: var AccessibilityValueInterface, newValue: float64) {.header: juce_gui_basics, importcpp: "#.setValue(@)".}
 proc setValueAsString*(this: var AccessibilityValueInterface, newValue: String) {.header: juce_gui_basics, importcpp: "#.setValueAsString(@)".}
 proc getRange*(this: AccessibilityValueInterface): AccessibilityValueInterfaceAccessibleValueRange {.header: juce_gui_basics, importcpp: "#.getRange()".}
+proc `==`*(this: AccessibilityValueInterface, other: AccessibilityValueInterface): bool {.error: "juce::AccessibilityValueInterface defines no operator==; compare a property instead".}
 
 proc isReadOnly*(this: AccessibilityTextValueInterface): bool {.header: juce_gui_basics, importcpp: "#.isReadOnly()".}
 proc getCurrentValueAsString*(this: AccessibilityTextValueInterface): String {.header: juce_gui_basics, importcpp: "#.getCurrentValueAsString()".}
@@ -1825,6 +1888,7 @@ proc setValueAsString*(this: var AccessibilityTextValueInterface, newValue: Stri
 proc getCurrentValue*(this: AccessibilityTextValueInterface): float64 {.header: juce_gui_basics, importcpp: "#.getCurrentValue()".}
 proc setValue*(this: var AccessibilityTextValueInterface, newValue: float64) {.header: juce_gui_basics, importcpp: "#.setValue(@)".}
 proc getRange*(this: AccessibilityTextValueInterface): AccessibilityValueInterfaceAccessibleValueRange {.header: juce_gui_basics, importcpp: "#.getRange()".}
+proc `==`*(this: AccessibilityTextValueInterface, other: AccessibilityTextValueInterface): bool {.error: "juce::AccessibilityTextValueInterface defines no operator==; compare a property instead".}
 
 proc isReadOnly*(this: AccessibilityNumericValueInterface): bool {.header: juce_gui_basics, importcpp: "#.isReadOnly()".}
 proc getCurrentValue*(this: AccessibilityNumericValueInterface): float64 {.header: juce_gui_basics, importcpp: "#.getCurrentValue()".}
@@ -1832,6 +1896,7 @@ proc setValue*(this: var AccessibilityNumericValueInterface, newValue: float64) 
 proc getCurrentValueAsString*(this: AccessibilityNumericValueInterface): String {.header: juce_gui_basics, importcpp: "#.getCurrentValueAsString()".}
 proc setValueAsString*(this: var AccessibilityNumericValueInterface, newValue: String) {.header: juce_gui_basics, importcpp: "#.setValueAsString(@)".}
 proc getRange*(this: AccessibilityNumericValueInterface): AccessibilityValueInterfaceAccessibleValueRange {.header: juce_gui_basics, importcpp: "#.getRange()".}
+proc `==`*(this: AccessibilityNumericValueInterface, other: AccessibilityNumericValueInterface): bool {.error: "juce::AccessibilityNumericValueInterface defines no operator==; compare a property instead".}
 
 proc isReadOnly*(this: AccessibilityRangedNumericValueInterface): bool {.header: juce_gui_basics, importcpp: "#.isReadOnly()".}
 proc getCurrentValue*(this: AccessibilityRangedNumericValueInterface): float64 {.header: juce_gui_basics, importcpp: "#.getCurrentValue()".}
@@ -1839,11 +1904,13 @@ proc setValue*(this: var AccessibilityRangedNumericValueInterface, newValue: flo
 proc getRange*(this: AccessibilityRangedNumericValueInterface): AccessibilityValueInterfaceAccessibleValueRange {.header: juce_gui_basics, importcpp: "#.getRange()".}
 proc getCurrentValueAsString*(this: AccessibilityRangedNumericValueInterface): String {.header: juce_gui_basics, importcpp: "#.getCurrentValueAsString()".}
 proc setValueAsString*(this: var AccessibilityRangedNumericValueInterface, newValue: String) {.header: juce_gui_basics, importcpp: "#.setValueAsString(@)".}
+proc `==`*(this: AccessibilityRangedNumericValueInterface, other: AccessibilityRangedNumericValueInterface): bool {.error: "juce::AccessibilityRangedNumericValueInterface defines no operator==; compare a property instead".}
 
 proc makeAccessibilityActions*(): AccessibilityActions {.header: juce_gui_basics, importcpp: "juce::AccessibilityActions(@)".}
 proc addAction*(this: var AccessibilityActions, `type`: AccessibilityActionType, actionCallback: CppFunctionObjectN0): var AccessibilityActions {.header: juce_gui_basics, importcpp: "#.addAction(@)".}
 proc contains*(this: AccessibilityActions, `type`: AccessibilityActionType): bool {.header: juce_gui_basics, importcpp: "#.contains(@)".}
 proc invoke*(this: AccessibilityActions, `type`: AccessibilityActionType): bool {.header: juce_gui_basics, importcpp: "#.invoke(@)".}
+proc `==`*(this: AccessibilityActions, other: AccessibilityActions): bool {.error: "juce::AccessibilityActions defines no operator==; compare a property instead".}
 
 proc makeAccessibleState*(): AccessibleState {.header: juce_gui_basics, importcpp: "juce::AccessibleState(@)".}
 proc withCheckable*(this: AccessibleState): AccessibleState {.header: juce_gui_basics, importcpp: "#.withCheckable()".}
@@ -1870,6 +1937,7 @@ proc isMultiSelectable*(this: AccessibleState): bool {.header: juce_gui_basics, 
 proc isSelectable*(this: AccessibleState): bool {.header: juce_gui_basics, importcpp: "#.isSelectable()".}
 proc isSelected*(this: AccessibleState): bool {.header: juce_gui_basics, importcpp: "#.isSelected()".}
 proc isAccessibleOffscreen*(this: AccessibleState): bool {.header: juce_gui_basics, importcpp: "#.isAccessibleOffscreen()".}
+proc `==`*(this: AccessibleState, other: AccessibleState): bool {.error: "juce::AccessibleState defines no operator==; compare a property instead".}
 
 proc makeAccessibilityHandler*(componentToWrap: var Component, accessibilityRole: AccessibilityRole, actions: AccessibilityActions, interfaces: AccessibilityHandlerInterfaces): AccessibilityHandler {.header: juce_gui_basics, importcpp: "juce::AccessibilityHandler(@)".}
 proc getComponent*(this: AccessibilityHandler): Component {.header: juce_gui_basics, importcpp: "#.getComponent()".}
@@ -1897,6 +1965,7 @@ proc giveAwayFocus*(this: AccessibilityHandler) {.header: juce_gui_basics, impor
 proc notifyAccessibilityEvent*(this: AccessibilityHandler, event: AccessibilityEvent) {.header: juce_gui_basics, importcpp: "#.notifyAccessibilityEvent(@)".}
 proc getNativeImplementation*(this: AccessibilityHandler): ptr AccessibilityNativeHandle {.header: juce_gui_basics, importcpp: "#.getNativeImplementation()".}
 # proc getTypeIndex*(this: AccessibilityHandler): std::type_index {.header: juce_gui_basics, importcpp: "#.getTypeIndex()".}
+proc `==`*(this: AccessibilityHandler, other: AccessibilityHandler): bool {.error: "juce::AccessibilityHandler defines no operator==; compare a property instead".}
 
 proc createCopy*(this: Drawable): UniquePtr[Drawable] {.header: juce_gui_basics, importcpp: "#.createCopy()".}
 proc getOutlineAsPath*(this: Drawable): Path {.header: juce_gui_basics, importcpp: "#.getOutlineAsPath()".}
@@ -1910,6 +1979,7 @@ proc setClipPath*(this: var Drawable, drawableClipPath: UniquePtr[Drawable]) {.h
 proc getDrawableBounds*(this: Drawable): Rectangle[cfloat] {.header: juce_gui_basics, importcpp: "#.getDrawableBounds()".}
 proc replaceColour*(this: var Drawable, originalColour: Colour, replacementColour: Colour): bool {.header: juce_gui_basics, importcpp: "#.replaceColour(@)".}
 proc setDrawableTransform*(this: var Drawable, transform: AffineTransform) {.header: juce_gui_basics, importcpp: "#.setDrawableTransform(@)".}
+proc `==`*(this: Drawable, other: Drawable): bool {.error: "juce::Drawable defines no operator==; compare a property instead".}
 
 proc makeViewport*(componentName: String): Viewport {.header: juce_gui_basics, importcpp: "juce::Viewport(@)".}
 proc setViewedComponent*(this: var Viewport, newViewedComponent: ptr Component, deleteComponentWhenNoLongerNeeded: bool = true) {.header: juce_gui_basics, importcpp: "#.setViewedComponent(@)".}
@@ -1955,6 +2025,7 @@ proc keyPressed*(this: var Viewport, arg1: KeyPress): bool {.header: juce_gui_ba
 proc componentMovedOrResized*(this: var Viewport, arg1: var Component, wasMoved: bool, wasResized: bool) {.header: juce_gui_basics, importcpp: "#.componentMovedOrResized(@)".}
 proc lookAndFeelChanged*(this: var Viewport) {.header: juce_gui_basics, importcpp: "#.lookAndFeelChanged()".}
 proc useMouseWheelMoveIfNeeded*(this: var Viewport, arg1: MouseEvent, arg2: MouseWheelDetails): bool {.header: juce_gui_basics, importcpp: "#.useMouseWheelMoveIfNeeded(@)".}
+proc `==`*(this: Viewport, other: Viewport): bool {.error: "juce::Viewport defines no operator==; compare a property instead".}
 
 proc makePopupMenu*(): PopupMenu {.header: juce_gui_basics, importcpp: "juce::PopupMenu(@)".}
 proc `PopupMenu=`*(this: var PopupMenu, arg1: PopupMenu): var PopupMenu {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
@@ -1985,6 +2056,7 @@ proc showMenuAsync*(this: var PopupMenu, options: PopupMenuOptions, callback: pt
 proc showMenuAsync*(this: var PopupMenu, options: PopupMenuOptions, callback: CppFunctionObjectN1[cint]) {.header: juce_gui_basics, importcpp: "#.showMenuAsync(@)".}
 proc setLookAndFeel*(this: var PopupMenu, newLookAndFeel: ptr LookAndFeel) {.header: juce_gui_basics, importcpp: "#.setLookAndFeel(@)".}
 proc drawPopupMenuItem*(this: var PopupMenu, arg1: var Graphics, arg2: cint, arg3: cint, arg4: bool, arg5: bool, arg6: bool, arg7: bool, arg8: bool, arg9: String, arg10: String, arg11: ptr Image, arg12: ptr Colour): cint {.header: juce_gui_basics, importcpp: "#.drawPopupMenuItem(@)".}
+proc `==`*(this: PopupMenu, other: PopupMenu): bool {.error: "juce::PopupMenu defines no operator==; compare a property instead".}
 
 proc makeMenuBarModel*(): MenuBarModel {.header: juce_gui_basics, importcpp: "juce::MenuBarModel(@)".}
 proc menuItemsChanged*(this: var MenuBarModel) {.header: juce_gui_basics, importcpp: "#.menuItemsChanged()".}
@@ -1999,6 +2071,7 @@ proc applicationCommandInvoked*(this: var MenuBarModel, arg1: ApplicationCommand
 proc applicationCommandListChanged*(this: var MenuBarModel) {.header: juce_gui_basics, importcpp: "#.applicationCommandListChanged()".}
 proc handleAsyncUpdate*(this: var MenuBarModel) {.header: juce_gui_basics, importcpp: "#.handleAsyncUpdate()".}
 proc handleMenuBarActivate*(this: var MenuBarModel, isActive: bool) {.header: juce_gui_basics, importcpp: "#.handleMenuBarActivate(@)".}
+proc `==`*(this: MenuBarModel, other: MenuBarModel): bool {.error: "juce::MenuBarModel defines no operator==; compare a property instead".}
 
 proc makeMenuBarComponent*(model: ptr MenuBarModel): MenuBarComponent {.header: juce_gui_basics, importcpp: "juce::MenuBarComponent(@)".}
 proc setModel*(this: var MenuBarComponent, newModel: ptr MenuBarModel) {.header: juce_gui_basics, importcpp: "#.setModel(@)".}
@@ -2017,6 +2090,7 @@ proc keyPressed*(this: var MenuBarComponent, arg1: KeyPress): bool {.header: juc
 proc menuBarItemsChanged*(this: var MenuBarComponent, arg1: ptr MenuBarModel) {.header: juce_gui_basics, importcpp: "#.menuBarItemsChanged(@)".}
 proc menuCommandInvoked*(this: var MenuBarComponent, arg1: ptr MenuBarModel, arg2: ApplicationCommandTargetInvocationInfo) {.header: juce_gui_basics, importcpp: "#.menuCommandInvoked(@)".}
 proc createAccessibilityHandler*(this: var MenuBarComponent): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc `==`*(this: MenuBarComponent, other: MenuBarComponent): bool {.error: "juce::MenuBarComponent defines no operator==; compare a property instead".}
 
 proc makeRelativeCoordinate*(): RelativeCoordinate {.header: juce_gui_basics, importcpp: "juce::RelativeCoordinate(@)".}
 proc makeRelativeCoordinate*(expression: Expression): RelativeCoordinate {.header: juce_gui_basics, importcpp: "juce::RelativeCoordinate(@)".}
@@ -2084,6 +2158,7 @@ proc markerListBeingDeleted*(this: var RelativeCoordinatePositionerBase, arg1: p
 proc apply*(this: var RelativeCoordinatePositionerBase) {.header: juce_gui_basics, importcpp: "#.apply()".}
 proc addCoordinate*(this: var RelativeCoordinatePositionerBase, arg1: RelativeCoordinate): bool {.header: juce_gui_basics, importcpp: "#.addCoordinate(@)".}
 proc addPoint*(this: var RelativeCoordinatePositionerBase, arg1: RelativePoint): bool {.header: juce_gui_basics, importcpp: "#.addPoint(@)".}
+proc `==`*(this: RelativeCoordinatePositionerBase, other: RelativeCoordinatePositionerBase): bool {.error: "juce::RelativeCoordinatePositionerBase defines no operator==; compare a property instead".}
 
 proc makeRelativeParallelogram*(): RelativeParallelogram {.header: juce_gui_basics, importcpp: "juce::RelativeParallelogram(@)".}
 proc makeRelativeParallelogram*(simpleRectangle: Rectangle[cfloat]): RelativeParallelogram {.header: juce_gui_basics, importcpp: "juce::RelativeParallelogram(@)".}
@@ -2121,6 +2196,7 @@ proc paint*(this: var DrawableShape, arg1: var Graphics) {.header: juce_gui_basi
 proc hitTest*(this: var DrawableShape, x: cint, y: cint): bool {.header: juce_gui_basics, importcpp: "#.hitTest(@)".}
 proc replaceColour*(this: var DrawableShape, originalColour: Colour, replacementColour: Colour): bool {.header: juce_gui_basics, importcpp: "#.replaceColour(@)".}
 proc getOutlineAsPath*(this: DrawableShape): Path {.header: juce_gui_basics, importcpp: "#.getOutlineAsPath()".}
+proc `==`*(this: DrawableShape, other: DrawableShape): bool {.error: "juce::DrawableShape defines no operator==; compare a property instead".}
 
 proc makeDrawableComposite*(): DrawableComposite {.header: juce_gui_basics, importcpp: "juce::DrawableComposite(@)".}
 proc setBoundingBox*(this: var DrawableComposite, newBoundingBox: Parallelogram[cfloat]) {.header: juce_gui_basics, importcpp: "#.setBoundingBox(@)".}
@@ -2136,6 +2212,7 @@ proc childBoundsChanged*(this: var DrawableComposite, arg1: ptr Component) {.hea
 proc childrenChanged*(this: var DrawableComposite) {.header: juce_gui_basics, importcpp: "#.childrenChanged()".}
 proc parentHierarchyChanged*(this: var DrawableComposite) {.header: juce_gui_basics, importcpp: "#.parentHierarchyChanged()".}
 proc getOutlineAsPath*(this: DrawableComposite): Path {.header: juce_gui_basics, importcpp: "#.getOutlineAsPath()".}
+proc `==`*(this: DrawableComposite, other: DrawableComposite): bool {.error: "juce::DrawableComposite defines no operator==; compare a property instead".}
 
 proc makeDrawableImage*(): DrawableImage {.header: juce_gui_basics, importcpp: "juce::DrawableImage(@)".}
 proc makeDrawableImage*(imageToUse: Image): DrawableImage {.header: juce_gui_basics, importcpp: "juce::DrawableImage(@)".}
@@ -2155,6 +2232,7 @@ proc createCopy*(this: DrawableImage): UniquePtr[Drawable] {.header: juce_gui_ba
 proc getDrawableBounds*(this: DrawableImage): Rectangle[cfloat] {.header: juce_gui_basics, importcpp: "#.getDrawableBounds()".}
 proc getOutlineAsPath*(this: DrawableImage): Path {.header: juce_gui_basics, importcpp: "#.getOutlineAsPath()".}
 proc createAccessibilityHandler*(this: var DrawableImage): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc `==`*(this: DrawableImage, other: DrawableImage): bool {.error: "juce::DrawableImage defines no operator==; compare a property instead".}
 
 proc makeDrawablePath*(): DrawablePath {.header: juce_gui_basics, importcpp: "juce::DrawablePath(@)".}
 proc setPath*(this: var DrawablePath, newPath: Path) {.header: juce_gui_basics, importcpp: "#.setPath(@)".}
@@ -2162,6 +2240,7 @@ proc setPath*(this: var DrawablePath, newPath: lent Path) {.header: juce_gui_bas
 proc getPath*(this: DrawablePath): Path {.header: juce_gui_basics, importcpp: "#.getPath()".}
 proc getStrokePath*(this: DrawablePath): Path {.header: juce_gui_basics, importcpp: "#.getStrokePath()".}
 proc createCopy*(this: DrawablePath): UniquePtr[Drawable] {.header: juce_gui_basics, importcpp: "#.createCopy()".}
+proc `==`*(this: DrawablePath, other: DrawablePath): bool {.error: "juce::DrawablePath defines no operator==; compare a property instead".}
 
 proc makeDrawableRectangle*(): DrawableRectangle {.header: juce_gui_basics, importcpp: "juce::DrawableRectangle(@)".}
 proc setRectangle*(this: var DrawableRectangle, newBounds: Parallelogram[cfloat]) {.header: juce_gui_basics, importcpp: "#.setRectangle(@)".}
@@ -2169,6 +2248,7 @@ proc getRectangle*(this: DrawableRectangle): Parallelogram[cfloat] {.header: juc
 proc getCornerSize*(this: DrawableRectangle): Point[cfloat] {.header: juce_gui_basics, importcpp: "#.getCornerSize()".}
 proc setCornerSize*(this: var DrawableRectangle, newSize: Point[cfloat]) {.header: juce_gui_basics, importcpp: "#.setCornerSize(@)".}
 proc createCopy*(this: DrawableRectangle): UniquePtr[Drawable] {.header: juce_gui_basics, importcpp: "#.createCopy()".}
+proc `==`*(this: DrawableRectangle, other: DrawableRectangle): bool {.error: "juce::DrawableRectangle defines no operator==; compare a property instead".}
 
 proc makeDrawableText*(): DrawableText {.header: juce_gui_basics, importcpp: "juce::DrawableText(@)".}
 proc setText*(this: var DrawableText, newText: String) {.header: juce_gui_basics, importcpp: "#.setText(@)".}
@@ -2192,6 +2272,7 @@ proc getDrawableBounds*(this: DrawableText): Rectangle[cfloat] {.header: juce_gu
 proc getOutlineAsPath*(this: DrawableText): Path {.header: juce_gui_basics, importcpp: "#.getOutlineAsPath()".}
 proc replaceColour*(this: var DrawableText, originalColour: Colour, replacementColour: Colour): bool {.header: juce_gui_basics, importcpp: "#.replaceColour(@)".}
 proc createAccessibilityHandler*(this: var DrawableText): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc `==`*(this: DrawableText, other: DrawableText): bool {.error: "juce::DrawableText defines no operator==; compare a property instead".}
 
 proc makeTextEditor*(componentName: String, passwordCharacter: uint16): TextEditor {.header: juce_gui_basics, importcpp: "juce::TextEditor(@)".}
 proc setMultiLine*(this: var TextEditor, shouldBeMultiLine: bool, shouldWordWrap: bool = true) {.header: juce_gui_basics, importcpp: "#.setMultiLine(@)".}
@@ -2306,6 +2387,7 @@ proc isTextInputActive*(this: TextEditor): bool {.header: juce_gui_basics, impor
 proc setTemporaryUnderlining*(this: var TextEditor, arg1: Array[Range[cint]]) {.header: juce_gui_basics, importcpp: "#.setTemporaryUnderlining(@)".}
 proc getKeyboardType*(this: var TextEditor): TextInputTargetVirtualKeyboardType {.header: juce_gui_basics, importcpp: "#.getKeyboardType()".}
 proc createAccessibilityHandler*(this: var TextEditor): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc `==`*(this: TextEditor, other: TextEditor): bool {.error: "juce::TextEditor defines no operator==; compare a property instead".}
 
 proc makeLabel*(componentName: String, labelText: String): Label {.header: juce_gui_basics, importcpp: "juce::Label(@)".}
 # proc setText*(this: var Label, newText: String, notification: NotificationType) {.header: juce_gui_basics, importcpp: "#.setText(@)".}
@@ -2335,6 +2417,7 @@ proc hideEditor*(this: var Label, discardCurrentEditorContents: bool) {.header: 
 proc isBeingEdited*(this: Label): bool {.header: juce_gui_basics, importcpp: "#.isBeingEdited()".}
 proc getCurrentTextEditor*(this: Label): ptr TextEditor {.header: juce_gui_basics, importcpp: "#.getCurrentTextEditor()".}
 proc createAccessibilityHandler*(this: var Label): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc `==`*(this: Label, other: Label): bool {.error: "juce::Label defines no operator==; compare a property instead".}
 
 proc makeComboBox*(componentName: String): ComboBox {.header: juce_gui_basics, importcpp: "juce::ComboBox(@)".}
 proc setEditableText*(this: var ComboBox, isEditable: bool) {.header: juce_gui_basics, importcpp: "#.setEditableText(@)".}
@@ -2396,6 +2479,7 @@ proc clear*(this: var ComboBox, arg1: bool) {.header: juce_gui_basics, importcpp
 proc setSelectedId*(this: var ComboBox, arg1: cint, arg2: bool) {.header: juce_gui_basics, importcpp: "#.setSelectedId(@)".}
 proc setSelectedItemIndex*(this: var ComboBox, arg1: cint, arg2: bool) {.header: juce_gui_basics, importcpp: "#.setSelectedItemIndex(@)".}
 proc setText*(this: var ComboBox, arg1: String, arg2: bool) {.header: juce_gui_basics, importcpp: "#.setText(@)".}
+proc `==`*(this: ComboBox, other: ComboBox): bool {.error: "juce::ComboBox defines no operator==; compare a property instead".}
 
 proc makeImageComponent*(componentName: String): ImageComponent {.header: juce_gui_basics, importcpp: "juce::ImageComponent(@)".}
 proc setImage*(this: var ImageComponent, newImage: Image) {.header: juce_gui_basics, importcpp: "#.setImage(@)".}
@@ -2405,6 +2489,7 @@ proc setImagePlacement*(this: var ImageComponent, newPlacement: RectanglePlaceme
 proc getImagePlacement*(this: ImageComponent): RectanglePlacement {.header: juce_gui_basics, importcpp: "#.getImagePlacement()".}
 proc paint*(this: var ImageComponent, arg1: var Graphics) {.header: juce_gui_basics, importcpp: "#.paint(@)".}
 proc createAccessibilityHandler*(this: var ImageComponent): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc `==`*(this: ImageComponent, other: ImageComponent): bool {.error: "juce::ImageComponent defines no operator==; compare a property instead".}
 
 proc getNumRows*(this: var ListBoxModel): cint {.header: juce_gui_basics, importcpp: "#.getNumRows()".}
 proc paintListBoxItem*(this: var ListBoxModel, rowNumber: cint, g: var Graphics, width: cint, height: cint, rowIsSelected: bool) {.header: juce_gui_basics, importcpp: "#.paintListBoxItem(@)".}
@@ -2421,6 +2506,7 @@ proc getDragSourceDescription*(this: var ListBoxModel, rowsToDescribe: SparseSet
 proc mayDragToExternalWindows*(this: ListBoxModel): bool {.header: juce_gui_basics, importcpp: "#.mayDragToExternalWindows()".}
 proc getTooltipForRow*(this: var ListBoxModel, row: cint): String {.header: juce_gui_basics, importcpp: "#.getTooltipForRow(@)".}
 proc getMouseCursorForRow*(this: var ListBoxModel, row: cint): MouseCursor {.header: juce_gui_basics, importcpp: "#.getMouseCursorForRow(@)".}
+proc `==`*(this: ListBoxModel, other: ListBoxModel): bool {.error: "juce::ListBoxModel defines no operator==; compare a property instead".}
 
 proc makeListBox*(componentName: String, model: ptr ListBoxModel): ListBox {.header: juce_gui_basics, importcpp: "juce::ListBox(@)".}
 proc setModel*(this: var ListBox, newModel: ptr ListBoxModel) {.header: juce_gui_basics, importcpp: "#.setModel(@)".}
@@ -2480,6 +2566,7 @@ proc startDragAndDrop*(this: var ListBox, arg1: MouseEvent, rowsToDrag: SparseSe
 proc createAccessibilityHandler*(this: var ListBox): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
 proc setSelectedRows*(this: var ListBox, arg1: SparseSet[cint], arg2: bool) {.header: juce_gui_basics, importcpp: "#.setSelectedRows(@)".}
 proc getModel*(this: ListBox): ptr ListBoxModel {.header: juce_gui_basics, importcpp: "#.getModel()".}
+proc `==`*(this: ListBox, other: ListBox): bool {.error: "juce::ListBox defines no operator==; compare a property instead".}
 
 proc makeProgressBar*(progress: var float64): ProgressBar {.header: juce_gui_basics, importcpp: "juce::ProgressBar(@)".}
 proc makeProgressBar*(progress: var float64, style: CppOptional[ProgressBarStyle]): ProgressBar {.header: juce_gui_basics, importcpp: "juce::ProgressBar(@)".}
@@ -2489,6 +2576,7 @@ proc setStyle*(this: var ProgressBar, newStyle: CppOptional[ProgressBarStyle]) {
 proc getStyle*(this: ProgressBar): CppOptional[ProgressBarStyle] {.header: juce_gui_basics, importcpp: "#.getStyle()".}
 proc getResolvedStyle*(this: ProgressBar): ProgressBarStyle {.header: juce_gui_basics, importcpp: "#.getResolvedStyle()".}
 proc createAccessibilityHandler*(this: var ProgressBar): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc `==`*(this: ProgressBar, other: ProgressBar): bool {.error: "juce::ProgressBar defines no operator==; compare a property instead".}
 
 proc makeSlider*(): Slider {.header: juce_gui_basics, importcpp: "juce::Slider(@)".}
 proc makeSlider*(componentName: String): Slider {.header: juce_gui_basics, importcpp: "juce::Slider(@)".}
@@ -2599,6 +2687,7 @@ proc setMaxValue*(this: var Slider, arg1: float64, arg2: bool, arg3: bool) {.hea
 proc setMaxValue*(this: var Slider, arg1: float64, arg2: bool) {.header: juce_gui_basics, importcpp: "#.setMaxValue(@)".}
 proc setMinAndMaxValues*(this: var Slider, arg1: float64, arg2: float64, arg3: bool, arg4: bool) {.header: juce_gui_basics, importcpp: "#.setMinAndMaxValues(@)".}
 proc setMinAndMaxValues*(this: var Slider, arg1: float64, arg2: float64, arg3: bool) {.header: juce_gui_basics, importcpp: "#.setMinAndMaxValues(@)".}
+proc `==`*(this: Slider, other: Slider): bool {.error: "juce::Slider defines no operator==; compare a property instead".}
 
 proc makeTableHeaderComponent*(): TableHeaderComponent {.header: juce_gui_basics, importcpp: "juce::TableHeaderComponent(@)".}
 proc addColumn*(this: var TableHeaderComponent, columnName: String, columnId: cint, width: cint, minimumWidth: cint = 30, maximumWidth: cint = -1, propertyFlags: cint, insertIndex: cint = -1) {.header: juce_gui_basics, importcpp: "#.addColumn(@)".}
@@ -2644,6 +2733,7 @@ proc mouseUp*(this: var TableHeaderComponent, arg1: MouseEvent) {.header: juce_g
 proc getMouseCursor*(this: var TableHeaderComponent): MouseCursor {.header: juce_gui_basics, importcpp: "#.getMouseCursor()".}
 proc createAccessibilityHandler*(this: var TableHeaderComponent): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
 proc showColumnChooserMenu*(this: var TableHeaderComponent, columnIdClicked: cint) {.header: juce_gui_basics, importcpp: "#.showColumnChooserMenu(@)".}
+proc `==`*(this: TableHeaderComponent, other: TableHeaderComponent): bool {.error: "juce::TableHeaderComponent defines no operator==; compare a property instead".}
 
 proc makeTableListBoxModel*(): TableListBoxModel {.header: juce_gui_basics, importcpp: "juce::TableListBoxModel(@)".}
 proc getNumRows*(this: var TableListBoxModel): cint {.header: juce_gui_basics, importcpp: "#.getNumRows()".}
@@ -2662,6 +2752,7 @@ proc returnKeyPressed*(this: var TableListBoxModel, lastRowSelected: cint) {.hea
 proc listWasScrolled*(this: var TableListBoxModel) {.header: juce_gui_basics, importcpp: "#.listWasScrolled()".}
 proc getDragSourceDescription*(this: var TableListBoxModel, currentlySelectedRows: SparseSet[cint]): juce_var {.header: juce_gui_basics, importcpp: "#.getDragSourceDescription(@)".}
 proc mayDragToExternalWindows*(this: TableListBoxModel): bool {.header: juce_gui_basics, importcpp: "#.mayDragToExternalWindows()".}
+proc `==`*(this: TableListBoxModel, other: TableListBoxModel): bool {.error: "juce::TableListBoxModel defines no operator==; compare a property instead".}
 
 proc makeTableListBox*(componentName: String, model: ptr TableListBoxModel): TableListBox {.header: juce_gui_basics, importcpp: "juce::TableListBox(@)".}
 proc setModel*(this: var TableListBox, newModel: ptr TableListBoxModel) {.header: juce_gui_basics, importcpp: "#.setModel(@)".}
@@ -2692,6 +2783,7 @@ proc tableColumnDraggingChanged*(this: var TableListBox, arg1: ptr TableHeaderCo
 proc resized*(this: var TableListBox) {.header: juce_gui_basics, importcpp: "#.resized()".}
 proc createAccessibilityHandler*(this: var TableListBox): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
 proc getModel*(this: TableListBox): ptr TableListBoxModel {.header: juce_gui_basics, importcpp: "#.getModel()".}
+proc `==`*(this: TableListBox, other: TableListBox): bool {.error: "juce::TableListBox defines no operator==; compare a property instead".}
 
 proc makeToolbar*(): Toolbar {.header: juce_gui_basics, importcpp: "juce::Toolbar(@)".}
 proc setVertical*(this: var Toolbar, shouldBeVertical: bool) {.header: juce_gui_basics, importcpp: "#.setVertical(@)".}
@@ -2722,6 +2814,7 @@ proc itemDropped*(this: var Toolbar, arg1: DragAndDropTargetSourceDetails) {.hea
 proc lookAndFeelChanged*(this: var Toolbar) {.header: juce_gui_basics, importcpp: "#.lookAndFeelChanged()".}
 proc updateAllItemPositions*(this: var Toolbar, animate: bool) {.header: juce_gui_basics, importcpp: "#.updateAllItemPositions(@)".}
 proc createAccessibilityHandler*(this: var Toolbar): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc `==`*(this: Toolbar, other: Toolbar): bool {.error: "juce::Toolbar defines no operator==; compare a property instead".}
 
 proc makeToolbarItemComponent*(itemId: cint, labelText: String, isBeingUsedAsAButton: bool): ToolbarItemComponent {.header: juce_gui_basics, importcpp: "juce::ToolbarItemComponent(@)".}
 proc getItemId*(this: ToolbarItemComponent): cint {.header: juce_gui_basics, importcpp: "#.getItemId()".}
@@ -2738,21 +2831,25 @@ proc getEditingMode*(this: ToolbarItemComponent): ToolbarItemComponentToolbarEdi
 proc paintButton*(this: var ToolbarItemComponent, arg1: var Graphics, isMouseOver: bool, isMouseDown: bool) {.header: juce_gui_basics, importcpp: "#.paintButton(@)".}
 proc resized*(this: var ToolbarItemComponent) {.header: juce_gui_basics, importcpp: "#.resized()".}
 proc createAccessibilityHandler*(this: var ToolbarItemComponent): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc `==`*(this: ToolbarItemComponent, other: ToolbarItemComponent): bool {.error: "juce::ToolbarItemComponent defines no operator==; compare a property instead".}
 
 proc makeToolbarItemFactory*(): ToolbarItemFactory {.header: juce_gui_basics, importcpp: "juce::ToolbarItemFactory(@)".}
 proc getAllToolbarItemIds*(this: var ToolbarItemFactory, ids: Array[cint]) {.header: juce_gui_basics, importcpp: "#.getAllToolbarItemIds(@)".}
 proc getDefaultItemSet*(this: var ToolbarItemFactory, ids: Array[cint]) {.header: juce_gui_basics, importcpp: "#.getDefaultItemSet(@)".}
 proc createItem*(this: var ToolbarItemFactory, itemId: cint): ptr ToolbarItemComponent {.header: juce_gui_basics, importcpp: "#.createItem(@)".}
+proc `==`*(this: ToolbarItemFactory, other: ToolbarItemFactory): bool {.error: "juce::ToolbarItemFactory defines no operator==; compare a property instead".}
 
 proc makeToolbarItemPalette*(factory: var ToolbarItemFactory, toolbar: var Toolbar): ToolbarItemPalette {.header: juce_gui_basics, importcpp: "juce::ToolbarItemPalette(@)".}
 proc resized*(this: var ToolbarItemPalette) {.header: juce_gui_basics, importcpp: "#.resized()".}
 proc createAccessibilityHandler*(this: var ToolbarItemPalette): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc `==`*(this: ToolbarItemPalette, other: ToolbarItemPalette): bool {.error: "juce::ToolbarItemPalette defines no operator==; compare a property instead".}
 
 proc makeBurgerMenuComponent*(model: ptr MenuBarModel): BurgerMenuComponent {.header: juce_gui_basics, importcpp: "juce::BurgerMenuComponent(@)".}
 proc setModel*(this: var BurgerMenuComponent, newModel: ptr MenuBarModel) {.header: juce_gui_basics, importcpp: "#.setModel(@)".}
 proc getModel*(this: BurgerMenuComponent): ptr MenuBarModel {.header: juce_gui_basics, importcpp: "#.getModel()".}
 proc lookAndFeelChanged*(this: var BurgerMenuComponent) {.header: juce_gui_basics, importcpp: "#.lookAndFeelChanged()".}
 proc createAccessibilityHandler*(this: var BurgerMenuComponent): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc `==`*(this: BurgerMenuComponent, other: BurgerMenuComponent): bool {.error: "juce::BurgerMenuComponent defines no operator==; compare a property instead".}
 
 proc makeToolbarButton*(itemId: cint, labelText: String, normalImage: UniquePtr[Drawable], toggledOnImage: UniquePtr[Drawable]): ToolbarButton {.header: juce_gui_basics, importcpp: "juce::ToolbarButton(@)".}
 proc getToolbarItemSizes*(this: var ToolbarButton, toolbarDepth: cint, isToolbarVertical: bool, preferredSize: var cint, minSize: var cint, maxSize: var cint): bool {.header: juce_gui_basics, importcpp: "#.getToolbarItemSizes(@)".}
@@ -2761,12 +2858,15 @@ proc contentAreaChanged*(this: var ToolbarButton, arg1: Rectangle[cint]) {.heade
 proc buttonStateChanged*(this: var ToolbarButton) {.header: juce_gui_basics, importcpp: "#.buttonStateChanged()".}
 proc resized*(this: var ToolbarButton) {.header: juce_gui_basics, importcpp: "#.resized()".}
 proc enablementChanged*(this: var ToolbarButton) {.header: juce_gui_basics, importcpp: "#.enablementChanged()".}
+proc `==`*(this: ToolbarButton, other: ToolbarButton): bool {.error: "juce::ToolbarButton defines no operator==; compare a property instead".}
 
 proc makeDropShadower*(shadowType: DropShadow): DropShadower {.header: juce_gui_basics, importcpp: "juce::DropShadower(@)".}
 proc setOwner*(this: var DropShadower, componentToFollow: ptr Component) {.header: juce_gui_basics, importcpp: "#.setOwner(@)".}
+proc `==`*(this: DropShadower, other: DropShadower): bool {.error: "juce::DropShadower defines no operator==; compare a property instead".}
 
 proc makeFocusOutline*(props: UniquePtr[FocusOutlineOutlineWindowProperties]): FocusOutline {.header: juce_gui_basics, importcpp: "juce::FocusOutline(@)".}
 proc setOwner*(this: var FocusOutline, componentToFollow: ptr Component) {.header: juce_gui_basics, importcpp: "#.setOwner(@)".}
+proc `==`*(this: FocusOutline, other: FocusOutline): bool {.error: "juce::FocusOutline defines no operator==; compare a property instead".}
 
 proc makeTreeViewItem*(): TreeViewItem {.header: juce_gui_basics, importcpp: "juce::TreeViewItem(@)".}
 proc getNumSubItems*(this: TreeViewItem): cint {.header: juce_gui_basics, importcpp: "#.getNumSubItems()".}
@@ -2818,6 +2918,7 @@ proc restoreOpennessState*(this: var TreeViewItem, xml: XmlElement) {.header: ju
 proc getIndexInParent*(this: TreeViewItem): cint {.header: juce_gui_basics, importcpp: "#.getIndexInParent()".}
 proc isLastOfSiblings*(this: TreeViewItem): bool {.header: juce_gui_basics, importcpp: "#.isLastOfSiblings()".}
 proc getItemIdentifierString*(this: TreeViewItem): String {.header: juce_gui_basics, importcpp: "#.getItemIdentifierString()".}
+proc `==`*(this: TreeViewItem, other: TreeViewItem): bool {.error: "juce::TreeViewItem defines no operator==; compare a property instead".}
 
 proc makeTreeView*(componentName: String): TreeView {.header: juce_gui_basics, importcpp: "juce::TreeView(@)".}
 proc setRootItem*(this: var TreeView, newRootItem: ptr TreeViewItem) {.header: juce_gui_basics, importcpp: "#.setRootItem(@)".}
@@ -2862,6 +2963,7 @@ proc itemDragMove*(this: var TreeView, arg1: DragAndDropTargetSourceDetails) {.h
 proc itemDragExit*(this: var TreeView, arg1: DragAndDropTargetSourceDetails) {.header: juce_gui_basics, importcpp: "#.itemDragExit(@)".}
 proc itemDropped*(this: var TreeView, arg1: DragAndDropTargetSourceDetails) {.header: juce_gui_basics, importcpp: "#.itemDropped(@)".}
 proc createAccessibilityHandler*(this: var TreeView): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc `==`*(this: TreeView, other: TreeView): bool {.error: "juce::TreeView defines no operator==; compare a property instead".}
 
 proc makeTopLevelWindow*(name: String, addToDesktop: bool): TopLevelWindow {.header: juce_gui_basics, importcpp: "juce::TopLevelWindow(@)".}
 proc isActiveWindow*(this: TopLevelWindow): bool {.header: juce_gui_basics, importcpp: "#.isActiveWindow()".}
@@ -2873,6 +2975,7 @@ proc isUsingNativeTitleBar*(this: TopLevelWindow): bool {.header: juce_gui_basic
 proc addToDesktop*(this: var TopLevelWindow) {.header: juce_gui_basics, importcpp: "#.addToDesktop()".}
 proc addToDesktop*(this: var TopLevelWindow, windowStyleFlags: cint, nativeWindowToAttachTo: pointer = nil) {.header: juce_gui_basics, importcpp: "#.addToDesktop(@)".}
 proc createAccessibilityHandler*(this: var TopLevelWindow): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc `==`*(this: TopLevelWindow, other: TopLevelWindow): bool {.error: "juce::TopLevelWindow defines no operator==; compare a property instead".}
 
 proc makeMessageBoxOptions*(): MessageBoxOptions {.header: juce_gui_basics, importcpp: "juce::MessageBoxOptions(@)".}
 proc `MessageBoxOptions=`*(this: var MessageBoxOptions, arg1: MessageBoxOptions): var MessageBoxOptions {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
@@ -2889,11 +2992,13 @@ proc getNumButtons*(this: MessageBoxOptions): cint {.header: juce_gui_basics, im
 proc getButtonText*(this: MessageBoxOptions, buttonIndex: cint): String {.header: juce_gui_basics, importcpp: "#.getButtonText(@)".}
 proc getAssociatedComponent*(this: MessageBoxOptions): ptr Component {.header: juce_gui_basics, importcpp: "#.getAssociatedComponent()".}
 proc getParentComponent*(this: MessageBoxOptions): ptr Component {.header: juce_gui_basics, importcpp: "#.getParentComponent()".}
+proc `==`*(this: MessageBoxOptions, other: MessageBoxOptions): bool {.error: "juce::MessageBoxOptions defines no operator==; compare a property instead".}
 
 # proc makeScopedMessageBox*(arg1: std::shared_ptr<detail::ScopedMessageBoxImpl>): ScopedMessageBox {.header: juce_gui_basics, importcpp: "juce::ScopedMessageBox(@)".}
 proc makeScopedMessageBox*(): ScopedMessageBox {.header: juce_gui_basics, importcpp: "juce::ScopedMessageBox(@)".}
 proc `ScopedMessageBox=`*(this: var ScopedMessageBox, arg1: lent ScopedMessageBox): var ScopedMessageBox {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
 proc close*(this: var ScopedMessageBox) {.header: juce_gui_basics, importcpp: "#.close()".}
+proc `==`*(this: ScopedMessageBox, other: ScopedMessageBox): bool {.error: "juce::ScopedMessageBox defines no operator==; compare a property instead".}
 
 proc makeAlertWindow*(title: String, message: String, iconType: MessageBoxIconType, associatedComponent: ptr Component): AlertWindow {.header: juce_gui_basics, importcpp: "juce::AlertWindow(@)".}
 proc getAlertType*(this: AlertWindow): MessageBoxIconType {.header: juce_gui_basics, importcpp: "#.getAlertType()".}
@@ -2917,6 +3022,7 @@ proc getCustomComponent*(this: AlertWindow, index: cint): ptr Component {.header
 proc removeCustomComponent*(this: var AlertWindow, index: cint): ptr Component {.header: juce_gui_basics, importcpp: "#.removeCustomComponent(@)".}
 proc containsAnyExtraComponents*(this: AlertWindow): bool {.header: juce_gui_basics, importcpp: "#.containsAnyExtraComponents()".}
 proc createAccessibilityHandler*(this: var AlertWindow): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc `==`*(this: AlertWindow, other: AlertWindow): bool {.error: "juce::AlertWindow defines no operator==; compare a property instead".}
 
 proc makeCallOutBox*(contentComponent: var Component, areaToPointTo: Rectangle[cint], parentComponent: ptr Component): CallOutBox {.header: juce_gui_basics, importcpp: "juce::CallOutBox(@)".}
 proc setArrowSize*(this: var CallOutBox, newSize: cfloat) {.header: juce_gui_basics, importcpp: "#.setArrowSize(@)".}
@@ -2934,6 +3040,7 @@ proc handleCommandMessage*(this: var CallOutBox, arg1: cint) {.header: juce_gui_
 proc getBorderSize*(this: CallOutBox): cint {.header: juce_gui_basics, importcpp: "#.getBorderSize()".}
 proc lookAndFeelChanged*(this: var CallOutBox) {.header: juce_gui_basics, importcpp: "#.lookAndFeelChanged()".}
 proc createAccessibilityHandler*(this: var CallOutBox): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc `==`*(this: CallOutBox, other: CallOutBox): bool {.error: "juce::CallOutBox defines no operator==; compare a property instead".}
 
 proc makeComponentPeer*(component: var Component, styleFlags: cint): ComponentPeer {.header: juce_gui_basics, importcpp: "juce::ComponentPeer(@)".}
 proc getComponent*(this: var ComponentPeer): var Component {.header: juce_gui_basics, importcpp: "#.getComponent()".}
@@ -3018,6 +3125,7 @@ proc getAppStyle*(this: ComponentPeer): ComponentPeerStyle {.header: juce_gui_ba
 proc getNumFramesPainted*(this: ComponentPeer): uint64 {.header: juce_gui_basics, importcpp: "#.getNumFramesPainted()".}
 # proc setMultimonitorPositionOverride*(this: var ComponentPeer, pendingPosition: Point[cint]): Disabler {.header: juce_gui_basics, importcpp: "#.setMultimonitorPositionOverride(@)".}
 proc getMultimonitorPositionOverride*(this: ComponentPeer): CppOptional[Point[cint]] {.header: juce_gui_basics, importcpp: "#.getMultimonitorPositionOverride()".}
+proc `==`*(this: ComponentPeer, other: ComponentPeer): bool {.error: "juce::ComponentPeer defines no operator==; compare a property instead".}
 
 proc makeResizableWindow*(name: String, addToDesktop: bool): ResizableWindow {.header: juce_gui_basics, importcpp: "juce::ResizableWindow(@)".}
 proc makeResizableWindow*(name: String, backgroundColour: Colour, addToDesktop: bool): ResizableWindow {.header: juce_gui_basics, importcpp: "juce::ResizableWindow(@)".}
@@ -3046,6 +3154,7 @@ proc setContentComponentSize*(this: var ResizableWindow, width: cint, height: ci
 proc getBorderThickness*(this: ResizableWindow): BorderSize[cint] {.header: juce_gui_basics, importcpp: "#.getBorderThickness()".}
 proc getContentComponentBorder*(this: ResizableWindow): BorderSize[cint] {.header: juce_gui_basics, importcpp: "#.getContentComponentBorder()".}
 proc setContentComponent*(this: var ResizableWindow, newContentComponent: ptr Component, deleteOldOne: bool = true, resizeToFit: bool = false) {.header: juce_gui_basics, importcpp: "#.setContentComponent(@)".}
+proc `==`*(this: ResizableWindow, other: ResizableWindow): bool {.error: "juce::ResizableWindow defines no operator==; compare a property instead".}
 
 proc makeDocumentWindowImpl*(name: String, backgroundColour: Colour, requiredButtons: cint, addToDesktop: bool): DocumentWindowImpl {.header: juce_gui_basics, importcpp: "juce::DocumentWindow(@)".}
 proc setName*(this: var DocumentWindowImpl, newName: String) {.header: juce_gui_basics, importcpp: "#.setName(@)".}
@@ -3077,11 +3186,14 @@ proc findControlAtPoint*(this: DocumentWindowImpl, arg1: Point[cfloat]): Compone
 proc windowControlClickedClose*(this: var DocumentWindowImpl) {.header: juce_gui_basics, importcpp: "#.windowControlClickedClose()".}
 proc windowControlClickedMinimise*(this: var DocumentWindowImpl) {.header: juce_gui_basics, importcpp: "#.windowControlClickedMinimise()".}
 proc windowControlClickedMaximise*(this: var DocumentWindowImpl) {.header: juce_gui_basics, importcpp: "#.windowControlClickedMaximise()".}
+proc `==`*(this: DocumentWindowImpl, other: DocumentWindowImpl): bool {.error: "juce::DocumentWindow defines no operator==; compare a property instead".}
 
 proc makeDialogWindow*(name: String, backgroundColour: Colour, escapeKeyTriggersCloseButton: bool, addToDesktop: bool, desktopScale: cfloat): DialogWindow {.header: juce_gui_basics, importcpp: "juce::DialogWindow(@)".}
 proc escapeKeyPressed*(this: var DialogWindow): bool {.header: juce_gui_basics, importcpp: "#.escapeKeyPressed()".}
 proc createAccessibilityHandler*(this: var DialogWindow): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc `==`*(this: DialogWindow, other: DialogWindow): bool {.error: "juce::DialogWindow defines no operator==; compare a property instead".}
 
+proc `==`*(this: NativeMessageBox, other: NativeMessageBox): bool {.error: "juce::NativeMessageBox defines no operator==; compare a property instead".}
 
 proc makeThreadWithProgressWindow*(windowTitle: String, hasProgressBar: bool, hasCancelButton: bool, timeOutMsWhenCancelling: cint, cancelButtonText: String, componentToCentreAround: ptr Component): ThreadWithProgressWindow {.header: juce_gui_basics, importcpp: "juce::ThreadWithProgressWindow(@)".}
 # proc launchThread*(this: var ThreadWithProgressWindow, priority: ThreadPriority) {.header: juce_gui_basics, importcpp: "#.launchThread(@)".}
@@ -3089,6 +3201,7 @@ proc setProgress*(this: var ThreadWithProgressWindow, newProgress: float64) {.he
 proc setStatusMessage*(this: var ThreadWithProgressWindow, newStatusMessage: String) {.header: juce_gui_basics, importcpp: "#.setStatusMessage(@)".}
 proc getAlertWindow*(this: ThreadWithProgressWindow): ptr AlertWindow {.header: juce_gui_basics, importcpp: "#.getAlertWindow()".}
 proc threadComplete*(this: var ThreadWithProgressWindow, userPressedCancel: bool) {.header: juce_gui_basics, importcpp: "#.threadComplete(@)".}
+proc `==`*(this: ThreadWithProgressWindow, other: ThreadWithProgressWindow): bool {.error: "juce::ThreadWithProgressWindow defines no operator==; compare a property instead".}
 
 proc makeTooltipWindow*(parentComponent: ptr Component, millisecondsBeforeTipAppears: cint): TooltipWindow {.header: juce_gui_basics, importcpp: "juce::TooltipWindow(@)".}
 proc setMillisecondsBeforeTipAppears*(this: var TooltipWindow, newTimeMs: cint = 700) {.header: juce_gui_basics, importcpp: "#.setMillisecondsBeforeTipAppears(@)".}
@@ -3097,22 +3210,27 @@ proc hideTip*(this: var TooltipWindow) {.header: juce_gui_basics, importcpp: "#.
 proc getTipFor*(this: var TooltipWindow, arg1: var Component): String {.header: juce_gui_basics, importcpp: "#.getTipFor(@)".}
 proc getDesktopScaleFactor*(this: TooltipWindow): cfloat {.header: juce_gui_basics, importcpp: "#.getDesktopScaleFactor()".}
 proc createAccessibilityHandler*(this: var TooltipWindow): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc `==`*(this: TooltipWindow, other: TooltipWindow): bool {.error: "juce::TooltipWindow defines no operator==; compare a property instead".}
 
 proc makeVBlankAttachment*(): VBlankAttachment {.header: juce_gui_basics, importcpp: "juce::VBlankAttachment(@)".}
 proc makeVBlankAttachment*(c: ptr Component, callbackIn: CppFunctionObjectN0): VBlankAttachment {.header: juce_gui_basics, importcpp: "juce::VBlankAttachment(@)".}
 proc makeVBlankAttachment*(c: ptr Component, callbackIn: CppFunctionObjectN1[cdouble]): VBlankAttachment {.header: juce_gui_basics, importcpp: "juce::VBlankAttachment(@)".}
 proc `VBlankAttachment=`*(this: var VBlankAttachment, other: lent VBlankAttachment): var VBlankAttachment {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
 proc isEmpty*(this: VBlankAttachment): bool {.header: juce_gui_basics, importcpp: "#.isEmpty()".}
+proc `==`*(this: VBlankAttachment, other: VBlankAttachment): bool {.error: "juce::VBlankAttachment defines no operator==; compare a property instead".}
 
 proc makeWindowUtils*(): WindowUtils {.header: juce_gui_basics, importcpp: "juce::WindowUtils(@)".}
+proc `==`*(this: WindowUtils, other: WindowUtils): bool {.error: "juce::WindowUtils defines no operator==; compare a property instead".}
 
 proc makeNativeScaleFactorNotifier*(comp: ptr Component, onScaleChanged: CppFunctionObjectN1[cfloat]): NativeScaleFactorNotifier {.header: juce_gui_basics, importcpp: "juce::NativeScaleFactorNotifier(@)".}
+proc `==`*(this: NativeScaleFactorNotifier, other: NativeScaleFactorNotifier): bool {.error: "juce::NativeScaleFactorNotifier defines no operator==; compare a property instead".}
 
 proc makeMultiDocumentPanelWindow*(backgroundColour: Colour): MultiDocumentPanelWindow {.header: juce_gui_basics, importcpp: "juce::MultiDocumentPanelWindow(@)".}
 proc maximiseButtonPressed*(this: var MultiDocumentPanelWindow) {.header: juce_gui_basics, importcpp: "#.maximiseButtonPressed()".}
 proc closeButtonPressed*(this: var MultiDocumentPanelWindow) {.header: juce_gui_basics, importcpp: "#.closeButtonPressed()".}
 proc activeWindowStatusChanged*(this: var MultiDocumentPanelWindow) {.header: juce_gui_basics, importcpp: "#.activeWindowStatusChanged()".}
 proc broughtToFront*(this: var MultiDocumentPanelWindow) {.header: juce_gui_basics, importcpp: "#.broughtToFront()".}
+proc `==`*(this: MultiDocumentPanelWindow, other: MultiDocumentPanelWindow): bool {.error: "juce::MultiDocumentPanelWindow defines no operator==; compare a property instead".}
 
 proc makeMultiDocumentPanel*(): MultiDocumentPanel {.header: juce_gui_basics, importcpp: "juce::MultiDocumentPanel(@)".}
 proc closeAllDocumentsAsync*(this: var MultiDocumentPanel, checkItsOkToCloseFirst: bool, callback: CppFunctionObjectN1[bool]) {.header: juce_gui_basics, importcpp: "#.closeAllDocumentsAsync(@)".}
@@ -3136,6 +3254,7 @@ proc createNewDocumentWindow*(this: var MultiDocumentPanel): ptr MultiDocumentPa
 proc paint*(this: var MultiDocumentPanel, arg1: var Graphics) {.header: juce_gui_basics, importcpp: "#.paint(@)".}
 proc resized*(this: var MultiDocumentPanel) {.header: juce_gui_basics, importcpp: "#.resized()".}
 proc componentNameChanged*(this: var MultiDocumentPanel, arg1: var Component) {.header: juce_gui_basics, importcpp: "#.componentNameChanged(@)".}
+proc `==`*(this: MultiDocumentPanel, other: MultiDocumentPanel): bool {.error: "juce::MultiDocumentPanel defines no operator==; compare a property instead".}
 
 proc makeSidePanel*(title: StringRef, width: cint, positionOnLeft: bool, contentComponent: ptr Component, deleteComponentWhenNoLongerNeeded: bool): SidePanel {.header: juce_gui_basics, importcpp: "juce::SidePanel(@)".}
 proc setContent*(this: var SidePanel, newContentComponent: ptr Component, deleteComponentWhenNoLongerNeeded: bool = true) {.header: juce_gui_basics, importcpp: "#.setContent(@)".}
@@ -3159,11 +3278,13 @@ proc parentHierarchyChanged*(this: var SidePanel) {.header: juce_gui_basics, imp
 proc mouseDrag*(this: var SidePanel, arg1: MouseEvent) {.header: juce_gui_basics, importcpp: "#.mouseDrag(@)".}
 proc mouseUp*(this: var SidePanel, arg1: MouseEvent) {.header: juce_gui_basics, importcpp: "#.mouseUp(@)".}
 proc createAccessibilityHandler*(this: var SidePanel): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc `==`*(this: SidePanel, other: SidePanel): bool {.error: "juce::SidePanel defines no operator==; compare a property instead".}
 
 proc selectionChanged*(this: var FileBrowserListener) {.header: juce_gui_basics, importcpp: "#.selectionChanged()".}
 proc fileClicked*(this: var FileBrowserListener, file: File, e: MouseEvent) {.header: juce_gui_basics, importcpp: "#.fileClicked(@)".}
 proc fileDoubleClicked*(this: var FileBrowserListener, file: File) {.header: juce_gui_basics, importcpp: "#.fileDoubleClicked(@)".}
 proc browserRootChanged*(this: var FileBrowserListener, newRoot: File) {.header: juce_gui_basics, importcpp: "#.browserRootChanged(@)".}
+proc `==`*(this: FileBrowserListener, other: FileBrowserListener): bool {.error: "juce::FileBrowserListener defines no operator==; compare a property instead".}
 
 proc makeDirectoryContentsList*(fileFilter: ptr FileFilter, threadToUse: var TimeSliceThread): DirectoryContentsList {.header: juce_gui_basics, importcpp: "juce::DirectoryContentsList(@)".}
 proc getDirectory*(this: DirectoryContentsList): File {.header: juce_gui_basics, importcpp: "#.getDirectory()".}
@@ -3182,6 +3303,7 @@ proc getFile*(this: DirectoryContentsList, index: cint): File {.header: juce_gui
 proc getFilter*(this: DirectoryContentsList): ptr FileFilter {.header: juce_gui_basics, importcpp: "#.getFilter()".}
 proc contains*(this: DirectoryContentsList, arg1: File): bool {.header: juce_gui_basics, importcpp: "#.contains(@)".}
 proc getTimeSliceThread*(this: DirectoryContentsList): var TimeSliceThread {.header: juce_gui_basics, importcpp: "#.getTimeSliceThread()".}
+proc `==`*(this: DirectoryContentsList, other: DirectoryContentsList): bool {.error: "juce::DirectoryContentsList defines no operator==; compare a property instead".}
 
 proc makeDirectoryContentsDisplayComponent*(listToShow: var DirectoryContentsList): DirectoryContentsDisplayComponent {.header: juce_gui_basics, importcpp: "juce::DirectoryContentsDisplayComponent(@)".}
 proc getNumSelectedFiles*(this: DirectoryContentsDisplayComponent): cint {.header: juce_gui_basics, importcpp: "#.getNumSelectedFiles()".}
@@ -3194,6 +3316,7 @@ proc removeListener*(this: var DirectoryContentsDisplayComponent, listener: ptr 
 proc sendSelectionChangeMessage*(this: var DirectoryContentsDisplayComponent) {.header: juce_gui_basics, importcpp: "#.sendSelectionChangeMessage()".}
 proc sendDoubleClickMessage*(this: var DirectoryContentsDisplayComponent, arg1: File) {.header: juce_gui_basics, importcpp: "#.sendDoubleClickMessage(@)".}
 proc sendMouseClickMessage*(this: var DirectoryContentsDisplayComponent, arg1: File, arg2: MouseEvent) {.header: juce_gui_basics, importcpp: "#.sendMouseClickMessage(@)".}
+proc `==`*(this: DirectoryContentsDisplayComponent, other: DirectoryContentsDisplayComponent): bool {.error: "juce::DirectoryContentsDisplayComponent defines no operator==; compare a property instead".}
 
 proc makeFileBrowserComponent*(flags: cint, initialFileOrDirectory: File, fileFilter: ptr FileFilter, previewComp: ptr FilePreviewComponent): FileBrowserComponent {.header: juce_gui_basics, importcpp: "juce::FileBrowserComponent(@)".}
 proc getNumSelectedFiles*(this: FileBrowserComponent): cint {.header: juce_gui_basics, importcpp: "#.getNumSelectedFiles()".}
@@ -3224,6 +3347,7 @@ proc isDirectorySuitable*(this: FileBrowserComponent, arg1: File): bool {.header
 proc getPreviewComponent*(this: FileBrowserComponent): ptr FilePreviewComponent {.header: juce_gui_basics, importcpp: "#.getPreviewComponent()".}
 proc getDisplayComponent*(this: FileBrowserComponent): ptr DirectoryContentsDisplayComponent {.header: juce_gui_basics, importcpp: "#.getDisplayComponent()".}
 proc createAccessibilityHandler*(this: var FileBrowserComponent): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc `==`*(this: FileBrowserComponent, other: FileBrowserComponent): bool {.error: "juce::FileBrowserComponent defines no operator==; compare a property instead".}
 
 proc makeFileChooser*(dialogBoxTitle: String, initialFileOrDirectory: File, filePatternsAllowed: String, useOSNativeDialogBox: bool, treatFilePackagesAsDirectories: bool, parentComponent: ptr Component): FileChooser {.header: juce_gui_basics, importcpp: "juce::FileChooser(@)".}
 proc launchAsync*(this: var FileChooser, flags: cint, arg2: CppFunctionObjectN1[FileChooser], previewComponent: ptr FilePreviewComponent = nil) {.header: juce_gui_basics, importcpp: "#.launchAsync(@)".}
@@ -3231,9 +3355,11 @@ proc getResult*(this: FileChooser): File {.header: juce_gui_basics, importcpp: "
 proc getResults*(this: FileChooser): Array[File] {.header: juce_gui_basics, importcpp: "#.getResults()".}
 proc getURLResult*(this: FileChooser): URL {.header: juce_gui_basics, importcpp: "#.getURLResult()".}
 proc getURLResults*(this: FileChooser): Array[URL] {.header: juce_gui_basics, importcpp: "#.getURLResults()".}
+proc `==`*(this: FileChooser, other: FileChooser): bool {.error: "juce::FileChooser defines no operator==; compare a property instead".}
 
 proc makeFileChooserDialogBox*(title: String, instructions: String, browserComponent: var FileBrowserComponent, warnAboutOverwritingExistingFiles: bool, backgroundColour: Colour, parentComponent: ptr Component): FileChooserDialogBox {.header: juce_gui_basics, importcpp: "juce::FileChooserDialogBox(@)".}
 proc centreWithDefaultSize*(this: var FileChooserDialogBox, componentToCentreAround: ptr Component = nil) {.header: juce_gui_basics, importcpp: "#.centreWithDefaultSize(@)".}
+proc `==`*(this: FileChooserDialogBox, other: FileChooserDialogBox): bool {.error: "juce::FileChooserDialogBox defines no operator==; compare a property instead".}
 
 proc makeFileListComponent*(listToShow: var DirectoryContentsList): FileListComponent {.header: juce_gui_basics, importcpp: "juce::FileListComponent(@)".}
 proc getNumSelectedFiles*(this: FileListComponent): cint {.header: juce_gui_basics, importcpp: "#.getNumSelectedFiles()".}
@@ -3241,8 +3367,10 @@ proc getSelectedFile*(this: FileListComponent, index: cint = 0): File {.header: 
 proc deselectAllFiles*(this: var FileListComponent) {.header: juce_gui_basics, importcpp: "#.deselectAllFiles()".}
 proc scrollToTop*(this: var FileListComponent) {.header: juce_gui_basics, importcpp: "#.scrollToTop()".}
 proc setSelectedFile*(this: var FileListComponent, arg1: File) {.header: juce_gui_basics, importcpp: "#.setSelectedFile(@)".}
+proc `==`*(this: FileListComponent, other: FileListComponent): bool {.error: "juce::FileListComponent defines no operator==; compare a property instead".}
 
 proc filenameComponentChanged*(this: var FilenameComponentListener, fileComponentThatHasChanged: ptr FilenameComponent) {.header: juce_gui_basics, importcpp: "#.filenameComponentChanged(@)".}
+proc `==`*(this: FilenameComponentListener, other: FilenameComponentListener): bool {.error: "juce::FilenameComponentListener defines no operator==; compare a property instead".}
 
 proc makeFilenameComponent*(name: String, currentFile: File, canEditFilename: bool, isDirectory: bool, isForSaving: bool, fileBrowserWildcard: String, enforcedSuffix: String, textWhenNothingSelected: String): FilenameComponent {.header: juce_gui_basics, importcpp: "juce::FilenameComponent(@)".}
 proc getCurrentFile*(this: FilenameComponent): File {.header: juce_gui_basics, importcpp: "#.getCurrentFile()".}
@@ -3267,9 +3395,11 @@ proc filesDropped*(this: var FilenameComponent, arg1: StringArray, arg2: cint, a
 proc fileDragEnter*(this: var FilenameComponent, arg1: StringArray, arg2: cint, arg3: cint) {.header: juce_gui_basics, importcpp: "#.fileDragEnter(@)".}
 proc fileDragExit*(this: var FilenameComponent, arg1: StringArray) {.header: juce_gui_basics, importcpp: "#.fileDragExit(@)".}
 proc createKeyboardFocusTraverser*(this: var FilenameComponent): UniquePtr[ComponentTraverser] {.header: juce_gui_basics, importcpp: "#.createKeyboardFocusTraverser()".}
+proc `==`*(this: FilenameComponent, other: FilenameComponent): bool {.error: "juce::FilenameComponent defines no operator==; compare a property instead".}
 
 proc makeFilePreviewComponent*(): FilePreviewComponent {.header: juce_gui_basics, importcpp: "juce::FilePreviewComponent(@)".}
 proc selectedFileChanged*(this: var FilePreviewComponent, newSelectedFile: File) {.header: juce_gui_basics, importcpp: "#.selectedFileChanged(@)".}
+proc `==`*(this: FilePreviewComponent, other: FilePreviewComponent): bool {.error: "juce::FilePreviewComponent defines no operator==; compare a property instead".}
 
 proc makeFileSearchPathListComponent*(): FileSearchPathListComponent {.header: juce_gui_basics, importcpp: "juce::FileSearchPathListComponent(@)".}
 proc getPath*(this: FileSearchPathListComponent): FileSearchPath {.header: juce_gui_basics, importcpp: "#.getPath()".}
@@ -3285,6 +3415,7 @@ proc resized*(this: var FileSearchPathListComponent) {.header: juce_gui_basics, 
 proc paint*(this: var FileSearchPathListComponent, arg1: var Graphics) {.header: juce_gui_basics, importcpp: "#.paint(@)".}
 proc isInterestedInFileDrag*(this: var FileSearchPathListComponent, arg1: StringArray): bool {.header: juce_gui_basics, importcpp: "#.isInterestedInFileDrag(@)".}
 proc filesDropped*(this: var FileSearchPathListComponent, files: StringArray, arg2: cint, arg3: cint) {.header: juce_gui_basics, importcpp: "#.filesDropped(@)".}
+proc `==`*(this: FileSearchPathListComponent, other: FileSearchPathListComponent): bool {.error: "juce::FileSearchPathListComponent defines no operator==; compare a property instead".}
 
 proc makeFileTreeComponent*(listToShow: var DirectoryContentsList): FileTreeComponent {.header: juce_gui_basics, importcpp: "juce::FileTreeComponent(@)".}
 proc getNumSelectedFiles*(this: FileTreeComponent): cint {.header: juce_gui_basics, importcpp: "#.getNumSelectedFiles()".}
@@ -3297,14 +3428,17 @@ proc setDragAndDropDescription*(this: var FileTreeComponent, description: String
 proc getDragAndDropDescription*(this: FileTreeComponent): String {.header: juce_gui_basics, importcpp: "#.getDragAndDropDescription()".}
 proc setItemHeight*(this: var FileTreeComponent, newHeight: cint) {.header: juce_gui_basics, importcpp: "#.setItemHeight(@)".}
 proc getItemHeight*(this: FileTreeComponent): cint {.header: juce_gui_basics, importcpp: "#.getItemHeight()".}
+proc `==`*(this: FileTreeComponent, other: FileTreeComponent): bool {.error: "juce::FileTreeComponent defines no operator==; compare a property instead".}
 
 proc makeImagePreviewComponent*(): ImagePreviewComponent {.header: juce_gui_basics, importcpp: "juce::ImagePreviewComponent(@)".}
 proc selectedFileChanged*(this: var ImagePreviewComponent, newSelectedFile: File) {.header: juce_gui_basics, importcpp: "#.selectedFileChanged(@)".}
 proc paint*(this: var ImagePreviewComponent, arg1: var Graphics) {.header: juce_gui_basics, importcpp: "#.paint(@)".}
 proc timerCallback*(this: var ImagePreviewComponent) {.header: juce_gui_basics, importcpp: "#.timerCallback()".}
 proc createAccessibilityHandler*(this: var ImagePreviewComponent): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc `==`*(this: ImagePreviewComponent, other: ImagePreviewComponent): bool {.error: "juce::ImagePreviewComponent defines no operator==; compare a property instead".}
 
 proc makeContentSharer*(): ContentSharer {.header: juce_gui_basics, importcpp: "juce::ContentSharer(@)".}
+proc `==`*(this: ContentSharer, other: ContentSharer): bool {.error: "juce::ContentSharer defines no operator==; compare a property instead".}
 
 proc makePropertyComponent*(propertyName: String, preferredHeight: cint): PropertyComponent {.header: juce_gui_basics, importcpp: "juce::PropertyComponent(@)".}
 proc getPreferredHeight*(this: PropertyComponent): cint {.header: juce_gui_basics, importcpp: "#.getPreferredHeight()".}
@@ -3313,17 +3447,20 @@ proc refresh*(this: var PropertyComponent) {.header: juce_gui_basics, importcpp:
 proc paint*(this: var PropertyComponent, arg1: var Graphics) {.header: juce_gui_basics, importcpp: "#.paint(@)".}
 proc resized*(this: var PropertyComponent) {.header: juce_gui_basics, importcpp: "#.resized()".}
 proc enablementChanged*(this: var PropertyComponent) {.header: juce_gui_basics, importcpp: "#.enablementChanged()".}
+proc `==`*(this: PropertyComponent, other: PropertyComponent): bool {.error: "juce::PropertyComponent defines no operator==; compare a property instead".}
 
 proc makeBooleanPropertyComponent*(valueToControl: Value, propertyName: String, buttonText: String): BooleanPropertyComponent {.header: juce_gui_basics, importcpp: "juce::BooleanPropertyComponent(@)".}
 proc setState*(this: var BooleanPropertyComponent, newState: bool) {.header: juce_gui_basics, importcpp: "#.setState(@)".}
 proc getState*(this: BooleanPropertyComponent): bool {.header: juce_gui_basics, importcpp: "#.getState()".}
 proc paint*(this: var BooleanPropertyComponent, arg1: var Graphics) {.header: juce_gui_basics, importcpp: "#.paint(@)".}
 proc refresh*(this: var BooleanPropertyComponent) {.header: juce_gui_basics, importcpp: "#.refresh()".}
+proc `==`*(this: BooleanPropertyComponent, other: BooleanPropertyComponent): bool {.error: "juce::BooleanPropertyComponent defines no operator==; compare a property instead".}
 
 proc makeButtonPropertyComponent*(propertyName: String, triggerOnMouseDown: bool): ButtonPropertyComponent {.header: juce_gui_basics, importcpp: "juce::ButtonPropertyComponent(@)".}
 proc buttonClicked*(this: var ButtonPropertyComponent) {.header: juce_gui_basics, importcpp: "#.buttonClicked()".}
 proc getButtonText*(this: ButtonPropertyComponent): String {.header: juce_gui_basics, importcpp: "#.getButtonText()".}
 proc refresh*(this: var ButtonPropertyComponent) {.header: juce_gui_basics, importcpp: "#.refresh()".}
+proc `==`*(this: ButtonPropertyComponent, other: ButtonPropertyComponent): bool {.error: "juce::ButtonPropertyComponent defines no operator==; compare a property instead".}
 
 proc makeChoicePropertyComponent*(valueToControl: Value, propertyName: String, choices: StringArray, correspondingValues: Array[var]): ChoicePropertyComponent {.header: juce_gui_basics, importcpp: "juce::ChoicePropertyComponent(@)".}
 proc makeChoicePropertyComponent*(valueToControl: ValueTreePropertyWithDefault, propertyName: String, choices: StringArray, correspondingValues: Array[var]): ChoicePropertyComponent {.header: juce_gui_basics, importcpp: "juce::ChoicePropertyComponent(@)".}
@@ -3332,6 +3469,7 @@ proc setIndex*(this: var ChoicePropertyComponent, newIndex: cint) {.header: juce
 proc getIndex*(this: ChoicePropertyComponent): cint {.header: juce_gui_basics, importcpp: "#.getIndex()".}
 proc getChoices*(this: ChoicePropertyComponent): StringArray {.header: juce_gui_basics, importcpp: "#.getChoices()".}
 proc refresh*(this: var ChoicePropertyComponent) {.header: juce_gui_basics, importcpp: "#.refresh()".}
+proc `==`*(this: ChoicePropertyComponent, other: ChoicePropertyComponent): bool {.error: "juce::ChoicePropertyComponent defines no operator==; compare a property instead".}
 
 proc makePropertyPanel*(): PropertyPanel {.header: juce_gui_basics, importcpp: "juce::PropertyPanel(@)".}
 proc makePropertyPanel*(name: String): PropertyPanel {.header: juce_gui_basics, importcpp: "juce::PropertyPanel(@)".}
@@ -3353,11 +3491,13 @@ proc getMessageWhenEmpty*(this: PropertyPanel): String {.header: juce_gui_basics
 proc getViewport*(this: var PropertyPanel): var Viewport {.header: juce_gui_basics, importcpp: "#.getViewport()".}
 proc paint*(this: var PropertyPanel, arg1: var Graphics) {.header: juce_gui_basics, importcpp: "#.paint(@)".}
 proc resized*(this: var PropertyPanel) {.header: juce_gui_basics, importcpp: "#.resized()".}
+proc `==`*(this: PropertyPanel, other: PropertyPanel): bool {.error: "juce::PropertyPanel defines no operator==; compare a property instead".}
 
 proc makeSliderPropertyComponent*(valueToControl: Value, propertyName: String, rangeMin: float64, rangeMax: float64, interval: float64, skewFactor: float64, symmetricSkew: bool): SliderPropertyComponent {.header: juce_gui_basics, importcpp: "juce::SliderPropertyComponent(@)".}
 proc setValue*(this: var SliderPropertyComponent, newValue: float64) {.header: juce_gui_basics, importcpp: "#.setValue(@)".}
 proc getValue*(this: SliderPropertyComponent): float64 {.header: juce_gui_basics, importcpp: "#.getValue()".}
 proc refresh*(this: var SliderPropertyComponent) {.header: juce_gui_basics, importcpp: "#.refresh()".}
+proc `==`*(this: SliderPropertyComponent, other: SliderPropertyComponent): bool {.error: "juce::SliderPropertyComponent defines no operator==; compare a property instead".}
 
 proc makeTextPropertyComponent*(valueToControl: Value, propertyName: String, maxNumChars: cint, isMultiLine: bool, isEditable: bool): TextPropertyComponent {.header: juce_gui_basics, importcpp: "juce::TextPropertyComponent(@)".}
 proc makeTextPropertyComponent*(valueToControl: ValueTreePropertyWithDefault, propertyName: String, maxNumChars: cint, isMultiLine: bool, isEditable: bool): TextPropertyComponent {.header: juce_gui_basics, importcpp: "juce::TextPropertyComponent(@)".}
@@ -3372,6 +3512,7 @@ proc setInterestedInFileDrag*(this: var TextPropertyComponent, isInterested: boo
 proc setEditable*(this: var TextPropertyComponent, isEditable: bool) {.header: juce_gui_basics, importcpp: "#.setEditable(@)".}
 proc refresh*(this: var TextPropertyComponent) {.header: juce_gui_basics, importcpp: "#.refresh()".}
 proc textWasEdited*(this: var TextPropertyComponent) {.header: juce_gui_basics, importcpp: "#.textWasEdited()".}
+proc `==`*(this: TextPropertyComponent, other: TextPropertyComponent): bool {.error: "juce::TextPropertyComponent defines no operator==; compare a property instead".}
 
 proc makeMultiChoicePropertyComponent*(valueToControl: Value, propertyName: String, choices: StringArray, correspondingValues: Array[var], maxChoices: cint): MultiChoicePropertyComponent {.header: juce_gui_basics, importcpp: "juce::MultiChoicePropertyComponent(@)".}
 proc makeMultiChoicePropertyComponent*(valueToControl: ValueTreePropertyWithDefault, propertyName: String, choices: StringArray, correspondingValues: Array[var], maxChoices: cint): MultiChoicePropertyComponent {.header: juce_gui_basics, importcpp: "juce::MultiChoicePropertyComponent(@)".}
@@ -3381,6 +3522,7 @@ proc setExpanded*(this: var MultiChoicePropertyComponent, expanded: bool) {.head
 proc paint*(this: var MultiChoicePropertyComponent, g: var Graphics) {.header: juce_gui_basics, importcpp: "#.paint(@)".}
 proc resized*(this: var MultiChoicePropertyComponent) {.header: juce_gui_basics, importcpp: "#.resized()".}
 proc refresh*(this: var MultiChoicePropertyComponent) {.header: juce_gui_basics, importcpp: "#.refresh()".}
+proc `==`*(this: MultiChoicePropertyComponent, other: MultiChoicePropertyComponent): bool {.error: "juce::MultiChoicePropertyComponent defines no operator==; compare a property instead".}
 
 proc makeJUCEApplicationImpl*(): JUCEApplicationImpl {.header: juce_gui_basics, importcpp: "juce::JUCEApplication(@)".}
 proc moreThanOneInstanceAllowed*(this: var JUCEApplicationImpl): bool {.header: juce_gui_basics, importcpp: "#.moreThanOneInstanceAllowed()".}
@@ -3393,6 +3535,7 @@ proc getNextCommandTarget*(this: var JUCEApplicationImpl): ptr ApplicationComman
 proc getCommandInfo*(this: var JUCEApplicationImpl, arg1: cint, arg2: var ApplicationCommandInfo) {.header: juce_gui_basics, importcpp: "#.getCommandInfo(@)".}
 proc getAllCommands*(this: var JUCEApplicationImpl, arg1: Array[cint]) {.header: juce_gui_basics, importcpp: "#.getAllCommands(@)".}
 proc perform*(this: var JUCEApplicationImpl, arg1: ApplicationCommandTargetInvocationInfo): bool {.header: juce_gui_basics, importcpp: "#.perform(@)".}
+proc `==`*(this: JUCEApplicationImpl, other: JUCEApplicationImpl): bool {.error: "juce::JUCEApplication defines no operator==; compare a property instead".}
 
 proc setAllowedPlacement*(this: var BubbleComponent, newPlacement: cint) {.header: juce_gui_basics, importcpp: "#.setAllowedPlacement(@)".}
 proc setPosition*(this: var BubbleComponent, componentToPointTo: ptr Component, distanceFromTarget: cint = 15, arrowLength: cint = 10) {.header: juce_gui_basics, importcpp: "#.setPosition(@)".}
@@ -3400,7 +3543,9 @@ proc setPosition*(this: var BubbleComponent, arrowTipPosition: Point[cint], arro
 proc setPosition*(this: var BubbleComponent, rectangleToPointTo: Rectangle[cint], distanceFromTarget: cint = 15, arrowLength: cint = 10) {.header: juce_gui_basics, importcpp: "#.setPosition(@)".}
 proc paint*(this: var BubbleComponent, arg1: var Graphics) {.header: juce_gui_basics, importcpp: "#.paint(@)".}
 proc lookAndFeelChanged*(this: var BubbleComponent) {.header: juce_gui_basics, importcpp: "#.lookAndFeelChanged()".}
+proc `==`*(this: BubbleComponent, other: BubbleComponent): bool {.error: "juce::BubbleComponent defines no operator==; compare a property instead".}
 
+proc `==`*(this: ExtraLookAndFeelBaseClasses, other: ExtraLookAndFeelBaseClasses): bool {.error: "juce::ExtraLookAndFeelBaseClasses defines no operator==; compare a property instead".}
 
 proc makeLookAndFeel*(): LookAndFeel {.header: juce_gui_basics, importcpp: "juce::LookAndFeel(@)".}
 proc findColour*(this: LookAndFeel, colourId: cint): Colour {.header: juce_gui_basics, importcpp: "#.findColour(@)".}
@@ -3421,6 +3566,7 @@ proc createFocusOutlineForComponent*(this: var LookAndFeel, arg1: var Component)
 proc getMouseCursorFor*(this: var LookAndFeel, arg1: var Component): MouseCursor {.header: juce_gui_basics, importcpp: "#.getMouseCursorFor(@)".}
 proc createGraphicsContext*(this: var LookAndFeel, imageToRenderOn: Image, origin: Point[cint], initialClip: RectangleList[cint]): UniquePtr[LowLevelGraphicsContext] {.header: juce_gui_basics, importcpp: "#.createGraphicsContext(@)".}
 proc playAlertSound*(this: var LookAndFeel) {.header: juce_gui_basics, importcpp: "#.playAlertSound()".}
+proc `==`*(this: LookAndFeel, other: LookAndFeel): bool {.error: "juce::LookAndFeel defines no operator==; compare a property instead".}
 
 proc makeLookAndFeel_V2*(): LookAndFeel_V2 {.header: juce_gui_basics, importcpp: "juce::LookAndFeel_V2(@)".}
 proc drawButtonBackground*(this: var LookAndFeel_V2, arg1: var Graphics, arg2: var Button, backgroundColour: Colour, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.header: juce_gui_basics, importcpp: "#.drawButtonBackground(@)".}
@@ -3561,6 +3707,7 @@ proc drawKeymapChangeButton*(this: var LookAndFeel_V2, arg1: var Graphics, width
 proc getSidePanelTitleFont*(this: var LookAndFeel_V2, arg1: var SidePanel): Font {.header: juce_gui_basics, importcpp: "#.getSidePanelTitleFont(@)".}
 proc getSidePanelTitleJustification*(this: var LookAndFeel_V2, arg1: var SidePanel): Justification {.header: juce_gui_basics, importcpp: "#.getSidePanelTitleJustification(@)".}
 proc getSidePanelDismissButtonShape*(this: var LookAndFeel_V2, arg1: var SidePanel): Path {.header: juce_gui_basics, importcpp: "#.getSidePanelDismissButtonShape(@)".}
+proc `==`*(this: LookAndFeel_V2, other: LookAndFeel_V2): bool {.error: "juce::LookAndFeel_V2 defines no operator==; compare a property instead".}
 
 proc makeLookAndFeel_V1*(): LookAndFeel_V1 {.header: juce_gui_basics, importcpp: "juce::LookAndFeel_V1(@)".}
 proc drawButtonBackground*(this: var LookAndFeel_V1, arg1: var Graphics, arg2: var Button, backgroundColour: Colour, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.header: juce_gui_basics, importcpp: "#.drawButtonBackground(@)".}
@@ -3582,6 +3729,7 @@ proc getSliderEffect*(this: var LookAndFeel_V1, arg1: var Slider): ptr ImageEffe
 proc drawCornerResizer*(this: var LookAndFeel_V1, arg1: var Graphics, w: cint, h: cint, isMouseOver: bool, isMouseDragging: bool) {.header: juce_gui_basics, importcpp: "#.drawCornerResizer(@)".}
 proc createDocumentWindowButton*(this: var LookAndFeel_V1, buttonType: cint): ptr Button {.header: juce_gui_basics, importcpp: "#.createDocumentWindowButton(@)".}
 proc positionDocumentWindowButtons*(this: var LookAndFeel_V1, arg1: var DocumentWindowImpl, titleBarX: cint, titleBarY: cint, titleBarW: cint, titleBarH: cint, minimiseButton: ptr Button, maximiseButton: ptr Button, closeButton: ptr Button, positionTitleBarButtonsOnLeft: bool) {.header: juce_gui_basics, importcpp: "#.positionDocumentWindowButtons(@)".}
+proc `==`*(this: LookAndFeel_V1, other: LookAndFeel_V1): bool {.error: "juce::LookAndFeel_V1 defines no operator==; compare a property instead".}
 
 proc makeLookAndFeel_V3*(): LookAndFeel_V3 {.header: juce_gui_basics, importcpp: "juce::LookAndFeel_V3(@)".}
 proc drawButtonBackground*(this: var LookAndFeel_V3, arg1: var Graphics, arg2: var Button, backgroundColour: Colour, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.header: juce_gui_basics, importcpp: "#.drawButtonBackground(@)".}
@@ -3607,6 +3755,7 @@ proc drawLinearSliderBackground*(this: var LookAndFeel_V3, arg1: var Graphics, x
 proc drawConcertinaPanelHeader*(this: var LookAndFeel_V3, arg1: var Graphics, area: Rectangle[cint], isMouseOver: bool, isMouseDown: bool, arg5: var ConcertinaPanel, arg6: var Component) {.header: juce_gui_basics, importcpp: "#.drawConcertinaPanelHeader(@)".}
 proc getTickShape*(this: var LookAndFeel_V3, height: cfloat): Path {.header: juce_gui_basics, importcpp: "#.getTickShape(@)".}
 proc getCrossShape*(this: var LookAndFeel_V3, height: cfloat): Path {.header: juce_gui_basics, importcpp: "#.getCrossShape(@)".}
+proc `==`*(this: LookAndFeel_V3, other: LookAndFeel_V3): bool {.error: "juce::LookAndFeel_V3 defines no operator==; compare a property instead".}
 
 proc makeLookAndFeel_V4*(): LookAndFeel_V4 {.header: juce_gui_basics, importcpp: "juce::LookAndFeel_V4(@)".}
 proc makeLookAndFeel_V4*(arg1: LookAndFeel_V4ColourScheme): LookAndFeel_V4 {.header: juce_gui_basics, importcpp: "juce::LookAndFeel_V4(@)".}
@@ -3661,6 +3810,7 @@ proc drawPropertyComponentLabel*(this: var LookAndFeel_V4, arg1: var Graphics, w
 proc getPropertyComponentContentPosition*(this: var LookAndFeel_V4, arg1: var PropertyComponent): Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.getPropertyComponentContentPosition(@)".}
 proc drawCallOutBoxBackground*(this: var LookAndFeel_V4, arg1: var CallOutBox, arg2: var Graphics, arg3: Path, arg4: var Image) {.header: juce_gui_basics, importcpp: "#.drawCallOutBoxBackground(@)".}
 proc drawStretchableLayoutResizerBar*(this: var LookAndFeel_V4, arg1: var Graphics, arg2: cint, arg3: cint, arg4: bool, arg5: bool, arg6: bool) {.header: juce_gui_basics, importcpp: "#.drawStretchableLayoutResizerBar(@)".}
+proc `==`*(this: LookAndFeel_V4, other: LookAndFeel_V4): bool {.error: "juce::LookAndFeel_V4 defines no operator==; compare a property instead".}
 
 proc makeFlexItem*(): FlexItem {.header: juce_gui_basics, importcpp: "juce::FlexItem(@)".}
 proc makeFlexItem*(width: cfloat, height: cfloat): FlexItem {.header: juce_gui_basics, importcpp: "juce::FlexItem(@)".}
@@ -3680,12 +3830,14 @@ proc withMaxHeight*(this: FlexItem, newMaxHeight: cfloat): FlexItem {.header: ju
 proc withMargin*(this: FlexItem, arg1: FlexItemMargin): FlexItem {.header: juce_gui_basics, importcpp: "#.withMargin(@)".}
 proc withOrder*(this: FlexItem, newOrder: cint): FlexItem {.header: juce_gui_basics, importcpp: "#.withOrder(@)".}
 proc withAlignSelf*(this: FlexItem, newAlignSelf: FlexItemAlignSelf): FlexItem {.header: juce_gui_basics, importcpp: "#.withAlignSelf(@)".}
+proc `==`*(this: FlexItem, other: FlexItem): bool {.error: "juce::FlexItem defines no operator==; compare a property instead".}
 
 proc makeFlexBox*(): FlexBox {.header: juce_gui_basics, importcpp: "juce::FlexBox(@)".}
 proc makeFlexBox*(arg1: FlexBoxDirection, arg2: FlexBoxWrap, arg3: FlexBoxAlignContent, arg4: FlexBoxAlignItems, arg5: FlexBoxJustifyContent): FlexBox {.header: juce_gui_basics, importcpp: "juce::FlexBox(@)".}
 proc makeFlexBox*(arg1: FlexBoxJustifyContent): FlexBox {.header: juce_gui_basics, importcpp: "juce::FlexBox(@)".}
 proc performLayout*(this: var FlexBox, targetArea: Rectangle[cfloat]) {.header: juce_gui_basics, importcpp: "#.performLayout(@)".}
 proc performLayout*(this: var FlexBox, targetArea: Rectangle[cint]) {.header: juce_gui_basics, importcpp: "#.performLayout(@)".}
+proc `==`*(this: FlexBox, other: FlexBox): bool {.error: "juce::FlexBox defines no operator==; compare a property instead".}
 
 proc makeGridItem*(): GridItem {.header: juce_gui_basics, importcpp: "juce::GridItem(@)".}
 proc makeGridItem*(componentToUse: var Component): GridItem {.header: juce_gui_basics, importcpp: "juce::GridItem(@)".}
@@ -3705,15 +3857,19 @@ proc withHeight*(this: GridItem, newHeight: cfloat): GridItem {.header: juce_gui
 proc withSize*(this: GridItem, newWidth: cfloat, newHeight: cfloat): GridItem {.header: juce_gui_basics, importcpp: "#.withSize(@)".}
 proc withMargin*(this: GridItem, newMargin: GridItemMargin): GridItem {.header: juce_gui_basics, importcpp: "#.withMargin(@)".}
 proc withOrder*(this: GridItem, newOrder: cint): GridItem {.header: juce_gui_basics, importcpp: "#.withOrder(@)".}
+proc `==`*(this: GridItem, other: GridItem): bool {.error: "juce::GridItem defines no operator==; compare a property instead".}
 
 proc makeGrid*(): Grid {.header: juce_gui_basics, importcpp: "juce::Grid(@)".}
 proc setGap*(this: var Grid, sizeInPixels: GridPx) {.header: juce_gui_basics, importcpp: "#.setGap(@)".}
 proc performLayout*(this: var Grid, arg1: Rectangle[cint]) {.header: juce_gui_basics, importcpp: "#.performLayout(@)".}
 proc getNumberOfColumns*(this: Grid): cint {.header: juce_gui_basics, importcpp: "#.getNumberOfColumns()".}
 proc getNumberOfRows*(this: Grid): cint {.header: juce_gui_basics, importcpp: "#.getNumberOfRows()".}
+proc `==`*(this: Grid, other: Grid): bool {.error: "juce::Grid defines no operator==; compare a property instead".}
 
 proc makeScopedDPIAwarenessDisabler*(): ScopedDPIAwarenessDisabler {.header: juce_gui_basics, importcpp: "juce::ScopedDPIAwarenessDisabler(@)".}
+proc `==`*(this: ScopedDPIAwarenessDisabler, other: ScopedDPIAwarenessDisabler): bool {.error: "juce::ScopedDPIAwarenessDisabler defines no operator==; compare a property instead".}
 
+proc `==`*(this: AccessibilityNativeHandle, other: AccessibilityNativeHandle): bool {.error: "juce::AccessibilityNativeHandle defines no operator==; compare a property instead".}
 
 
 

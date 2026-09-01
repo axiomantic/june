@@ -276,6 +276,7 @@ proc getUnpremultiplied*(this: PixelARGB): PixelARGB {.header: juce_graphics, im
 proc premultiply*(this: var PixelARGB) {.header: juce_graphics, importcpp: "#.premultiply()".}
 proc unpremultiply*(this: var PixelARGB) {.header: juce_graphics, importcpp: "#.unpremultiply()".}
 proc desaturate*(this: var PixelARGB) {.header: juce_graphics, importcpp: "#.desaturate()".}
+proc `==`*(this: PixelARGB, other: PixelARGB): bool {.error: "juce::PixelARGB defines no operator==; compare a property instead".}
 
 proc makePixelRGB*(): PixelRGB {.header: juce_graphics, importcpp: "juce::PixelRGB(@)".}
 proc getNativeARGB*(this: PixelRGB): uint32 {.header: juce_graphics, importcpp: "#.getNativeARGB()".}
@@ -295,6 +296,7 @@ proc multiplyAlpha*(this: var PixelRGB, arg1: cfloat) {.header: juce_graphics, i
 proc premultiply*(this: var PixelRGB) {.header: juce_graphics, importcpp: "#.premultiply()".}
 proc unpremultiply*(this: var PixelRGB) {.header: juce_graphics, importcpp: "#.unpremultiply()".}
 proc desaturate*(this: var PixelRGB) {.header: juce_graphics, importcpp: "#.desaturate()".}
+proc `==`*(this: PixelRGB, other: PixelRGB): bool {.error: "juce::PixelRGB defines no operator==; compare a property instead".}
 
 proc makePixelAlpha*(): PixelAlpha {.header: juce_graphics, importcpp: "juce::PixelAlpha(@)".}
 proc getNativeARGB*(this: PixelAlpha): uint32 {.header: juce_graphics, importcpp: "#.getNativeARGB()".}
@@ -313,6 +315,7 @@ proc multiplyAlpha*(this: var PixelAlpha, multiplier: cfloat) {.header: juce_gra
 proc premultiply*(this: var PixelAlpha) {.header: juce_graphics, importcpp: "#.premultiply()".}
 proc unpremultiply*(this: var PixelAlpha) {.header: juce_graphics, importcpp: "#.unpremultiply()".}
 proc desaturate*(this: var PixelAlpha) {.header: juce_graphics, importcpp: "#.desaturate()".}
+proc `==`*(this: PixelAlpha, other: PixelAlpha): bool {.error: "juce::PixelAlpha defines no operator==; compare a property instead".}
 
 proc makeColour*(): Colour {.header: juce_graphics, importcpp: "juce::Colour(@)".}
 proc makeColour*(argb: uint32): Colour {.header: juce_graphics, importcpp: "juce::Colour(@)".}
@@ -409,10 +412,12 @@ proc getMaximumBounds*(this: EdgeTable): Rectangle[cint] {.header: juce_graphics
 proc translate*(this: var EdgeTable, dx: cfloat, dy: cint) {.header: juce_graphics, importcpp: "#.translate(@)".}
 proc multiplyLevels*(this: var EdgeTable, factor: cfloat) {.header: juce_graphics, importcpp: "#.multiplyLevels(@)".}
 proc optimiseTable*(this: var EdgeTable) {.header: juce_graphics, importcpp: "#.optimiseTable()".}
+proc `==`*(this: EdgeTable, other: EdgeTable): bool {.error: "juce::EdgeTable defines no operator==; compare a property instead".}
 
 proc makePathFlatteningIterator*(path: Path, transform: AffineTransform, tolerance: cfloat): PathFlatteningIterator {.header: juce_graphics, importcpp: "juce::PathFlatteningIterator(@)".}
 proc next*(this: var PathFlatteningIterator): bool {.header: juce_graphics, importcpp: "#.next()".}
 proc isLastInSubpath*(this: PathFlatteningIterator): bool {.header: juce_graphics, importcpp: "#.isLastInSubpath()".}
+proc `==`*(this: PathFlatteningIterator, other: PathFlatteningIterator): bool {.error: "juce::PathFlatteningIterator defines no operator==; compare a property instead".}
 
 proc makePathStrokeType*(strokeThickness: cfloat): PathStrokeType {.header: juce_graphics, importcpp: "juce::PathStrokeType(@)".}
 proc makePathStrokeType*(strokeThickness: cfloat, jointStyle: PathStrokeTypeJointStyle, endStyle: PathStrokeTypeEndCapStyle): PathStrokeType {.header: juce_graphics, importcpp: "juce::PathStrokeType(@)".}
@@ -439,6 +444,7 @@ proc testFlags*(this: RectanglePlacement, flagsToTest: cint): bool {.header: juc
 proc applyTo*(this: RectanglePlacement, sourceX: var float64, sourceY: var float64, sourceW: var float64, sourceH: var float64, destinationX: float64, destinationY: float64, destinationW: float64, destinationH: float64) {.header: juce_graphics, importcpp: "#.applyTo(@)".}
 proc getTransformToFit*(this: RectanglePlacement, source: Rectangle[cfloat], destination: Rectangle[cfloat]): AffineTransform {.header: juce_graphics, importcpp: "#.getTransformToFit(@)".}
 
+proc `==`*(this: ImageCache, other: ImageCache): bool {.error: "juce::ImageCache defines no operator==; compare a property instead".}
 
 proc makeImageConvolutionKernel*(size: cint): ImageConvolutionKernel {.header: juce_graphics, importcpp: "juce::ImageConvolutionKernel(@)".}
 proc clear*(this: var ImageConvolutionKernel) {.header: juce_graphics, importcpp: "#.clear()".}
@@ -449,12 +455,14 @@ proc rescaleAllValues*(this: var ImageConvolutionKernel, multiplier: cfloat) {.h
 proc createGaussianBlur*(this: var ImageConvolutionKernel, blurRadius: cfloat) {.header: juce_graphics, importcpp: "#.createGaussianBlur(@)".}
 proc getKernelSize*(this: ImageConvolutionKernel): cint {.header: juce_graphics, importcpp: "#.getKernelSize()".}
 proc applyToImage*(this: ImageConvolutionKernel, destImage: var Image, sourceImage: Image, destinationArea: Rectangle[cint]) {.header: juce_graphics, importcpp: "#.applyToImage(@)".}
+proc `==`*(this: ImageConvolutionKernel, other: ImageConvolutionKernel): bool {.error: "juce::ImageConvolutionKernel defines no operator==; compare a property instead".}
 
 proc getFormatName*(this: var ImageFileFormat): String {.header: juce_graphics, importcpp: "#.getFormatName()".}
 proc canUnderstand*(this: var ImageFileFormat, input: var InputStream): bool {.header: juce_graphics, importcpp: "#.canUnderstand(@)".}
 proc usesFileExtension*(this: var ImageFileFormat, possibleFile: File): bool {.header: juce_graphics, importcpp: "#.usesFileExtension(@)".}
 proc decodeImage*(this: var ImageFileFormat, input: var InputStream): Image {.header: juce_graphics, importcpp: "#.decodeImage(@)".}
 proc writeImageToStream*(this: var ImageFileFormat, sourceImage: Image, destStream: var OutputStream): bool {.header: juce_graphics, importcpp: "#.writeImageToStream(@)".}
+proc `==`*(this: ImageFileFormat, other: ImageFileFormat): bool {.error: "juce::ImageFileFormat defines no operator==; compare a property instead".}
 
 proc makePNGImageFormat*(): PNGImageFormat {.header: juce_graphics, importcpp: "juce::PNGImageFormat(@)".}
 proc getFormatName*(this: var PNGImageFormat): String {.header: juce_graphics, importcpp: "#.getFormatName()".}
@@ -462,6 +470,7 @@ proc usesFileExtension*(this: var PNGImageFormat, arg1: File): bool {.header: ju
 proc canUnderstand*(this: var PNGImageFormat, arg1: var InputStream): bool {.header: juce_graphics, importcpp: "#.canUnderstand(@)".}
 proc decodeImage*(this: var PNGImageFormat, arg1: var InputStream): Image {.header: juce_graphics, importcpp: "#.decodeImage(@)".}
 proc writeImageToStream*(this: var PNGImageFormat, arg1: Image, arg2: var OutputStream): bool {.header: juce_graphics, importcpp: "#.writeImageToStream(@)".}
+proc `==`*(this: PNGImageFormat, other: PNGImageFormat): bool {.error: "juce::PNGImageFormat defines no operator==; compare a property instead".}
 
 proc makeJPEGImageFormat*(): JPEGImageFormat {.header: juce_graphics, importcpp: "juce::JPEGImageFormat(@)".}
 proc setQuality*(this: var JPEGImageFormat, newQuality: cfloat) {.header: juce_graphics, importcpp: "#.setQuality(@)".}
@@ -470,6 +479,7 @@ proc usesFileExtension*(this: var JPEGImageFormat, arg1: File): bool {.header: j
 proc canUnderstand*(this: var JPEGImageFormat, arg1: var InputStream): bool {.header: juce_graphics, importcpp: "#.canUnderstand(@)".}
 proc decodeImage*(this: var JPEGImageFormat, arg1: var InputStream): Image {.header: juce_graphics, importcpp: "#.decodeImage(@)".}
 proc writeImageToStream*(this: var JPEGImageFormat, arg1: Image, arg2: var OutputStream): bool {.header: juce_graphics, importcpp: "#.writeImageToStream(@)".}
+proc `==`*(this: JPEGImageFormat, other: JPEGImageFormat): bool {.error: "juce::JPEGImageFormat defines no operator==; compare a property instead".}
 
 proc makeGIFImageFormat*(): GIFImageFormat {.header: juce_graphics, importcpp: "juce::GIFImageFormat(@)".}
 proc getFormatName*(this: var GIFImageFormat): String {.header: juce_graphics, importcpp: "#.getFormatName()".}
@@ -477,6 +487,7 @@ proc usesFileExtension*(this: var GIFImageFormat, arg1: File): bool {.header: ju
 proc canUnderstand*(this: var GIFImageFormat, arg1: var InputStream): bool {.header: juce_graphics, importcpp: "#.canUnderstand(@)".}
 proc decodeImage*(this: var GIFImageFormat, arg1: var InputStream): Image {.header: juce_graphics, importcpp: "#.decodeImage(@)".}
 proc writeImageToStream*(this: var GIFImageFormat, arg1: Image, arg2: var OutputStream): bool {.header: juce_graphics, importcpp: "#.writeImageToStream(@)".}
+proc `==`*(this: GIFImageFormat, other: GIFImageFormat): bool {.error: "juce::GIFImageFormat defines no operator==; compare a property instead".}
 
 proc withLineSpacing*(this: GlyphArrangementOptions, x: cfloat): GlyphArrangementOptions {.header: juce_graphics, importcpp: "#.withLineSpacing(@)".}
 proc withLineHeightMultiple*(this: GlyphArrangementOptions, x: cfloat): GlyphArrangementOptions {.header: juce_graphics, importcpp: "#.withLineHeightMultiple(@)".}
@@ -564,6 +575,7 @@ proc addTransform*(this: var Graphics, transform: AffineTransform) {.header: juc
 proc resetToDefaultState*(this: var Graphics) {.header: juce_graphics, importcpp: "#.resetToDefaultState()".}
 proc isVectorDevice*(this: Graphics): bool {.header: juce_graphics, importcpp: "#.isVectorDevice()".}
 proc getInternalContext*(this: Graphics): var LowLevelGraphicsContext {.header: juce_graphics, importcpp: "#.getInternalContext()".}
+proc `==`*(this: Graphics, other: Graphics): bool {.error: "juce::Graphics defines no operator==; compare a property instead".}
 
 proc makeImage*(): Image {.header: juce_graphics, importcpp: "juce::Image(@)".}
 proc makeImage*(format: ImagePixelFormat, imageWidth: cint, imageHeight: cint, clearImage: bool): Image {.header: juce_graphics, importcpp: "juce::Image(@)".}
@@ -607,6 +619,7 @@ proc isBackupEnabled*(this: ImagePixelDataBackupExtensions): bool {.header: juce
 proc backupNow*(this: var ImagePixelDataBackupExtensions): bool {.header: juce_graphics, importcpp: "#.backupNow()".}
 proc needsBackup*(this: ImagePixelDataBackupExtensions): bool {.header: juce_graphics, importcpp: "#.needsBackup()".}
 proc canBackup*(this: ImagePixelDataBackupExtensions): bool {.header: juce_graphics, importcpp: "#.canBackup()".}
+proc `==`*(this: ImagePixelDataBackupExtensions, other: ImagePixelDataBackupExtensions): bool {.error: "juce::ImagePixelDataBackupExtensions defines no operator==; compare a property instead".}
 
 proc makeImagePixelData*(arg1: ImagePixelFormat, width: cint, height: cint): ImagePixelData {.header: juce_graphics, importcpp: "juce::ImagePixelData(@)".}
 proc createLowLevelContext*(this: var ImagePixelData): UniquePtr[LowLevelGraphicsContext] {.header: juce_graphics, importcpp: "#.createLowLevelContext()".}
@@ -627,19 +640,23 @@ proc desaturateInArea*(this: var ImagePixelData, bounds: Rectangle[cint]) {.head
 proc desaturate*(this: var ImagePixelData) {.header: juce_graphics, importcpp: "#.desaturate()".}
 proc sendDataChangeMessage*(this: var ImagePixelData) {.header: juce_graphics, importcpp: "#.sendDataChangeMessage()".}
 proc getNativeExtensions*(this: var ImagePixelData): ImagePixelDataNativeExtensions {.header: juce_graphics, importcpp: "#.getNativeExtensions()".}
+proc `==`*(this: ImagePixelData, other: ImagePixelData): bool {.error: "juce::ImagePixelData defines no operator==; compare a property instead".}
 
 proc makeImageType*(): ImageType {.header: juce_graphics, importcpp: "juce::ImageType(@)".}
 proc create*(this: ImageType, arg1: ImagePixelFormat, width: cint, height: cint, shouldClearImage: bool): ReferenceCountedObjectPtr[ImagePixelData] {.header: juce_graphics, importcpp: "#.create(@)".}
 proc getTypeID*(this: ImageType): cint {.header: juce_graphics, importcpp: "#.getTypeID()".}
 proc convert*(this: ImageType, source: Image): Image {.header: juce_graphics, importcpp: "#.convert(@)".}
+proc `==`*(this: ImageType, other: ImageType): bool {.error: "juce::ImageType defines no operator==; compare a property instead".}
 
 proc makeSoftwareImageType*(): SoftwareImageType {.header: juce_graphics, importcpp: "juce::SoftwareImageType(@)".}
 proc create*(this: SoftwareImageType, arg1: ImagePixelFormat, width: cint, height: cint, clearImage: bool): ReferenceCountedObjectPtr[ImagePixelData] {.header: juce_graphics, importcpp: "#.create(@)".}
 proc getTypeID*(this: SoftwareImageType): cint {.header: juce_graphics, importcpp: "#.getTypeID()".}
+proc `==`*(this: SoftwareImageType, other: SoftwareImageType): bool {.error: "juce::SoftwareImageType defines no operator==; compare a property instead".}
 
 proc makeNativeImageType*(): NativeImageType {.header: juce_graphics, importcpp: "juce::NativeImageType(@)".}
 proc create*(this: NativeImageType, arg1: ImagePixelFormat, width: cint, height: cint, clearImage: bool): ReferenceCountedObjectPtr[ImagePixelData] {.header: juce_graphics, importcpp: "#.create(@)".}
 proc getTypeID*(this: NativeImageType): cint {.header: juce_graphics, importcpp: "#.getTypeID()".}
+proc `==`*(this: NativeImageType, other: NativeImageType): bool {.error: "juce::NativeImageType defines no operator==; compare a property instead".}
 
 proc makeFillType*(): FillType {.header: juce_graphics, importcpp: "juce::FillType(@)".}
 proc makeFillType*(colour: Colour): FillType {.header: juce_graphics, importcpp: "juce::FillType(@)".}
@@ -680,9 +697,13 @@ proc `<=`*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: 
 proc `==`*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}
 
+proc `==`*(this: ColourLayer, other: ColourLayer): bool {.error: "juce::ColourLayer defines no operator==; compare a property instead".}
 
+proc `==`*(this: ImageLayer, other: ImageLayer): bool {.error: "juce::ImageLayer defines no operator==; compare a property instead".}
 
+proc `==`*(this: GlyphLayer, other: GlyphLayer): bool {.error: "juce::GlyphLayer defines no operator==; compare a property instead".}
 
+proc `==`*(this: TypefaceMetrics, other: TypefaceMetrics): bool {.error: "juce::TypefaceMetrics defines no operator==; compare a property instead".}
 
 proc getName*(this: Typeface): String {.header: juce_graphics, importcpp: "#.getName()".}
 proc getStyle*(this: Typeface): String {.header: juce_graphics, importcpp: "#.getStyle()".}
@@ -695,6 +716,7 @@ proc getNominalGlyphForCodepoint*(this: Typeface, arg1: uint16): CppOptional[uin
 proc createSystemFallback*(this: Typeface, text: String, language: String): ReferenceCountedObjectPtr[Typeface] {.header: juce_graphics, importcpp: "#.createSystemFallback(@)".}
 proc getSupportedFeatures*(this: Typeface): CppVector[FontFeatureTag] {.header: juce_graphics, importcpp: "#.getSupportedFeatures()".}
 proc getNativeDetails*(this: Typeface): ptr TypefaceNative {.header: juce_graphics, importcpp: "#.getNativeDetails()".}
+proc `==`*(this: Typeface, other: Typeface): bool {.error: "juce::Typeface defines no operator==; compare a property instead".}
 
 proc makeFontOptions*(): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions(@)".}
 proc makeFontOptions*(fontHeight: cfloat): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions(@)".}
@@ -831,6 +853,7 @@ proc setColour*(this: var AttributedString, range: Range[cint], colour: Colour) 
 proc setColour*(this: var AttributedString, colour: Colour) {.header: juce_graphics, importcpp: "#.setColour(@)".}
 proc setFont*(this: var AttributedString, range: Range[cint], font: Font) {.header: juce_graphics, importcpp: "#.setFont(@)".}
 proc setFont*(this: var AttributedString, font: Font) {.header: juce_graphics, importcpp: "#.setFont(@)".}
+proc `==`*(this: AttributedString, other: AttributedString): bool {.error: "juce::AttributedString defines no operator==; compare a property instead".}
 
 proc makePositionedGlyph*(): PositionedGlyph {.header: juce_graphics, importcpp: "juce::PositionedGlyph(@)".}
 proc makePositionedGlyph*(font: Font, character: uint16, glyphNumber: cint, anchorX: cfloat, baselineY: cfloat, width: cfloat, isWhitespace: bool): PositionedGlyph {.header: juce_graphics, importcpp: "juce::PositionedGlyph(@)".}
@@ -848,6 +871,7 @@ proc draw*(this: PositionedGlyph, g: var Graphics) {.header: juce_graphics, impo
 proc draw*(this: PositionedGlyph, g: var Graphics, transform: AffineTransform) {.header: juce_graphics, importcpp: "#.draw(@)".}
 proc createPath*(this: PositionedGlyph, path: var Path) {.header: juce_graphics, importcpp: "#.createPath(@)".}
 proc hitTest*(this: PositionedGlyph, x: cfloat, y: cfloat): bool {.header: juce_graphics, importcpp: "#.hitTest(@)".}
+proc `==`*(this: PositionedGlyph, other: PositionedGlyph): bool {.error: "juce::PositionedGlyph defines no operator==; compare a property instead".}
 
 proc makeGlyphArrangement*(): GlyphArrangement {.header: juce_graphics, importcpp: "juce::GlyphArrangement(@)".}
 proc `GlyphArrangement=`*(this: var GlyphArrangement, arg1: GlyphArrangement): var GlyphArrangement {.header: juce_graphics, importcpp: "#.operator=(@)".}
@@ -872,6 +896,7 @@ proc moveRangeOfGlyphs*(this: var GlyphArrangement, startIndex: cint, numGlyphs:
 proc removeRangeOfGlyphs*(this: var GlyphArrangement, startIndex: cint, numGlyphs: cint) {.header: juce_graphics, importcpp: "#.removeRangeOfGlyphs(@)".}
 proc stretchRangeOfGlyphs*(this: var GlyphArrangement, startIndex: cint, numGlyphs: cint, horizontalScaleFactor: cfloat) {.header: juce_graphics, importcpp: "#.stretchRangeOfGlyphs(@)".}
 proc justifyGlyphs*(this: var GlyphArrangement, startIndex: cint, numGlyphs: cint, x: cfloat, y: cfloat, width: cfloat, height: cfloat, justification: Justification) {.header: juce_graphics, importcpp: "#.justifyGlyphs(@)".}
+proc `==`*(this: GlyphArrangement, other: GlyphArrangement): bool {.error: "juce::GlyphArrangement defines no operator==; compare a property instead".}
 
 proc makeTextLayout*(): TextLayout {.header: juce_graphics, importcpp: "juce::TextLayout(@)".}
 proc `TextLayout=`*(this: var TextLayout, arg1: TextLayout): var TextLayout {.header: juce_graphics, importcpp: "#.operator=(@)".}
@@ -894,6 +919,7 @@ proc ensureStorageAllocated*(this: var TextLayout, numLinesNeeded: cint) {.heade
 # proc `end`*(this: TextLayout): _iterator {.header: juce_graphics, importcpp: "#.end()".}
 # proc cend*(this: TextLayout): _iterator {.header: juce_graphics, importcpp: "#.cend()".}
 proc recalculateSize*(this: var TextLayout) {.header: juce_graphics, importcpp: "#.recalculateSize()".}
+proc `==`*(this: TextLayout, other: TextLayout): bool {.error: "juce::TextLayout defines no operator==; compare a property instead".}
 
 proc isVectorDevice*(this: LowLevelGraphicsContext): bool {.header: juce_graphics, importcpp: "#.isVectorDevice()".}
 proc setOrigin*(this: var LowLevelGraphicsContext, arg1: Point[cint]) {.header: juce_graphics, importcpp: "#.setOrigin(@)".}
@@ -933,6 +959,7 @@ proc fillRoundedRectangle*(this: var LowLevelGraphicsContext, r: Rectangle[cfloa
 proc drawEllipse*(this: var LowLevelGraphicsContext, area: Rectangle[cfloat], lineThickness: cfloat) {.header: juce_graphics, importcpp: "#.drawEllipse(@)".}
 proc fillEllipse*(this: var LowLevelGraphicsContext, area: Rectangle[cfloat]) {.header: juce_graphics, importcpp: "#.fillEllipse(@)".}
 proc getFrameId*(this: LowLevelGraphicsContext): uint64 {.header: juce_graphics, importcpp: "#.getFrameId()".}
+proc `==`*(this: LowLevelGraphicsContext, other: LowLevelGraphicsContext): bool {.error: "juce::LowLevelGraphicsContext defines no operator==; compare a property instead".}
 
 proc makeScaledImage*(): ScaledImage {.header: juce_graphics, importcpp: "juce::ScaledImage(@)".}
 proc makeScaledImage*(imageIn: Image): ScaledImage {.header: juce_graphics, importcpp: "juce::ScaledImage(@)".}
@@ -940,6 +967,7 @@ proc makeScaledImage*(imageIn: Image, scaleIn: float64): ScaledImage {.header: j
 proc getImage*(this: ScaledImage): Image {.header: juce_graphics, importcpp: "#.getImage()".}
 proc getScale*(this: ScaledImage): float64 {.header: juce_graphics, importcpp: "#.getScale()".}
 proc getScaledBounds*(this: ScaledImage): Rectangle[cdouble] {.header: juce_graphics, importcpp: "#.getScaledBounds()".}
+proc `==`*(this: ScaledImage, other: ScaledImage): bool {.error: "juce::ScaledImage defines no operator==; compare a property instead".}
 
 proc makeLowLevelGraphicsSoftwareRenderer*(imageToRenderOnto: Image): LowLevelGraphicsSoftwareRenderer {.header: juce_graphics, importcpp: "juce::LowLevelGraphicsSoftwareRenderer(@)".}
 proc makeLowLevelGraphicsSoftwareRenderer*(imageToRenderOnto: Image, origin: Point[cint], initialClip: RectangleList[cint]): LowLevelGraphicsSoftwareRenderer {.header: juce_graphics, importcpp: "juce::LowLevelGraphicsSoftwareRenderer(@)".}
@@ -973,23 +1001,29 @@ proc setFont*(this: var LowLevelGraphicsSoftwareRenderer, newFont: Font) {.heade
 proc getFont*(this: var LowLevelGraphicsSoftwareRenderer): Font {.header: juce_graphics, importcpp: "#.getFont()".}
 proc getFrameId*(this: LowLevelGraphicsSoftwareRenderer): uint64 {.header: juce_graphics, importcpp: "#.getFrameId()".}
 proc drawGlyphs*(this: var LowLevelGraphicsSoftwareRenderer, glyphs: Span[uint16], positions: Span[Point[cfloat]], t: AffineTransform) {.header: juce_graphics, importcpp: "#.drawGlyphs(@)".}
+proc `==`*(this: LowLevelGraphicsSoftwareRenderer, other: LowLevelGraphicsSoftwareRenderer): bool {.error: "juce::LowLevelGraphicsSoftwareRenderer defines no operator==; compare a property instead".}
 
 proc applyEffect*(this: var ImageEffectFilter, sourceImage: var Image, destContext: var Graphics, scaleFactor: cfloat, alpha: cfloat) {.header: juce_graphics, importcpp: "#.applyEffect(@)".}
+proc `==`*(this: ImageEffectFilter, other: ImageEffectFilter): bool {.error: "juce::ImageEffectFilter defines no operator==; compare a property instead".}
 
 proc makeDropShadow*(): DropShadow {.header: juce_graphics, importcpp: "juce::DropShadow(@)".}
 proc makeDropShadow*(shadowColour: Colour, radius: cint, offset: Point[cint]): DropShadow {.header: juce_graphics, importcpp: "juce::DropShadow(@)".}
 proc drawForImage*(this: DropShadow, g: var Graphics, srcImage: Image) {.header: juce_graphics, importcpp: "#.drawForImage(@)".}
 proc drawForPath*(this: DropShadow, g: var Graphics, path: Path) {.header: juce_graphics, importcpp: "#.drawForPath(@)".}
 proc drawForRectangle*(this: DropShadow, g: var Graphics, area: Rectangle[cint]) {.header: juce_graphics, importcpp: "#.drawForRectangle(@)".}
+proc `==`*(this: DropShadow, other: DropShadow): bool {.error: "juce::DropShadow defines no operator==; compare a property instead".}
 
 proc makeDropShadowEffect*(): DropShadowEffect {.header: juce_graphics, importcpp: "juce::DropShadowEffect(@)".}
 proc setShadowProperties*(this: var DropShadowEffect, newShadow: DropShadow) {.header: juce_graphics, importcpp: "#.setShadowProperties(@)".}
 proc applyEffect*(this: var DropShadowEffect, sourceImage: var Image, destContext: var Graphics, scaleFactor: cfloat, alpha: cfloat) {.header: juce_graphics, importcpp: "#.applyEffect(@)".}
+proc `==`*(this: DropShadowEffect, other: DropShadowEffect): bool {.error: "juce::DropShadowEffect defines no operator==; compare a property instead".}
 
 proc makeGlowEffect*(): GlowEffect {.header: juce_graphics, importcpp: "juce::GlowEffect(@)".}
 proc setGlowProperties*(this: var GlowEffect, newRadius: cfloat, newColour: Colour, offset: Point[cint]) {.header: juce_graphics, importcpp: "#.setGlowProperties(@)".}
 proc applyEffect*(this: var GlowEffect, arg1: var Image, arg2: var Graphics, scaleFactor: cfloat, alpha: cfloat) {.header: juce_graphics, importcpp: "#.applyEffect(@)".}
+proc `==`*(this: GlowEffect, other: GlowEffect): bool {.error: "juce::GlowEffect defines no operator==; compare a property instead".}
 
+proc `==`*(this: ImagePixelDataNativeExtensions, other: ImagePixelDataNativeExtensions): bool {.error: "juce::ImagePixelDataNativeExtensions defines no operator==; compare a property instead".}
 
 
 
