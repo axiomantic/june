@@ -38,13 +38,13 @@ include {juce_module_name}_lifting
 # {(&NTIv2_...)}, and C++ rejects it: JUCE's classes have no such member.
 nim_class_def = """  {class_name}{export} {{.header: {juce_module_name}, importcpp: "{spelling}", inheritable, pure.}} = object{base}"""
 
-nim_method_def = """{comment}proc {method_name}*({method_args}){method_return} {{.header: {juce_module_name}, importcpp: "#.{juce_spelling}({juce_args})".}}"""
+nim_method_def = """{comment}proc {method_name}*({method_args}){method_return} {{.header: {juce_module_name}, importcpp: "#.{juce_spelling}({juce_args})".}}{reason}"""
 
 # Deliberately not {.constructor.}. That pragma makes Nim emit a C++ declaration,
 # `ValueTree vt(Identifier("x"))`, which C++ reads as a function declaration -
 # the most vexing parse - and every later use fails with "not a structure or
 # union". Without it the pattern is used and the call is an expression.
-nim_constructor_def = """{comment}proc make{class_name}*({method_args}): {class_name} {{.header: {juce_module_name}, importcpp: "{spelling}(@)".}}"""
+nim_constructor_def = """{comment}proc make{class_name}*({method_args}): {class_name} {{.header: {juce_module_name}, importcpp: "{spelling}(@)".}}{reason}"""
 
 #==================================================================================================
 
@@ -560,6 +560,14 @@ def remap_operator_name(class_name, method_name):
 
     return remap_table.get(method_name)
 
+def operator_comment_reason(method_name):
+    """Why an operator was left as a comment rather than bound."""
+    if method_name in ("operator!=",):
+        return "Nim derives != from =="
+    if method_name in ("operator>", "operator>="):
+        return "Nim derives > and >= from < and <="
+    return "an operator with no Nim spelling"
+
 def remap_argument_name(arg_name, count):
     if not arg_name:
         return f"arg{count + 1}"
@@ -1017,7 +1025,8 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 "class_name": class_name,
                 "method_args": ", ".join(ctor_args),
                 "juce_module_name": juce_module_name,
-                "spelling": qualified_name })
+                "spelling": qualified_name,
+                "reason": "  # a type that cannot be spelled in Nim" if ctor_comment else "" })
 
             if declaration in emitted_declarations:
                 continue
@@ -1098,15 +1107,18 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 args.append(f"{spelling}: {argument_type}{default_value}")
                 argument_types.append(argument_type)
 
+            reason = ""
             return_type = ""
             if m.result_type.spelling != "void":
                 return_type = f": {remap_type(m.result_type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap)}"
 
             if m.result_type.spelling in ["CFStringRef", "OSType"]:
-                comment = "# "
+                comment, reason = "# ", "a platform type with no Nim spelling"
 
-            if skip_class_method(class_name, m.spelling) or m.spelling in ["begin", "end", "cbegin", "cend"]:
-                comment = "# "
+            if m.spelling in ["begin", "end", "cbegin", "cend"]:
+                comment, reason = "# ", "a C++ iterator; loop with the Nim iterator instead"
+            elif skip_class_method(class_name, m.spelling):
+                comment, reason = "# ", "excluded deliberately: see skip_class_method"
 
             # A C++ template or a nested name that survived remapping is not
             # valid Nim and would break the whole module, so emit the proc as a
@@ -1124,10 +1136,12 @@ def run_main(juce_module_name, juce_class_name_to_export):
             method_spelling = m.spelling
             method_name = remap_method_name(remap_wrapped_method_name(class_name, m.spelling))
             if method_name.startswith("operator"):
-                method_name = remap_operator_name(class_name, method_name)
-                if not method_name:
+                mapped_operator = remap_operator_name(class_name, method_name)
+                if not mapped_operator:
+                    comment, reason = "# ", operator_comment_reason(method_name)
                     method_name = m.spelling
-                    comment = "# "
+                else:
+                    method_name = mapped_operator
 
             # Dropped before the check below, so a compound assignment is not
             # commented out over a return type it no longer has.
@@ -1138,7 +1152,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
             if ("<" in rendered or "::" in rendered or "(" in rendered
                     or is_c_array(rendered)
                     or not type_is_declared(rendered, declared_type_names)):
-                comment = "# "
+                comment, reason = "# ", "a type that cannot be spelled in Nim"
 
             declaration = nim_method_def.format(**{
                 "comment": comment,
@@ -1148,6 +1162,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 "juce_module_name": juce_module_name,
                 "juce_spelling": method_spelling,
                 "juce_args": "@" if len(args) > 1 else "",
+                "reason": f"  # {reason}" if comment and reason else "",
             })
 
             # libclang can hand back the same method more than once for a single

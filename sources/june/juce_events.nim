@@ -46,7 +46,7 @@ let InterprocessConnectionNotify_yes* {.header: juce_events, importcpp: "juce::I
 proc runDispatchLoop*(this: var MessageManager) {.header: juce_events, importcpp: "#.runDispatchLoop()".}
 proc stopDispatchLoop*(this: var MessageManager) {.header: juce_events, importcpp: "#.stopDispatchLoop()".}
 proc hasStopMessageBeenSent*(this: MessageManager): bool {.header: juce_events, importcpp: "#.hasStopMessageBeenSent()".}
-# proc callFunctionOnMessageThread*(this: var MessageManager, callback: ptr MessageCallbackFunction, userData: pointer): pointer {.header: juce_events, importcpp: "#.callFunctionOnMessageThread(@)".}
+# proc callFunctionOnMessageThread*(this: var MessageManager, callback: ptr MessageCallbackFunction, userData: pointer): pointer {.header: juce_events, importcpp: "#.callFunctionOnMessageThread(@)".}  # a type that cannot be spelled in Nim
 proc isThisTheMessageThread*(this: MessageManager): bool {.header: juce_events, importcpp: "#.isThisTheMessageThread()".}
 proc setCurrentThreadAsMessageThread*(this: var MessageManager) {.header: juce_events, importcpp: "#.setCurrentThreadAsMessageThread()".}
 proc getCurrentMessageThread*(this: MessageManager): pointer {.header: juce_events, importcpp: "#.getCurrentMessageThread()".}
@@ -84,7 +84,7 @@ proc anotherInstanceStarted*(this: var JUCEApplicationBase, commandLine: String)
 proc systemRequestedQuit*(this: var JUCEApplicationBase) {.header: juce_events, importcpp: "#.systemRequestedQuit()".}
 proc suspended*(this: var JUCEApplicationBase) {.header: juce_events, importcpp: "#.suspended()".}
 proc resumed*(this: var JUCEApplicationBase) {.header: juce_events, importcpp: "#.resumed()".}
-# proc unhandledException*(this: var JUCEApplicationBase, arg1: ptr std::exception, sourceFilename: String, lineNumber: cint) {.header: juce_events, importcpp: "#.unhandledException(@)".}
+# proc unhandledException*(this: var JUCEApplicationBase, arg1: ptr std::exception, sourceFilename: String, lineNumber: cint) {.header: juce_events, importcpp: "#.unhandledException(@)".}  # a type that cannot be spelled in Nim
 proc memoryWarningReceived*(this: var JUCEApplicationBase) {.header: juce_events, importcpp: "#.memoryWarningReceived()".}
 proc backButtonPressed*(this: var JUCEApplicationBase): bool {.header: juce_events, importcpp: "#.backButtonPressed()".}
 proc setApplicationReturnValue*(this: var JUCEApplicationBase, newReturnValue: cint) {.header: juce_events, importcpp: "#.setApplicationReturnValue(@)".}

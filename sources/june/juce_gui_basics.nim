@@ -873,9 +873,9 @@ proc makeMouseCursor*(image: Image, hotSpotX: cint, hotSpotY: cint, scaleFactor:
 proc makeMouseCursor*(image: ScaledImage, hotSpot: Point[cint]): MouseCursor {.header: juce_gui_basics, importcpp: "juce::MouseCursor(@)".}
 proc `MouseCursor=`*(this: var MouseCursor, arg1: MouseCursor): var MouseCursor {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
 proc `==`*(this: MouseCursor, arg1: MouseCursor): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: MouseCursor, arg1: MouseCursor): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: MouseCursor, arg1: MouseCursor): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `==`*(this: MouseCursor, `type`: MouseCursorStandardCursorType): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: MouseCursor, `type`: MouseCursorStandardCursorType): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: MouseCursor, `type`: MouseCursorStandardCursorType): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 
 proc mouseMove*(this: var MouseListener, event: MouseEvent) {.header: juce_gui_basics, importcpp: "#.mouseMove(@)".}
 proc mouseEnter*(this: var MouseListener, event: MouseEvent) {.header: juce_gui_basics, importcpp: "#.mouseEnter(@)".}
@@ -906,7 +906,7 @@ proc isAltDown*(this: ModifierKeys): bool {.header: juce_gui_basics, importcpp: 
 proc withOnlyMouseButtons*(this: ModifierKeys): ModifierKeys {.header: juce_gui_basics, importcpp: "#.withOnlyMouseButtons()".}
 proc withoutMouseButtons*(this: ModifierKeys): ModifierKeys {.header: juce_gui_basics, importcpp: "#.withoutMouseButtons()".}
 proc `==`*(this: ModifierKeys, other: ModifierKeys): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: ModifierKeys, other: ModifierKeys): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: ModifierKeys, other: ModifierKeys): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc getRawFlags*(this: ModifierKeys): cint {.header: juce_gui_basics, importcpp: "#.getRawFlags()".}
 proc withoutFlags*(this: ModifierKeys, rawFlagsToClear: cint): ModifierKeys {.header: juce_gui_basics, importcpp: "#.withoutFlags(@)".}
 proc withFlags*(this: ModifierKeys, rawFlagsToSet: cint): ModifierKeys {.header: juce_gui_basics, importcpp: "#.withFlags(@)".}
@@ -915,7 +915,7 @@ proc getNumMouseButtonsDown*(this: ModifierKeys): cint {.header: juce_gui_basics
 
 proc `MouseInputSource=`*(this: var MouseInputSource, arg1: MouseInputSource): var MouseInputSource {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
 proc `==`*(this: MouseInputSource, other: MouseInputSource): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: MouseInputSource, other: MouseInputSource): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: MouseInputSource, other: MouseInputSource): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc getType*(this: MouseInputSource): MouseInputSourceInputSourceType {.header: juce_gui_basics, importcpp: "#.getType()".}
 proc isMouse*(this: MouseInputSource): bool {.header: juce_gui_basics, importcpp: "#.isMouse()".}
 proc isTouch*(this: MouseInputSource): bool {.header: juce_gui_basics, importcpp: "#.isTouch()".}
@@ -991,9 +991,9 @@ proc makeKeyPress*(keyCode: cint, modifiers: ModifierKeys, textCharacter: uint16
 proc makeKeyPress*(keyCode: cint): KeyPress {.header: juce_gui_basics, importcpp: "juce::KeyPress(@)".}
 proc `KeyPress=`*(this: var KeyPress, arg1: KeyPress): var KeyPress {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
 proc `==`*(this: KeyPress, other: KeyPress): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: KeyPress, other: KeyPress): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: KeyPress, other: KeyPress): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `==`*(this: KeyPress, keyCode: cint): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: KeyPress, keyCode: cint): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: KeyPress, keyCode: cint): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc isValid*(this: KeyPress): bool {.header: juce_gui_basics, importcpp: "#.isValid()".}
 proc getKeyCode*(this: KeyPress): cint {.header: juce_gui_basics, importcpp: "#.getKeyCode()".}
 proc getModifiers*(this: KeyPress): ModifierKeys {.header: juce_gui_basics, importcpp: "#.getModifiers()".}
@@ -1955,7 +1955,7 @@ proc grabFocus*(this: var AccessibilityHandler) {.header: juce_gui_basics, impor
 proc giveAwayFocus*(this: AccessibilityHandler) {.header: juce_gui_basics, importcpp: "#.giveAwayFocus()".}
 proc notifyAccessibilityEvent*(this: AccessibilityHandler, event: AccessibilityEvent) {.header: juce_gui_basics, importcpp: "#.notifyAccessibilityEvent(@)".}
 proc getNativeImplementation*(this: AccessibilityHandler): ptr AccessibilityNativeHandle {.header: juce_gui_basics, importcpp: "#.getNativeImplementation()".}
-# proc getTypeIndex*(this: AccessibilityHandler): std::type_index {.header: juce_gui_basics, importcpp: "#.getTypeIndex()".}
+# proc getTypeIndex*(this: AccessibilityHandler): std::type_index {.header: juce_gui_basics, importcpp: "#.getTypeIndex()".}  # a type that cannot be spelled in Nim
 proc `==`*(this: AccessibilityHandler, other: AccessibilityHandler): bool {.error: "juce::AccessibilityHandler defines no operator==; compare a property instead".}
 
 proc createCopy*(this: Drawable): UniquePtr[Drawable] {.header: juce_gui_basics, importcpp: "#.createCopy()".}
@@ -2088,7 +2088,7 @@ proc makeRelativeCoordinate*(absoluteDistanceFromOrigin: float64): RelativeCoord
 proc makeRelativeCoordinate*(stringVersion: String): RelativeCoordinate {.header: juce_gui_basics, importcpp: "juce::RelativeCoordinate(@)".}
 proc `RelativeCoordinate=`*(this: var RelativeCoordinate, arg1: RelativeCoordinate): var RelativeCoordinate {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
 proc `==`*(this: RelativeCoordinate, arg1: RelativeCoordinate): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: RelativeCoordinate, arg1: RelativeCoordinate): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: RelativeCoordinate, arg1: RelativeCoordinate): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc resolve*(this: RelativeCoordinate, evaluationScope: ptr ExpressionScope): float64 {.header: juce_gui_basics, importcpp: "#.resolve(@)".}
 proc references*(this: RelativeCoordinate, coordName: String, evaluationScope: ptr ExpressionScope): bool {.header: juce_gui_basics, importcpp: "#.references(@)".}
 proc isRecursive*(this: RelativeCoordinate, evaluationScope: ptr ExpressionScope): bool {.header: juce_gui_basics, importcpp: "#.isRecursive(@)".}
@@ -2107,7 +2107,7 @@ proc setMarker*(this: var MarkerList, name: String, position: RelativeCoordinate
 proc removeMarker*(this: var MarkerList, index: cint) {.header: juce_gui_basics, importcpp: "#.removeMarker(@)".}
 proc removeMarker*(this: var MarkerList, name: String) {.header: juce_gui_basics, importcpp: "#.removeMarker(@)".}
 proc `==`*(this: MarkerList, arg1: MarkerList): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: MarkerList, arg1: MarkerList): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: MarkerList, arg1: MarkerList): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc addListener*(this: var MarkerList, listener: ptr MarkerListListener) {.header: juce_gui_basics, importcpp: "#.addListener(@)".}
 proc removeListener*(this: var MarkerList, listener: ptr MarkerListListener) {.header: juce_gui_basics, importcpp: "#.removeListener(@)".}
 proc markersHaveChanged*(this: var MarkerList) {.header: juce_gui_basics, importcpp: "#.markersHaveChanged()".}
@@ -2118,7 +2118,7 @@ proc makeRelativePoint*(absoluteX: cfloat, absoluteY: cfloat): RelativePoint {.h
 proc makeRelativePoint*(x: RelativeCoordinate, y: RelativeCoordinate): RelativePoint {.header: juce_gui_basics, importcpp: "juce::RelativePoint(@)".}
 proc makeRelativePoint*(stringVersion: String): RelativePoint {.header: juce_gui_basics, importcpp: "juce::RelativePoint(@)".}
 proc `==`*(this: RelativePoint, arg1: RelativePoint): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: RelativePoint, arg1: RelativePoint): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: RelativePoint, arg1: RelativePoint): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc resolve*(this: RelativePoint, evaluationContext: ptr ExpressionScope): Point[cfloat] {.header: juce_gui_basics, importcpp: "#.resolve(@)".}
 proc moveToAbsolute*(this: var RelativePoint, newPos: Point[cfloat], evaluationContext: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.moveToAbsolute(@)".}
 proc toString*(this: RelativePoint): String {.header: juce_gui_basics, importcpp: "#.toString()".}
@@ -2129,7 +2129,7 @@ proc makeRelativeRectangle*(rect: Rectangle[cfloat]): RelativeRectangle {.header
 proc makeRelativeRectangle*(left: RelativeCoordinate, right: RelativeCoordinate, top: RelativeCoordinate, bottom: RelativeCoordinate): RelativeRectangle {.header: juce_gui_basics, importcpp: "juce::RelativeRectangle(@)".}
 proc makeRelativeRectangle*(stringVersion: String): RelativeRectangle {.header: juce_gui_basics, importcpp: "juce::RelativeRectangle(@)".}
 proc `==`*(this: RelativeRectangle, arg1: RelativeRectangle): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: RelativeRectangle, arg1: RelativeRectangle): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: RelativeRectangle, arg1: RelativeRectangle): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc resolve*(this: RelativeRectangle, scope: ptr ExpressionScope): Rectangle[cfloat] {.header: juce_gui_basics, importcpp: "#.resolve(@)".}
 proc moveToAbsolute*(this: var RelativeRectangle, newPos: Rectangle[cfloat], scope: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.moveToAbsolute(@)".}
 proc isDynamic*(this: RelativeRectangle): bool {.header: juce_gui_basics, importcpp: "#.isDynamic()".}
@@ -2160,12 +2160,12 @@ proc getPath*(this: RelativeParallelogram, path: var Path, scope: ptr Expression
 proc resetToPerpendicular*(this: var RelativeParallelogram, scope: ptr ExpressionScope): AffineTransform {.header: juce_gui_basics, importcpp: "#.resetToPerpendicular(@)".}
 proc isDynamic*(this: RelativeParallelogram): bool {.header: juce_gui_basics, importcpp: "#.isDynamic()".}
 proc `==`*(this: RelativeParallelogram, arg1: RelativeParallelogram): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: RelativeParallelogram, arg1: RelativeParallelogram): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: RelativeParallelogram, arg1: RelativeParallelogram): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 
 proc makeRelativePointPath*(): RelativePointPath {.header: juce_gui_basics, importcpp: "juce::RelativePointPath(@)".}
 proc makeRelativePointPath*(path: Path): RelativePointPath {.header: juce_gui_basics, importcpp: "juce::RelativePointPath(@)".}
 proc `==`*(this: RelativePointPath, arg1: RelativePointPath): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: RelativePointPath, arg1: RelativePointPath): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: RelativePointPath, arg1: RelativePointPath): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc createPath*(this: RelativePointPath, path: var Path, scope: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.createPath(@)".}
 proc containsAnyDynamicPoints*(this: RelativePointPath): bool {.header: juce_gui_basics, importcpp: "#.containsAnyDynamicPoints()".}
 proc swapWith*(this: var RelativePointPath, arg1: var RelativePointPath) {.header: juce_gui_basics, importcpp: "#.swapWith(@)".}
@@ -2614,8 +2614,8 @@ proc getMaxValue*(this: Slider): float64 {.header: juce_gui_basics, importcpp: "
 proc getMaxValueObject*(this: var Slider): var Value {.header: juce_gui_basics, importcpp: "#.getMaxValueObject()".}
 proc setMaxValue*(this: var Slider, newValue: float64, notification: NotificationType, allowNudgingOfOtherValues: bool = false) {.header: juce_gui_basics, importcpp: "#.setMaxValue(@)".}
 proc setMinAndMaxValues*(this: var Slider, newMinValue: float64, newMaxValue: float64, notification: NotificationType) {.header: juce_gui_basics, importcpp: "#.setMinAndMaxValues(@)".}
-# proc addListener*(this: var Slider, listener: ptr Listener) {.header: juce_gui_basics, importcpp: "#.addListener(@)".}
-# proc removeListener*(this: var Slider, listener: ptr Listener) {.header: juce_gui_basics, importcpp: "#.removeListener(@)".}
+# proc addListener*(this: var Slider, listener: ptr Listener) {.header: juce_gui_basics, importcpp: "#.addListener(@)".}  # a type that cannot be spelled in Nim
+# proc removeListener*(this: var Slider, listener: ptr Listener) {.header: juce_gui_basics, importcpp: "#.removeListener(@)".}  # a type that cannot be spelled in Nim
 proc setDoubleClickReturnValue*(this: var Slider, shouldDoubleClickBeEnabled: bool, valueToSetOnDoubleClick: float64, singleClickModifiers: ModifierKeys) {.header: juce_gui_basics, importcpp: "#.setDoubleClickReturnValue(@)".}
 proc getDoubleClickReturnValue*(this: Slider): float64 {.header: juce_gui_basics, importcpp: "#.getDoubleClickReturnValue()".}
 proc isDoubleClickReturnEnabled*(this: Slider): bool {.header: juce_gui_basics, importcpp: "#.isDoubleClickReturnEnabled()".}
@@ -2982,7 +2982,7 @@ proc getAssociatedComponent*(this: MessageBoxOptions): ptr Component {.header: j
 proc getParentComponent*(this: MessageBoxOptions): ptr Component {.header: juce_gui_basics, importcpp: "#.getParentComponent()".}
 proc `==`*(this: MessageBoxOptions, other: MessageBoxOptions): bool {.error: "juce::MessageBoxOptions defines no operator==; compare a property instead".}
 
-# proc makeScopedMessageBox*(arg1: std::shared_ptr<detail::ScopedMessageBoxImpl>): ScopedMessageBox {.header: juce_gui_basics, importcpp: "juce::ScopedMessageBox(@)".}
+# proc makeScopedMessageBox*(arg1: std::shared_ptr<detail::ScopedMessageBoxImpl>): ScopedMessageBox {.header: juce_gui_basics, importcpp: "juce::ScopedMessageBox(@)".}  # a type that cannot be spelled in Nim
 proc makeScopedMessageBox*(): ScopedMessageBox {.header: juce_gui_basics, importcpp: "juce::ScopedMessageBox(@)".}
 proc `ScopedMessageBox=`*(this: var ScopedMessageBox, arg1: ScopedMessageBox): var ScopedMessageBox {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
 proc close*(this: var ScopedMessageBox) {.header: juce_gui_basics, importcpp: "#.close()".}
@@ -3003,7 +3003,7 @@ proc getTextEditor*(this: AlertWindow, nameOfTextEditor: String): ptr TextEditor
 proc addComboBox*(this: var AlertWindow, name: String, items: StringArray, onScreenLabel: String) {.header: juce_gui_basics, importcpp: "#.addComboBox(@)".}
 proc getComboBoxComponent*(this: AlertWindow, nameOfList: String): ptr ComboBox {.header: juce_gui_basics, importcpp: "#.getComboBoxComponent(@)".}
 proc addTextBlock*(this: var AlertWindow, text: String) {.header: juce_gui_basics, importcpp: "#.addTextBlock(@)".}
-# proc addProgressBarComponent*(this: var AlertWindow, progressValue: var float64, style: std::optional<ProgressBar::Style>) {.header: juce_gui_basics, importcpp: "#.addProgressBarComponent(@)".}
+# proc addProgressBarComponent*(this: var AlertWindow, progressValue: var float64, style: std::optional<ProgressBar::Style>) {.header: juce_gui_basics, importcpp: "#.addProgressBarComponent(@)".}  # a type that cannot be spelled in Nim
 proc addCustomComponent*(this: var AlertWindow, component: ptr Component) {.header: juce_gui_basics, importcpp: "#.addCustomComponent(@)".}
 proc getNumCustomComponents*(this: AlertWindow): cint {.header: juce_gui_basics, importcpp: "#.getNumCustomComponents()".}
 proc getCustomComponent*(this: AlertWindow, index: cint): ptr Component {.header: juce_gui_basics, importcpp: "#.getCustomComponent(@)".}
@@ -3111,7 +3111,7 @@ proc setHasChangedSinceSaved*(this: var ComponentPeer, arg1: bool) {.header: juc
 proc setAppStyle*(this: var ComponentPeer, s: ComponentPeerStyle) {.header: juce_gui_basics, importcpp: "#.setAppStyle(@)".}
 proc getAppStyle*(this: ComponentPeer): ComponentPeerStyle {.header: juce_gui_basics, importcpp: "#.getAppStyle()".}
 proc getNumFramesPainted*(this: ComponentPeer): uint64 {.header: juce_gui_basics, importcpp: "#.getNumFramesPainted()".}
-# proc setMultimonitorPositionOverride*(this: var ComponentPeer, pendingPosition: Point[cint]): Disabler {.header: juce_gui_basics, importcpp: "#.setMultimonitorPositionOverride(@)".}
+# proc setMultimonitorPositionOverride*(this: var ComponentPeer, pendingPosition: Point[cint]): Disabler {.header: juce_gui_basics, importcpp: "#.setMultimonitorPositionOverride(@)".}  # a type that cannot be spelled in Nim
 proc getMultimonitorPositionOverride*(this: ComponentPeer): CppOptional[Point[cint]] {.header: juce_gui_basics, importcpp: "#.getMultimonitorPositionOverride()".}
 proc `==`*(this: ComponentPeer, other: ComponentPeer): bool {.error: "juce::ComponentPeer defines no operator==; compare a property instead".}
 
@@ -3518,7 +3518,7 @@ proc anotherInstanceStarted*(this: var JUCEApplicationImpl, commandLine: String)
 proc systemRequestedQuit*(this: var JUCEApplicationImpl) {.header: juce_gui_basics, importcpp: "#.systemRequestedQuit()".}
 proc suspended*(this: var JUCEApplicationImpl) {.header: juce_gui_basics, importcpp: "#.suspended()".}
 proc resumed*(this: var JUCEApplicationImpl) {.header: juce_gui_basics, importcpp: "#.resumed()".}
-# proc unhandledException*(this: var JUCEApplicationImpl, e: ptr std::exception, sourceFilename: String, lineNumber: cint) {.header: juce_gui_basics, importcpp: "#.unhandledException(@)".}
+# proc unhandledException*(this: var JUCEApplicationImpl, e: ptr std::exception, sourceFilename: String, lineNumber: cint) {.header: juce_gui_basics, importcpp: "#.unhandledException(@)".}  # a type that cannot be spelled in Nim
 proc getNextCommandTarget*(this: var JUCEApplicationImpl): ptr ApplicationCommandTarget {.header: juce_gui_basics, importcpp: "#.getNextCommandTarget()".}
 proc getCommandInfo*(this: var JUCEApplicationImpl, arg1: cint, arg2: var ApplicationCommandInfo) {.header: juce_gui_basics, importcpp: "#.getCommandInfo(@)".}
 proc getAllCommands*(this: var JUCEApplicationImpl, arg1: Array[cint]) {.header: juce_gui_basics, importcpp: "#.getAllCommands(@)".}

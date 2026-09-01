@@ -273,8 +273,11 @@ Instantiate a class template with ``cint`` or ``cfloat``, never Nim's ``int`` or
 ``int`` is 64-bit, so ``Rectangle[int]`` asks for a ``juce::Rectangle<long
 long>`` that JUCE never instantiates.
 
-A proc whose types cannot be spelled in Nim is emitted as a comment rather than
-omitted, so what is missing stays visible in the generated file.
+A proc that is not bound is emitted as a comment rather than omitted, with the
+reason on the same line, so what is missing stays visible in the generated file
+and says why. Most of them are not gaps: an ``operator!=``, ``operator>`` or
+``operator>=`` is commented because Nim derives it, and a ``begin`` or ``end``
+because the Nim iterator replaces it.
 
 ``$`` uses JUCE's ``toString`` where there is one. Nim's own ``$`` prints
 ``()`` for these, because an ``importcpp`` object declares no fields and there
