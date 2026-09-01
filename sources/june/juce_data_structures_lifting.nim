@@ -20,4 +20,5 @@ iterator pairs*(this: ValueTree): tuple[index: cint, child: ValueTree] =
 # for a name at an index.
 iterator properties*(this: ValueTree): tuple[name: Identifier, value: juce_var] =
     for index in 0 ..< this.getNumProperties():
-        yield (this.getPropertyName(index), this.getProperty(this.getPropertyName(index)))
+        let name = this.getPropertyName(index)
+        yield (name, this.getProperty(name))
