@@ -654,6 +654,11 @@ def run_main(juce_module_name, juce_class_name_to_export):
     done_classes = set()
     emitted_types = set()
     emitted_declarations = set()
+    # Keyed on the signature rather than the rendered line. Two JUCE overloads
+    # can differ only in the parameter NAME - String(int64 largeIntegerValue)
+    # and String(int64 decimalInteger) - and Nim rejects a call that matches
+    # both as ambiguous. Comparing the rendered text keeps them both.
+    emitted_signatures = set()
     declared_type_names = set()
     dollar_definitions = []
     enum_remap = {}
@@ -1037,9 +1042,11 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 "spelling": qualified_name,
                 "reason": "  # a type that cannot be spelled in Nim" if ctor_comment else "" })
 
-            if declaration in emitted_declarations:
+            signature = (f"make{class_name}", tuple(ctor_types))
+            if declaration in emitted_declarations or signature in emitted_signatures:
                 continue
             emitted_declarations.add(declaration)
+            emitted_signatures.add(signature)
             print(declaration)
 
         class_bound_equality = False
@@ -1180,9 +1187,17 @@ def run_main(juce_module_name, juce_class_name_to_export):
 
             # libclang can hand back the same method more than once for a single
             # class, and Nim rejects the repeat as a redefinition.
-            if declaration in emitted_declarations:
+            # The receiver is part of the key, const-ness included:
+            # argument_types holds neither. Without the class name,
+            # AsyncUpdater.triggerAsyncUpdate and
+            # LockingAsyncUpdater.triggerAsyncUpdate collide; without the
+            # const-ness, the const and non-const overloads of a getter do, and
+            # dropping the const one makes it uncallable on a `let`.
+            signature = (args[0], method_name, tuple(argument_types), return_type)
+            if declaration in emitted_declarations or signature in emitted_signatures:
                 continue
             emitted_declarations.add(declaration)
+            emitted_signatures.add(signature)
 
             if method_name == "`==`" and not comment:
                 class_bound_equality = True

@@ -527,8 +527,6 @@ proc makeString*(decimalInteger: int16): String {.header: juce_core, importcpp: 
 proc makeString*(decimalInteger: uint16): String {.header: juce_core, importcpp: "juce::String(@)".}
 proc makeString*(largeIntegerValue: int64): String {.header: juce_core, importcpp: "juce::String(@)".}
 proc makeString*(largeIntegerValue: uint64): String {.header: juce_core, importcpp: "juce::String(@)".}
-proc makeString*(decimalInteger: int64): String {.header: juce_core, importcpp: "juce::String(@)".}
-proc makeString*(decimalInteger: uint64): String {.header: juce_core, importcpp: "juce::String(@)".}
 proc makeString*(floatValue: cfloat): String {.header: juce_core, importcpp: "juce::String(@)".}
 proc makeString*(doubleValue: float64): String {.header: juce_core, importcpp: "juce::String(@)".}
 proc makeString*(floatValue: cfloat, numberOfDecimalPlaces: cint, useScientificNotation: bool): String {.header: juce_core, importcpp: "juce::String(@)".}
@@ -731,7 +729,6 @@ proc makeErasedScopeGuard*(d: CppFunctionObjectN0): ErasedScopeGuard {.header: j
 proc `ErasedScopeGuard=`*(this: var ErasedScopeGuard, other: ErasedScopeGuard): var ErasedScopeGuard {.header: juce_core, importcpp: "#.operator=(@)".}
 proc reset*(this: var ErasedScopeGuard) {.header: juce_core, importcpp: "#.reset()".}
 proc release*(this: var ErasedScopeGuard) {.header: juce_core, importcpp: "#.release()".}
-proc `ErasedScopeGuard=`*(this: var ErasedScopeGuard, arg1: ErasedScopeGuard): var ErasedScopeGuard {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `==`*(this: ErasedScopeGuard, other: ErasedScopeGuard): bool {.error: "juce::ErasedScopeGuard defines no operator==; compare a property instead".}
 
 proc makeAbstractFifo*(bufferSize: cint): AbstractFifo {.header: juce_core, importcpp: "juce::AbstractFifo(@)".}
@@ -952,9 +949,6 @@ proc makejuce_var*(`object`: ptr ReferenceCountedObject): juce_var {.header: juc
 proc makejuce_var*(`method`: CppFunctionObjectR1[juce_var, juce_varNativeFunctionArgs]): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
 proc makejuce_var*(binaryData: constPointer, dataSize: uint64): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
 proc makejuce_var*(binaryData: MemoryBlock): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
-proc makejuce_var*(arg1: String): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
-proc makejuce_var*(arg1: MemoryBlock): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
-proc makejuce_var*(arg1: Array[juce_var]): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
 proc `juce_var=`*(this: var juce_var, valueToCopy: juce_var): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `juce_var=`*(this: var juce_var, value: cint): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `juce_var=`*(this: var juce_var, value: int64): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
@@ -967,8 +961,6 @@ proc `juce_var=`*(this: var juce_var, value: MemoryBlock): var juce_var {.header
 proc `juce_var=`*(this: var juce_var, value: Array[juce_var]): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `juce_var=`*(this: var juce_var, `object`: ptr ReferenceCountedObject): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `juce_var=`*(this: var juce_var, `method`: CppFunctionObjectR1[juce_var, juce_varNativeFunctionArgs]): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
-proc `juce_var=`*(this: var juce_var, arg1: juce_var): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
-proc `juce_var=`*(this: var juce_var, arg1: String): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
 proc swapWith*(this: var juce_var, other: var juce_var) {.header: juce_core, importcpp: "#.swapWith(@)".}
 proc toString*(this: juce_var): String {.header: juce_core, importcpp: "#.toString()".}
 proc getArray*(this: juce_var): ptr Array[juce_var] {.header: juce_core, importcpp: "#.getArray()".}
@@ -1227,7 +1219,6 @@ proc makeFile*(): File {.header: juce_core, importcpp: "juce::File(@)".}
 proc makeFile*(absolutePath: String): File {.header: juce_core, importcpp: "juce::File(@)".}
 proc `File=`*(this: var File, newAbsolutePath: String): var File {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `File=`*(this: var File, otherFile: File): var File {.header: juce_core, importcpp: "#.operator=(@)".}
-proc `File=`*(this: var File, arg1: File): var File {.header: juce_core, importcpp: "#.operator=(@)".}
 proc exists*(this: File): bool {.header: juce_core, importcpp: "#.exists()".}
 proc existsAsFile*(this: File): bool {.header: juce_core, importcpp: "#.existsAsFile()".}
 proc isDirectory*(this: File): bool {.header: juce_core, importcpp: "#.isDirectory()".}
