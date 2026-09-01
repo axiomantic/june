@@ -1,6 +1,29 @@
 
 import june
 
+{.emit: """/*INCLUDESECTION*/
+#include <june.h>
+""".}
+
+# defineCppClass is the public macro, and nothing exercised it. A user subclasses
+# one of the library's june:: classes with it, which is how an application is
+# written; defineCppClassInternal is the library-side variant used above.
+defineCppClass MyPanel of CustomComponent:
+  discard
+
+proc constructMyPanel(): MyPanel = MyPanel()
+
+proc testUserSubclass() =
+  initialiseJuce_GUI()
+  block:
+    let panel = cnew constructMyPanel()
+    doAssert MyPanel is CustomComponent
+    doAssert MyPanel is Component
+    panel[].setBounds(makeRectangle(0.cint, 0.cint, 12.cint, 12.cint))
+    doAssert panel[].getWidth() == 12
+    cdelete panel
+  shutdownJuce_GUI()
+
 # The generator discarded the inheritance it computed, so every widget type was
 # unrelated to Component and none of Component's methods reached it.
 proc testInheritance() =
@@ -166,3 +189,4 @@ proc testClosureLifetime() =
 
 testClosureLifetime()
 
+testUserSubclass()
