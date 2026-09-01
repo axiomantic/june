@@ -276,8 +276,10 @@ long>`` that JUCE never instantiates.
 A proc that is not bound is emitted as a comment rather than omitted, with the
 reason on the same line, so what is missing stays visible in the generated file
 and says why. Most of them are not gaps: an ``operator!=``, ``operator>`` or
-``operator>=`` is commented because Nim derives it, and a ``begin`` or ``end``
-because the Nim iterator replaces it.
+``operator>=`` is commented because Nim derives it, a ``begin`` or ``end``
+because the Nim iterator replaces it, and others because the generator excludes
+them on purpose. Only the ones marked as a type that cannot be spelled in Nim
+are missing capability.
 
 ``$`` uses JUCE's ``toString`` where there is one. Nim's own ``$`` prints
 ``()`` for these, because an ``importcpp`` object declares no fields and there

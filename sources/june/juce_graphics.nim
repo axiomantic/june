@@ -895,12 +895,12 @@ proc getNumLines*(this: TextLayout): cint {.header: juce_graphics, importcpp: "#
 proc getLine*(this: TextLayout, index: cint): var TextLayoutLine {.header: juce_graphics, importcpp: "#.getLine(@)".}
 proc addLine*(this: var TextLayout, arg1: UniquePtr[TextLayoutLine]) {.header: juce_graphics, importcpp: "#.addLine(@)".}
 proc ensureStorageAllocated*(this: var TextLayout, numLinesNeeded: cint) {.header: juce_graphics, importcpp: "#.ensureStorageAllocated(@)".}
-# proc begin*(this: var TextLayout): iterator {.header: juce_graphics, importcpp: "#.begin()".}  # a type that cannot be spelled in Nim
-# proc begin*(this: TextLayout): _iterator {.header: juce_graphics, importcpp: "#.begin()".}  # a type that cannot be spelled in Nim
-# proc cbegin*(this: TextLayout): _iterator {.header: juce_graphics, importcpp: "#.cbegin()".}  # a type that cannot be spelled in Nim
-# proc `end`*(this: var TextLayout): iterator {.header: juce_graphics, importcpp: "#.end()".}  # a type that cannot be spelled in Nim
-# proc `end`*(this: TextLayout): _iterator {.header: juce_graphics, importcpp: "#.end()".}  # a type that cannot be spelled in Nim
-# proc cend*(this: TextLayout): _iterator {.header: juce_graphics, importcpp: "#.cend()".}  # a type that cannot be spelled in Nim
+# proc begin*(this: var TextLayout): iterator {.header: juce_graphics, importcpp: "#.begin()".}  # a C++ iterator; loop with the Nim iterator instead
+# proc begin*(this: TextLayout): _iterator {.header: juce_graphics, importcpp: "#.begin()".}  # a C++ iterator; loop with the Nim iterator instead
+# proc cbegin*(this: TextLayout): _iterator {.header: juce_graphics, importcpp: "#.cbegin()".}  # a C++ iterator; loop with the Nim iterator instead
+# proc `end`*(this: var TextLayout): iterator {.header: juce_graphics, importcpp: "#.end()".}  # a C++ iterator; loop with the Nim iterator instead
+# proc `end`*(this: TextLayout): _iterator {.header: juce_graphics, importcpp: "#.end()".}  # a C++ iterator; loop with the Nim iterator instead
+# proc cend*(this: TextLayout): _iterator {.header: juce_graphics, importcpp: "#.cend()".}  # a C++ iterator; loop with the Nim iterator instead
 proc recalculateSize*(this: var TextLayout) {.header: juce_graphics, importcpp: "#.recalculateSize()".}
 proc `==`*(this: TextLayout, other: TextLayout): bool {.error: "juce::TextLayout defines no operator==; compare a property instead".}
 
