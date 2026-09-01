@@ -15,6 +15,11 @@ type
   CppOptional*[T] {.header: "<optional>", importcpp: "std::optional<'0>", bycopy.} = object
   CppVector*[T] {.header: "<vector>", importcpp: "std::vector<'0>", bycopy.} = object
   CppString* {.header: "<string>", importcpp: "std::string", bycopy.} = object
+  CppMap*[K, V] {.header: "<map>", importcpp: "std::map<'0, '1>", bycopy.} = object
+  CppUnorderedMap*[K, V] {.header: "<unordered_map>", importcpp: "std::unordered_map<'0, '1>", bycopy.} = object
+  # The size is a value rather than a type, so it is a static parameter: Nim
+  # writes the literal into the pattern where a type would otherwise go.
+  CppArray*[T; N: static int] {.header: "<array>", importcpp: "std::array<'0, '1>", bycopy.} = object
 
 # A unique_ptr is the sole owner of its pointee, so copying one in Nim would
 # compile into a C++ copy that does not exist. Reject it at compile time.
@@ -40,6 +45,27 @@ proc makeCppOptionalEmpty*[T](): CppOptional[T] {.importcpp: "'0()", header: "<o
 proc hasValue*[T](this: CppOptional[T]): bool {.importcpp: "#.has_value()".}
 proc value*[T](this: CppOptional[T]): T {.importcpp: "#.value()".}
 proc valueOr*[T](this: CppOptional[T], fallback: T): T {.importcpp: "#.value_or(@)".}
+
+proc size*[K, V](this: CppMap[K, V]): csize_t {.importcpp: "#.size()".}
+proc isEmpty*[K, V](this: CppMap[K, V]): bool {.importcpp: "#.empty()".}
+proc contains*[K, V](this: CppMap[K, V], key: K): bool {.importcpp: "(#.count(#) > 0)".}
+proc `[]`*[K, V](this: CppMap[K, V], key: K): V {.importcpp: "#.at(#)".}
+proc `[]=`*[K, V](this: var CppMap[K, V], key: K, value: V) {.importcpp: "#[#] = #".}
+proc makeCppMap*[K, V](): CppMap[K, V] {.importcpp: "'0()", header: "<map>".}
+
+proc size*[K, V](this: CppUnorderedMap[K, V]): csize_t {.importcpp: "#.size()".}
+proc isEmpty*[K, V](this: CppUnorderedMap[K, V]): bool {.importcpp: "#.empty()".}
+proc contains*[K, V](this: CppUnorderedMap[K, V], key: K): bool {.importcpp: "(#.count(#) > 0)".}
+proc `[]`*[K, V](this: CppUnorderedMap[K, V], key: K): V {.importcpp: "#.at(#)".}
+proc `[]=`*[K, V](this: var CppUnorderedMap[K, V], key: K, value: V) {.importcpp: "#[#] = #".}
+proc makeCppUnorderedMap*[K, V](): CppUnorderedMap[K, V] {.importcpp: "'0()", header: "<unordered_map>".}
+
+proc len*[T; N: static int](this: CppArray[T, N]): int = N
+proc `[]`*[T; N: static int](this: CppArray[T, N], index: csize_t): T {.importcpp: "#[#]".}
+
+iterator items*[T; N: static int](this: CppArray[T, N]): T =
+    for index in 0 ..< N:
+        yield this[index.csize_t]
 
 proc size*[T](this: CppVector[T]): csize_t {.importcpp: "#.size()".}
 proc `[]`*[T](this: CppVector[T], index: csize_t): T {.importcpp: "#[#]".}

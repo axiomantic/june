@@ -213,3 +213,26 @@ proc testBigIntegerOperators() =
   doAssert (a shr 2.cint).toInteger() == 0b11
 
 testBigIntegerOperators()
+
+# The std:: containers JUCE exposes on its own interfaces. Without these the
+# four procs that take or return one were unusable.
+proc testStlContainers() =
+  var headers = makeCppMap[String, String]()
+  headers[makeString("accept")] = makeString("text/plain")
+  doAssert headers.size() == 1.csize_t
+  doAssert headers.contains(makeString("accept"))
+  doAssert $headers[makeString("accept")] == "text/plain"
+
+  var pairs = makeStringPairArray(true)
+  pairs.addMap(headers)
+  doAssert $pairs.getValue(makeString("accept"), makeString("")) == "text/plain"
+
+  var fifo = makeSingleThreadedAbstractFifo(8.cint)
+  let ranges = fifo.write(3.cint)
+  doAssert ranges.len() == 2
+  var total = 0
+  for range in ranges:
+    total += range.getLength()
+  doAssert total == 3, "the two ranges should cover the three written slots"
+
+testStlContainers()

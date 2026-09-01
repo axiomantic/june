@@ -760,8 +760,8 @@ proc makeSingleThreadedAbstractFifo*(sizeIn: cint): SingleThreadedAbstractFifo {
 proc getRemainingSpace*(this: SingleThreadedAbstractFifo): cint {.header: juce_core, importcpp: "#.getRemainingSpace()".}
 proc getNumReadable*(this: SingleThreadedAbstractFifo): cint {.header: juce_core, importcpp: "#.getNumReadable()".}
 proc getSize*(this: SingleThreadedAbstractFifo): cint {.header: juce_core, importcpp: "#.getSize()".}
-# proc write*(this: var SingleThreadedAbstractFifo, num: cint): std::array<Range<int>, 2> {.header: juce_core, importcpp: "#.write(@)".}
-# proc read*(this: var SingleThreadedAbstractFifo, num: cint): std::array<Range<int>, 2> {.header: juce_core, importcpp: "#.read(@)".}
+proc write*(this: var SingleThreadedAbstractFifo, num: cint): CppArray[Range[cint], 2] {.header: juce_core, importcpp: "#.write(@)".}
+proc read*(this: var SingleThreadedAbstractFifo, num: cint): CppArray[Range[cint], 2] {.header: juce_core, importcpp: "#.read(@)".}
 proc `==`*(this: SingleThreadedAbstractFifo, other: SingleThreadedAbstractFifo): bool {.error: "juce::SingleThreadedAbstractFifo defines no operator==; compare a property instead".}
 
 proc `==`*(this: NewLine, other: NewLine): bool {.error: "juce::NewLine defines no operator==; compare a property instead".}
@@ -860,8 +860,8 @@ proc setIgnoresCase*(this: var StringPairArray, shouldIgnoreCase: bool) {.header
 proc getIgnoresCase*(this: StringPairArray): bool {.header: juce_core, importcpp: "#.getIgnoresCase()".}
 proc getDescription*(this: StringPairArray): String {.header: juce_core, importcpp: "#.getDescription()".}
 proc minimiseStorageOverheads*(this: var StringPairArray) {.header: juce_core, importcpp: "#.minimiseStorageOverheads()".}
-# proc addMap*(this: var StringPairArray, mapToAdd: std::map<String, String>) {.header: juce_core, importcpp: "#.addMap(@)".}
-# proc addUnorderedMap*(this: var StringPairArray, mapToAdd: std::unordered_map<String, String>) {.header: juce_core, importcpp: "#.addUnorderedMap(@)".}
+proc addMap*(this: var StringPairArray, mapToAdd: CppMap[String, String]) {.header: juce_core, importcpp: "#.addMap(@)".}
+proc addUnorderedMap*(this: var StringPairArray, mapToAdd: CppUnorderedMap[String, String]) {.header: juce_core, importcpp: "#.addUnorderedMap(@)".}
 
 proc makeTextDiff*(original: String, target: String): TextDiff {.header: juce_core, importcpp: "juce::TextDiff(@)".}
 proc appliedTo*(this: TextDiff, text: String): String {.header: juce_core, importcpp: "#.appliedTo(@)".}
