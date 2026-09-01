@@ -176,8 +176,12 @@ def remap_type(t, *args):
         result = a.get(result, result)
 
     if not is_const and not t.get_pointee().is_const_qualified():
-        if "&&" in parts:
-            result = f"lent {result}"
+        # An rvalue reference parameter has no distinct Nim spelling. It used to
+        # be bound as `lent`, which is a return-type modifier: as a parameter it
+        # produced an overload differing from the const-reference one by a word
+        # Nim 1.6 cannot tell apart, so calling either was ambiguous. Binding it
+        # as the plain type makes the two declarations identical, and the
+        # duplicate is dropped by the check that already removes repeats.
         if "&" in parts:
             result = f"var {result}"
 
