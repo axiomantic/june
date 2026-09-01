@@ -166,7 +166,7 @@ proc makeAffineTransform*(): AffineTransform {.header: juce_graphics, importcpp:
 proc makeAffineTransform*(mat00: cfloat, mat01: cfloat, mat02: cfloat, mat10: cfloat, mat11: cfloat, mat12: cfloat): AffineTransform {.header: juce_graphics, importcpp: "juce::AffineTransform(@)".}
 proc `AffineTransform=`*(this: var AffineTransform, arg1: AffineTransform): var AffineTransform {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc `==`*(this: AffineTransform, other: AffineTransform): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: AffineTransform, other: AffineTransform): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: AffineTransform, other: AffineTransform): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc translated*(this: AffineTransform, deltaX: cfloat, deltaY: cfloat): AffineTransform {.header: juce_graphics, importcpp: "#.translated(@)".}
 proc withAbsoluteTranslation*(this: AffineTransform, translationX: cfloat, translationY: cfloat): AffineTransform {.header: juce_graphics, importcpp: "#.withAbsoluteTranslation(@)".}
 proc rotated*(this: AffineTransform, angleInRadians: cfloat): AffineTransform {.header: juce_graphics, importcpp: "#.rotated(@)".}
@@ -189,7 +189,7 @@ proc getScaleFactor*(this: AffineTransform): cfloat {.header: juce_graphics, imp
 proc makeJustification*(justificationFlags: cint): Justification {.header: juce_graphics, importcpp: "juce::Justification(@)".}
 proc `Justification=`*(this: var Justification, arg1: Justification): var Justification {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc `==`*(this: Justification, other: Justification): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: Justification, other: Justification): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: Justification, other: Justification): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc getFlags*(this: Justification): cint {.header: juce_graphics, importcpp: "#.getFlags()".}
 proc testFlags*(this: Justification, flagsToTest: cint): bool {.header: juce_graphics, importcpp: "#.testFlags(@)".}
 proc getOnlyVerticalFlags*(this: Justification): cint {.header: juce_graphics, importcpp: "#.getOnlyVerticalFlags()".}
@@ -198,7 +198,7 @@ proc getOnlyHorizontalFlags*(this: Justification): cint {.header: juce_graphics,
 proc makePath*(): Path {.header: juce_graphics, importcpp: "juce::Path(@)".}
 proc `Path=`*(this: var Path, arg1: Path): var Path {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc `==`*(this: Path, arg1: Path): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: Path, arg1: Path): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: Path, arg1: Path): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc isEmpty*(this: Path): bool {.header: juce_graphics, importcpp: "#.isEmpty()".}
 proc getBounds*(this: Path): Rectangle[cfloat] {.header: juce_graphics, importcpp: "#.getBounds()".}
 proc getBoundsTransformed*(this: Path, transform: AffineTransform): Rectangle[cfloat] {.header: juce_graphics, importcpp: "#.getBoundsTransformed(@)".}
@@ -328,7 +328,7 @@ proc makeColour*(rgb: PixelRGB): Colour {.header: juce_graphics, importcpp: "juc
 proc makeColour*(alpha: PixelAlpha): Colour {.header: juce_graphics, importcpp: "juce::Colour(@)".}
 proc `Colour=`*(this: var Colour, arg1: Colour): var Colour {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc `==`*(this: Colour, other: Colour): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: Colour, other: Colour): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: Colour, other: Colour): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc getRed*(this: Colour): uint8 {.header: juce_graphics, importcpp: "#.getRed()".}
 proc getGreen*(this: Colour): uint8 {.header: juce_graphics, importcpp: "#.getGreen()".}
 proc getBlue*(this: Colour): uint8 {.header: juce_graphics, importcpp: "#.getBlue()".}
@@ -385,16 +385,16 @@ proc getColourPosition*(this: ColourGradient, index: cint): float64 {.header: ju
 proc getColour*(this: ColourGradient, index: cint): Colour {.header: juce_graphics, importcpp: "#.getColour(@)".}
 proc setColour*(this: var ColourGradient, index: cint, newColour: Colour) {.header: juce_graphics, importcpp: "#.setColour(@)".}
 proc getColourAtPosition*(this: ColourGradient, position: float64): Colour {.header: juce_graphics, importcpp: "#.getColourAtPosition(@)".}
-# proc createLookupTable*(this: ColourGradient, transform: AffineTransform, resultLookupTable: HeapBlock<PixelARGB>): cint {.header: juce_graphics, importcpp: "#.createLookupTable(@)".}
+# proc createLookupTable*(this: ColourGradient, transform: AffineTransform, resultLookupTable: HeapBlock<PixelARGB>): cint {.header: juce_graphics, importcpp: "#.createLookupTable(@)".}  # a type that cannot be spelled in Nim
 proc createLookupTable*(this: ColourGradient, resultLookupTable: ptr PixelARGB, numEntries: cint) {.header: juce_graphics, importcpp: "#.createLookupTable(@)".}
 proc isOpaque*(this: ColourGradient): bool {.header: juce_graphics, importcpp: "#.isOpaque()".}
 proc isInvisible*(this: ColourGradient): bool {.header: juce_graphics, importcpp: "#.isInvisible()".}
 proc `==`*(this: ColourGradient, arg1: ColourGradient): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: ColourGradient, arg1: ColourGradient): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: ColourGradient, arg1: ColourGradient): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `<`*(this: ColourGradient, arg1: ColourGradient): bool {.header: juce_graphics, importcpp: "#.operator<(@)".}
 proc `<=`*(this: ColourGradient, arg1: ColourGradient): bool {.header: juce_graphics, importcpp: "#.operator<=(@)".}
-# proc operator>*(this: ColourGradient, arg1: ColourGradient): bool {.header: juce_graphics, importcpp: "#.operator>(@)".}
-# proc operator>=*(this: ColourGradient, arg1: ColourGradient): bool {.header: juce_graphics, importcpp: "#.operator>=(@)".}
+# proc operator>*(this: ColourGradient, arg1: ColourGradient): bool {.header: juce_graphics, importcpp: "#.operator>(@)".}  # Nim derives > and >= from < and <=
+# proc operator>=*(this: ColourGradient, arg1: ColourGradient): bool {.header: juce_graphics, importcpp: "#.operator>=(@)".}  # Nim derives > and >= from < and <=
 
 proc makeEdgeTable*(clipLimits: Rectangle[cint], pathToAdd: Path, transform: AffineTransform): EdgeTable {.header: juce_graphics, importcpp: "juce::EdgeTable(@)".}
 proc makeEdgeTable*(rectangleToAdd: Rectangle[cint]): EdgeTable {.header: juce_graphics, importcpp: "juce::EdgeTable(@)".}
@@ -430,13 +430,13 @@ proc setJointStyle*(this: var PathStrokeType, newStyle: PathStrokeTypeJointStyle
 proc getEndStyle*(this: PathStrokeType): PathStrokeTypeEndCapStyle {.header: juce_graphics, importcpp: "#.getEndStyle()".}
 proc setEndStyle*(this: var PathStrokeType, newStyle: PathStrokeTypeEndCapStyle) {.header: juce_graphics, importcpp: "#.setEndStyle(@)".}
 proc `==`*(this: PathStrokeType, arg1: PathStrokeType): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: PathStrokeType, arg1: PathStrokeType): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: PathStrokeType, arg1: PathStrokeType): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 
 proc makeRectanglePlacement*(placementFlags: cint): RectanglePlacement {.header: juce_graphics, importcpp: "juce::RectanglePlacement(@)".}
 proc makeRectanglePlacement*(): RectanglePlacement {.header: juce_graphics, importcpp: "juce::RectanglePlacement(@)".}
 proc `RectanglePlacement=`*(this: var RectanglePlacement, arg1: RectanglePlacement): var RectanglePlacement {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc `==`*(this: RectanglePlacement, arg1: RectanglePlacement): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: RectanglePlacement, arg1: RectanglePlacement): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: RectanglePlacement, arg1: RectanglePlacement): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc getFlags*(this: RectanglePlacement): cint {.header: juce_graphics, importcpp: "#.getFlags()".}
 proc testFlags*(this: RectanglePlacement, flagsToTest: cint): bool {.header: juce_graphics, importcpp: "#.testFlags(@)".}
 proc applyTo*(this: RectanglePlacement, sourceX: var float64, sourceY: var float64, sourceW: var float64, sourceH: var float64, destinationX: float64, destinationY: float64, destinationW: float64, destinationH: float64) {.header: juce_graphics, importcpp: "#.applyTo(@)".}
@@ -492,11 +492,11 @@ proc withLineHeightMultiple*(this: GlyphArrangementOptions, x: cfloat): GlyphArr
 proc getLineSpacing*(this: GlyphArrangementOptions): cfloat {.header: juce_graphics, importcpp: "#.getLineSpacing()".}
 proc getLineHeightMultiple*(this: GlyphArrangementOptions): cfloat {.header: juce_graphics, importcpp: "#.getLineHeightMultiple()".}
 proc `==`*(this: GlyphArrangementOptions, other: GlyphArrangementOptions): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: GlyphArrangementOptions, other: GlyphArrangementOptions): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: GlyphArrangementOptions, other: GlyphArrangementOptions): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `<`*(this: GlyphArrangementOptions, other: GlyphArrangementOptions): bool {.header: juce_graphics, importcpp: "#.operator<(@)".}
 proc `<=`*(this: GlyphArrangementOptions, other: GlyphArrangementOptions): bool {.header: juce_graphics, importcpp: "#.operator<=(@)".}
-# proc operator>*(this: GlyphArrangementOptions, other: GlyphArrangementOptions): bool {.header: juce_graphics, importcpp: "#.operator>(@)".}
-# proc operator>=*(this: GlyphArrangementOptions, other: GlyphArrangementOptions): bool {.header: juce_graphics, importcpp: "#.operator>=(@)".}
+# proc operator>*(this: GlyphArrangementOptions, other: GlyphArrangementOptions): bool {.header: juce_graphics, importcpp: "#.operator>(@)".}  # Nim derives > and >= from < and <=
+# proc operator>=*(this: GlyphArrangementOptions, other: GlyphArrangementOptions): bool {.header: juce_graphics, importcpp: "#.operator>=(@)".}  # Nim derives > and >= from < and <=
 
 proc makeGraphics*(imageToDrawOnto: Image): Graphics {.header: juce_graphics, importcpp: "juce::Graphics(@)".}
 proc makeGraphics*(arg1: var LowLevelGraphicsContext): Graphics {.header: juce_graphics, importcpp: "juce::Graphics(@)".}
@@ -580,7 +580,7 @@ proc makeImage*(format: ImagePixelFormat, imageWidth: cint, imageHeight: cint, c
 proc makeImage*(arg1: ReferenceCountedObjectPtr[ImagePixelData]): Image {.header: juce_graphics, importcpp: "juce::Image(@)".}
 proc `Image=`*(this: var Image, arg1: Image): var Image {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc `==`*(this: Image, other: Image): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: Image, other: Image): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: Image, other: Image): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc isValid*(this: Image): bool {.header: juce_graphics, importcpp: "#.isValid()".}
 proc isNull*(this: Image): bool {.header: juce_graphics, importcpp: "#.isNull()".}
 proc getWidth*(this: Image): cint {.header: juce_graphics, importcpp: "#.getWidth()".}
@@ -623,7 +623,7 @@ proc clone*(this: var ImagePixelData): ReferenceCountedObjectPtr[ImagePixelData]
 proc createType*(this: ImagePixelData): UniquePtr[ImageType] {.header: juce_graphics, importcpp: "#.createType()".}
 proc getBackupExtensions*(this: var ImagePixelData): ptr ImagePixelDataBackupExtensions {.header: juce_graphics, importcpp: "#.getBackupExtensions()".}
 proc getBackupExtensions*(this: ImagePixelData): ptr ImagePixelDataBackupExtensions {.header: juce_graphics, importcpp: "#.getBackupExtensions()".}
-# proc initialiseBitmapData*(this: var ImagePixelData, arg1: var ImageBitmapData, x: cint, y: cint, arg4: Image::BitmapData::ReadWriteMode) {.header: juce_graphics, importcpp: "#.initialiseBitmapData(@)".}
+# proc initialiseBitmapData*(this: var ImagePixelData, arg1: var ImageBitmapData, x: cint, y: cint, arg4: Image::BitmapData::ReadWriteMode) {.header: juce_graphics, importcpp: "#.initialiseBitmapData(@)".}  # a type that cannot be spelled in Nim
 proc getSharedCount*(this: ImagePixelData): cint {.header: juce_graphics, importcpp: "#.getSharedCount()".}
 proc moveImageSection*(this: var ImagePixelData, destTopLeft: Point[cint], sourceRect: Rectangle[cint]) {.header: juce_graphics, importcpp: "#.moveImageSection(@)".}
 proc applyGaussianBlurEffectInArea*(this: var ImagePixelData, bounds: Rectangle[cint], radius: cfloat) {.header: juce_graphics, importcpp: "#.applyGaussianBlurEffectInArea(@)".}
@@ -670,26 +670,26 @@ proc getOpacity*(this: FillType): cfloat {.header: juce_graphics, importcpp: "#.
 proc isInvisible*(this: FillType): bool {.header: juce_graphics, importcpp: "#.isInvisible()".}
 proc transformed*(this: FillType, transform: AffineTransform): FillType {.header: juce_graphics, importcpp: "#.transformed(@)".}
 proc `==`*(this: FillType, arg1: FillType): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: FillType, arg1: FillType): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: FillType, arg1: FillType): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 
-# proc makeFontFeatureTag*(string: char ()[5]): FontFeatureTag {.header: juce_graphics, importcpp: "juce::FontFeatureTag(@)".}
+# proc makeFontFeatureTag*(string: char ()[5]): FontFeatureTag {.header: juce_graphics, importcpp: "juce::FontFeatureTag(@)".}  # a type that cannot be spelled in Nim
 proc makeFontFeatureTag*(tagValue: uint32): FontFeatureTag {.header: juce_graphics, importcpp: "juce::FontFeatureTag(@)".}
 proc toString*(this: FontFeatureTag): String {.header: juce_graphics, importcpp: "#.toString()".}
 proc getTag*(this: FontFeatureTag): uint32 {.header: juce_graphics, importcpp: "#.getTag()".}
 proc `<`*(this: FontFeatureTag, other: FontFeatureTag): bool {.header: juce_graphics, importcpp: "#.operator<(@)".}
 proc `<=`*(this: FontFeatureTag, other: FontFeatureTag): bool {.header: juce_graphics, importcpp: "#.operator<=(@)".}
-# proc operator>*(this: FontFeatureTag, other: FontFeatureTag): bool {.header: juce_graphics, importcpp: "#.operator>(@)".}
-# proc operator>=*(this: FontFeatureTag, other: FontFeatureTag): bool {.header: juce_graphics, importcpp: "#.operator>=(@)".}
+# proc operator>*(this: FontFeatureTag, other: FontFeatureTag): bool {.header: juce_graphics, importcpp: "#.operator>(@)".}  # Nim derives > and >= from < and <=
+# proc operator>=*(this: FontFeatureTag, other: FontFeatureTag): bool {.header: juce_graphics, importcpp: "#.operator>=(@)".}  # Nim derives > and >= from < and <=
 proc `==`*(this: FontFeatureTag, other: FontFeatureTag): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: FontFeatureTag, other: FontFeatureTag): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: FontFeatureTag, other: FontFeatureTag): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 
 proc makeFontFeatureSetting*(featureTag: FontFeatureTag, featureValue: uint32): FontFeatureSetting {.header: juce_graphics, importcpp: "juce::FontFeatureSetting(@)".}
 proc `<`*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator<(@)".}
 proc `<=`*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator<=(@)".}
-# proc operator>*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator>(@)".}
-# proc operator>=*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator>=(@)".}
+# proc operator>*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator>(@)".}  # Nim derives > and >= from < and <=
+# proc operator>=*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator>=(@)".}  # Nim derives > and >= from < and <=
 proc `==`*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 
 proc `==`*(this: ColourLayer, other: ColourLayer): bool {.error: "juce::ColourLayer defines no operator==; compare a property instead".}
 
@@ -750,11 +750,11 @@ proc getAscentOverride*(this: FontOptions): CppOptional[cfloat] {.header: juce_g
 proc getDescentOverride*(this: FontOptions): CppOptional[cfloat] {.header: juce_graphics, importcpp: "#.getDescentOverride()".}
 proc getFeatureSettings*(this: FontOptions): Span[FontFeatureSetting] {.header: juce_graphics, importcpp: "#.getFeatureSettings()".}
 proc `==`*(this: FontOptions, other: FontOptions): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: FontOptions, other: FontOptions): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: FontOptions, other: FontOptions): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `<`*(this: FontOptions, other: FontOptions): bool {.header: juce_graphics, importcpp: "#.operator<(@)".}
 proc `<=`*(this: FontOptions, other: FontOptions): bool {.header: juce_graphics, importcpp: "#.operator<=(@)".}
-# proc operator>*(this: FontOptions, other: FontOptions): bool {.header: juce_graphics, importcpp: "#.operator>(@)".}
-# proc operator>=*(this: FontOptions, other: FontOptions): bool {.header: juce_graphics, importcpp: "#.operator>=(@)".}
+# proc operator>*(this: FontOptions, other: FontOptions): bool {.header: juce_graphics, importcpp: "#.operator>(@)".}  # Nim derives > and >= from < and <=
+# proc operator>=*(this: FontOptions, other: FontOptions): bool {.header: juce_graphics, importcpp: "#.operator>=(@)".}  # Nim derives > and >= from < and <=
 
 proc makeFont*(options: FontOptions): Font {.header: juce_graphics, importcpp: "juce::Font(@)".}
 proc makeFont*(fontHeight: cfloat, styleFlags: cint): Font {.header: juce_graphics, importcpp: "juce::Font(@)".}
@@ -764,7 +764,7 @@ proc makeFont*(typeface: ReferenceCountedObjectPtr[Typeface]): Font {.header: ju
 proc makeFont*(): Font {.header: juce_graphics, importcpp: "juce::Font(@)".}
 proc `Font=`*(this: var Font, other: Font): var Font {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc `==`*(this: Font, other: Font): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: Font, other: Font): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: Font, other: Font): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc setTypefaceName*(this: var Font, faceName: String) {.header: juce_graphics, importcpp: "#.setTypefaceName(@)".}
 proc getTypefaceName*(this: Font): String {.header: juce_graphics, importcpp: "#.getTypefaceName()".}
 proc getTypefaceStyle*(this: Font): String {.header: juce_graphics, importcpp: "#.getTypefaceStyle()".}
@@ -869,8 +869,8 @@ proc makeGlyphArrangement*(): GlyphArrangement {.header: juce_graphics, importcp
 proc `GlyphArrangement=`*(this: var GlyphArrangement, arg1: GlyphArrangement): var GlyphArrangement {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc getNumGlyphs*(this: GlyphArrangement): cint {.header: juce_graphics, importcpp: "#.getNumGlyphs()".}
 proc getGlyph*(this: var GlyphArrangement, index: cint): var PositionedGlyph {.header: juce_graphics, importcpp: "#.getGlyph(@)".}
-# proc begin*(this: GlyphArrangement): ptr PositionedGlyph {.header: juce_graphics, importcpp: "#.begin()".}
-# proc `end`*(this: GlyphArrangement): ptr PositionedGlyph {.header: juce_graphics, importcpp: "#.end()".}
+# proc begin*(this: GlyphArrangement): ptr PositionedGlyph {.header: juce_graphics, importcpp: "#.begin()".}  # a C++ iterator; loop with the Nim iterator instead
+# proc `end`*(this: GlyphArrangement): ptr PositionedGlyph {.header: juce_graphics, importcpp: "#.end()".}  # a C++ iterator; loop with the Nim iterator instead
 proc clear*(this: var GlyphArrangement) {.header: juce_graphics, importcpp: "#.clear()".}
 proc addLineOfText*(this: var GlyphArrangement, font: Font, text: String, x: cfloat, y: cfloat) {.header: juce_graphics, importcpp: "#.addLineOfText(@)".}
 proc addCurtailedLineOfText*(this: var GlyphArrangement, font: Font, text: String, x: cfloat, y: cfloat, maxWidthPixels: cfloat, useEllipsis: bool) {.header: juce_graphics, importcpp: "#.addCurtailedLineOfText(@)".}
@@ -902,12 +902,12 @@ proc getNumLines*(this: TextLayout): cint {.header: juce_graphics, importcpp: "#
 proc getLine*(this: TextLayout, index: cint): var TextLayoutLine {.header: juce_graphics, importcpp: "#.getLine(@)".}
 proc addLine*(this: var TextLayout, arg1: UniquePtr[TextLayoutLine]) {.header: juce_graphics, importcpp: "#.addLine(@)".}
 proc ensureStorageAllocated*(this: var TextLayout, numLinesNeeded: cint) {.header: juce_graphics, importcpp: "#.ensureStorageAllocated(@)".}
-# proc begin*(this: var TextLayout): iterator {.header: juce_graphics, importcpp: "#.begin()".}
-# proc begin*(this: TextLayout): _iterator {.header: juce_graphics, importcpp: "#.begin()".}
-# proc cbegin*(this: TextLayout): _iterator {.header: juce_graphics, importcpp: "#.cbegin()".}
-# proc `end`*(this: var TextLayout): iterator {.header: juce_graphics, importcpp: "#.end()".}
-# proc `end`*(this: TextLayout): _iterator {.header: juce_graphics, importcpp: "#.end()".}
-# proc cend*(this: TextLayout): _iterator {.header: juce_graphics, importcpp: "#.cend()".}
+# proc begin*(this: var TextLayout): iterator {.header: juce_graphics, importcpp: "#.begin()".}  # a type that cannot be spelled in Nim
+# proc begin*(this: TextLayout): _iterator {.header: juce_graphics, importcpp: "#.begin()".}  # a type that cannot be spelled in Nim
+# proc cbegin*(this: TextLayout): _iterator {.header: juce_graphics, importcpp: "#.cbegin()".}  # a type that cannot be spelled in Nim
+# proc `end`*(this: var TextLayout): iterator {.header: juce_graphics, importcpp: "#.end()".}  # a type that cannot be spelled in Nim
+# proc `end`*(this: TextLayout): _iterator {.header: juce_graphics, importcpp: "#.end()".}  # a type that cannot be spelled in Nim
+# proc cend*(this: TextLayout): _iterator {.header: juce_graphics, importcpp: "#.cend()".}  # a type that cannot be spelled in Nim
 proc recalculateSize*(this: var TextLayout) {.header: juce_graphics, importcpp: "#.recalculateSize()".}
 proc `==`*(this: TextLayout, other: TextLayout): bool {.error: "juce::TextLayout defines no operator==; compare a property instead".}
 

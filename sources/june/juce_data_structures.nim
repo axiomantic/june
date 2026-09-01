@@ -72,17 +72,17 @@ proc `Value=`*(this: var Value, arg1: Value): var Value {.header: juce_data_stru
 proc referTo*(this: var Value, valueToReferTo: Value) {.header: juce_data_structures, importcpp: "#.referTo(@)".}
 proc refersToSameSourceAs*(this: Value, other: Value): bool {.header: juce_data_structures, importcpp: "#.refersToSameSourceAs(@)".}
 proc `==`*(this: Value, other: Value): bool {.header: juce_data_structures, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: Value, other: Value): bool {.header: juce_data_structures, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: Value, other: Value): bool {.header: juce_data_structures, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc addListener*(this: var Value, listener: ptr ValueListener) {.header: juce_data_structures, importcpp: "#.addListener(@)".}
 proc removeListener*(this: var Value, listener: ptr ValueListener) {.header: juce_data_structures, importcpp: "#.removeListener(@)".}
 proc getValueSource*(this: var Value): var ValueValueSource {.header: juce_data_structures, importcpp: "#.getValueSource()".}
 
 proc makeValueTree*(): ValueTree {.header: juce_data_structures, importcpp: "juce::ValueTree(@)".}
 proc makeValueTree*(`type`: Identifier): ValueTree {.header: juce_data_structures, importcpp: "juce::ValueTree(@)".}
-# proc makeValueTree*(`type`: Identifier, properties: std::initializer_list<NamedValueSet::NamedValue>, subTrees: std::initializer_list<ValueTree>): ValueTree {.header: juce_data_structures, importcpp: "juce::ValueTree(@)".}
+# proc makeValueTree*(`type`: Identifier, properties: std::initializer_list<NamedValueSet::NamedValue>, subTrees: std::initializer_list<ValueTree>): ValueTree {.header: juce_data_structures, importcpp: "juce::ValueTree(@)".}  # a type that cannot be spelled in Nim
 proc `ValueTree=`*(this: var ValueTree, arg1: ValueTree): var ValueTree {.header: juce_data_structures, importcpp: "#.operator=(@)".}
 proc `==`*(this: ValueTree, arg1: ValueTree): bool {.header: juce_data_structures, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: ValueTree, arg1: ValueTree): bool {.header: juce_data_structures, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: ValueTree, arg1: ValueTree): bool {.header: juce_data_structures, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc isEquivalentTo*(this: ValueTree, arg1: ValueTree): bool {.header: juce_data_structures, importcpp: "#.isEquivalentTo(@)".}
 proc isValid*(this: ValueTree): bool {.header: juce_data_structures, importcpp: "#.isValid()".}
 proc createCopy*(this: ValueTree): ValueTree {.header: juce_data_structures, importcpp: "#.createCopy()".}
@@ -117,8 +117,8 @@ proc indexOf*(this: ValueTree, child: ValueTree): cint {.header: juce_data_struc
 proc getParent*(this: ValueTree): ValueTree {.header: juce_data_structures, importcpp: "#.getParent()".}
 proc getRoot*(this: ValueTree): ValueTree {.header: juce_data_structures, importcpp: "#.getRoot()".}
 proc getSibling*(this: ValueTree, delta: cint): ValueTree {.header: juce_data_structures, importcpp: "#.getSibling(@)".}
-# proc begin*(this: ValueTree): ValueTreeIterator {.header: juce_data_structures, importcpp: "#.begin()".}
-# proc `end`*(this: ValueTree): ValueTreeIterator {.header: juce_data_structures, importcpp: "#.end()".}
+# proc begin*(this: ValueTree): ValueTreeIterator {.header: juce_data_structures, importcpp: "#.begin()".}  # a C++ iterator; loop with the Nim iterator instead
+# proc `end`*(this: ValueTree): ValueTreeIterator {.header: juce_data_structures, importcpp: "#.end()".}  # a C++ iterator; loop with the Nim iterator instead
 proc createXml*(this: ValueTree): UniquePtr[XmlElement] {.header: juce_data_structures, importcpp: "#.createXml()".}
 proc toXmlString*(this: ValueTree, format: XmlElementTextFormat): String {.header: juce_data_structures, importcpp: "#.toXmlString(@)".}
 proc writeToStream*(this: ValueTree, output: var OutputStream) {.header: juce_data_structures, importcpp: "#.writeToStream(@)".}

@@ -323,11 +323,11 @@ proc makeCharPointer_UTF8*(rawPointer: ptr char): CharPointer_UTF8 {.header: juc
 proc `CharPointer_UTF8=`*(this: var CharPointer_UTF8, other: CharPointer_UTF8): var CharPointer_UTF8 {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `CharPointer_UTF8=`*(this: var CharPointer_UTF8, text: ptr char): var CharPointer_UTF8 {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `==`*(this: CharPointer_UTF8, other: CharPointer_UTF8): bool {.header: juce_core, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: CharPointer_UTF8, other: CharPointer_UTF8): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: CharPointer_UTF8, other: CharPointer_UTF8): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `<=`*(this: CharPointer_UTF8, other: CharPointer_UTF8): bool {.header: juce_core, importcpp: "#.operator<=(@)".}
 proc `<`*(this: CharPointer_UTF8, other: CharPointer_UTF8): bool {.header: juce_core, importcpp: "#.operator<(@)".}
-# proc operator>=*(this: CharPointer_UTF8, other: CharPointer_UTF8): bool {.header: juce_core, importcpp: "#.operator>=(@)".}
-# proc operator>*(this: CharPointer_UTF8, other: CharPointer_UTF8): bool {.header: juce_core, importcpp: "#.operator>(@)".}
+# proc operator>=*(this: CharPointer_UTF8, other: CharPointer_UTF8): bool {.header: juce_core, importcpp: "#.operator>=(@)".}  # Nim derives > and >= from < and <=
+# proc operator>*(this: CharPointer_UTF8, other: CharPointer_UTF8): bool {.header: juce_core, importcpp: "#.operator>(@)".}  # Nim derives > and >= from < and <=
 proc getAddress*(this: CharPointer_UTF8): ptr char {.header: juce_core, importcpp: "#.getAddress()".}
 proc isEmpty*(this: CharPointer_UTF8): bool {.header: juce_core, importcpp: "#.isEmpty()".}
 proc isNotEmpty*(this: CharPointer_UTF8): bool {.header: juce_core, importcpp: "#.isNotEmpty()".}
@@ -371,11 +371,11 @@ proc makeCharPointer_UTF16*(rawPointer: ptr int16): CharPointer_UTF16 {.header: 
 proc `CharPointer_UTF16=`*(this: var CharPointer_UTF16, other: CharPointer_UTF16): var CharPointer_UTF16 {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `CharPointer_UTF16=`*(this: var CharPointer_UTF16, text: ptr int16): var CharPointer_UTF16 {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `==`*(this: CharPointer_UTF16, other: CharPointer_UTF16): bool {.header: juce_core, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: CharPointer_UTF16, other: CharPointer_UTF16): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: CharPointer_UTF16, other: CharPointer_UTF16): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `<=`*(this: CharPointer_UTF16, other: CharPointer_UTF16): bool {.header: juce_core, importcpp: "#.operator<=(@)".}
 proc `<`*(this: CharPointer_UTF16, other: CharPointer_UTF16): bool {.header: juce_core, importcpp: "#.operator<(@)".}
-# proc operator>=*(this: CharPointer_UTF16, other: CharPointer_UTF16): bool {.header: juce_core, importcpp: "#.operator>=(@)".}
-# proc operator>*(this: CharPointer_UTF16, other: CharPointer_UTF16): bool {.header: juce_core, importcpp: "#.operator>(@)".}
+# proc operator>=*(this: CharPointer_UTF16, other: CharPointer_UTF16): bool {.header: juce_core, importcpp: "#.operator>=(@)".}  # Nim derives > and >= from < and <=
+# proc operator>*(this: CharPointer_UTF16, other: CharPointer_UTF16): bool {.header: juce_core, importcpp: "#.operator>(@)".}  # Nim derives > and >= from < and <=
 proc getAddress*(this: CharPointer_UTF16): ptr int16 {.header: juce_core, importcpp: "#.getAddress()".}
 proc isEmpty*(this: CharPointer_UTF16): bool {.header: juce_core, importcpp: "#.isEmpty()".}
 proc isNotEmpty*(this: CharPointer_UTF16): bool {.header: juce_core, importcpp: "#.isNotEmpty()".}
@@ -418,11 +418,11 @@ proc makeCharPointer_UTF32*(rawPointer: ptr uint16): CharPointer_UTF32 {.header:
 proc `CharPointer_UTF32=`*(this: var CharPointer_UTF32, other: CharPointer_UTF32): var CharPointer_UTF32 {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `CharPointer_UTF32=`*(this: var CharPointer_UTF32, text: ptr uint16): var CharPointer_UTF32 {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `==`*(this: CharPointer_UTF32, other: CharPointer_UTF32): bool {.header: juce_core, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: CharPointer_UTF32, other: CharPointer_UTF32): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: CharPointer_UTF32, other: CharPointer_UTF32): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `<=`*(this: CharPointer_UTF32, other: CharPointer_UTF32): bool {.header: juce_core, importcpp: "#.operator<=(@)".}
 proc `<`*(this: CharPointer_UTF32, other: CharPointer_UTF32): bool {.header: juce_core, importcpp: "#.operator<(@)".}
-# proc operator>=*(this: CharPointer_UTF32, other: CharPointer_UTF32): bool {.header: juce_core, importcpp: "#.operator>=(@)".}
-# proc operator>*(this: CharPointer_UTF32, other: CharPointer_UTF32): bool {.header: juce_core, importcpp: "#.operator>(@)".}
+# proc operator>=*(this: CharPointer_UTF32, other: CharPointer_UTF32): bool {.header: juce_core, importcpp: "#.operator>=(@)".}  # Nim derives > and >= from < and <=
+# proc operator>*(this: CharPointer_UTF32, other: CharPointer_UTF32): bool {.header: juce_core, importcpp: "#.operator>(@)".}  # Nim derives > and >= from < and <=
 proc getAddress*(this: CharPointer_UTF32): ptr uint16 {.header: juce_core, importcpp: "#.getAddress()".}
 proc isEmpty*(this: CharPointer_UTF32): bool {.header: juce_core, importcpp: "#.isEmpty()".}
 proc isNotEmpty*(this: CharPointer_UTF32): bool {.header: juce_core, importcpp: "#.isNotEmpty()".}
@@ -467,11 +467,11 @@ proc makeCharPointer_ASCII*(rawPointer: ptr char): CharPointer_ASCII {.header: j
 proc `CharPointer_ASCII=`*(this: var CharPointer_ASCII, other: CharPointer_ASCII): var CharPointer_ASCII {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `CharPointer_ASCII=`*(this: var CharPointer_ASCII, text: ptr char): var CharPointer_ASCII {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `==`*(this: CharPointer_ASCII, other: CharPointer_ASCII): bool {.header: juce_core, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: CharPointer_ASCII, other: CharPointer_ASCII): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: CharPointer_ASCII, other: CharPointer_ASCII): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `<=`*(this: CharPointer_ASCII, other: CharPointer_ASCII): bool {.header: juce_core, importcpp: "#.operator<=(@)".}
 proc `<`*(this: CharPointer_ASCII, other: CharPointer_ASCII): bool {.header: juce_core, importcpp: "#.operator<(@)".}
-# proc operator>=*(this: CharPointer_ASCII, other: CharPointer_ASCII): bool {.header: juce_core, importcpp: "#.operator>=(@)".}
-# proc operator>*(this: CharPointer_ASCII, other: CharPointer_ASCII): bool {.header: juce_core, importcpp: "#.operator>(@)".}
+# proc operator>=*(this: CharPointer_ASCII, other: CharPointer_ASCII): bool {.header: juce_core, importcpp: "#.operator>=(@)".}  # Nim derives > and >= from < and <=
+# proc operator>*(this: CharPointer_ASCII, other: CharPointer_ASCII): bool {.header: juce_core, importcpp: "#.operator>(@)".}  # Nim derives > and >= from < and <=
 proc getAddress*(this: CharPointer_ASCII): ptr char {.header: juce_core, importcpp: "#.getAddress()".}
 proc isEmpty*(this: CharPointer_ASCII): bool {.header: juce_core, importcpp: "#.isEmpty()".}
 proc isNotEmpty*(this: CharPointer_ASCII): bool {.header: juce_core, importcpp: "#.isNotEmpty()".}
@@ -624,11 +624,11 @@ proc initialSectionContainingOnly*(this: String, permittedCharacters: StringRef)
 proc initialSectionNotContaining*(this: String, charactersToStopAt: StringRef): String {.header: juce_core, importcpp: "#.initialSectionNotContaining(@)".}
 proc isQuotedString*(this: String): bool {.header: juce_core, importcpp: "#.isQuotedString()".}
 proc unquoted*(this: String): String {.header: juce_core, importcpp: "#.unquoted()".}
-# proc quoted*(this: String, quoteCharacter: uint16): String {.header: juce_core, importcpp: "#.quoted(@)".}
+# proc quoted*(this: String, quoteCharacter: uint16): String {.header: juce_core, importcpp: "#.quoted(@)".}  # excluded deliberately: see skip_class_method
 proc paddedLeft*(this: String, padCharacter: uint16, minimumLength: cint): String {.header: juce_core, importcpp: "#.paddedLeft(@)".}
 proc paddedRight*(this: String, padCharacter: uint16, minimumLength: cint): String {.header: juce_core, importcpp: "#.paddedRight(@)".}
-# proc begin*(this: String): CharPointer_UTF8 {.header: juce_core, importcpp: "#.begin()".}
-# proc `end`*(this: String): CharPointer_UTF8 {.header: juce_core, importcpp: "#.end()".}
+# proc begin*(this: String): CharPointer_UTF8 {.header: juce_core, importcpp: "#.begin()".}  # a C++ iterator; loop with the Nim iterator instead
+# proc `end`*(this: String): CharPointer_UTF8 {.header: juce_core, importcpp: "#.end()".}  # a C++ iterator; loop with the Nim iterator instead
 proc getIntValue*(this: String): cint {.header: juce_core, importcpp: "#.getIntValue()".}
 proc getLargeIntValue*(this: String): int64 {.header: juce_core, importcpp: "#.getLargeIntValue()".}
 proc getTrailingIntValue*(this: String): cint {.header: juce_core, importcpp: "#.getTrailingIntValue()".}
@@ -649,7 +649,7 @@ proc copyToUTF16*(this: String, destBuffer: ptr int16, maxBufferSizeBytes: uint6
 proc copyToUTF32*(this: String, destBuffer: ptr uint16, maxBufferSizeBytes: uint64): uint64 {.header: juce_core, importcpp: "#.copyToUTF32(@)".}
 proc preallocateBytes*(this: var String, numBytesNeeded: uint64) {.header: juce_core, importcpp: "#.preallocateBytes(@)".}
 proc swapWith*(this: var String, other: var String) {.header: juce_core, importcpp: "#.swapWith(@)".}
-# proc toCFString*(this: String): ptr struct __CFString {.header: juce_core, importcpp: "#.toCFString()".}
+# proc toCFString*(this: String): ptr struct __CFString {.header: juce_core, importcpp: "#.toCFString()".}  # a type that cannot be spelled in Nim
 proc convertToPrecomposedUnicode*(this: String): String {.header: juce_core, importcpp: "#.convertToPrecomposedUnicode()".}
 proc getReferenceCount*(this: String): cint {.header: juce_core, importcpp: "#.getReferenceCount()".}
 
@@ -663,13 +663,13 @@ proc isNotEmpty*(this: StringRef): bool {.header: juce_core, importcpp: "#.isNot
 proc length*(this: StringRef): cint {.header: juce_core, importcpp: "#.length()".}
 proc `[]`*(this: StringRef, index: cint): uint16 {.header: juce_core, importcpp: "#.operator[](@)".}
 proc `==`*(this: StringRef, s: String): bool {.header: juce_core, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: StringRef, s: String): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: StringRef, s: String): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `<`*(this: StringRef, s: String): bool {.header: juce_core, importcpp: "#.operator<(@)".}
 proc `<=`*(this: StringRef, s: String): bool {.header: juce_core, importcpp: "#.operator<=(@)".}
-# proc operator>*(this: StringRef, s: String): bool {.header: juce_core, importcpp: "#.operator>(@)".}
-# proc operator>=*(this: StringRef, s: String): bool {.header: juce_core, importcpp: "#.operator>=(@)".}
+# proc operator>*(this: StringRef, s: String): bool {.header: juce_core, importcpp: "#.operator>(@)".}  # Nim derives > and >= from < and <=
+# proc operator>=*(this: StringRef, s: String): bool {.header: juce_core, importcpp: "#.operator>=(@)".}  # Nim derives > and >= from < and <=
 proc `==`*(this: StringRef, s: StringRef): bool {.header: juce_core, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: StringRef, s: StringRef): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: StringRef, s: StringRef): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 
 proc `==`*(this: Logger, other: Logger): bool {.error: "juce::Logger defines no operator==; compare a property instead".}
 
@@ -678,14 +678,14 @@ proc makeMemoryBlock*(initialSize: uint64, initialiseToZero: bool): MemoryBlock 
 proc makeMemoryBlock*(dataToInitialiseFrom: constPointer, sizeInBytes: uint64): MemoryBlock {.header: juce_core, importcpp: "juce::MemoryBlock(@)".}
 proc `MemoryBlock=`*(this: var MemoryBlock, arg1: MemoryBlock): var MemoryBlock {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `==`*(this: MemoryBlock, other: MemoryBlock): bool {.header: juce_core, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: MemoryBlock, other: MemoryBlock): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: MemoryBlock, other: MemoryBlock): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc matches*(this: MemoryBlock, data: constPointer, dataSize: uint64): bool {.header: juce_core, importcpp: "#.matches(@)".}
 proc getData*(this: var MemoryBlock): pointer {.header: juce_core, importcpp: "#.getData()".}
 proc getData*(this: MemoryBlock): constPointer {.header: juce_core, importcpp: "#.getData()".}
-# proc begin*(this: var MemoryBlock): ptr char {.header: juce_core, importcpp: "#.begin()".}
-# proc begin*(this: MemoryBlock): constChar {.header: juce_core, importcpp: "#.begin()".}
-# proc `end`*(this: var MemoryBlock): ptr char {.header: juce_core, importcpp: "#.end()".}
-# proc `end`*(this: MemoryBlock): constChar {.header: juce_core, importcpp: "#.end()".}
+# proc begin*(this: var MemoryBlock): ptr char {.header: juce_core, importcpp: "#.begin()".}  # a C++ iterator; loop with the Nim iterator instead
+# proc begin*(this: MemoryBlock): constChar {.header: juce_core, importcpp: "#.begin()".}  # a C++ iterator; loop with the Nim iterator instead
+# proc `end`*(this: var MemoryBlock): ptr char {.header: juce_core, importcpp: "#.end()".}  # a C++ iterator; loop with the Nim iterator instead
+# proc `end`*(this: MemoryBlock): constChar {.header: juce_core, importcpp: "#.end()".}  # a C++ iterator; loop with the Nim iterator instead
 proc isEmpty*(this: MemoryBlock): bool {.header: juce_core, importcpp: "#.isEmpty()".}
 proc getSize*(this: MemoryBlock): uint64 {.header: juce_core, importcpp: "#.getSize()".}
 proc setSize*(this: var MemoryBlock, newSize: uint64, initialiseNewSpaceToZero: bool = false) {.header: juce_core, importcpp: "#.setSize(@)".}
@@ -751,8 +751,8 @@ proc prepareToWrite*(this: AbstractFifo, numToWrite: cint, startIndex1: var cint
 proc finishedWrite*(this: var AbstractFifo, numWritten: cint) {.header: juce_core, importcpp: "#.finishedWrite(@)".}
 proc prepareToRead*(this: AbstractFifo, numWanted: cint, startIndex1: var cint, blockSize1: var cint, startIndex2: var cint, blockSize2: var cint) {.header: juce_core, importcpp: "#.prepareToRead(@)".}
 proc finishedRead*(this: var AbstractFifo, numRead: cint) {.header: juce_core, importcpp: "#.finishedRead(@)".}
-# proc read*(this: var AbstractFifo, numToRead: cint): ScopedRead {.header: juce_core, importcpp: "#.read(@)".}
-# proc write*(this: var AbstractFifo, numToWrite: cint): ScopedWrite {.header: juce_core, importcpp: "#.write(@)".}
+# proc read*(this: var AbstractFifo, numToRead: cint): ScopedRead {.header: juce_core, importcpp: "#.read(@)".}  # a type that cannot be spelled in Nim
+# proc write*(this: var AbstractFifo, numToWrite: cint): ScopedWrite {.header: juce_core, importcpp: "#.write(@)".}  # a type that cannot be spelled in Nim
 proc `==`*(this: AbstractFifo, other: AbstractFifo): bool {.error: "juce::AbstractFifo defines no operator==; compare a property instead".}
 
 proc makeSingleThreadedAbstractFifo*(): SingleThreadedAbstractFifo {.header: juce_core, importcpp: "juce::SingleThreadedAbstractFifo(@)".}
@@ -779,13 +779,13 @@ proc makeIdentifier*(name: String): Identifier {.header: juce_core, importcpp: "
 proc makeIdentifier*(nameStart: CharPointer_UTF8, nameEnd: CharPointer_UTF8): Identifier {.header: juce_core, importcpp: "juce::Identifier(@)".}
 proc `Identifier=`*(this: var Identifier, other: Identifier): var Identifier {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `==`*(this: Identifier, other: Identifier): bool {.header: juce_core, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: Identifier, other: Identifier): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: Identifier, other: Identifier): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `==`*(this: Identifier, other: StringRef): bool {.header: juce_core, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: Identifier, other: StringRef): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: Identifier, other: StringRef): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `<`*(this: Identifier, other: StringRef): bool {.header: juce_core, importcpp: "#.operator<(@)".}
 proc `<=`*(this: Identifier, other: StringRef): bool {.header: juce_core, importcpp: "#.operator<=(@)".}
-# proc operator>*(this: Identifier, other: StringRef): bool {.header: juce_core, importcpp: "#.operator>(@)".}
-# proc operator>=*(this: Identifier, other: StringRef): bool {.header: juce_core, importcpp: "#.operator>=(@)".}
+# proc operator>*(this: Identifier, other: StringRef): bool {.header: juce_core, importcpp: "#.operator>(@)".}  # Nim derives > and >= from < and <=
+# proc operator>=*(this: Identifier, other: StringRef): bool {.header: juce_core, importcpp: "#.operator>=(@)".}  # Nim derives > and >= from < and <=
 proc toString*(this: Identifier): String {.header: juce_core, importcpp: "#.toString()".}
 proc getCharPointer*(this: Identifier): CharPointer_UTF8 {.header: juce_core, importcpp: "#.getCharPointer()".}
 proc isValid*(this: Identifier): bool {.header: juce_core, importcpp: "#.isValid()".}
@@ -793,7 +793,7 @@ proc isNull*(this: Identifier): bool {.header: juce_core, importcpp: "#.isNull()
 
 proc makeStringArray*(): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
 proc makeStringArray*(firstValue: String): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
-# proc makeStringArray*(strings: std::initializer_list<constChar>): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
+# proc makeStringArray*(strings: std::initializer_list<constChar>): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}  # a type that cannot be spelled in Nim
 proc makeStringArray*(arg1: Array[String]): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
 proc makeStringArray*(strings: ptr String, numberOfStrings: cint): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
 proc makeStringArray*(strings: constChar, numberOfStrings: cint): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
@@ -802,16 +802,16 @@ proc makeStringArray*(strings: ptr uint16, numberOfStrings: cint): StringArray {
 proc `StringArray=`*(this: var StringArray, arg1: StringArray): var StringArray {.header: juce_core, importcpp: "#.operator=(@)".}
 proc swapWith*(this: var StringArray, arg1: var StringArray) {.header: juce_core, importcpp: "#.swapWith(@)".}
 proc `==`*(this: StringArray, arg1: StringArray): bool {.header: juce_core, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: StringArray, arg1: StringArray): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: StringArray, arg1: StringArray): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc size*(this: StringArray): cint {.header: juce_core, importcpp: "#.size()".}
 proc isEmpty*(this: StringArray): bool {.header: juce_core, importcpp: "#.isEmpty()".}
 proc `[]`*(this: StringArray, index: cint): String {.header: juce_core, importcpp: "#.operator[](@)".}
 proc getReference*(this: var StringArray, index: cint): var String {.header: juce_core, importcpp: "#.getReference(@)".}
 proc getReference*(this: StringArray, index: cint): String {.header: juce_core, importcpp: "#.getReference(@)".}
-# proc begin*(this: var StringArray): ptr String {.header: juce_core, importcpp: "#.begin()".}
-# proc begin*(this: StringArray): ptr String {.header: juce_core, importcpp: "#.begin()".}
-# proc `end`*(this: var StringArray): ptr String {.header: juce_core, importcpp: "#.end()".}
-# proc `end`*(this: StringArray): ptr String {.header: juce_core, importcpp: "#.end()".}
+# proc begin*(this: var StringArray): ptr String {.header: juce_core, importcpp: "#.begin()".}  # a C++ iterator; loop with the Nim iterator instead
+# proc begin*(this: StringArray): ptr String {.header: juce_core, importcpp: "#.begin()".}  # a C++ iterator; loop with the Nim iterator instead
+# proc `end`*(this: var StringArray): ptr String {.header: juce_core, importcpp: "#.end()".}  # a C++ iterator; loop with the Nim iterator instead
+# proc `end`*(this: StringArray): ptr String {.header: juce_core, importcpp: "#.end()".}  # a C++ iterator; loop with the Nim iterator instead
 proc contains*(this: StringArray, stringToLookFor: StringRef, ignoreCase: bool = false): bool {.header: juce_core, importcpp: "#.contains(@)".}
 proc indexOf*(this: StringArray, stringToLookFor: StringRef, ignoreCase: bool = false, startIndex: cint = 0): cint {.header: juce_core, importcpp: "#.indexOf(@)".}
 proc add*(this: var StringArray, stringToAdd: String) {.header: juce_core, importcpp: "#.add(@)".}
@@ -832,7 +832,7 @@ proc removeDuplicates*(this: var StringArray, ignoreCase: bool) {.header: juce_c
 proc removeEmptyStrings*(this: var StringArray, removeWhitespaceStrings: bool = true) {.header: juce_core, importcpp: "#.removeEmptyStrings(@)".}
 proc move*(this: var StringArray, currentIndex: cint, newIndex: cint) {.header: juce_core, importcpp: "#.move(@)".}
 proc trim*(this: var StringArray) {.header: juce_core, importcpp: "#.trim()".}
-# proc appendNumbersToDuplicates*(this: var StringArray, ignoreCaseWhenComparing: bool, appendNumberToFirstInstance: bool, preNumberString: CharPointer_UTF8, postNumberString: CharPointer_UTF8) {.header: juce_core, importcpp: "#.appendNumbersToDuplicates(@)".}
+# proc appendNumbersToDuplicates*(this: var StringArray, ignoreCaseWhenComparing: bool, appendNumberToFirstInstance: bool, preNumberString: CharPointer_UTF8, postNumberString: CharPointer_UTF8) {.header: juce_core, importcpp: "#.appendNumbersToDuplicates(@)".}  # excluded deliberately: see skip_class_method
 proc joinIntoString*(this: StringArray, separatorString: StringRef, startIndex: cint = 0, numberOfElements: cint = -1): String {.header: juce_core, importcpp: "#.joinIntoString(@)".}
 proc sort*(this: var StringArray, ignoreCase: bool) {.header: juce_core, importcpp: "#.sort(@)".}
 proc sortNatural*(this: var StringArray) {.header: juce_core, importcpp: "#.sortNatural()".}
@@ -844,7 +844,7 @@ proc `==`*(this: SystemStats, other: SystemStats): bool {.error: "juce::SystemSt
 proc makeStringPairArray*(ignoreCaseWhenComparingKeys: bool): StringPairArray {.header: juce_core, importcpp: "juce::StringPairArray(@)".}
 proc `StringPairArray=`*(this: var StringPairArray, other: StringPairArray): var StringPairArray {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `==`*(this: StringPairArray, other: StringPairArray): bool {.header: juce_core, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: StringPairArray, other: StringPairArray): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: StringPairArray, other: StringPairArray): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `[]`*(this: StringPairArray, key: StringRef): String {.header: juce_core, importcpp: "#.operator[](@)".}
 proc getValue*(this: StringPairArray, arg1: StringRef, defaultReturnValue: String): String {.header: juce_core, importcpp: "#.getValue(@)".}
 proc containsKey*(this: StringPairArray, key: StringRef): bool {.header: juce_core, importcpp: "#.containsKey(@)".}
@@ -883,11 +883,11 @@ proc `==`*(this: Base64, other: Base64): bool {.error: "juce::Base64 defines no 
 
 proc wasOk*(this: Result): bool {.header: juce_core, importcpp: "#.wasOk()".}
 proc failed*(this: Result): bool {.header: juce_core, importcpp: "#.failed()".}
-# proc operator!*(this: Result): bool {.header: juce_core, importcpp: "#.operator!()".}
+# proc operator!*(this: Result): bool {.header: juce_core, importcpp: "#.operator!()".}  # an operator with no Nim spelling
 proc getErrorMessage*(this: Result): String {.header: juce_core, importcpp: "#.getErrorMessage()".}
 proc `Result=`*(this: var Result, arg1: Result): var Result {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `==`*(this: Result, other: Result): bool {.header: juce_core, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: Result, other: Result): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: Result, other: Result): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 
 proc makeUuid*(): Uuid {.header: juce_core, importcpp: "juce::Uuid(@)".}
 proc makeUuid*(uuidString: String): Uuid {.header: juce_core, importcpp: "juce::Uuid(@)".}
@@ -895,11 +895,11 @@ proc makeUuid*(rawData: ptr uint8): Uuid {.header: juce_core, importcpp: "juce::
 proc `Uuid=`*(this: var Uuid, arg1: Uuid): var Uuid {.header: juce_core, importcpp: "#.operator=(@)".}
 proc isNull*(this: Uuid): bool {.header: juce_core, importcpp: "#.isNull()".}
 proc `==`*(this: Uuid, arg1: Uuid): bool {.header: juce_core, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: Uuid, arg1: Uuid): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: Uuid, arg1: Uuid): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `<`*(this: Uuid, arg1: Uuid): bool {.header: juce_core, importcpp: "#.operator<(@)".}
-# proc operator>*(this: Uuid, arg1: Uuid): bool {.header: juce_core, importcpp: "#.operator>(@)".}
+# proc operator>*(this: Uuid, arg1: Uuid): bool {.header: juce_core, importcpp: "#.operator>(@)".}  # Nim derives > and >= from < and <=
 proc `<=`*(this: Uuid, arg1: Uuid): bool {.header: juce_core, importcpp: "#.operator<=(@)".}
-# proc operator>=*(this: Uuid, arg1: Uuid): bool {.header: juce_core, importcpp: "#.operator>=(@)".}
+# proc operator>=*(this: Uuid, arg1: Uuid): bool {.header: juce_core, importcpp: "#.operator>=(@)".}  # Nim derives > and >= from < and <=
 proc toString*(this: Uuid): String {.header: juce_core, importcpp: "#.toString()".}
 proc toDashedString*(this: Uuid): String {.header: juce_core, importcpp: "#.toDashedString()".}
 proc `Uuid=`*(this: var Uuid, uuidString: String): var Uuid {.header: juce_core, importcpp: "#.operator=(@)".}
@@ -914,7 +914,7 @@ proc getRawData*(this: Uuid): ptr uint8 {.header: juce_core, importcpp: "#.getRa
 proc `Uuid=`*(this: var Uuid, rawData: ptr uint8): var Uuid {.header: juce_core, importcpp: "#.operator=(@)".}
 
 proc makeArgumentList*(executable: String, arguments: StringArray): ArgumentList {.header: juce_core, importcpp: "juce::ArgumentList(@)".}
-# proc makeArgumentList*(argc: cint, argv: ptr char[]): ArgumentList {.header: juce_core, importcpp: "juce::ArgumentList(@)".}
+# proc makeArgumentList*(argc: cint, argv: ptr char[]): ArgumentList {.header: juce_core, importcpp: "juce::ArgumentList(@)".}  # a type that cannot be spelled in Nim
 proc makeArgumentList*(executable: String, arguments: String): ArgumentList {.header: juce_core, importcpp: "juce::ArgumentList(@)".}
 proc `ArgumentList=`*(this: var ArgumentList, arg1: ArgumentList): var ArgumentList {.header: juce_core, importcpp: "#.operator=(@)".}
 proc size*(this: ArgumentList): cint {.header: juce_core, importcpp: "#.size()".}
@@ -940,8 +940,8 @@ proc addVersionCommand*(this: var ConsoleApplication, versionArgument: String, v
 proc addHelpCommand*(this: var ConsoleApplication, helpArgument: String, helpMessage: String, makeDefaultCommand: bool) {.header: juce_core, importcpp: "#.addHelpCommand(@)".}
 proc printCommandList*(this: ConsoleApplication, arg1: ArgumentList) {.header: juce_core, importcpp: "#.printCommandList(@)".}
 proc printCommandDetails*(this: ConsoleApplication, arg1: ArgumentList, arg2: ConsoleApplicationCommand) {.header: juce_core, importcpp: "#.printCommandDetails(@)".}
-# proc findAndRunCommand*(this: ConsoleApplication, arg1: ArgumentList, optionMustBeFirstArg: bool = false): cint {.header: juce_core, importcpp: "#.findAndRunCommand(@)".}
-# proc findAndRunCommand*(this: ConsoleApplication, argc: cint, argv: ptr char[]): cint {.header: juce_core, importcpp: "#.findAndRunCommand(@)".}
+# proc findAndRunCommand*(this: ConsoleApplication, arg1: ArgumentList, optionMustBeFirstArg: bool = false): cint {.header: juce_core, importcpp: "#.findAndRunCommand(@)".}  # excluded deliberately: see skip_class_method
+# proc findAndRunCommand*(this: ConsoleApplication, argc: cint, argv: ptr char[]): cint {.header: juce_core, importcpp: "#.findAndRunCommand(@)".}  # a type that cannot be spelled in Nim
 proc findCommand*(this: ConsoleApplication, arg1: ArgumentList, optionMustBeFirstArg: bool): ptr ConsoleApplicationCommand {.header: juce_core, importcpp: "#.findCommand(@)".}
 proc getCommands*(this: ConsoleApplication): CppVector[ConsoleApplicationCommand] {.header: juce_core, importcpp: "#.getCommands()".}
 proc `==`*(this: ConsoleApplication, other: ConsoleApplication): bool {.error: "juce::ConsoleApplication defines no operator==; compare a property instead".}
@@ -1024,14 +1024,14 @@ proc getNativeFunction*(this: juce_var): CppFunctionObjectR1[juce_var, juce_varN
 proc writeToStream*(this: juce_var, output: var OutputStream) {.header: juce_core, importcpp: "#.writeToStream(@)".}
 
 proc `==`*(this: NamedValue, arg1: NamedValue): bool {.header: juce_core, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: NamedValue, arg1: NamedValue): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: NamedValue, arg1: NamedValue): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 
 proc makeNamedValueSet*(): NamedValueSet {.header: juce_core, importcpp: "juce::NamedValueSet(@)".}
-# proc makeNamedValueSet*(arg1: std::initializer_list<NamedValue>): NamedValueSet {.header: juce_core, importcpp: "juce::NamedValueSet(@)".}
+# proc makeNamedValueSet*(arg1: std::initializer_list<NamedValue>): NamedValueSet {.header: juce_core, importcpp: "juce::NamedValueSet(@)".}  # a type that cannot be spelled in Nim
 proc `==`*(this: NamedValueSet, arg1: NamedValueSet): bool {.header: juce_core, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: NamedValueSet, arg1: NamedValueSet): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
-# proc begin*(this: NamedValueSet): ptr NamedValue {.header: juce_core, importcpp: "#.begin()".}
-# proc `end`*(this: NamedValueSet): ptr NamedValue {.header: juce_core, importcpp: "#.end()".}
+# proc operator!=*(this: NamedValueSet, arg1: NamedValueSet): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
+# proc begin*(this: NamedValueSet): ptr NamedValue {.header: juce_core, importcpp: "#.begin()".}  # a C++ iterator; loop with the Nim iterator instead
+# proc `end`*(this: NamedValueSet): ptr NamedValue {.header: juce_core, importcpp: "#.end()".}  # a C++ iterator; loop with the Nim iterator instead
 proc asSpan*(this: var NamedValueSet): Span[NamedValue] {.header: juce_core, importcpp: "#.asSpan()".}
 proc asSpan*(this: NamedValueSet): Span[NamedValue] {.header: juce_core, importcpp: "#.asSpan()".}
 proc size*(this: NamedValueSet): cint {.header: juce_core, importcpp: "#.size()".}
@@ -1061,16 +1061,16 @@ proc setProperty*(this: var DynamicObject, propertyName: Identifier, newValue: j
 proc removeProperty*(this: var DynamicObject, propertyName: Identifier) {.header: juce_core, importcpp: "#.removeProperty(@)".}
 proc hasMethod*(this: DynamicObject, methodName: Identifier): bool {.header: juce_core, importcpp: "#.hasMethod(@)".}
 proc invokeMethod*(this: var DynamicObject, methodName: Identifier, args: juce_varNativeFunctionArgs): juce_var {.header: juce_core, importcpp: "#.invokeMethod(@)".}
-# proc setMethod*(this: var DynamicObject, methodName: Identifier, function: CppFunctionObjectR1[juce_var, NativeFunctionArgs]) {.header: juce_core, importcpp: "#.setMethod(@)".}
+# proc setMethod*(this: var DynamicObject, methodName: Identifier, function: CppFunctionObjectR1[juce_var, NativeFunctionArgs]) {.header: juce_core, importcpp: "#.setMethod(@)".}  # a type that cannot be spelled in Nim
 proc clear*(this: var DynamicObject) {.header: juce_core, importcpp: "#.clear()".}
 proc getProperties*(this: var DynamicObject): var NamedValueSet {.header: juce_core, importcpp: "#.getProperties()".}
 proc getProperties*(this: DynamicObject): NamedValueSet {.header: juce_core, importcpp: "#.getProperties()".}
 proc cloneAllProperties*(this: var DynamicObject) {.header: juce_core, importcpp: "#.cloneAllProperties()".}
-# proc clone*(this: DynamicObject): UniquePtr[DynamicObject] {.header: juce_core, importcpp: "#.clone()".}
+# proc clone*(this: DynamicObject): UniquePtr[DynamicObject] {.header: juce_core, importcpp: "#.clone()".}  # excluded deliberately: see skip_class_method
 proc writeAsJSON*(this: var DynamicObject, arg1: var OutputStream, arg2: JSONFormatOptions) {.header: juce_core, importcpp: "#.writeAsJSON(@)".}
 proc equals*(this: DynamicObject, other: DynamicObject): bool {.header: juce_core, importcpp: "#.equals(@)".}
 proc `==`*(this: DynamicObject, other: DynamicObject): bool {.header: juce_core, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: DynamicObject, other: DynamicObject): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: DynamicObject, other: DynamicObject): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 
 proc `==`*(this: DefaultHashFunctions, other: DefaultHashFunctions): bool {.error: "juce::DefaultHashFunctions defines no operator==; compare a property instead".}
 
@@ -1083,7 +1083,7 @@ proc inMinutes*(this: RelativeTime): float64 {.header: juce_core, importcpp: "#.
 proc inHours*(this: RelativeTime): float64 {.header: juce_core, importcpp: "#.inHours()".}
 proc inDays*(this: RelativeTime): float64 {.header: juce_core, importcpp: "#.inDays()".}
 proc inWeeks*(this: RelativeTime): float64 {.header: juce_core, importcpp: "#.inWeeks()".}
-# proc getDescription*(this: RelativeTime, returnValueForZeroTime: String): String {.header: juce_core, importcpp: "#.getDescription(@)".}
+# proc getDescription*(this: RelativeTime, returnValueForZeroTime: String): String {.header: juce_core, importcpp: "#.getDescription(@)".}  # excluded deliberately: see skip_class_method
 proc getApproximateDescription*(this: RelativeTime): String {.header: juce_core, importcpp: "#.getApproximateDescription()".}
 proc `+=`*(this: var RelativeTime, timeToAdd: RelativeTime) {.header: juce_core, importcpp: "#.operator+=(@)".}
 proc `-=`*(this: var RelativeTime, timeToSubtract: RelativeTime) {.header: juce_core, importcpp: "#.operator-=(@)".}
@@ -1256,9 +1256,9 @@ proc isAChildOf*(this: File, potentialParentDirectory: File): bool {.header: juc
 proc getNonexistentChildFile*(this: File, prefix: String, suffix: String, putNumbersInBrackets: bool = true): File {.header: juce_core, importcpp: "#.getNonexistentChildFile(@)".}
 proc getNonexistentSibling*(this: File, putNumbersInBrackets: bool = true): File {.header: juce_core, importcpp: "#.getNonexistentSibling(@)".}
 proc `==`*(this: File, arg1: File): bool {.header: juce_core, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: File, arg1: File): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: File, arg1: File): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `<`*(this: File, arg1: File): bool {.header: juce_core, importcpp: "#.operator<(@)".}
-# proc operator>*(this: File, arg1: File): bool {.header: juce_core, importcpp: "#.operator>(@)".}
+# proc operator>*(this: File, arg1: File): bool {.header: juce_core, importcpp: "#.operator>(@)".}  # Nim derives > and >= from < and <=
 proc hasWriteAccess*(this: File): bool {.header: juce_core, importcpp: "#.hasWriteAccess()".}
 proc hasReadAccess*(this: File): bool {.header: juce_core, importcpp: "#.hasReadAccess()".}
 proc setReadOnly*(this: File, shouldBeReadOnly: bool, applyRecursively: bool = false): bool {.header: juce_core, importcpp: "#.setReadOnly(@)".}
@@ -1309,7 +1309,7 @@ proc createSymbolicLink*(this: File, linkFileToCreate: File, overwriteExisting: 
 proc isSymbolicLink*(this: File): bool {.header: juce_core, importcpp: "#.isSymbolicLink()".}
 proc getLinkedTarget*(this: File): File {.header: juce_core, importcpp: "#.getLinkedTarget()".}
 proc getNativeLinkedTarget*(this: File): String {.header: juce_core, importcpp: "#.getNativeLinkedTarget()".}
-# proc getMacOSType*(this: File): uint32 {.header: juce_core, importcpp: "#.getMacOSType()".}
+# proc getMacOSType*(this: File): uint32 {.header: juce_core, importcpp: "#.getMacOSType()".}  # a platform type with no Nim spelling
 proc isBundle*(this: File): bool {.header: juce_core, importcpp: "#.isBundle()".}
 proc addToDock*(this: File) {.header: juce_core, importcpp: "#.addToDock()".}
 
@@ -1333,9 +1333,9 @@ proc `==`*(this: DirectoryEntry, other: DirectoryEntry): bool {.error: "juce::Di
 proc makeRangedDirectoryIterator*(): RangedDirectoryIterator {.header: juce_core, importcpp: "juce::RangedDirectoryIterator(@)".}
 proc makeRangedDirectoryIterator*(directory: File, isRecursive: bool, wildCard: String, whatToLookFor: cint, followSymlinks: FileFollowSymlinks): RangedDirectoryIterator {.header: juce_core, importcpp: "juce::RangedDirectoryIterator(@)".}
 proc `==`*(this: RangedDirectoryIterator, other: RangedDirectoryIterator): bool {.header: juce_core, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: RangedDirectoryIterator, other: RangedDirectoryIterator): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: RangedDirectoryIterator, other: RangedDirectoryIterator): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `*`*(this: RangedDirectoryIterator): DirectoryEntry {.header: juce_core, importcpp: "#.operator*()".}
-# proc operator->*(this: RangedDirectoryIterator): ptr DirectoryEntry {.header: juce_core, importcpp: "#.operator->()".}
+# proc operator->*(this: RangedDirectoryIterator): ptr DirectoryEntry {.header: juce_core, importcpp: "#.operator->()".}  # an operator with no Nim spelling
 proc `inc`*(this: var RangedDirectoryIterator): var RangedDirectoryIterator {.header: juce_core, importcpp: "#.operator++()".}
 proc `inc`*(this: var RangedDirectoryIterator, arg1: cint): DirectoryEntry {.header: juce_core, importcpp: "#.operator++(@)".}
 
@@ -1388,7 +1388,7 @@ proc makeMemoryMappedFile*(file: File, mode: MemoryMappedFileAccessMode, exclusi
 proc makeMemoryMappedFile*(file: File, fileRange: Range[int64], mode: MemoryMappedFileAccessMode, exclusive: bool): MemoryMappedFile {.header: juce_core, importcpp: "juce::MemoryMappedFile(@)".}
 proc getData*(this: MemoryMappedFile): pointer {.header: juce_core, importcpp: "#.getData()".}
 proc getSize*(this: MemoryMappedFile): uint64 {.header: juce_core, importcpp: "#.getSize()".}
-# proc getRange*(this: MemoryMappedFile): Range[int64] {.header: juce_core, importcpp: "#.getRange()".}
+# proc getRange*(this: MemoryMappedFile): Range[int64] {.header: juce_core, importcpp: "#.getRange()".}  # excluded deliberately: see skip_class_method
 proc `==`*(this: MemoryMappedFile, other: MemoryMappedFile): bool {.error: "juce::MemoryMappedFile defines no operator==; compare a property instead".}
 
 proc makeTemporaryFile*(): TemporaryFile {.header: juce_core, importcpp: "juce::TemporaryFile(@)".}
@@ -1496,11 +1496,11 @@ proc `%`*(this: BigInteger, arg1: BigInteger): BigInteger {.header: juce_core, i
 proc `shl`*(this: BigInteger, numBitsToShift: cint): BigInteger {.header: juce_core, importcpp: "#.operator<<(@)".}
 proc `shr`*(this: BigInteger, numBitsToShift: cint): BigInteger {.header: juce_core, importcpp: "#.operator>>(@)".}
 proc `==`*(this: BigInteger, arg1: BigInteger): bool {.header: juce_core, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: BigInteger, arg1: BigInteger): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: BigInteger, arg1: BigInteger): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `<`*(this: BigInteger, arg1: BigInteger): bool {.header: juce_core, importcpp: "#.operator<(@)".}
 proc `<=`*(this: BigInteger, arg1: BigInteger): bool {.header: juce_core, importcpp: "#.operator<=(@)".}
-# proc operator>*(this: BigInteger, arg1: BigInteger): bool {.header: juce_core, importcpp: "#.operator>(@)".}
-# proc operator>=*(this: BigInteger, arg1: BigInteger): bool {.header: juce_core, importcpp: "#.operator>=(@)".}
+# proc operator>*(this: BigInteger, arg1: BigInteger): bool {.header: juce_core, importcpp: "#.operator>(@)".}  # Nim derives > and >= from < and <=
+# proc operator>=*(this: BigInteger, arg1: BigInteger): bool {.header: juce_core, importcpp: "#.operator>=(@)".}  # Nim derives > and >= from < and <=
 proc compare*(this: BigInteger, other: BigInteger): cint {.header: juce_core, importcpp: "#.compare(@)".}
 proc compareAbsolute*(this: BigInteger, other: BigInteger): cint {.header: juce_core, importcpp: "#.compareAbsolute(@)".}
 proc divideBy*(this: var BigInteger, divisor: BigInteger, remainder: var BigInteger) {.header: juce_core, importcpp: "#.divideBy(@)".}
@@ -1532,7 +1532,7 @@ proc withRenamedSymbol*(this: Expression, oldSymbol: ExpressionSymbol, newName: 
 proc referencesSymbol*(this: Expression, symbol: ExpressionSymbol, scope: ExpressionScope): bool {.header: juce_core, importcpp: "#.referencesSymbol(@)".}
 proc usesAnySymbols*(this: Expression): bool {.header: juce_core, importcpp: "#.usesAnySymbols()".}
 proc findReferencedSymbols*(this: Expression, results: Array[ExpressionSymbol], scope: ExpressionScope) {.header: juce_core, importcpp: "#.findReferencedSymbols(@)".}
-# proc getType*(this: Expression): ExpressionType {.header: juce_core, importcpp: "#.getType()".}
+# proc getType*(this: Expression): ExpressionType {.header: juce_core, importcpp: "#.getType()".}  # excluded deliberately: see skip_class_method
 proc getSymbolOrFunction*(this: Expression): String {.header: juce_core, importcpp: "#.getSymbolOrFunction()".}
 proc getNumInputs*(this: Expression): cint {.header: juce_core, importcpp: "#.getNumInputs()".}
 proc getInput*(this: Expression, index: cint): Expression {.header: juce_core, importcpp: "#.getInput(@)".}
@@ -1540,9 +1540,9 @@ proc `==`*(this: Expression, other: Expression): bool {.error: "juce::Expression
 
 proc makeRandom*(seedValue: int64): Random {.header: juce_core, importcpp: "juce::Random(@)".}
 proc makeRandom*(): Random {.header: juce_core, importcpp: "juce::Random(@)".}
-# proc nextInt*(this: var Random): cint {.header: juce_core, importcpp: "#.nextInt()".}
-# proc nextInt*(this: var Random, maxValue: cint): cint {.header: juce_core, importcpp: "#.nextInt(@)".}
-# proc nextInt*(this: var Random, range: Range[cint]): cint {.header: juce_core, importcpp: "#.nextInt(@)".}
+# proc nextInt*(this: var Random): cint {.header: juce_core, importcpp: "#.nextInt()".}  # excluded deliberately: see skip_class_method
+# proc nextInt*(this: var Random, maxValue: cint): cint {.header: juce_core, importcpp: "#.nextInt(@)".}  # excluded deliberately: see skip_class_method
+# proc nextInt*(this: var Random, range: Range[cint]): cint {.header: juce_core, importcpp: "#.nextInt(@)".}  # excluded deliberately: see skip_class_method
 proc nextInt64*(this: var Random): int64 {.header: juce_core, importcpp: "#.nextInt64()".}
 proc nextFloat*(this: var Random): cfloat {.header: juce_core, importcpp: "#.nextFloat()".}
 proc nextDouble*(this: var Random): float64 {.header: juce_core, importcpp: "#.nextDouble()".}
@@ -1627,12 +1627,12 @@ proc `==`*(this: HighResolutionTimer, other: HighResolutionTimer): bool {.error:
 proc makeThreadPoolJob*(name: String): ThreadPoolJob {.header: juce_core, importcpp: "juce::ThreadPoolJob(@)".}
 proc getJobName*(this: ThreadPoolJob): String {.header: juce_core, importcpp: "#.getJobName()".}
 proc setJobName*(this: var ThreadPoolJob, newName: String) {.header: juce_core, importcpp: "#.setJobName(@)".}
-# proc runJob*(this: var ThreadPoolJob): ThreadPoolJobJobStatus {.header: juce_core, importcpp: "#.runJob()".}
+# proc runJob*(this: var ThreadPoolJob): ThreadPoolJobJobStatus {.header: juce_core, importcpp: "#.runJob()".}  # excluded deliberately: see skip_class_method
 proc isRunning*(this: ThreadPoolJob): bool {.header: juce_core, importcpp: "#.isRunning()".}
 proc shouldExit*(this: ThreadPoolJob): bool {.header: juce_core, importcpp: "#.shouldExit()".}
 proc signalJobShouldExit*(this: var ThreadPoolJob) {.header: juce_core, importcpp: "#.signalJobShouldExit()".}
-# proc addListener*(this: var ThreadPoolJob, arg1: ptr ThreadListener) {.header: juce_core, importcpp: "#.addListener(@)".}
-# proc removeListener*(this: var ThreadPoolJob, arg1: ptr ThreadListener) {.header: juce_core, importcpp: "#.removeListener(@)".}
+# proc addListener*(this: var ThreadPoolJob, arg1: ptr ThreadListener) {.header: juce_core, importcpp: "#.addListener(@)".}  # excluded deliberately: see skip_class_method
+# proc removeListener*(this: var ThreadPoolJob, arg1: ptr ThreadListener) {.header: juce_core, importcpp: "#.removeListener(@)".}  # excluded deliberately: see skip_class_method
 proc `==`*(this: ThreadPoolJob, other: ThreadPoolJob): bool {.error: "juce::ThreadPoolJob defines no operator==; compare a property instead".}
 
 proc withThreadName*(this: ThreadPoolOptions, newThreadName: String): ThreadPoolOptions {.header: juce_core, importcpp: "#.withThreadName(@)".}
@@ -1645,7 +1645,7 @@ proc makeThreadPool*(options: ThreadPoolOptions): ThreadPool {.header: juce_core
 proc makeThreadPool*(): ThreadPool {.header: juce_core, importcpp: "juce::ThreadPool(@)".}
 proc makeThreadPool*(numberOfThreads: cint, threadStackSizeBytes: uint64, desiredThreadPriority: ThreadPriority): ThreadPool {.header: juce_core, importcpp: "juce::ThreadPool(@)".}
 proc addJob*(this: var ThreadPool, job: ptr ThreadPoolJob, deleteJobWhenFinished: bool) {.header: juce_core, importcpp: "#.addJob(@)".}
-# proc addJob*(this: var ThreadPool, job: std::function<ThreadPoolJob::JobStatus ()>) {.header: juce_core, importcpp: "#.addJob(@)".}
+# proc addJob*(this: var ThreadPool, job: std::function<ThreadPoolJob::JobStatus ()>) {.header: juce_core, importcpp: "#.addJob(@)".}  # a type that cannot be spelled in Nim
 proc addJob*(this: var ThreadPool, job: CppFunctionObjectN0) {.header: juce_core, importcpp: "#.addJob(@)".}
 proc removeJob*(this: var ThreadPool, job: ptr ThreadPoolJob, interruptIfRunning: bool, timeOutMilliseconds: cint): bool {.header: juce_core, importcpp: "#.removeJob(@)".}
 proc removeAllJobs*(this: var ThreadPool, interruptRunningJobs: bool, timeOutMilliseconds: cint, selectedJobsToRemove: ptr ThreadPoolJobSelector = nil): bool {.header: juce_core, importcpp: "#.removeAllJobs(@)".}
@@ -1711,14 +1711,14 @@ proc isNull*(this: IPAddress): bool {.header: juce_core, importcpp: "#.isNull()"
 proc toString*(this: IPAddress): String {.header: juce_core, importcpp: "#.toString()".}
 proc compare*(this: IPAddress, arg1: IPAddress): cint {.header: juce_core, importcpp: "#.compare(@)".}
 proc `==`*(this: IPAddress, arg1: IPAddress): bool {.header: juce_core, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: IPAddress, arg1: IPAddress): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: IPAddress, arg1: IPAddress): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `<`*(this: IPAddress, arg1: IPAddress): bool {.header: juce_core, importcpp: "#.operator<(@)".}
-# proc operator>*(this: IPAddress, arg1: IPAddress): bool {.header: juce_core, importcpp: "#.operator>(@)".}
+# proc operator>*(this: IPAddress, arg1: IPAddress): bool {.header: juce_core, importcpp: "#.operator>(@)".}  # Nim derives > and >= from < and <=
 proc `<=`*(this: IPAddress, arg1: IPAddress): bool {.header: juce_core, importcpp: "#.operator<=(@)".}
-# proc operator>=*(this: IPAddress, arg1: IPAddress): bool {.header: juce_core, importcpp: "#.operator>=(@)".}
+# proc operator>=*(this: IPAddress, arg1: IPAddress): bool {.header: juce_core, importcpp: "#.operator>=(@)".}  # Nim derives > and >= from < and <=
 
 proc makeMACAddress*(): MACAddress {.header: juce_core, importcpp: "juce::MACAddress(@)".}
-# proc makeMACAddress*(bytes: uint8[6]): MACAddress {.header: juce_core, importcpp: "juce::MACAddress(@)".}
+# proc makeMACAddress*(bytes: uint8[6]): MACAddress {.header: juce_core, importcpp: "juce::MACAddress(@)".}  # a type that cannot be spelled in Nim
 proc makeMACAddress*(address: StringRef): MACAddress {.header: juce_core, importcpp: "juce::MACAddress(@)".}
 proc `MACAddress=`*(this: var MACAddress, arg1: MACAddress): var MACAddress {.header: juce_core, importcpp: "#.operator=(@)".}
 proc getBytes*(this: MACAddress): ptr uint8 {.header: juce_core, importcpp: "#.getBytes()".}
@@ -1727,7 +1727,7 @@ proc toString*(this: MACAddress, separator: StringRef): String {.header: juce_co
 proc toInt64*(this: MACAddress): int64 {.header: juce_core, importcpp: "#.toInt64()".}
 proc isNull*(this: MACAddress): bool {.header: juce_core, importcpp: "#.isNull()".}
 proc `==`*(this: MACAddress, arg1: MACAddress): bool {.header: juce_core, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: MACAddress, arg1: MACAddress): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: MACAddress, arg1: MACAddress): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 
 proc makeNamedPipe*(): NamedPipe {.header: juce_core, importcpp: "juce::NamedPipe(@)".}
 proc openExisting*(this: var NamedPipe, pipeName: String): bool {.header: juce_core, importcpp: "#.openExisting(@)".}
@@ -1786,7 +1786,7 @@ proc makeURL*(): URL {.header: juce_core, importcpp: "juce::URL(@)".}
 proc makeURL*(url: String): URL {.header: juce_core, importcpp: "juce::URL(@)".}
 proc makeURL*(localFile: File): URL {.header: juce_core, importcpp: "juce::URL(@)".}
 proc `==`*(this: URL, arg1: URL): bool {.header: juce_core, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: URL, arg1: URL): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: URL, arg1: URL): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc toString*(this: URL, includeGetParameters: bool): String {.header: juce_core, importcpp: "#.toString(@)".}
 proc isEmpty*(this: URL): bool {.header: juce_core, importcpp: "#.isEmpty()".}
 proc isWellFormed*(this: URL): bool {.header: juce_core, importcpp: "#.isWellFormed()".}
@@ -1816,14 +1816,14 @@ proc withPOSTData*(this: URL, postData: MemoryBlock): URL {.header: juce_core, i
 proc getPostData*(this: URL): String {.header: juce_core, importcpp: "#.getPostData()".}
 proc getPostDataAsMemoryBlock*(this: URL): MemoryBlock {.header: juce_core, importcpp: "#.getPostDataAsMemoryBlock()".}
 proc launchInDefaultBrowser*(this: URL): bool {.header: juce_core, importcpp: "#.launchInDefaultBrowser()".}
-# proc createInputStream*(this: URL, options: URLInputStreamOptions): UniquePtr[InputStream] {.header: juce_core, importcpp: "#.createInputStream(@)".}
+# proc createInputStream*(this: URL, options: URLInputStreamOptions): UniquePtr[InputStream] {.header: juce_core, importcpp: "#.createInputStream(@)".}  # excluded deliberately: see skip_class_method
 proc createOutputStream*(this: URL): UniquePtr[OutputStream] {.header: juce_core, importcpp: "#.createOutputStream()".}
-# proc downloadToFile*(this: var URL, targetLocation: File, extraHeaders: String, listener: ptr URLDownloadTaskListener = nil, usePostCommand: bool = false): UniquePtr[URLDownloadTask] {.header: juce_core, importcpp: "#.downloadToFile(@)".}
-# proc downloadToFile*(this: var URL, targetLocation: File, options: URLDownloadTaskOptions): UniquePtr[URLDownloadTask] {.header: juce_core, importcpp: "#.downloadToFile(@)".}
+# proc downloadToFile*(this: var URL, targetLocation: File, extraHeaders: String, listener: ptr URLDownloadTaskListener = nil, usePostCommand: bool = false): UniquePtr[URLDownloadTask] {.header: juce_core, importcpp: "#.downloadToFile(@)".}  # excluded deliberately: see skip_class_method
+# proc downloadToFile*(this: var URL, targetLocation: File, options: URLDownloadTaskOptions): UniquePtr[URLDownloadTask] {.header: juce_core, importcpp: "#.downloadToFile(@)".}  # excluded deliberately: see skip_class_method
 proc readEntireBinaryStream*(this: URL, destData: var MemoryBlock, usePostCommand: bool = false): bool {.header: juce_core, importcpp: "#.readEntireBinaryStream(@)".}
 proc readEntireTextStream*(this: URL, usePostCommand: bool = false): String {.header: juce_core, importcpp: "#.readEntireTextStream(@)".}
 proc readEntireXmlStream*(this: URL, usePostCommand: bool = false): UniquePtr[XmlElement] {.header: juce_core, importcpp: "#.readEntireXmlStream(@)".}
-# proc createInputStream*(this: URL, doPostLikeRequest: bool, progressCallback: ptr bool (pointer, int, int) = nil, progressCallbackContext: pointer = nil, extraHeaders: String, connectionTimeOutMs: cint = 0, responseHeaders: ptr StringPairArray = nil, statusCode: ptr cint = nil, numRedirectsToFollow: cint = 5, httpRequestCmd: String): UniquePtr[InputStream] {.header: juce_core, importcpp: "#.createInputStream(@)".}
+# proc createInputStream*(this: URL, doPostLikeRequest: bool, progressCallback: ptr bool (pointer, int, int) = nil, progressCallbackContext: pointer = nil, extraHeaders: String, connectionTimeOutMs: cint = 0, responseHeaders: ptr StringPairArray = nil, statusCode: ptr cint = nil, numRedirectsToFollow: cint = 5, httpRequestCmd: String): UniquePtr[InputStream] {.header: juce_core, importcpp: "#.createInputStream(@)".}  # a type that cannot be spelled in Nim
 
 proc makeWebInputStream*(url: URL, addParametersToRequestBody: bool): WebInputStream {.header: juce_core, importcpp: "juce::WebInputStream(@)".}
 proc withExtraHeaders*(this: var WebInputStream, extraHeaders: String): var WebInputStream {.header: juce_core, importcpp: "#.withExtraHeaders(@)".}
@@ -1903,7 +1903,7 @@ proc `==`*(this: XmlDocument, other: XmlDocument): bool {.error: "juce::XmlDocum
 proc equals*(this: XmlAttribute, otherName: StringRef, otherValue: StringRef, ignoreCase: bool): bool {.header: juce_core, importcpp: "#.equals(@)".}
 proc equals*(this: XmlAttribute, other: XmlAttribute, ignoreCase: bool): bool {.header: juce_core, importcpp: "#.equals(@)".}
 proc `==`*(this: XmlAttribute, other: XmlAttribute): bool {.header: juce_core, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: XmlAttribute, other: XmlAttribute): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: XmlAttribute, other: XmlAttribute): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 
 proc makeXmlElement*(tagName: String): XmlElement {.header: juce_core, importcpp: "juce::XmlElement(@)".}
 proc makeXmlElement*(tagName: Identifier): XmlElement {.header: juce_core, importcpp: "juce::XmlElement(@)".}
@@ -1959,9 +1959,9 @@ proc getAllSubText*(this: XmlElement): String {.header: juce_core, importcpp: "#
 proc getChildElementAllSubText*(this: XmlElement, childTagName: StringRef, defaultReturnValue: String): String {.header: juce_core, importcpp: "#.getChildElementAllSubText(@)".}
 proc addTextElement*(this: var XmlElement, text: String) {.header: juce_core, importcpp: "#.addTextElement(@)".}
 proc deleteAllTextElements*(this: var XmlElement) {.header: juce_core, importcpp: "#.deleteAllTextElements()".}
-# proc getChildIterator*(this: XmlElement): Iterator<GetNextElement> {.header: juce_core, importcpp: "#.getChildIterator()".}
-# proc getChildWithTagNameIterator*(this: XmlElement, name: StringRef): Iterator<GetNextElementWithTagName> {.header: juce_core, importcpp: "#.getChildWithTagNameIterator(@)".}
-# proc getAttributeIterator*(this: XmlElement): AttributeIterator {.header: juce_core, importcpp: "#.getAttributeIterator()".}
+# proc getChildIterator*(this: XmlElement): Iterator<GetNextElement> {.header: juce_core, importcpp: "#.getChildIterator()".}  # a type that cannot be spelled in Nim
+# proc getChildWithTagNameIterator*(this: XmlElement, name: StringRef): Iterator<GetNextElementWithTagName> {.header: juce_core, importcpp: "#.getChildWithTagNameIterator(@)".}  # a type that cannot be spelled in Nim
+# proc getAttributeIterator*(this: XmlElement): AttributeIterator {.header: juce_core, importcpp: "#.getAttributeIterator()".}  # a type that cannot be spelled in Nim
 proc macroBasedForLoop*(this: XmlElement) {.header: juce_core, importcpp: "#.macroBasedForLoop()".}
 proc createDocument*(this: XmlElement, dtdToUse: StringRef, allOnOneLine: bool = false, includeXmlHeader: bool = true, encodingType: StringRef, lineWrapLength: cint = 60): String {.header: juce_core, importcpp: "#.createDocument(@)".}
 proc writeToStream*(this: XmlElement, output: var OutputStream, dtdToUse: StringRef, allOnOneLine: bool = false, includeXmlHeader: bool = true, encodingType: StringRef, lineWrapLength: cint = 60) {.header: juce_core, importcpp: "#.writeToStream(@)".}
@@ -2055,7 +2055,7 @@ proc `==`*(this: AndroidDocumentPermission, other: AndroidDocumentPermission): b
 proc makeAndroidDocument*(): AndroidDocument {.header: juce_core, importcpp: "juce::AndroidDocument(@)".}
 proc `AndroidDocument=`*(this: var AndroidDocument, arg1: AndroidDocument): var AndroidDocument {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `==`*(this: AndroidDocument, arg1: AndroidDocument): bool {.header: juce_core, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: AndroidDocument, arg1: AndroidDocument): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: AndroidDocument, arg1: AndroidDocument): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc deleteDocument*(this: AndroidDocument): bool {.header: juce_core, importcpp: "#.deleteDocument()".}
 proc renameTo*(this: var AndroidDocument, newDisplayName: String): bool {.header: juce_core, importcpp: "#.renameTo(@)".}
 proc createChildDocumentWithTypeAndName*(this: AndroidDocument, `type`: String, name: String): AndroidDocument {.header: juce_core, importcpp: "#.createChildDocumentWithTypeAndName(@)".}
@@ -2071,11 +2071,11 @@ proc getNativeInfo*(this: AndroidDocument): AndroidDocumentNativeInfo {.header: 
 
 proc makeAndroidDocumentIterator*(): AndroidDocumentIterator {.header: juce_core, importcpp: "juce::AndroidDocumentIterator(@)".}
 proc `==`*(this: AndroidDocumentIterator, other: AndroidDocumentIterator): bool {.header: juce_core, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: AndroidDocumentIterator, other: AndroidDocumentIterator): bool {.header: juce_core, importcpp: "#.operator!=(@)".}
+# proc operator!=*(this: AndroidDocumentIterator, other: AndroidDocumentIterator): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `*`*(this: AndroidDocumentIterator): AndroidDocument {.header: juce_core, importcpp: "#.operator*()".}
 proc `inc`*(this: var AndroidDocumentIterator): var AndroidDocumentIterator {.header: juce_core, importcpp: "#.operator++()".}
-# proc begin*(this: AndroidDocumentIterator): AndroidDocumentIterator {.header: juce_core, importcpp: "#.begin()".}
-# proc `end`*(this: AndroidDocumentIterator): AndroidDocumentIterator {.header: juce_core, importcpp: "#.end()".}
+# proc begin*(this: AndroidDocumentIterator): AndroidDocumentIterator {.header: juce_core, importcpp: "#.begin()".}  # a C++ iterator; loop with the Nim iterator instead
+# proc `end`*(this: AndroidDocumentIterator): AndroidDocumentIterator {.header: juce_core, importcpp: "#.end()".}  # a C++ iterator; loop with the Nim iterator instead
 
 proc makeAndroidDocumentInputSource*(doc: AndroidDocument): AndroidDocumentInputSource {.header: juce_core, importcpp: "juce::AndroidDocumentInputSource(@)".}
 proc createInputStream*(this: var AndroidDocumentInputSource): ptr InputStream {.header: juce_core, importcpp: "#.createInputStream()".}
