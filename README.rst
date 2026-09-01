@@ -211,7 +211,8 @@ Hand-written additions live in the ``*_lifting.nim`` files and in
   bound as Nim operators; ``!=``, ``>`` and ``>=`` follow from them.
 - The class templates: ``Rectangle``, ``Point``, ``Line``, ``BorderSize``,
   ``Range``, ``Array``, ``OwnedArray``, ``Span``, ``RectangleList``,
-  ``SparseSet`` and ``ReferenceCountedObjectPtr``.
+  ``SparseSet``, ``NormalisableRange``, ``Parallelogram`` and
+  ``ReferenceCountedObjectPtr``.
 - The standard library types JUCE exposes: ``std::unique_ptr``,
   ``std::optional``, ``std::vector`` and ``std::function``.
 - Subclasses whose virtual methods call into Nim: ``CustomComponent``,
@@ -225,6 +226,11 @@ long>`` that JUCE never instantiates.
 
 A proc whose types cannot be spelled in Nim is emitted as a comment rather than
 omitted, so what is missing stays visible in the generated file.
+
+Comparing two values of a type JUCE gives no ``operator==`` is a compile error
+naming the type. Nim would otherwise compare an ``importcpp`` object
+structurally, and those declare no fields, so it compared nothing and reported
+every two values equal.
 
 --------------------------
 Regenerating The Bindings
