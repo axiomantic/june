@@ -201,6 +201,19 @@ To run something on the message thread, bind the closure first and pass it to
   let callback: CppFunctionObjectN0 = bindClosure(proc() = echo "on the message thread")
   discard MessageManager.callAsync(callback)
 
+To run one on a background thread, hand it to a ``ThreadPool``. The job returns
+a status, so the pool knows whether to run it again:
+
+.. code-block:: nim
+
+  var pool = makeThreadPool()
+  let job: CppFunctionObjectR0[ThreadPoolJobJobStatus] = bindClosure(
+    proc(): ThreadPoolJobJobStatus =
+      echo "on a pool thread"
+      ThreadPoolJobJobStatus_jobHasFinished)
+  pool.addJob(job)
+  discard pool.removeAllJobs(false, 5000.cint)   # waits for it to finish
+
 Theming With A LookAndFeel
 --------------------------
 
