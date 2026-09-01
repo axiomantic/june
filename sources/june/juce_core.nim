@@ -1645,7 +1645,7 @@ proc makeThreadPool*(options: ThreadPoolOptions): ThreadPool {.header: juce_core
 proc makeThreadPool*(): ThreadPool {.header: juce_core, importcpp: "juce::ThreadPool(@)".}
 proc makeThreadPool*(numberOfThreads: cint, threadStackSizeBytes: uint64, desiredThreadPriority: ThreadPriority): ThreadPool {.header: juce_core, importcpp: "juce::ThreadPool(@)".}
 proc addJob*(this: var ThreadPool, job: ptr ThreadPoolJob, deleteJobWhenFinished: bool) {.header: juce_core, importcpp: "#.addJob(@)".}
-# proc addJob*(this: var ThreadPool, job: std::function<ThreadPoolJob::JobStatus ()>) {.header: juce_core, importcpp: "#.addJob(@)".}  # a type that cannot be spelled in Nim
+proc addJob*(this: var ThreadPool, job: CppFunctionObjectR0[ThreadPoolJobJobStatus]) {.header: juce_core, importcpp: "#.addJob(@)".}
 proc addJob*(this: var ThreadPool, job: CppFunctionObjectN0) {.header: juce_core, importcpp: "#.addJob(@)".}
 proc removeJob*(this: var ThreadPool, job: ptr ThreadPoolJob, interruptIfRunning: bool, timeOutMilliseconds: cint): bool {.header: juce_core, importcpp: "#.removeJob(@)".}
 proc removeAllJobs*(this: var ThreadPool, interruptRunningJobs: bool, timeOutMilliseconds: cint, selectedJobsToRemove: ptr ThreadPoolJobSelector = nil): bool {.header: juce_core, importcpp: "#.removeAllJobs(@)".}

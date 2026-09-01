@@ -236,3 +236,21 @@ proc testStlContainers() =
   doAssert total == 3, "the two ranges should cover the three written slots"
 
 testStlContainers()
+
+# Running a Nim closure on a JUCE thread pool. addJob takes a
+# std::function returning a JobStatus, whose return type is nested inside
+# ThreadPoolJob, so the binding was previously a comment.
+proc testThreadPoolJob() =
+  var pool = makeThreadPool()
+  var ran = 0
+
+  let job: CppFunctionObjectR0[ThreadPoolJobJobStatus] = bindClosure(
+    proc(): ThreadPoolJobJobStatus =
+      ran += 1
+      ThreadPoolJobJobStatus_jobHasFinished)
+  pool.addJob(job)
+
+  doAssert pool.removeAllJobs(false, 5000.cint), "the job did not finish in five seconds"
+  doAssert ran == 1, "the job body ran " & $ran & " times"
+
+testThreadPoolJob()
