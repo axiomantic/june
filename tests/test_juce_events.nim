@@ -45,3 +45,15 @@ proc testCustomTimer() =
 
 testCustomTimer()
 
+proc testCallAsync() =
+  # Posting work to the message thread. The callback is not run here: that needs
+  # the dispatch loop, which a test has no business starting. What is checked is
+  # that JUCE accepted the std::function the Nim closure was bound into.
+  initialiseJuce_GUI()
+  block:
+    let callback: CppFunctionObjectN0 = bindClosure(proc() = discard)
+    doAssert MessageManager.callAsync(callback)
+  shutdownJuce_GUI()
+
+testCallAsync()
+
