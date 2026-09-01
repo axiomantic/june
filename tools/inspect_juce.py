@@ -4,6 +4,7 @@ import clang.cindex
 import typing
 import argparse
 import glob
+import re
 
 from clang_base_enumerations import CursorKind, AccessSpecifier
 
@@ -13,9 +14,15 @@ nim_type_def = """type
 {classes}
 """
 
-nim_prolog_def = """import june_common
+# The project's own copyright and licence, which every file under sources/
+# carries. A GENERATED file is still a file in this repository, so it carries
+# the notice naming the project's authors like any other.
+nim_licence_header = '#\xa0June - Copyright (c) 2022 Lucio Asnaghi, Gavin Ray\n#\n#\xa0Licensed and distributed under the\n#   MIT license (license terms in the root directory or at http://opensource.org/licenses/MIT).\n#\n# This file may not be copied, modified, or distributed except according to those terms.\n'
 
-const {juce_module_name} = "{juce_module_prefix}{juce_module_path}"
+nim_prolog_def = """{licence}
+import june_common
+
+const {juce_module_name} = "{juce_module_header}"
 """
 
 nim_suffix_def = """
@@ -23,7 +30,10 @@ nim_suffix_def = """
 include {juce_module_name}_lifting
 """
 
-nim_class_def = """  {class_name}* {{.header: {juce_module_name}, importcpp: "{spelling}".}} = object"""
+# inheritable lifts Nim's refusal to write `object of X`; pure stops it adding
+# an RTTI field to the layout. Without pure, Nim value-initialises these as
+# {(&NTIv2_...)}, and C++ rejects it: JUCE's classes have no such member.
+nim_class_def = """  {class_name}{export} {{.header: {juce_module_name}, importcpp: "{spelling}", inheritable, pure.}} = object{base}"""
 
 nim_method_def = """{comment}proc {method_name}*({method_args}){method_return} {{.header: {juce_module_name}, importcpp: "#.{juce_spelling}({juce_args})".}}"""
 
@@ -54,6 +64,13 @@ def remap_type(t, *args):
         "CharPointer_UTF8::CharType": "char",
         "CharPointer_UTF16::CharType": "int16",
         "CharPointer_UTF32::CharType": "uint16",
+        "size_t": "csize_t",
+        "unsigned int": "uint32",
+        "unsigned char": "uint8",
+        "unsigned short": "uint16",
+        "unsigned long": "uint64",
+        "long long": "int64",
+        "unsigned long long": "uint64",
         "juce::var": "juce_var",
         "var": "juce_var",
         "var::NativeFunctionArgs": "juce_varNativeFunctionArgs",
@@ -80,6 +97,15 @@ def remap_type(t, *args):
     result = result.replace("kChar", "constChar")
     result = result.strip()
 
+    if "<" in result:
+        mapped = remap_template(result, *args)
+        # Leave the C++ spelling in place when it cannot be mapped. It is not
+        # valid Nim, which is exactly the signal the emit site checks in order
+        # to comment the proc out.
+        if mapped is not None:
+            return f"ptr {mapped}" if is_pointer else mapped
+        return result
+
     result = remap_table.get(result, result)
     for a in args:
         result = a.get(result, result)
@@ -94,6 +120,127 @@ def remap_type(t, *args):
 
     return f"ptr {result}" if is_pointer and result not in implicit_pointer_types else result
 
+# C++ spellings that must not become Nim's int or float inside a template
+# argument. Nim substitutes the parameter's C++ name into the template, and
+# Nim's int is 64-bit, so Rectangle[int] would ask for juce::Rectangle<long long>
+# rather than the juce::Rectangle<int> that JUCE instantiates.
+cpp_value_types = {
+    "int": "cint",
+    "unsigned int": "cuint",
+    "short": "cshort",
+    "unsigned short": "cushort",
+    "long": "clong",
+    "long long": "clonglong",
+    "float": "cfloat",
+    "double": "cdouble",
+    "char": "cchar",
+    "unsigned char": "cuchar",
+    "bool": "bool",
+    "size_t": "csize_t",
+    "void": "void",
+}
+
+# Template heads this binding can express. A JUCE template maps to the Nim
+# generic of the same name in the corresponding _lifting file; the standard
+# library ones map to june_stl.
+template_heads = {
+    "std::unique_ptr": "UniquePtr",
+    "std::optional": "CppOptional",
+    "std::vector": "CppVector",
+    "Rectangle": "Rectangle",
+    "Point": "Point",
+    "Line": "Line",
+    "BorderSize": "BorderSize",
+    "Range": "Range",
+}
+
+def split_template_args(text):
+    """Split on commas that are not inside nested angle brackets or parens."""
+    args, depth, current = [], 0, ""
+    for char in text:
+        if char in "<(":
+            depth += 1
+        elif char in ">)":
+            depth -= 1
+        if char == "," and depth == 0:
+            args.append(current.strip())
+            current = ""
+        else:
+            current += char
+    if current.strip():
+        args.append(current.strip())
+    return args
+
+def remap_template(spelling, *args):
+    """Convert a C++ template spelling to Nim, or return None if it cannot be.
+
+    Returning None matters: the caller comments the proc out. Emitting a
+    half-translated type would be a Nim syntax error rather than a binding that
+    is merely unavailable.
+    """
+    match = re.match(r"^([A-Za-z_][A-Za-z0-9_:]*)\s*<(.*)>$", spelling.strip())
+    if not match:
+        return None
+
+    head, inner = match.group(1), match.group(2)
+
+    # std::function is already bound: the CppFunctionObject types in
+    # june_function_utils are std::function, indexed by arity and by whether
+    # they return a value.
+    if head == "std::function":
+        signature = re.match(r"^(.*?)\s*\((.*)\)$", inner.strip())
+        if not signature:
+            return None
+        returns, params = signature.group(1).strip(), signature.group(2).strip()
+        params = [] if params in ("", "void") else split_template_args(params)
+        if len(params) > 9:
+            return None
+        mapped = [remap_template_arg(p, *args) for p in params]
+        if any(m is None for m in mapped):
+            return None
+        if returns == "void":
+            name = f"CppFunctionObjectN{len(params)}"
+            return name if not mapped else f"{name}[{', '.join(mapped)}]"
+        mapped_return = remap_template_arg(returns, *args)
+        if mapped_return is None:
+            return None
+        return f"CppFunctionObjectR{len(params)}[{', '.join([mapped_return] + mapped)}]"
+
+    nim_head = template_heads.get(head, template_heads.get(head.split("::")[-1]))
+    if nim_head is None:
+        return None
+
+    mapped = [remap_template_arg(a, *args) for a in split_template_args(inner)]
+    if not mapped or any(m is None for m in mapped):
+        return None
+
+    return f"{nim_head}[{', '.join(mapped)}]"
+
+def remap_template_arg(spelling, *args):
+    spelling = spelling.replace("const", "").replace("&", "").strip()
+
+    is_pointer = spelling.endswith("*")
+    if is_pointer:
+        spelling = spelling[:-1].strip()
+
+    if "<" in spelling:
+        result = remap_template(spelling, *args)
+    elif spelling in cpp_value_types:
+        result = cpp_value_types[spelling]
+    else:
+        result = spelling
+        for table in args:
+            result = table.get(result, result)
+        if "::" in result:
+            return None
+
+    if result is None:
+        return None
+
+    return f"ptr {result}" if is_pointer else result
+
+#==================================================================================================
+
 def remap_class_name(class_name):
     remap_table = {
         "var": "juce_var",
@@ -101,6 +248,73 @@ def remap_class_name(class_name):
     }
 
     return remap_table.get(class_name, class_name)
+
+# Classes the hand-written _lifting layer subclasses in order to override
+# virtual methods. The generated type becomes the base under an Impl name and
+# is not exported, so the lifting file can export the real name for the
+# june:: subclass that defineCppClass generates.
+subclassed_by_lifting = {
+    "JUCEApplication": "JUCEApplicationImpl",
+    "DocumentWindow": "DocumentWindowImpl",
+}
+
+# Methods the hand-written _lifting layer wraps under the same Nim name. The
+# generated binding keeps the raw call under an Impl name so both can coexist;
+# without this the two overloads differ only by return type, which Nim rejects
+# as an ambiguous call.
+wrapped_by_lifting = {
+    ("String", "toRawUTF8"): "toRawUTF8Impl",
+}
+
+def remap_wrapped_method_name(class_name, method_name):
+    return wrapped_by_lifting.get((class_name, method_name), method_name)
+
+#==================================================================================================
+
+def remap_exported_class_name(class_name):
+    return subclassed_by_lifting.get(class_name, remap_class_name(class_name))
+
+def class_is_exported(class_name):
+    return class_name not in subclassed_by_lifting
+
+#==================================================================================================
+
+# Names that are valid in the generated module without being declared in it:
+# Nim builtins, and the types the hand-written june_* files provide.
+known_builtin_types = {
+    "int", "int8", "int16", "int32", "int64",
+    "uint", "uint8", "uint16", "uint32", "uint64",
+    "float", "float32", "float64", "bool", "char", "string", "cstring",
+    "pointer", "void", "csize_t", "cchar", "cuchar", "cshort", "cushort",
+    "cint", "cuint", "clong", "culong", "clonglong", "culonglong",
+    "cfloat", "cdouble", "constChar", "constPointer",
+    "UniquePtr", "CppOptional", "CppVector",
+    "Rectangle", "Point", "Line", "BorderSize", "Range",
+}
+known_builtin_types.update(f"CppFunctionObjectN{n}" for n in range(10))
+known_builtin_types.update(f"CppFunctionObjectR{n}" for n in range(10))
+
+# Not types: Nim type-construction keywords that appear in a rendered signature.
+type_syntax_words = {"var", "ptr", "lent", "typedesc", "proc", "of"}
+
+def type_is_declared(rendered, declared):
+    """True when every identifier in a rendered signature names a known type.
+
+    The generator has no way to declare a nested typedef such as
+    CharPointer_UTF8::CharType, which libclang spells bare as CharType. Emitting
+    a proc that mentions one produces an undeclared-identifier error that fails
+    the whole module, so check every name rather than blocklisting the ones seen
+    so far.
+    """
+    for identifier in re.findall(r"[A-Za-z_][A-Za-z0-9_]*", rendered):
+        if identifier in type_syntax_words or identifier in known_builtin_types:
+            continue
+        if identifier in declared:
+            continue
+        return False
+    return True
+
+#==================================================================================================
 
 def remap_identifier(identifier):
     remap_table = {
@@ -143,6 +357,12 @@ def remap_operator_name(class_name, method_name):
 
 def remap_argument_name(arg_name, count):
     if not arg_name:
+        return f"arg{count + 1}"
+
+    # Nim rejects a leading or trailing underscore and a doubled one, all of
+    # which are ordinary in C++ parameter names.
+    arg_name = re.sub(r"_+", "_", arg_name).strip("_")
+    if not arg_name or arg_name[0].isdigit():
         return f"arg{count + 1}"
 
     return remap_identifier(arg_name)
@@ -212,10 +432,18 @@ def run_main(juce_module_name, juce_class_name_to_export):
     class_juce_map = {}
 
     done_classes = set()
+    emitted_types = set()
+    emitted_declarations = set()
+    declared_type_names = set()
 
     base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-    juce_module_prefix = "../../"
+    # The include as the GENERATED FILE will spell it. Angle brackets, so it
+    # resolves against the C++ include path rather than against the location
+    # of whichever nimcache file happens to include it. nim.cfg puts
+    # JUCE/modules on that path; a consumer whose JUCE lives elsewhere
+    # changes that one line instead of regenerating five binding modules.
+    juce_module_header = f"<{juce_module_name}/{juce_module_name}.h>"
     juce_module_path = f"JUCE/modules/{juce_module_name}/{juce_module_name}.h"
 
     # A JUCE module header names its dependencies as <other_module/other_module.h>,
@@ -282,6 +510,37 @@ def run_main(juce_module_name, juce_class_name_to_export):
         all_classes += [node for node in filter(
             lambda x: x.kind == CursorKind.CLASS_DECL or x.kind == CursorKind.STRUCT_DECL, entry.get_children())]
 
+    # A module header pulls in the modules it depends on, so the translation
+    # unit holds their classes too. Bind only what this module declares, and
+    # let the rest stay available as types: june.nim includes every module, so
+    # a juce_core class is in scope inside juce_gui_basics without being
+    # declared there a second time.
+    module_path_prefix = os.path.join(base_path, "JUCE", "modules", juce_module_name)
+
+    def declared_in_this_module(cursor):
+        location = cursor.location.file
+        return location is not None and os.path.abspath(location.name).startswith(module_path_prefix)
+
+    # A class appears once per forward declaration and once for its definition,
+    # and the two can sit in different modules: juce_events forward-declares
+    # ThreadPoolJob, which juce_core defines. Ownership follows the definition,
+    # so each class is bound exactly once. Picking a declaration instead would
+    # emit the type twice and give one copy no methods at all.
+    definitions_by_name = {}
+    declarations_by_name = {}
+    for c in all_classes:
+        if c.is_definition():
+            definitions_by_name.setdefault(c.spelling, c)
+        else:
+            declarations_by_name.setdefault(c.spelling, c)
+
+    module_classes = [c for c in definitions_by_name.values() if declared_in_this_module(c)]
+
+    # An opaque class, declared but never defined in this translation unit, is
+    # still worth binding as a type by whichever module declares it.
+    module_classes += [c for name, c in declarations_by_name.items()
+                       if name not in definitions_by_name and declared_in_this_module(c)]
+
     # Store internal mapping tables, build inheritance map
     for c in all_classes:
         bases = [node.referenced for node in filter(
@@ -298,55 +557,74 @@ def run_main(juce_module_name, juce_class_name_to_export):
         qualified_name = f"juce::{c.spelling}"
         class_juce_map[qualified_name] = c.spelling
 
-    # TODO - First pass: iterate classes and build dependency graph based on types in public interface
-
-    # TODO - Sort the classes by dependencies
-
-    # Second pass: iterate sorted classes (TODO) and generate Nim code
     print(nim_prolog_def.format(**{
+        "licence": nim_licence_header,
         "juce_module_name": juce_module_name,
-        "juce_module_prefix": juce_module_prefix,
-        "juce_module_path": juce_module_path }))
+        "juce_module_header": juce_module_header }))
+
+    # Every class goes in a single type section. Nim resolves references within
+    # one section regardless of order, which is what makes it possible to emit
+    # inheritance at all: a class routinely names a base declared further down
+    # the header, and there is no ordering of separate type sections that
+    # satisfies every such pair.
+    all_class_decls = []
+    for c in module_classes:
+        if juce_class_name_to_export is not None and c.spelling != juce_class_name_to_export:
+            continue
+        if c.spelling.startswith("this_will_fail_to_link") or c.spelling in emitted_types:
+            continue
+        emitted_types.add(c.spelling)
+
+        class_name = remap_exported_class_name(c.spelling)
+        base = None
+        for b in class_inheritance_map[c.spelling]:
+            if b is not None and b.spelling in class_map and b.spelling != c.spelling:
+                base = remap_exported_class_name(b.spelling)
+                break
+
+        all_class_decls.append(nim_class_def.format(**{
+            "class_name": class_name,
+            "spelling": f"juce::{c.spelling}",
+            "juce_module_name": juce_module_name,
+            "export": "*" if class_is_exported(c.spelling) else "",
+            "base": f" of {base}" if base else "" }))
+
+        for ic in class_inner[c.spelling]:
+            inner_name = f"{remap_class_name(c.spelling)}{ic.spelling}"
+            if inner_name in emitted_types:
+                continue
+            emitted_types.add(inner_name)
+            all_class_decls.append(nim_class_def.format(**{
+                "class_name": inner_name,
+                "spelling": f"juce::{c.spelling}::{ic.spelling}",
+                "juce_module_name": juce_module_name,
+                "export": "*",
+                "base": "" }))
+
+    if all_class_decls:
+        print(nim_type_def.format(**{ "classes": "\n".join(all_class_decls) }))
 
     for c in all_classes:
+        declared_type_names.add(remap_exported_class_name(c.spelling))
+        for ic in class_inner[c.spelling]:
+            declared_type_names.add(f"{remap_class_name(c.spelling)}{ic.spelling}")
+
+    for c in module_classes:
         if juce_class_name_to_export is not None and c.spelling != juce_class_name_to_export:
             continue
 
         if c.spelling.startswith("this_will_fail_to_link"):
             continue
 
-        class_name = remap_class_name(c.spelling)
+        class_name = remap_exported_class_name(c.spelling)
         qualified_name = f"juce::{c.spelling}"
 
-        classes_text = []
-
-        if c.spelling not in done_classes:
-            classes_text.append(
-                nim_class_def.format(**{
-                    "class_name": class_name,
-                    "spelling": qualified_name,
-                    "juce_module_name": juce_module_name })
-            )
-
         remap_inner_classes = {}
-        if class_inner[c.spelling]:
-            for ic in class_inner[c.spelling]:
-                inner_name = f"{class_name}{ic.spelling}"
-                inner_qualified_name = f"juce::{c.spelling}::{ic.spelling}"
+        for ic in class_inner[c.spelling]:
+            remap_inner_classes[f"juce::{c.spelling}::{ic.spelling}"] = f"{class_name}{ic.spelling}"
 
-                if c.spelling not in done_classes:
-                    classes_text.append(
-                        nim_class_def.format(**{
-                            "class_name": inner_name,
-                            "spelling": inner_qualified_name,
-                            "juce_module_name": juce_module_name })
-                    )
-
-                remap_inner_classes[inner_qualified_name] = inner_name
-
-        if c.spelling not in done_classes:
-            print(nim_type_def.format(**{ "classes": "\n".join(classes_text) }))
-
+        if c.spelling in done_classes:
+            continue
         done_classes.add(c.spelling)
 
         #print(c.spelling)
@@ -368,6 +646,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
             comment = ""
 
             args = [ f"this: {'' if is_const_method else 'var '}{class_name}" ]
+            argument_types = []
             for count, arg in enumerate(m.get_arguments()):
                 default_value = ""
 
@@ -379,7 +658,26 @@ def run_main(juce_module_name, juce_class_name_to_export):
                     default_value = f" = {default_value}"
 
                 spelling = remap_argument_name(arg.spelling, count)
-                args.append(f"{spelling}: {remap_type(arg.type, remap_inner_classes, class_juce_map)}{default_value}")
+                argument_type = remap_type(arg.type, remap_inner_classes, class_juce_map)
+
+                # A default is only kept where the literal is already a value of
+                # the parameter's type here. The converters that would make, say,
+                # "*" into a juce::String live in the _lifting file, which is
+                # included after this one, so such a default does not compile.
+                if default_value and argument_type not in known_builtin_types:
+                    if not (argument_type.startswith("ptr ") and default_value.strip() == "= nil"):
+                        default_value = ""
+
+                # And only when the default is a literal. C++ freely defaults a
+                # parameter to an enumerator or a constant that this binding
+                # never declares, which reads as an undeclared identifier.
+                if default_value:
+                    literal = default_value.split("=", 1)[1].strip()
+                    if not re.fullmatch(r"(nil|true|false|-?[0-9][0-9a-fA-FxX.eE+_-]*[fFlLuU]?|'.'|\".*\")", literal):
+                        default_value = ""
+
+                args.append(f"{spelling}: {argument_type}{default_value}")
+                argument_types.append(argument_type)
 
             return_type = ""
             if m.result_type.spelling != "void":
@@ -391,15 +689,26 @@ def run_main(juce_module_name, juce_class_name_to_export):
             if skip_class_method(class_name, m.spelling) or m.spelling in ["begin", "end", "cbegin", "cend"]:
                 comment = "# "
 
+            # A C++ template or a nested name that survived remapping is not
+            # valid Nim and would break the whole module, so emit the proc as a
+            # comment. It stays visible as work still to do.
+            # Check the types only. Argument names are not types, and a default
+            # value is not either: reading "ignoreCase: bool = false" as a type
+            # made "false" look like an undeclared name and commented out every
+            # proc that had one.
+            rendered = ", ".join(argument_types) + return_type
+            if "<" in rendered or "::" in rendered or not type_is_declared(rendered, declared_type_names):
+                comment = "# "
+
             method_spelling = m.spelling
-            method_name = remap_method_name(m.spelling)
+            method_name = remap_method_name(remap_wrapped_method_name(class_name, m.spelling))
             if method_name.startswith("operator"):
                 method_name = remap_operator_name(class_name, method_name)
                 if not method_name:
                     method_name = m.spelling
                     comment = "# "
 
-            print(nim_method_def.format(**{
+            declaration = nim_method_def.format(**{
                 "comment": comment,
                 "method_name": method_name,
                 "method_args": ", ".join(args),
@@ -407,7 +716,15 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 "juce_module_name": juce_module_name,
                 "juce_spelling": method_spelling,
                 "juce_args": "@" if len(args) > 1 else "",
-            }))
+            })
+
+            # libclang can hand back the same method more than once for a single
+            # class, and Nim rejects the repeat as a redefinition.
+            if declaration in emitted_declarations:
+                continue
+            emitted_declarations.add(declaration)
+
+            print(declaration)
 
         print()
 

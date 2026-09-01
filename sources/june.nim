@@ -17,6 +17,7 @@ const june_cache_dir = querySetting(SingleValueSetting.nimcacheDir)
 
 include june/june_common
 include june/june_stl
+include june/june_juce_types
 include june/june_function_utils
 include june/june_cpp_utils
 include june/juce_core
