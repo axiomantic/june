@@ -179,6 +179,13 @@ Wrap code that constructs these in ``initialiseJuce_GUI()`` and
 ``shutdownJuce_GUI()``. A Button starts JUCE's timer thread and its look and
 feel singleton, and both assert at exit if the GUI was never initialised.
 
+``bindClosure`` retains the closure's environment for the life of the program.
+C++ holds only the raw environment pointer, so without that the environment is
+collected as soon as the Nim closure goes out of scope, and the callback then
+reads freed memory -- which shows up as a corrupted capture rather than a crash.
+The cost is one retained environment per bound closure; callbacks are set up
+once, so that is bounded.
+
 To run something on the message thread, bind the closure first and pass it to
 ``MessageManager.callAsync``:
 
