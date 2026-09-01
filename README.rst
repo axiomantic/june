@@ -251,6 +251,11 @@ Hand-written additions live in the ``*_lifting.nim`` files and in
   ``Range``, ``Array``, ``OwnedArray``, ``Span``, ``RectangleList``,
   ``SparseSet``, ``NormalisableRange``, ``Parallelogram``, ``Optional`` and
   ``ReferenceCountedObjectPtr``.
+- Iterators over the containers a caller loops over: ``ValueTree`` children and
+  properties, ``StringArray``, ``XmlElement`` children, ``NamedValueSet``,
+  ``Array``, ``OwnedArray``, ``Span``, ``RectangleList`` and ``std::vector``.
+  JUCE's ``begin`` and ``end`` have no Nim spelling, so these are written over
+  the indexed accessors instead.
 - The standard library types JUCE exposes: ``std::unique_ptr``,
   ``std::optional``, ``std::vector``, ``std::string`` and ``std::function``.
 - Subclasses whose virtual methods call into Nim: ``CustomComponent``,

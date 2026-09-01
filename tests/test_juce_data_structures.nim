@@ -44,3 +44,28 @@ proc testChildren() =
 
 testValueTree()
 testChildren()
+
+# Looping over a ValueTree. JUCE's begin() and end() have no Nim spelling, so
+# without these iterators a caller has to write the index loop by hand.
+proc testValueTreeIteration() =
+  var tree = makeValueTree(makeIdentifier("root"))
+  for name in ["alpha", "beta", "gamma"]:
+    tree.appendChild(makeValueTree(makeIdentifier(name)), nil)
+
+  var seen: seq[string] = @[]
+  for child in tree:
+    seen.add($child.getType().toString())
+  doAssert seen == @["alpha", "beta", "gamma"], "iterated " & $seen
+
+  var indexed: seq[cint] = @[]
+  for index, child in tree:
+    indexed.add(index)
+  doAssert indexed == @[0.cint, 1.cint, 2.cint]
+
+  discard tree.setProperty(makeIdentifier("size"), makejuce_var(42.cint), nil)
+  var propertyNames: seq[string] = @[]
+  for name, value in tree.properties():
+    propertyNames.add($name.toString())
+  doAssert propertyNames == @["size"], "properties " & $propertyNames
+
+testValueTreeIteration()
