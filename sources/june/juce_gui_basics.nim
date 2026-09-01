@@ -1856,8 +1856,8 @@ proc getNumColumns*(this: AccessibilityTableInterface): cint {.header: juce_gui_
 proc getCellHandler*(this: AccessibilityTableInterface, row: cint, column: cint): ptr AccessibilityHandler {.header: juce_gui_basics, importcpp: "#.getCellHandler(@)".}
 proc getRowHandler*(this: AccessibilityTableInterface, row: cint): ptr AccessibilityHandler {.header: juce_gui_basics, importcpp: "#.getRowHandler(@)".}
 proc getHeaderHandler*(this: AccessibilityTableInterface): ptr AccessibilityHandler {.header: juce_gui_basics, importcpp: "#.getHeaderHandler()".}
-# proc getRowSpan*(this: AccessibilityTableInterface, arg1: AccessibilityHandler): Optional<Span> {.header: juce_gui_basics, importcpp: "#.getRowSpan(@)".}
-# proc getColumnSpan*(this: AccessibilityTableInterface, arg1: AccessibilityHandler): Optional<Span> {.header: juce_gui_basics, importcpp: "#.getColumnSpan(@)".}
+proc getRowSpan*(this: AccessibilityTableInterface, arg1: AccessibilityHandler): Optional[AccessibilityTableInterfaceSpan] {.header: juce_gui_basics, importcpp: "#.getRowSpan(@)".}
+proc getColumnSpan*(this: AccessibilityTableInterface, arg1: AccessibilityHandler): Optional[AccessibilityTableInterfaceSpan] {.header: juce_gui_basics, importcpp: "#.getColumnSpan(@)".}
 proc showCell*(this: AccessibilityTableInterface, arg1: AccessibilityHandler) {.header: juce_gui_basics, importcpp: "#.showCell(@)".}
 proc `==`*(this: AccessibilityTableInterface, other: AccessibilityTableInterface): bool {.error: "juce::AccessibilityTableInterface defines no operator==; compare a property instead".}
 
