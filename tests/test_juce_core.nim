@@ -64,3 +64,25 @@ proc testNormalisableRange() =
 
 testNormalisableRange()
 
+proc testOperators() =
+  # Operators used to be mangled into names like `Colour==`, which is a legal
+  # identifier and useless. Bound as operators, != > and >= come free: Nim
+  # derives them, which is why they are deliberately not bound.
+  let a = makeIdentifier("alpha")
+  let b = makeIdentifier("alpha")
+  let c = makeIdentifier("beta")
+  doAssert a == b
+  doAssert a != c
+
+  let first = makeRange(0.cint, 10.cint)
+  let same = makeRange(0.cint, 10.cint)
+  let other = makeRange(5.cint, 20.cint)
+  doAssert first == same
+  doAssert first != other
+
+  let text = makeString("abc")
+  doAssert text == makeString("abc")
+  doAssert text != makeString("xyz")
+
+testOperators()
+

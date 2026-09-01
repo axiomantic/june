@@ -42,6 +42,15 @@ proc testGeometry() =
   # Conversions ================================================================
   doAssert makeRectangle(1.cint, 2.cint, 3.cint, 4.cint).toFloat().getWidth() == 3.0'f32
 
+  # Equality has to be bound explicitly. Without it Nim compares an importcpp
+  # object structurally, and these declare no fields, so every two values came
+  # out equal - which is what caught this.
+  doAssert makeRectangle(1.cint, 2.cint, 3.cint, 4.cint) == makeRectangle(1.cint, 2.cint, 3.cint, 4.cint)
+  doAssert makeRectangle(1.cint, 2.cint, 3.cint, 4.cint) != makeRectangle(9.cint, 9.cint, 9.cint, 9.cint)
+  doAssert makePoint(1.cint, 2.cint) == makePoint(1.cint, 2.cint)
+  doAssert makePoint(1.cint, 2.cint) != makePoint(3.cint, 4.cint)
+  doAssert makeLine(0.cfloat, 0.cfloat, 3.cfloat, 4.cfloat) != makeLine(1.cfloat, 1.cfloat, 2.cfloat, 2.cfloat)
+
 proc testDrawing() =
   let img = makeImage(ImagePixelFormat_ARGB, 40.cint, 30.cint, true)
   doAssert img.getWidth() == 40
