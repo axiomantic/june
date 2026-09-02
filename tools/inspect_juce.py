@@ -741,6 +741,17 @@ def scalar_overloaded_names(methods):
     return ambiguous
 
 
+# Declared in JUCE's headers and defined nowhere in JUCE 8.0.15. The binding
+# compiles and the call fails to link, which no amount of parsing the headers
+# can predict - each of these was found by linking one. One entry per class,
+# holding a set, for the reason skip_class_method's own comment gives.
+undefined_in_juce = {
+    "RelativeCoordinate": {"references"},
+    "RelativePointPathQuadraticTo": {"createTree"},
+    "RelativePointPathCubicTo": {"createTree"},
+}
+
+
 def skip_class_method(class_name, method_name):
     # One entry per class, holding a set. A dict of class to a single method
     # name loses every entry but the last for a class named more than once, and
@@ -1595,6 +1606,10 @@ def run_main(juce_module_name, juce_class_name_to_export):
             if (m.spelling in ["begin", "end", "cbegin", "cend"]
                     or m.spelling.endswith("Iterator")):
                 comment, reason = "# ", "a C++ iterator; loop with the Nim iterator instead"
+            elif m.spelling in undefined_in_juce.get(class_name, ()):
+                comment = "# "
+                reason = ("declared in JUCE's header and defined nowhere in "
+                          "JUCE 8.0.15, so calling it fails to link")
             elif skip_class_method(class_name, m.spelling):
                 comment, reason = "# ", "excluded deliberately: see skip_class_method"
 
