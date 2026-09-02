@@ -254,6 +254,7 @@ template_heads = {
     "OwnedArray": "OwnedArray",
     "ReferenceCountedObjectPtr": "ReferenceCountedObjectPtr",
     "Span": "Span",
+    "HeapBlock": "HeapBlock",
     "RectangleList": "RectangleList",
     "Parallelogram": "Parallelogram",
     "SparseSet": "SparseSet",
@@ -489,7 +490,7 @@ known_builtin_types = {
     "CppString", "CppMap", "CppUnorderedMap", "CppArray", "CppException",
     "Rectangle", "Point", "Line", "BorderSize", "Range",
     "Array", "OwnedArray", "ReferenceCountedObjectPtr",
-    "Span", "RectangleList", "Parallelogram", "SparseSet", "Optional",
+    "Span", "RectangleList", "Parallelogram", "SparseSet", "Optional", "HeapBlock",
     "NormalisableRange",
 }
 known_builtin_types.update(f"CppFunctionObjectN{n}" for n in range(10))

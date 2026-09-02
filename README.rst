@@ -277,8 +277,9 @@ Hand-written additions live in the ``*_lifting.nim`` files and in
   ``shr``.
 - The class templates: ``Rectangle``, ``Point``, ``Line``, ``BorderSize``,
   ``Range``, ``Array``, ``OwnedArray``, ``Span``, ``RectangleList``,
-  ``SparseSet``, ``NormalisableRange``, ``Parallelogram``, ``Optional`` and
-  ``ReferenceCountedObjectPtr``.
+  ``SparseSet``, ``NormalisableRange``, ``Parallelogram``, ``Optional``,
+  ``HeapBlock`` and ``ReferenceCountedObjectPtr``. ``HeapBlock`` owns its buffer
+  and cannot be copied, so Nim rejects a copy of one at compile time.
 - Iterators over the containers a caller loops over: ``ValueTree`` children and
   properties, ``StringArray``, ``XmlElement`` children and attributes,
   ``NamedValueSet``,
@@ -310,9 +311,9 @@ ambiguous, a C array or ``std::initializer_list`` parameter because the same
 class takes a String, a value or the incremental API instead, and others
 because the generator excludes them on purpose. Only the ones marked as a type
 that cannot be spelled in Nim are missing capability, and each of those is a
-C++ shape with no Nim equivalent: an owning ``HeapBlock``, a ``std::type_index``,
-a raw function-pointer typedef, a listener that is a class template, and the
-internal image and window backends. Count them with::
+C++ shape with no Nim equivalent: a ``std::type_index``, a raw function-pointer
+typedef, a listener that is a class template, and the internal image and window
+backends. Count them with::
 
   grep -c 'cannot be spelled' sources/june/juce_*.nim
 

@@ -114,3 +114,22 @@ proc testFontOptionsOverrides() =
   doAssert cleared.getAscentOverride().valueOr(-1.0'f32) == -1.0'f32
 
 testFontOptionsOverrides()
+
+# HeapBlock is JUCE's owning raw buffer, and createLookupTable is the one place
+# a caller has to supply one.
+proc testColourGradientLookupTable() =
+  let gradient = makeColourGradient(
+    makeColour(255'u8, 0'u8, 0'u8, 255'u8), 0.0'f32, 0.0'f32,
+    makeColour(0'u8, 0'u8, 255'u8, 255'u8), 100.0'f32, 0.0'f32, false)
+
+  var table = makeHeapBlock[PixelARGB](0.csize_t)
+  let entries = gradient.createLookupTable(makeAffineTransform(), table)
+
+  doAssert entries > 0, "the lookup table came back with " & $entries & " entries"
+  doAssert not table.isNil(), "the gradient allocated nothing"
+
+  # The first entry is the gradient's start colour.
+  doAssert table[0.cint].getRed() == 255'u8
+  doAssert table[0.cint].getBlue() == 0'u8
+
+testColourGradientLookupTable()
