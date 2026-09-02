@@ -1821,4 +1821,72 @@ proc testPrimaryDisplay() =
 
 
 testApplicationCommandManager()
+# KeyPressMappingSet ==========================================================
+#
+# The manager owns one, and it is what turns a keystroke into a command. The
+# XML round trip is the part worth holding: it is how an application persists
+# a user's key bindings.
+
+proc testKeyPressMappingSet() =
+    initialiseJuce_GUI()
+
+    block:
+        var target = newCustomApplicationCommandTarget()
+        target[].setGetNextCommandTargetHandler(proc(): ptr ApplicationCommandTarget = nil)
+        target[].setGetAllCommandsHandler(proc(commands: ptr Array[cint]) =
+            commands[].add(commandCopy))
+        target[].setGetCommandInfoHandler(proc(commandID: cint, info: ptr ApplicationCommandInfo) =
+            info[].setInfo(makeString("Copy"), makeString("Copies the selection"),
+                           makeString("Editing"), 0.cint))
+        target[].setPerformHandler(proc(info: ptr ApplicationCommandTargetInvocationInfo): bool = true)
+
+        var manager = makeApplicationCommandManager()
+        manager.setFirstCommandTarget(cast[ptr ApplicationCommandTarget](target))
+        manager.registerAllCommandsForTarget(cast[ptr ApplicationCommandTarget](target))
+
+        let mappings = manager.getKeyMappings()
+        doAssert mappings != nil, "the manager has no key mappings"
+
+        let keyC = makeKeyPress(ord('c').cint, makeModifierKeys(cint(ModifierKeysFlags_commandModifier)),
+                                WChar(ord('c')))
+        doAssert not mappings[].containsMapping(commandCopy, keyC),
+                 "the command already had the mapping before it was added"
+
+        mappings[].addKeyPress(commandCopy, keyC)
+        doAssert mappings[].containsMapping(commandCopy, keyC),
+                 "the mapping did not stick"
+        doAssert mappings[].findCommandForKeyPress(keyC) == commandCopy,
+                 "the keystroke resolves to command " &
+                 $mappings[].findCommandForKeyPress(keyC)
+        doAssert mappings[].getKeyPressesAssignedToCommand(commandCopy).size() == 1,
+                 "the command has " &
+                 $mappings[].getKeyPressesAssignedToCommand(commandCopy).size() &
+                 " keystrokes"
+
+        # Persist and restore. Clearing in between is what makes the restore
+        # the thing being tested rather than the state that was already there.
+        let saved = mappings[].createXml(true)
+        doAssert not saved.isNil(), "createXml produced nothing"
+
+        mappings[].clearAllKeyPresses()
+        doAssert not mappings[].containsMapping(commandCopy, keyC),
+                 "clearing left the mapping in place"
+
+        # get(), not []: UniquePtr exposes the pointer rather than a deref.
+        doAssert mappings[].restoreFromXml(saved.get()[]),
+                 "restoreFromXml reported failure"
+        doAssert mappings[].containsMapping(commandCopy, keyC),
+                 "the mapping did not come back from the XML"
+
+        mappings[].removeKeyPress(keyC)
+        doAssert not mappings[].containsMapping(commandCopy, keyC),
+                 "removing the keystroke left it in place"
+
+        manager.setFirstCommandTarget(nil)
+        cdelete target
+
+    shutdownJuce_GUI()
+
+
 testPrimaryDisplay()
+testKeyPressMappingSet()
