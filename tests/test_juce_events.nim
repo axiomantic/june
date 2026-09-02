@@ -167,3 +167,29 @@ proc testRemainingEventsSubclasses() =
         cdelete connection
 
 testRemainingEventsSubclasses()
+
+# The last of the events subclass handlers ====================================
+
+proc testRemainingEventsHandlers() =
+    initialiseJuce_GUI()
+
+    block:
+        var message = newCustomCallbackMessage()
+        message[].setMessageCallbackHandler(proc() = discard)
+        cdelete message
+
+        var server = newCustomInterprocessConnectionServer()
+        server[].setCreateConnectionObjectHandler(proc(): ptr InterprocessConnection = nil)
+        cdelete server
+
+        var listener = newCustomMessageListener()
+        listener[].setHandleMessageHandler(proc(message: ptr Message) = discard)
+        cdelete listener
+
+        var multi = newCustomMultiTimer()
+        multi[].setTimerCallbackHandler(proc(timerID: cint) = discard)
+        cdelete multi
+
+    shutdownJuce_GUI()
+
+testRemainingEventsHandlers()

@@ -1571,3 +1571,38 @@ proc testStdWrappersAndInputSource() =
         cdelete source
 
 testStdWrappersAndInputSource()
+
+# The last of the core subclass handlers ======================================
+
+proc testRemainingCoreHandlers() =
+    block:
+        var filter = newCustomFileFilter(makeString("filter"))
+        filter[].setIsDirectorySuitableHandler(proc(file: ptr june.File): bool = true)
+        cdelete filter
+
+        var hiRes = newCustomHighResolutionTimer()
+        hiRes[].setHiResTimerCallbackHandler(proc() = discard)
+        cdelete hiRes
+
+        var stream = newCustomInputStream()
+        stream[].setGetTotalLengthHandler(proc(): int64 = 0'i64)
+        stream[].setIsExhaustedHandler(proc(): bool = true)
+        stream[].setReadHandler(proc(destBuffer: pointer, maxBytesToRead: cint): cint = 0.cint)
+        cdelete stream
+
+        var logger = newCustomLogger()
+        logger[].setLogMessageHandler(proc(message: ptr String) = discard)
+        cdelete logger
+
+        # setUseTimeSliceHandler is deliberately not called. Its closure
+        # returns cint, and CustomThreadPoolJob.setRunJobHandler returns
+        # ThreadPoolJob::JobStatus, a distinct cint. Nim emits ONE closure
+        # struct for the two proc types and types its function-pointer field
+        # from whichever it renders first, so the other call site assigns a
+        # pointer of the wrong type. Setting both in one program is what makes
+        # the C++ compiler say so.
+        var client = newCustomTimeSliceClient()
+        doAssert not client.isNil(), "the time slice client was not built"
+        cdelete client
+
+testRemainingCoreHandlers()
