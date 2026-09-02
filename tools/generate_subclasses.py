@@ -78,6 +78,19 @@ def hand_written_subclasses():
                 parents.add(match.group(2))
     return parents, names
 
+# std:: classes the bindings wrap under a different name.
+std_class_names = {
+    "std::exception": "CppException", "exception": "CppException",
+    "std::string": "CppString", "string": "CppString",
+    "std::type_index": "CppTypeIndex", "std::byte": "CppByte",
+}
+
+def canonical_std_name(name):
+    """`exception` -> `std::exception`. libclang drops the namespace where the
+    declaration is reached through a using-directive."""
+    return name if name.startswith("std::") else f"std::{name}"
+
+
 primitive_map = {
     "void": "", "bool": "bool", "int": "cint", "unsigned int": "cuint",
     "float": "cfloat", "double": "cdouble", "char": "cchar",
@@ -180,11 +193,22 @@ def map_type(type_spelling, declared, is_return, declaration=None, aliases=None)
             return "constrawptr[pointer]"
         if pointee in primitive_map and primitive_map[pointee]:
             return f"constrawptr[{primitive_map[pointee]}]"
+        if pointee in std_class_names:
+            nim_spelling = std_class_names[pointee]
+            if aliases is not None:
+                aliases[nim_spelling] = canonical_std_name(pointee)
+            return f"constrawptr[{nim_spelling}]"
         name = nim_name(pointee, declared, declaration, aliases)
         return f"constrawptr[{name}]" if name else None
 
     if bare in ("void *", "void*"):
         return "pointer"
+
+    if bare in std_class_names:
+        nim_spelling = std_class_names[bare]
+        if aliases is not None:
+            aliases[nim_spelling] = canonical_std_name(bare)
+        return nim_spelling
 
     if bare in primitive_map:
         return primitive_map[bare]
@@ -215,9 +239,23 @@ def map_type(type_spelling, declared, is_return, declaration=None, aliases=None)
         return map_template(bare, declared, aliases)
 
     name = nim_name(bare, declared, declaration, aliases)
-    if name and is_return:
+    if name:
+        # A return type keeps a top-level const, because an override's return
+        # type has to match the virtual's exactly and JUCE declares several as
+        # `const String`.
+        if is_return and text.startswith("const "):
+            return f"constval[{name}]"
         return name
-    return name
+
+    # A typedef names something the bindings do know: Typeface::Ptr stands for
+    # ReferenceCountedObjectPtr<Typeface>, and CommandID for int.
+    if declaration is not None and declaration.kind in (
+            CursorKind.TYPEDEF_DECL, CursorKind.TYPE_ALIAS_DECL):
+        underlying = declaration.underlying_typedef_type
+        if underlying is not None and underlying.spelling != type_spelling:
+            return map_type(underlying.spelling, declared, is_return,
+                            type_declaration(underlying), aliases)
+    return None
 
 
 def split_template_arguments(text):
@@ -245,7 +283,10 @@ def map_template(bare, declared, aliases=None):
     inner = rest[:-1]
 
     template_map = {"std::unique_ptr": "UniquePtr", "unique_ptr": "UniquePtr",
-                    "std::shared_ptr": "SharedPtr", "shared_ptr": "SharedPtr"}
+                    "std::shared_ptr": "SharedPtr", "shared_ptr": "SharedPtr",
+                    "std::vector": "CppVector", "vector": "CppVector",
+                    "std::optional": "CppOptional", "optional": "CppOptional",
+                    "std::map": "CppMap", "map": "CppMap"}
     all_names, _ = declared
     nim_head = template_map.get(head, head if head in all_names else None)
     if nim_head is None:
@@ -272,6 +313,7 @@ def declared_type_names():
     names, generic = set(), set()
     paths = [os.path.join("sources", "june", f"{module}.nim") for module in modules]
     paths.append(os.path.join("sources", "june", "june_juce_types.nim"))
+    paths.append(os.path.join("sources", "june", "june_stl.nim"))
     pattern = re.compile(r"^\s+([A-Za-z_][A-Za-z0-9_]*)\*(\[[^\]]*\])? \{\.")
     for path in paths:
         with open(path) as handle:
@@ -329,18 +371,44 @@ def abstract_classes(unit):
 def pure_virtuals(cursor):
     """The pure virtuals a subclass has to implement to be constructible.
 
+    Inherited ones count. A class can be abstract without declaring a pure
+    virtual of its own - juce::DrawableShape is abstract because it leaves one
+    of Drawable's unimplemented - and a subclass that overrides only what the
+    class itself declares is still abstract, so `new` fails on it.
+
     A private one cannot be overridden from a generated subclass, so a class
     with one is withheld rather than emitted broken.
     """
-    result, private = [], False
-    for member in cursor.get_children():
-        if member.kind != CursorKind.CXX_METHOD or not member.is_pure_virtual_method():
-            continue
-        if member.access_specifier == AccessSpecifier.PRIVATE:
-            private = True
-            continue
-        result.append(member)
-    return result, private
+    result, private, seen, implemented = [], False, set(), set()
+
+    def walk(class_cursor, depth=0):
+        nonlocal private
+        if depth > 8:
+            return
+        for member in class_cursor.get_children():
+            if member.kind == CursorKind.CXX_BASE_SPECIFIER:
+                base = member.type.get_declaration()
+                if base is not None and base.is_definition():
+                    walk(base, depth + 1)
+                continue
+            if member.kind != CursorKind.CXX_METHOD:
+                continue
+            if not member.is_virtual_method():
+                continue
+            if member.is_pure_virtual_method():
+                if member.access_specifier == AccessSpecifier.PRIVATE:
+                    private = True
+                elif member.spelling not in seen and member.spelling not in implemented:
+                    seen.add(member.spelling)
+                    result.append(member)
+            else:
+                # A base's pure virtual that this class already implements.
+                implemented.add(member.spelling)
+
+    # The class itself first, so its own implementations mask the base's pure
+    # virtuals rather than the other way round.
+    walk(cursor)
+    return [m for m in result if m.spelling not in implemented], private
 
 
 def map_constructor_type(clang_type, declared):
@@ -385,6 +453,8 @@ def handler_type(mapped):
     for marker in ("constptr[", "varref["):
         if mapped.startswith(marker):
             return "ptr " + mapped[len(marker):-1]
+    if mapped.startswith("constval["):
+        return mapped[len("constval["):-1]
     if mapped.startswith("constrawptr["):
         inner = mapped[len("constrawptr["):-1]
         return inner if inner == "pointer" else f"ptr {inner}"

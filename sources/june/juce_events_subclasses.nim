@@ -47,6 +47,52 @@ proc newCustomInterprocessConnectionServer*(): ptr CustomInterprocessConnectionS
 proc setCreateConnectionObjectHandler*(this: var CustomInterprocessConnectionServer, handler: proc(): ptr InterprocessConnection {.closure.}) =
     this.onCreateConnectionObject = bindClosure(handler)
 
+defineCppClassInternal CustomJUCEApplicationBase of JUCEApplicationBase:
+    include "juce_events/juce_events.h"
+    cppTypeName CppException, "std::exception"
+    proc getApplicationName(): constval[String] = discard
+    proc getApplicationVersion(): constval[String] = discard
+    proc moreThanOneInstanceAllowed(): bool = discard
+    proc initialise(commandLineParameters: constptr[String]) = discard
+    proc shutdown() = discard
+    proc anotherInstanceStarted(commandLine: constptr[String]) = discard
+    proc systemRequestedQuit() = discard
+    proc suspended() = discard
+    proc resumed() = discard
+    proc unhandledException(arg0: constrawptr[CppException], sourceFilename: constptr[String], lineNumber: cint) = discard
+
+proc newCustomJUCEApplicationBase*(): ptr CustomJUCEApplicationBase {.importcpp: "(new june::CustomJUCEApplicationBase)".}
+
+proc setGetApplicationNameHandler*(this: var CustomJUCEApplicationBase, handler: proc(): String {.closure.}) =
+    this.onGetApplicationName = bindClosure(handler)
+
+proc setGetApplicationVersionHandler*(this: var CustomJUCEApplicationBase, handler: proc(): String {.closure.}) =
+    this.onGetApplicationVersion = bindClosure(handler)
+
+proc setMoreThanOneInstanceAllowedHandler*(this: var CustomJUCEApplicationBase, handler: proc(): bool {.closure.}) =
+    this.onMoreThanOneInstanceAllowed = bindClosure(handler)
+
+proc setInitialiseHandler*(this: var CustomJUCEApplicationBase, handler: proc(commandLineParameters: ptr String) {.closure.}) =
+    this.onInitialise = bindClosure(handler)
+
+proc setShutdownHandler*(this: var CustomJUCEApplicationBase, handler: proc() {.closure.}) =
+    this.onShutdown = bindClosure(handler)
+
+proc setAnotherInstanceStartedHandler*(this: var CustomJUCEApplicationBase, handler: proc(commandLine: ptr String) {.closure.}) =
+    this.onAnotherInstanceStarted = bindClosure(handler)
+
+proc setSystemRequestedQuitHandler*(this: var CustomJUCEApplicationBase, handler: proc() {.closure.}) =
+    this.onSystemRequestedQuit = bindClosure(handler)
+
+proc setSuspendedHandler*(this: var CustomJUCEApplicationBase, handler: proc() {.closure.}) =
+    this.onSuspended = bindClosure(handler)
+
+proc setResumedHandler*(this: var CustomJUCEApplicationBase, handler: proc() {.closure.}) =
+    this.onResumed = bindClosure(handler)
+
+proc setUnhandledExceptionHandler*(this: var CustomJUCEApplicationBase, handler: proc(arg0: ptr CppException, sourceFilename: ptr String, lineNumber: cint) {.closure.}) =
+    this.onUnhandledException = bindClosure(handler)
+
 defineCppClassInternal CustomMessageListener of MessageListener:
     include "juce_events/juce_events.h"
     proc handleMessage(message: constptr[Message]) = discard
@@ -66,5 +112,4 @@ proc setTimerCallbackHandler*(this: var CustomMultiTimer, handler: proc(timerID:
     this.onTimerCallback = bindClosure(handler)
 
 # Withheld, with the reason:
-#   JUCEApplicationBase: const std::exception * in unhandledException has no Nim spelling
 #   MountedVolumeListChangeDetector: declared only on some platforms

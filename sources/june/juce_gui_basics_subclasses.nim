@@ -232,20 +232,33 @@ proc setReleaseResourcesHandler*(this: var CustomCachedComponentImage, handler: 
 
 defineCppClassInternal CustomComponentMovementWatcher of ComponentMovementWatcher:
     include "juce_gui_basics/juce_gui_basics.h"
-    proc componentMovedOrResized(wasMoved: bool, wasResized: bool) = discard
     proc componentPeerChanged() = discard
-    proc componentVisibilityChanged() = discard
 
 proc newCustomComponentMovementWatcher*(componentToWatch: ptr Component): ptr CustomComponentMovementWatcher {.importcpp: "(new june::CustomComponentMovementWatcher(@))".}
-
-proc setComponentMovedOrResizedHandler*(this: var CustomComponentMovementWatcher, handler: proc(wasMoved: bool, wasResized: bool) {.closure.}) =
-    this.onComponentMovedOrResized = bindClosure(handler)
 
 proc setComponentPeerChangedHandler*(this: var CustomComponentMovementWatcher, handler: proc() {.closure.}) =
     this.onComponentPeerChanged = bindClosure(handler)
 
-proc setComponentVisibilityChangedHandler*(this: var CustomComponentMovementWatcher, handler: proc() {.closure.}) =
-    this.onComponentVisibilityChanged = bindClosure(handler)
+defineCppClassInternal CustomComponentTraverser of ComponentTraverser:
+    include "juce_gui_basics/juce_gui_basics.h"
+    proc getDefaultComponent(parentComponent: ptr Component): ptr Component = discard
+    proc getNextComponent(current: ptr Component): ptr Component = discard
+    proc getPreviousComponent(current: ptr Component): ptr Component = discard
+    proc getAllComponents(parentComponent: ptr Component): CppVector[ptr Component] = discard
+
+proc newCustomComponentTraverser*(): ptr CustomComponentTraverser {.importcpp: "(new june::CustomComponentTraverser)".}
+
+proc setGetDefaultComponentHandler*(this: var CustomComponentTraverser, handler: proc(parentComponent: ptr Component): ptr Component {.closure.}) =
+    this.onGetDefaultComponent = bindClosure(handler)
+
+proc setGetNextComponentHandler*(this: var CustomComponentTraverser, handler: proc(current: ptr Component): ptr Component {.closure.}) =
+    this.onGetNextComponent = bindClosure(handler)
+
+proc setGetPreviousComponentHandler*(this: var CustomComponentTraverser, handler: proc(current: ptr Component): ptr Component {.closure.}) =
+    this.onGetPreviousComponent = bindClosure(handler)
+
+proc setGetAllComponentsHandler*(this: var CustomComponentTraverser, handler: proc(parentComponent: ptr Component): CppVector[ptr Component] {.closure.}) =
+    this.onGetAllComponents = bindClosure(handler)
 
 defineCppClassInternal CustomDarkModeSettingListener of DarkModeSettingListener:
     include "juce_gui_basics/juce_gui_basics.h"
@@ -311,6 +324,15 @@ proc setGetOutlineAsPathHandler*(this: var CustomDrawable, handler: proc(): Path
 
 proc setGetDrawableBoundsHandler*(this: var CustomDrawable, handler: proc(): Rectangle[cfloat] {.closure.}) =
     this.onGetDrawableBounds = bindClosure(handler)
+
+defineCppClassInternal CustomDrawableShape of DrawableShape:
+    include "juce_gui_basics/juce_gui_basics.h"
+    proc createCopy(): UniquePtr[Drawable] {.cppconst.} = discard
+
+proc newCustomDrawableShape*(): ptr CustomDrawableShape {.importcpp: "(new june::CustomDrawableShape)".}
+
+proc setCreateCopyHandler*(this: var CustomDrawableShape, handler: proc(): UniquePtr[Drawable] {.closure.}) =
+    this.onCreateCopy = bindClosure(handler)
 
 defineCppClassInternal CustomFileBrowserListener of FileBrowserListener:
     include "juce_gui_basics/juce_gui_basics.h"
@@ -410,10 +432,14 @@ proc setRefreshHandler*(this: var CustomPropertyComponent, handler: proc() {.clo
 
 defineCppClassInternal CustomRelativeCoordinatePositionerBase of RelativeCoordinatePositionerBase:
     include "juce_gui_basics/juce_gui_basics.h"
+    proc applyNewBounds(newBounds: constptr[Rectangle[cint]]) = discard
     proc registerCoordinates(): bool = discard
     proc applyToComponentBounds() = discard
 
 proc newCustomRelativeCoordinatePositionerBase*(arg0: Component): ptr CustomRelativeCoordinatePositionerBase {.importcpp: "(new june::CustomRelativeCoordinatePositionerBase(@))".}
+
+proc setApplyNewBoundsHandler*(this: var CustomRelativeCoordinatePositionerBase, handler: proc(newBounds: ptr Rectangle[cint]) {.closure.}) =
+    this.onApplyNewBounds = bindClosure(handler)
 
 proc setRegisterCoordinatesHandler*(this: var CustomRelativeCoordinatePositionerBase, handler: proc(): bool {.closure.}) =
     this.onRegisterCoordinates = bindClosure(handler)
@@ -500,6 +526,15 @@ proc setGetCharIndexForPointHandler*(this: var CustomTextInputTarget, handler: p
 proc setGetTextBoundsHandler*(this: var CustomTextInputTarget, handler: proc(textRange: Range[cint]): RectangleList[cint] {.closure.}) =
     this.onGetTextBounds = bindClosure(handler)
 
+defineCppClassInternal CustomThreadWithProgressWindow of ThreadWithProgressWindow:
+    include "juce_gui_basics/juce_gui_basics.h"
+    proc run() = discard
+
+proc newCustomThreadWithProgressWindow*(windowTitle: String, hasProgressBar: bool, hasCancelButton: bool, timeOutMsWhenCancelling: cint, cancelButtonText: String, componentToCentreAround: ptr Component): ptr CustomThreadWithProgressWindow {.importcpp: "(new june::CustomThreadWithProgressWindow(@))".}
+
+proc setRunHandler*(this: var CustomThreadWithProgressWindow, handler: proc() {.closure.}) =
+    this.onRun = bindClosure(handler)
+
 defineCppClassInternal CustomToolbarItemComponent of ToolbarItemComponent:
     include "juce_gui_basics/juce_gui_basics.h"
     proc getToolbarItemSizes(toolbarThickness: cint, isToolbarVertical: bool, preferredSize: varref[cint], minSize: varref[cint], maxSize: varref[cint]): bool = discard
@@ -556,7 +591,4 @@ proc setMightContainSubItemsHandler*(this: var CustomTreeViewItem, handler: proc
 #   AccessibilityTableInterface: Optional<Span> returned by getRowSpan has no Nim spelling
 #   ApplicationCommandTarget: Array<CommandID> & in getAllCommands has no Nim spelling
 #   ComponentPeer: a pure virtual is private, so no subclass can implement it
-#   ComponentTraverser: std::vector<Component *> returned by getAllComponents has no Nim spelling
-#   DrawableShape: abstract with no overridable pure virtual
 #   MultiDocumentPanel: std::function<void (bool)> in tryToCloseDocumentAsync has no Nim spelling
-#   ThreadWithProgressWindow: abstract with no overridable pure virtual
