@@ -133,7 +133,7 @@ def remap_type(t, *args):
         # rather than failing. JUCE only spells CharPointer_UTF16::CharType as
         # wchar_t where wchar_t is 16-bit, which is Windows, and there it uses
         # int16 instead.
-        "wchar_t": "uint32",
+        "wchar_t": "WChar",
         # wchar_t is 32-bit on the platforms this binding supports, and JUCE
         # defines juce_wchar as wchar_t there.
         "unsigned int": "uint32",
@@ -473,7 +473,7 @@ known_builtin_types = {
     "float", "float32", "float64", "bool", "char", "string", "cstring",
     "pointer", "void", "csize_t", "cchar", "cuchar", "cshort", "cushort",
     "cint", "cuint", "clong", "culong", "clonglong", "culonglong",
-    "cfloat", "cdouble", "constChar", "constPointer",
+    "cfloat", "cdouble", "constChar", "constPointer", "WChar",
     "UniquePtr", "CppOptional", "CppVector", "CppFunctionObjectR1Ref",
     "CppString", "CppMap", "CppUnorderedMap", "CppArray", "CppException", "CppTypeIndex", "CppByte",
     "Rectangle", "Point", "Line", "BorderSize", "Range",

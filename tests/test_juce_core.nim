@@ -1062,3 +1062,36 @@ proc testStringLikeOverloadSets() =
   doAssert $pool.getPooledString(text) == "abc", "getPooledString with a String"
 
 testStringLikeOverloadSets()
+
+# CharPointer_UTF32 ===========================================================
+#
+# The 32-bit cursor, over a buffer this test owns. Worth its own coverage
+# because its CharType is juce_wchar, the alias that was mapped to uint16 and
+# truncated everything above U+FFFF: a UTF-32 cursor that cannot carry a
+# non-BMP character is not a UTF-32 cursor.
+
+proc testCharPointerUTF32() =
+  # GRINNING FACE, KISS MARK, and a plain letter, then the terminator.
+  var codepoints: array[4, WChar] = [WChar(0x1F600), WChar(0x1F48B), WChar(uint32('a')), WChar(0)]
+  let start = makeCharPointer_UTF32(codepoints[0].addr)
+
+  doAssert start.isNotEmpty(), "a filled buffer reported empty"
+  doAssert start.length() == 3'u64, "length gave " & $start.length()
+
+  var cursor = makeCharPointer_UTF32(codepoints[0].addr)
+  doAssert cursor.getAndAdvance() == 0x1F600'u32,
+           "the first codepoint came back as " & $cursor.getAndAdvance()
+  doAssert cursor.getAndAdvance() == 0x1F48B'u32, "the second codepoint"
+  doAssert cursor.getAndAdvance() == uint32('a'), "the third codepoint"
+
+  # write puts a non-BMP codepoint back without narrowing it.
+  var scratch: array[2, WChar] = [WChar(0), WChar(0)]
+  var writer = makeCharPointer_UTF32(scratch[0].addr)
+  writer.write(0x1F600'u32)
+  doAssert scratch[0] == 0x1F600'u32, "write stored " & $scratch[0]
+
+  var empty: array[1, WChar] = [WChar(0)]
+  doAssert makeCharPointer_UTF32(empty[0].addr).isEmpty(),
+           "a terminator-only buffer reported non-empty"
+
+testCharPointerUTF32()
