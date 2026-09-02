@@ -2159,4 +2159,73 @@ proc testTableListBox() =
 
 
 testToolbar()
+# MenuBarModel ================================================================
+#
+# The model is abstract, so this goes through CustomMenuBarModel. Calling the
+# virtuals back through the base class is the check that the override reached
+# C++: getMenuBarNames on a MenuBarModel& has to land in the Nim closure.
+
+proc testMenuBarModel() =
+    initialiseJuce_GUI()
+
+    block:
+        var selected: seq[tuple[item: cint, menu: cint]] = @[]
+
+        var model = newCustomMenuBarModel()
+        model[].setGetMenuBarNamesHandler(proc(): StringArray =
+            result = makeStringArray()
+            result.add(makeString("File"))
+            result.add(makeString("Edit")))
+        model[].setGetMenuForIndexHandler(proc(topLevelMenuIndex: cint,
+                                               menuName: ptr String): PopupMenu =
+            result = makePopupMenu()
+            if topLevelMenuIndex == 0:
+                result.addItem(1.cint, makeString("Open"))
+                result.addItem(2.cint, makeString("Save"))
+            else:
+                result.addItem(3.cint, makeString("Undo")))
+        model[].setMenuItemSelectedHandler(proc(menuItemID: cint,
+                                                topLevelMenuIndex: cint) =
+            selected.add((menuItemID, topLevelMenuIndex)))
+
+        # Through the base class, which is how JUCE itself reaches these.
+        var base = cast[ptr MenuBarModel](model)
+        let names = base[].getMenuBarNames()
+        doAssert names.size() == 2, "the model named " & $names.size() & " menus"
+        doAssert $names[0.cint] == "File", "the first menu is " & $names[0.cint]
+        doAssert $names[1.cint] == "Edit", "the second menu is " & $names[1.cint]
+
+        let fileMenu = base[].getMenuForIndex(0.cint, makeString("File"))
+        doAssert fileMenu.getNumItems() == 2,
+                 "the File menu holds " & $fileMenu.getNumItems() & " items"
+        let editMenu = base[].getMenuForIndex(1.cint, makeString("Edit"))
+        doAssert editMenu.getNumItems() == 1,
+                 "the Edit menu holds " & $editMenu.getNumItems() & " items"
+
+        base[].menuItemSelected(2.cint, 0.cint)
+        doAssert selected == @[(2.cint, 0.cint)],
+                 "the model was told about " & $selected
+
+        # A MenuBarComponent takes the model and asks it for the same names.
+        var menuBar = makeMenuBarComponent(base)
+        menuBar.setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 24.cint))
+
+        let image = makeImage(ImagePixelFormat_ARGB, 200.cint, 24.cint, true)
+        var context = makeGraphics(image)
+        menuBar.paintEntireComponent(context, false)
+
+        var painted = 0
+        for x in 0 ..< 200:
+            for y in 0 ..< 24:
+                if image.getPixelAt(x.cint, y.cint).getAlpha() > 0:
+                    painted += 1
+        doAssert painted > 0, "drawing the menu bar left the image empty"
+
+        menuBar.setModel(nil)
+        cdelete model
+
+    shutdownJuce_GUI()
+
+
 testTableListBox()
+testMenuBarModel()
