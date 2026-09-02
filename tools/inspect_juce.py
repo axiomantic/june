@@ -626,6 +626,11 @@ nim_operators = {
     "operator%": "`%`",
     "operator<<": "`shl`",
     "operator>>": "`shr`",
+    # Nim spells both of these `not`: logical negation for a bool result and
+    # bitwise complement otherwise. Neither collides with the built-in, which
+    # is only defined for bool.
+    "operator!": "`not`",
+    "operator~": "`not`",
 }
 
 
