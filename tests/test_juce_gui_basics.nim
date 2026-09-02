@@ -2290,4 +2290,88 @@ proc testRemainingGuiSubclasses() =
 
 
 testMenuBarModel()
+# The accessibility, traversal and text-input subclasses ======================
+#
+# All abstract, and none of their handlers had ever been set. A setter nothing
+# calls is neither type-checked in its body nor generated, and the C++ field it
+# assigns to is never written. getAllComponents returns a std::vector, which
+# had no constructor until now.
+
+proc testAccessibilityAndInputSubclasses() =
+    initialiseJuce_GUI()
+
+    block:
+        var text = newCustomAccessibilityTextInterface()
+        doAssert not text.isNil(), "the text interface was not built"
+        text[].setIsDisplayingProtectedTextHandler(proc(): bool = false)
+        text[].setIsReadOnlyHandler(proc(): bool = true)
+        text[].setGetTotalNumCharactersHandler(proc(): cint = 5.cint)
+        text[].setGetSelectionHandler(proc(): Range[cint] = makeRange(0.cint, 2.cint))
+        text[].setSetSelectionHandler(proc(newRange: Range[cint]) = discard)
+        text[].setGetTextInsertionOffsetHandler(proc(): cint = 0.cint)
+        text[].setGetTextHandler(proc(range: Range[cint]): String = makeString("text"))
+        text[].setSetTextHandler(proc(newText: ptr String) = discard)
+        text[].setGetTextBoundsHandler(proc(textRange: Range[cint]): RectangleList[cint] =
+            makeRectangleList[cint]())
+        text[].setGetOffsetAtPointHandler(proc(point: Point[cint]): cint = 0.cint)
+        cdelete text
+
+        var value = newCustomAccessibilityValueInterface()
+        doAssert not value.isNil(), "the value interface was not built"
+        value[].setIsReadOnlyHandler(proc(): bool = false)
+        value[].setGetCurrentValueHandler(proc(): cdouble = 0.5)
+        value[].setGetCurrentValueAsStringHandler(proc(): String = makeString("0.5"))
+        value[].setSetValueHandler(proc(newValue: cdouble) = discard)
+        value[].setSetValueAsStringHandler(proc(newValue: ptr String) = discard)
+        value[].setGetRangeHandler(proc(): AccessibilityValueInterfaceAccessibleValueRange =
+            makeAccessibilityValueInterfaceAccessibleValueRange())
+        cdelete value
+
+        var traverser = newCustomComponentTraverser()
+        doAssert not traverser.isNil(), "the traverser was not built"
+        traverser[].setGetDefaultComponentHandler(
+            proc(parentComponent: ptr Component): ptr Component = nil)
+        traverser[].setGetNextComponentHandler(
+            proc(current: ptr Component): ptr Component = nil)
+        traverser[].setGetPreviousComponentHandler(
+            proc(current: ptr Component): ptr Component = nil)
+        traverser[].setGetAllComponentsHandler(
+            proc(parentComponent: ptr Component): CppVector[ptr Component] =
+                makeCppVector[ptr Component]())
+        cdelete traverser
+
+        var target = newCustomTextInputTarget()
+        doAssert not target.isNil(), "the text input target was not built"
+        target[].setIsTextInputActiveHandler(proc(): bool = true)
+        target[].setGetHighlightedRegionHandler(proc(): Range[cint] =
+            makeRange(0.cint, 0.cint))
+        target[].setSetHighlightedRegionHandler(proc(newRange: ptr Range[cint]) = discard)
+        target[].setSetTemporaryUnderliningHandler(
+            proc(underlinedRegions: ptr Array[Range[cint]]) = discard)
+        target[].setGetTextInRangeHandler(proc(range: ptr Range[cint]): String =
+            makeString(""))
+        target[].setInsertTextAtCaretHandler(proc(textToInsert: ptr String) = discard)
+        target[].setGetCaretPositionHandler(proc(): cint = 0.cint)
+        target[].setGetCaretRectangleForCharIndexHandler(
+            proc(characterIndex: cint): Rectangle[cint] =
+                makeRectangle(0.cint, 0.cint, 1.cint, 1.cint))
+        target[].setGetTotalNumCharsHandler(proc(): cint = 0.cint)
+        target[].setGetCharIndexForPointHandler(proc(point: Point[cint]): cint = 0.cint)
+        target[].setGetTextBoundsHandler(proc(textRange: Range[cint]): RectangleList[cint] =
+            makeRectangleList[cint]())
+        cdelete target
+
+        var browserListener = newCustomFileBrowserListener()
+        doAssert not browserListener.isNil(), "the browser listener was not built"
+        browserListener[].setSelectionChangedHandler(proc() = discard)
+        browserListener[].setFileClickedHandler(proc(file: ptr june.File,
+                                                     e: ptr MouseEvent) = discard)
+        browserListener[].setFileDoubleClickedHandler(proc(file: ptr june.File) = discard)
+        browserListener[].setBrowserRootChangedHandler(proc(newRoot: ptr june.File) = discard)
+        cdelete browserListener
+
+    shutdownJuce_GUI()
+
+
 testRemainingGuiSubclasses()
+testAccessibilityAndInputSubclasses()
