@@ -261,6 +261,12 @@ proc `[]`*[T](this: SparseSet[T], index: T): T {.importcpp: "#[#]".}
 proc contains*[T](this: SparseSet[T], valueToLookFor: T): bool {.importcpp: "#.contains(@)".}
 proc getNumRanges*[T](this: SparseSet[T]): cint {.importcpp: "#.getNumRanges()".}
 proc getRange*[T](this: SparseSet[T], rangeIndex: cint): Range[T] {.importcpp: "#.getRange(@)".}
+
+# The set was bound with only its readers, so one could be built and never
+# filled. These are what make it usable.
+proc addRange*[T](this: var SparseSet[T], range: Range[T]) {.header: "<juce_core/juce_core.h>", importcpp: "#.addRange(@)".}
+proc removeRange*[T](this: var SparseSet[T], range: Range[T]) {.header: "<juce_core/juce_core.h>", importcpp: "#.removeRange(@)".}
+proc clear*[T](this: var SparseSet[T]) {.header: "<juce_core/juce_core.h>", importcpp: "#.clear()".}
 proc getTotalRange*[T](this: SparseSet[T]): Range[T] {.importcpp: "#.getTotalRange()".}
 
 # NormalisableRange maps a value onto 0..1, which is how a Slider describes its
