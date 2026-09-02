@@ -41,6 +41,53 @@ uncallable = {
 
 export = re.compile(r'(?:proc|iterator|template|converter) `?(\w+)`?\*')
 
+# The generator withholds a C++ begin()/end() pair with a reason that promises
+# a Nim iterator in its place. Nothing checked that the promise held, and for
+# one class it did not.
+iterator_promise = re.compile(
+    r'# proc (?:begin|cbegin)\*\(this: (?:var )?(\w+)\).*loop with the Nim iterator')
+
+nim_iterator = re.compile(r'iterator \w+\*(?:\[[^\]]*\])?\(this: (?:var )?(\w+)')
+
+# A class whose begin() is withheld and that gets no Nim iterator anyway. The
+# reason has to be why a Nim iterator cannot exist.
+no_iterator_possible = {
+    "AndroidDocumentIterator":
+        "Android only. JUCE declares it on every platform but implements it "
+        "behind JUCE_ANDROID, so there is nothing for an iterator to call.",
+}
+
+
+def check_iterator_promises():
+    """Every class whose begin() was withheld naming a Nim iterator has one."""
+    promised = set()
+    for path in glob.glob("sources/june/juce_*.nim"):
+        promised.update(iterator_promise.findall(open(path).read()))
+
+    provided = set()
+    for path in glob.glob("sources/june/*.nim"):
+        provided.update(nim_iterator.findall(open(path).read()))
+
+    broken = sorted(promised - provided - set(no_iterator_possible))
+    stale = sorted(name for name in no_iterator_possible if name not in promised)
+
+    if broken:
+        print("These classes have begin() withheld with a reason that names a "
+              "Nim iterator, and no such iterator exists:", file=sys.stderr)
+        for name in broken:
+            print(f"  {name}", file=sys.stderr)
+    if stale:
+        print("These are listed as having no possible iterator but no longer "
+              "have a withheld begin():", file=sys.stderr)
+        for name in stale:
+            print(f"  {name}", file=sys.stderr)
+
+    if not (broken or stale):
+        print(f"all {len(promised - set(no_iterator_possible))} withheld "
+              f"begin() reasons name an iterator that exists "
+              f"({len(no_iterator_possible)} cannot have one)")
+    return not (broken or stale)
+
 
 def main():
     declared = {}
@@ -80,7 +127,9 @@ def main():
         print("Call it from a test, or add it to `uncallable` with the reason "
               "a test cannot.", file=sys.stderr)
 
-    if uncovered or stale:
+    iterators_ok = check_iterator_promises()
+
+    if uncovered or stale or not iterators_ok:
         sys.exit(1)
 
     print(f"all {len(declared)} hand-written bindings are called "

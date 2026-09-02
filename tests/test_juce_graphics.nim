@@ -739,3 +739,56 @@ proc testSoftwareRenderer() =
              "after moving the origin the clip starts at " & $renderer.getClipBounds().getX()
 
 testSoftwareRenderer()
+
+# TextLayout ==================================================================
+#
+# The generator withholds TextLayout's begin() and end() with a reason naming a
+# Nim iterator, and juce_graphics_lifting writes that iterator. Nothing had ever
+# instantiated it, and a generic iterator is only type-checked where it is used.
+
+proc testTextLayout() =
+    block:
+        var text = makeAttributedString(makeString("one two three four five six"))
+        text.setJustification(makeJustification(cint(JustificationFlags_left)))
+
+        var layout = makeTextLayout()
+        # Narrow enough that the text cannot fit on a single line, so the
+        # layout has to break it and the line count is a real answer.
+        layout.createLayout(text, 40.0'f32)
+
+        doAssert layout.getNumLines() > 1,
+                 "the layout put the text on " & $layout.getNumLines() & " line(s)"
+        doAssert layout.getWidth() > 0.0'f32, "the layout has no width"
+        doAssert layout.getHeight() > 0.0'f32, "the layout has no height"
+
+        # The iterator and the indexed accessor have to agree, which is what
+        # says the iterator walks the lines rather than something else.
+        var walked = 0
+        var lastBaseline = -1.0'f32
+        for line in layout:
+            doAssert line.stringRange().getLength() >= 0, "a line has a negative range"
+            let baseline = line.lineOrigin().getY()
+            doAssert baseline > lastBaseline,
+                     "line " & $walked & " is not below the one before it"
+            lastBaseline = baseline
+            walked += 1
+
+        doAssert walked == layout.getNumLines().int,
+                 "the iterator yielded " & $walked & " of " &
+                 $layout.getNumLines() & " lines"
+
+        # Drawing it reaches JUCE's own renderer, which is the check that the
+        # layout is not merely well-formed but usable.
+        let image = makeImage(ImagePixelFormat_ARGB, 60.cint, 60.cint, true)
+        var context = makeGraphics(image)
+        context.setColour(makeColour(255'u8, 0'u8, 0'u8, 255'u8))
+        layout.draw(context, makeRectangle(0.0'f32, 0.0'f32, 60.0'f32, 60.0'f32))
+
+        var painted = 0
+        for x in 0 ..< 60:
+            for y in 0 ..< 60:
+                if image.getPixelAt(x.cint, y.cint).getAlpha() > 0:
+                    painted += 1
+        doAssert painted > 0, "drawing the layout left the image empty"
+
+testTextLayout()
