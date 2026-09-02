@@ -12,6 +12,12 @@ container types with no constructor at all, three Range setters that mutated a
 let binding, and a SparseSet with no way to add to it. Every one of them
 compiled cleanly for as long as nothing used it.
 
+What is checked is a NAME, not a declaration. Six procs are called isNil and
+eight iterators are called items, and one call of either satisfies all of them.
+That is the limit of a check built on a text search: it catches a binding
+nothing mentions, which is the case every defect above was found in, and it
+does not catch one overload of a name something else already calls.
+
 Run from the repository root. Exits non-zero and names what is uncovered.
 """
 import glob
@@ -132,7 +138,7 @@ def main():
     if uncovered or stale or not iterators_ok:
         sys.exit(1)
 
-    print(f"all {len(declared)} hand-written bindings are called "
+    print(f"all {len(declared)} hand-written binding names are called "
           f"({len(uncallable)} listed as uncallable)")
 
 

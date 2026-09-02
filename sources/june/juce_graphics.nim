@@ -824,7 +824,7 @@ proc createLowLevelContext*(this: var ImagePixelData): UniquePtr[LowLevelGraphic
 proc clone*(this: var ImagePixelData): ReferenceCountedObjectPtr[ImagePixelData] {.header: juce_graphics, importcpp: "#.clone()".}
 proc createType*(this: ImagePixelData): UniquePtr[ImageType] {.header: juce_graphics, importcpp: "#.createType()".}
 proc getBackupExtensions*(this: var ImagePixelData): ptr ImagePixelDataBackupExtensions {.header: juce_graphics, importcpp: "#.getBackupExtensions()".}
-proc getBackupExtensions*(this: ImagePixelData): ptr ImagePixelDataBackupExtensions {.header: juce_graphics, importcpp: "#.getBackupExtensions()".}
+proc getBackupExtensions*(this: ImagePixelData): ConstPtr[ImagePixelDataBackupExtensions] {.header: juce_graphics, importcpp: "#.getBackupExtensions()".}
 proc initialiseBitmapData*(this: var ImagePixelData, arg1: var ImageBitmapData, x: cint, y: cint, arg4: ImageBitmapDataReadWriteMode) {.header: juce_graphics, importcpp: "#.initialiseBitmapData(@)".}
 proc getSharedCount*(this: ImagePixelData): cint {.header: juce_graphics, importcpp: "#.getSharedCount()".}
 proc moveImageSection*(this: var ImagePixelData, destTopLeft: Point[cint], sourceRect: Rectangle[cint]) {.header: juce_graphics, importcpp: "#.moveImageSection(@)".}
@@ -964,7 +964,7 @@ proc getNominalGlyphForCodepoint*(this: Typeface, arg1: WChar): CppOptional[uint
 proc createSystemFallback*(this: Typeface, text: String, language: String): ReferenceCountedObjectPtr[Typeface] {.header: juce_graphics, importcpp: "#.createSystemFallback(@)".}
 proc findSystemTypeface*(this: typedesc[Typeface]): ReferenceCountedObjectPtr[Typeface] {.header: juce_graphics, importcpp: "juce::Typeface::findSystemTypeface()".}
 proc getSupportedFeatures*(this: Typeface): CppVector[FontFeatureTag] {.header: juce_graphics, importcpp: "#.getSupportedFeatures()".}
-proc getNativeDetails*(this: Typeface): ptr TypefaceNative {.header: juce_graphics, importcpp: "#.getNativeDetails()".}
+proc getNativeDetails*(this: Typeface): ConstPtr[TypefaceNative] {.header: juce_graphics, importcpp: "#.getNativeDetails()".}
 proc `==`*(this: Typeface, other: Typeface): bool {.error: "juce::Typeface defines no operator==; compare a property instead".}
 
 proc `==`*(this: TypefaceNative, other: TypefaceNative): bool {.error: "juce::Typeface::Native defines no operator==; compare a property instead".}
@@ -1154,8 +1154,8 @@ proc makeGlyphArrangement*(): GlyphArrangement {.header: juce_graphics, importcp
 proc `GlyphArrangement=`*(this: var GlyphArrangement, arg1: GlyphArrangement): var GlyphArrangement {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc getNumGlyphs*(this: GlyphArrangement): cint {.header: juce_graphics, importcpp: "#.getNumGlyphs()".}
 proc getGlyph*(this: var GlyphArrangement, index: cint): var PositionedGlyph {.header: juce_graphics, importcpp: "#.getGlyph(@)".}
-# proc begin*(this: GlyphArrangement): ptr PositionedGlyph {.header: juce_graphics, importcpp: "#.begin()".}  # a C++ iterator; loop with the Nim iterator instead
-# proc `end`*(this: GlyphArrangement): ptr PositionedGlyph {.header: juce_graphics, importcpp: "#.end()".}  # a C++ iterator; loop with the Nim iterator instead
+# proc begin*(this: GlyphArrangement): ConstPtr[PositionedGlyph] {.header: juce_graphics, importcpp: "#.begin()".}  # a C++ iterator; loop with the Nim iterator instead
+# proc `end`*(this: GlyphArrangement): ConstPtr[PositionedGlyph] {.header: juce_graphics, importcpp: "#.end()".}  # a C++ iterator; loop with the Nim iterator instead
 proc clear*(this: var GlyphArrangement) {.header: juce_graphics, importcpp: "#.clear()".}
 proc addLineOfText*(this: var GlyphArrangement, font: Font, text: String, x: cfloat, y: cfloat) {.header: juce_graphics, importcpp: "#.addLineOfText(@)".}
 proc addCurtailedLineOfText*(this: var GlyphArrangement, font: Font, text: String, x: cfloat, y: cfloat, maxWidthPixels: cfloat, useEllipsis: bool) {.header: juce_graphics, importcpp: "#.addCurtailedLineOfText(@)".}

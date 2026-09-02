@@ -1682,5 +1682,92 @@ proc testComponentBoundsConstrainer() =
     shutdownJuce_GUI()
 
 
+# ApplicationCommandManager ===================================================
+#
+# The whole round trip: a target that answers for two commands, a manager that
+# collects them from it, and an invocation that has to reach the target's
+# perform handler.
+
+const commandCopy = 1001.cint
+const commandPaste = 1002.cint
+
+proc testApplicationCommandManager() =
+    initialiseJuce_GUI()
+
+    block:
+        var performed: seq[cint] = @[]
+
+        var target = newCustomApplicationCommandTarget()
+        target[].setGetNextCommandTargetHandler(proc(): ptr ApplicationCommandTarget = nil)
+        target[].setGetAllCommandsHandler(proc(commands: ptr Array[cint]) =
+            commands[].add(commandCopy)
+            commands[].add(commandPaste))
+        target[].setGetCommandInfoHandler(proc(commandID: cint, info: ptr ApplicationCommandInfo) =
+            case commandID
+            of commandCopy:
+                info[].setInfo(makeString("Copy"), makeString("Copies the selection"),
+                               makeString("Editing"), 0.cint)
+            of commandPaste:
+                info[].setInfo(makeString("Paste"), makeString("Pastes the clipboard"),
+                               makeString("Editing"), 0.cint)
+            else: discard)
+        target[].setPerformHandler(proc(info: ptr ApplicationCommandTargetInvocationInfo): bool =
+            performed.add(info[].commandID())
+            true)
+
+        var manager = makeApplicationCommandManager()
+        manager.setFirstCommandTarget(cast[ptr ApplicationCommandTarget](target))
+        manager.registerAllCommandsForTarget(cast[ptr ApplicationCommandTarget](target))
+
+        doAssert manager.getNumCommands() == 2,
+                 "the manager collected " & $manager.getNumCommands() & " commands"
+        doAssert $manager.getNameOfCommand(commandCopy) == "Copy",
+                 "the copy command is named " & $manager.getNameOfCommand(commandCopy)
+        doAssert $manager.getDescriptionOfCommand(commandPaste) == "Pastes the clipboard",
+                 "the paste description is " & $manager.getDescriptionOfCommand(commandPaste)
+
+        let categories = manager.getCommandCategories()
+        doAssert categories.size() == 1,
+                 "the manager reports " & $categories.size() & " categories"
+        doAssert $categories[0.cint] == "Editing",
+                 "the category is " & $categories[0.cint]
+
+        let inCategory = manager.getCommandsInCategory(makeString("Editing"))
+        doAssert inCategory.size() == 2,
+                 "the category holds " & $inCategory.size() & " commands"
+
+        # getCommandForID returns a const ApplicationCommandInfo*, so the
+        # binding hands back a ConstPtr. Reading through it is allowed;
+        # anything taking a var ApplicationCommandInfo is refused, which is
+        # what the C++ const says.
+        let info = manager.getCommandForID(commandCopy)
+        doAssert not info.isNil(), "the manager has no entry for the copy command"
+        doAssert info[].commandID() == commandCopy, "the entry is for another command"
+        doAssert $info[].shortName() == "Copy",
+                 "the entry is named " & $info[].shortName()
+
+        # Synchronously, so the assertion below does not race the message queue.
+        doAssert manager.invokeDirectly(commandPaste, false),
+                 "invoking the paste command reported failure"
+        doAssert performed == @[commandPaste],
+                 "the target performed " & $performed
+
+        manager.removeCommand(commandCopy)
+        doAssert manager.getNumCommands() == 1,
+                 "after removing one the manager holds " & $manager.getNumCommands()
+
+        manager.clearCommands()
+        doAssert manager.getNumCommands() == 0,
+                 "after clearing the manager holds " & $manager.getNumCommands()
+
+        # setFirstCommandTarget keeps a raw pointer, so drop it before the
+        # target goes, not after.
+        manager.setFirstCommandTarget(nil)
+        cdelete target
+
+    shutdownJuce_GUI()
+
+
 testLookAndFeelV1Draws()
 testComponentBoundsConstrainer()
+testApplicationCommandManager()
