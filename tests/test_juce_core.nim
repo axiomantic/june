@@ -676,3 +676,15 @@ proc testRestoredBindings() =
   doAssert $names[1.cint] != "dup", "the duplicate was not renumbered"
 
 testRestoredBindings()
+
+# operator! and operator~ =====================================================
+#
+# Nim spells both as `not`: logical negation where the result is a bool, and
+# bitwise complement otherwise. Neither collides with the built-in `not`, which
+# is only defined for bool.
+
+proc testNotOperators() =
+  doAssert not (not Result.ok()), "operator! on an ok Result said it failed"
+  doAssert (not Result.fail(makeString("boom"))), "operator! on a failed Result said it was fine"
+
+testNotOperators()

@@ -1062,7 +1062,7 @@ proc ok*(this: typedesc[Result]): Result {.header: juce_core, importcpp: "juce::
 proc fail*(this: typedesc[Result], errorMessage: String): Result {.header: juce_core, importcpp: "juce::Result::fail(@)".}
 proc wasOk*(this: Result): bool {.header: juce_core, importcpp: "#.wasOk()".}
 proc failed*(this: Result): bool {.header: juce_core, importcpp: "#.failed()".}
-# proc operator!*(this: Result): bool {.header: juce_core, importcpp: "#.operator!()".}  # an operator with no Nim spelling
+proc `not`*(this: Result): bool {.header: juce_core, importcpp: "#.operator!()".}
 proc getErrorMessage*(this: Result): String {.header: juce_core, importcpp: "#.getErrorMessage()".}
 proc `Result=`*(this: var Result, arg1: Result): var Result {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `==`*(this: Result, other: Result): bool {.header: juce_core, importcpp: "#.operator==(@)".}
@@ -2754,7 +2754,7 @@ proc `+`*(arg1: NewLine, s: constChar): String {.header: juce_core, importcpp: "
 proc `+`*(s: constChar, arg2: NewLine): String {.header: juce_core, importcpp: "juce::operator+(@)".}
 proc `&`*(a: SystemStatsMachineIdFlags, b: SystemStatsMachineIdFlags): SystemStatsMachineIdFlags {.header: juce_core, importcpp: "juce::operator&(@)".}
 proc `|`*(a: SystemStatsMachineIdFlags, b: SystemStatsMachineIdFlags): SystemStatsMachineIdFlags {.header: juce_core, importcpp: "juce::operator|(@)".}
-# proc operator~*(a: SystemStatsMachineIdFlags): SystemStatsMachineIdFlags {.header: juce_core, importcpp: "juce::operator~(@)".}  # an operator with no Nim spelling
+proc `not`*(a: SystemStatsMachineIdFlags): SystemStatsMachineIdFlags {.header: juce_core, importcpp: "juce::operator~(@)".}
 proc `|=`*(a: var SystemStatsMachineIdFlags, b: SystemStatsMachineIdFlags): var SystemStatsMachineIdFlags {.header: juce_core, importcpp: "juce::operator|=(@)".}
 proc `&=`*(a: var SystemStatsMachineIdFlags, b: SystemStatsMachineIdFlags): var SystemStatsMachineIdFlags {.header: juce_core, importcpp: "juce::operator&=(@)".}
 proc translate*(stringLiteral: String): String {.header: juce_core, importcpp: "juce::translate(@)".}
