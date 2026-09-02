@@ -1489,3 +1489,48 @@ proc testLookAndFeelV3Draws() =
     shutdownJuce_GUI()
 
 testLookAndFeelV3Draws()
+
+# MessageBoxOptions and DrawableText ==========================================
+#
+# A builder and a drawable, both usable without anything on screen. The alert
+# box itself cannot be built headless, but the options describing one can.
+
+proc testMessageBoxOptions() =
+    let plain = makeMessageBoxOptions()
+    doAssert plain.getNumButtons() == 0, "a fresh options object has " & $plain.getNumButtons() & " buttons"
+
+    let described = plain.withTitle(makeString("Title"))
+                         .withMessage(makeString("Message"))
+                         .withIconType(MessageBoxIconType_WarningIcon)
+    doAssert $described.getTitle() == "Title", "the title is " & $described.getTitle()
+    doAssert $described.getMessage() == "Message", "the message is " & $described.getMessage()
+    doAssert described.getIconType() == MessageBoxIconType_WarningIcon,
+             "the icon type did not stick"
+
+    # Each with* returns a copy, so the one it was called on is unchanged.
+    doAssert $plain.getTitle() == "", "withTitle changed the options it came from"
+
+    # Buttons accumulate in the order they were added.
+    let withButtons = described.withButton(makeString("Yes")).withButton(makeString("No"))
+    doAssert withButtons.getNumButtons() == 2,
+             "the options hold " & $withButtons.getNumButtons() & " buttons"
+    doAssert $withButtons.getButtonText(0.cint) == "Yes", "the first button is wrong"
+    doAssert $withButtons.getButtonText(1.cint) == "No", "the second button is wrong"
+
+proc testDrawableText() =
+    initialiseJuce_GUI()
+
+    block:
+        var text = makeDrawableText()
+        text.setText(makeString("hello"))
+        doAssert $text.getText() == "hello", "the text is " & $text.getText()
+
+        let red = makeColour(255'u8, 0'u8, 0'u8, 255'u8)
+        text.setColour(red)
+        doAssert text.getColour().getRed() == 255, "the colour did not stick"
+        doAssert text.getColour().getBlue() == 0, "the colour has the wrong blue"
+
+    shutdownJuce_GUI()
+
+testMessageBoxOptions()
+testDrawableText()
