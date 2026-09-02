@@ -64,7 +64,7 @@ proc createApplication(): ptr JUCEApplication =
     application[].onGetApplicationName = bindClosure(proc(): String = "Rotary Panel")
     application[].onGetApplicationVersion = bindClosure(proc(): String = "0.1")
 
-    application[].onInitialise = bindClosure(proc(commandLine: String) =
+    application[].onInitialise = bindClosure(proc(commandLine: ptr String) =
         application[].lookAndFeel = makeTheme()
 
         application[].slider = newCustomSlider()

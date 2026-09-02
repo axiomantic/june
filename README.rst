@@ -13,7 +13,11 @@ compiled programming language.
 Requirements
 ------------
 
-- Nim 1.6 or newer.
+- Nim 2.2.2 or newer. Up to and including 2.2.0, Nim emits one C++ function for
+  a generic over an ``importcpp`` type and reuses it across instantiations, so a
+  module holding two ``UniquePtr`` instantiations fails to compile. 1.6, 2.0 and
+  2.2.0 are all affected; 2.2.2 is the first release that builds this library.
+  CI tests 2.2.2 and 2.2.10, so the stated minimum is the one that is measured.
 - CMake 3.22 or newer, Ninja, and a C++17 compiler.
 - JUCE 8.0.15, vendored as a git submodule. Clone with ``--recursive``, or run
   ``git submodule update --init --recursive`` in an existing checkout.

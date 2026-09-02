@@ -61,6 +61,18 @@ proc makeCppType(node: NimNode): CppType {.compiletime.} =
       result.cpp = $realNode[1]
       result.isConst = true
     elif ($realNode[0] == "constref"):
+      # Only for a type Nim passes by value. Nim's calling convention hands an
+      # object to a C function by pointer, so the raw proc behind a closure
+      # taking one has signature void(T*, void*) and bind() deduces
+      # std::function<void(T*)> from it. That does not convert to the
+      # std::function<void(T)> declared here, and the error surfaces deep inside
+      # june_function_utils rather than at the declaration. constptr is the
+      # form that works for those, so refuse the combination outright.
+      let referencedName = $realNode[1]
+      if cppPrimitiveName(referencedName) == referencedName and referencedName != "bool":
+        error "constref[" & referencedName & "] cannot be bound: Nim passes " &
+              referencedName & " by pointer, so the callback signature would " &
+              "not match. Use constptr[" & referencedName & "] instead."
       result.nim = realNode[1]
       result.cpp = $realNode[1]
       result.isConst = true
@@ -109,6 +121,18 @@ proc toCppString(cppType: CppType): string =
   result &= cppType.cpp
   if cppType.isPointer: result &= "*"
   if cppType.isReference: result &= "&"
+
+
+# The spelling used for the stored std::function's own signature. Nim can spell
+# neither const nor a reference, so the member type it declares is always the
+# bare value (or pointer). The std::function has to be declared the same way or
+# the two disagree: the C++ field would be std::function<void(const String&)>
+# while Nim believes it is std::function<void(String)>, and every assignment to
+# it is rejected by one side or the other. The override itself keeps the const
+# reference, because that has to match the virtual it is overriding.
+proc toCppValueString(cppType: CppType): string =
+  result = cppType.cpp
+  if cppType.isPointer: result &= "*"
 
 
 proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parentNamespace: string = ""): NimNode {.compileTime.} =
@@ -185,7 +209,7 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
       # Cpp codegen function parameters
       var cppFuncSignature = ""
       var cppFuncPointerSignature = ""
-      cppFuncPointerSignature &= "    std::function<" & toCppString(returnValue) & "("
+      cppFuncPointerSignature &= "    std::function<" & toCppValueString(returnValue) & "("
       cppFuncSignature &= "    " & toCppString(returnValue) & " " & funcName & "("
 
       var index = 0
@@ -211,7 +235,7 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
         # The std::function takes a non-const pointer even where the override's
         # parameter is const: Nim has no const-pointer type, so `ptr T` is the
         # only thing the callback can be declared with, and the two must match.
-        cppFuncPointerSignature &= (if passAsPointer: argType.cpp & "*" else: toCppString(argType))
+        cppFuncPointerSignature &= (if passAsPointer: argType.cpp & "*" else: toCppValueString(argType))
         cppFuncSignature &= toCppString(argType) & " " & $param[0]
         cppFuncPointerCallArgs &= (
           if passAsPointer and argType.isConst: "const_cast<" & argType.cpp & "*>(&" & $param[0] & ")"
@@ -318,12 +342,8 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
 
   let finalCodeEmission = cppIncludeDefinition & cppClassDefinition
   # The macro runs before the Nim compiler creates the nimcache directory, so
-  # the generated header has nowhere to land unless we create it here. The VM
-  # only gained a working createDir in Nim 2.0; older versions must shell out.
-  when (NimMajor, NimMinor) >= (2, 0):
-    createDir(june_cache_dir)
-  else:
-    discard staticExec("mkdir -p " & quoteShell(june_cache_dir))
+  # the generated header has nowhere to land unless we create it here.
+  createDir(june_cache_dir)
   writeFile(june_cache_dir / cppGeneratedHeader, finalCodeEmission)
 
   result = newStmtList nnkTypeSection.newTree(

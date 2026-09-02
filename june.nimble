@@ -11,7 +11,7 @@ description   = "Juce Bindings For Nim"
 license       = "MIT"
 srcDir        = "sources"
 
-requires "nim >= 1.6.0"
+requires "nim >= 2.2.2"
 
 task test, "Runs the test suite":
   exec "nim cpp -r tests/test_juce_core.nim"
@@ -20,12 +20,15 @@ task test, "Runs the test suite":
   exec "nim cpp -r tests/test_juce_graphics.nim"
   exec "nim cpp -r tests/test_juce_gui_basics.nim"
 
-task examples, "Compile every example":
-  # Compile only: they open a window. CI runs the same check, because the
+task examples, "Build every example":
+  # Built but not run: they open a window. CI runs the same check, because the
   # examples are reproduced in the README.
-  exec "nim cpp -c examples/custom_component.nim"
-  exec "nim cpp -c examples/rotary_panel.nim"
-  exec "nim cpp -c examples/test_app.nim"
+  #
+  # Not -c. That stops after emitting C++ and never invokes the C++ compiler,
+  # so an example that generates invalid C++ would pass.
+  exec "nim cpp examples/custom_component.nim"
+  exec "nim cpp examples/rotary_panel.nim"
+  exec "nim cpp examples/test_app.nim"
 
 task juce_debug, "Build juce (debug)":
   exec "cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_OSX_DEPLOYMENT_TARGET=11.6 && cmake --build build"

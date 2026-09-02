@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        nim-version: ['1.6.14', '2.0.14', '2.2.10']
+        nim-version: ['2.2.2', '2.2.10']
 
     steps:
       - name: Checkout
@@ -126,10 +126,13 @@ jobs:
           done
 
           # The examples are reproduced in the README, so an API change that
-          # breaks one breaks the documentation too. Compile only: they open a
-          # window, and a runner has no display.
+          # breaks one breaks the documentation too. Built but not run: they
+          # open a window, and a runner has no display.
+          #
+          # Not -c. That stops after emitting C++ and never invokes the C++
+          # compiler, so an example that generates invalid C++ passes it.
           for example in examples/*.nim; do
             echo "::group::$example"
-            "$nim_bin" cpp -c --hints:off "$example" || exit 1
+            "$nim_bin" cpp --hints:off "$example" || exit 1
             echo "::endgroup::"
           done

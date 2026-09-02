@@ -19,3 +19,8 @@ tests/test_juce_events
 tests/test_juce_data_structures
 tests/test_juce_graphics
 tests/test_juce_gui_basics
+
+# Compiled examples. They are built, not run, by the examples task and by CI.
+examples/custom_component
+examples/rotary_panel
+examples/test_app
