@@ -1043,3 +1043,60 @@ proc testTextLayoutRuns() =
         doAssert run.colour().getBlue() == 255'u8, "the run is not blue"
 
 testTextLayoutRuns()
+
+# ImageConvolutionKernel ======================================================
+#
+# Arithmetic over pixels, so the results are exact. An identity kernel has to
+# leave an image alone, and a blur has to spread a single lit pixel into its
+# neighbours - two answers that a kernel doing nothing at all could not give.
+
+proc testImageConvolutionKernel() =
+    block:
+        var kernel = makeImageConvolutionKernel(3.cint)
+        doAssert kernel.getKernelSize() == 3,
+                 "the kernel is " & $kernel.getKernelSize() & " across"
+
+        kernel.clear()
+        doAssert kernel.getKernelValue(1.cint, 1.cint) == 0.0'f32,
+                 "a cleared kernel holds " & $kernel.getKernelValue(1.cint, 1.cint)
+
+        # Identity: the centre passes through and nothing else does.
+        kernel.setKernelValue(1.cint, 1.cint, 1.0'f32)
+        doAssert kernel.getKernelValue(1.cint, 1.cint) == 1.0'f32,
+                 "the centre holds " & $kernel.getKernelValue(1.cint, 1.cint)
+
+        kernel.rescaleAllValues(2.0'f32)
+        doAssert kernel.getKernelValue(1.cint, 1.cint) == 2.0'f32,
+                 "after rescaling the centre holds " &
+                 $kernel.getKernelValue(1.cint, 1.cint)
+
+        kernel.setOverallSum(1.0'f32)
+        doAssert kernel.getKernelValue(1.cint, 1.cint) == 1.0'f32,
+                 "after normalising the centre holds " &
+                 $kernel.getKernelValue(1.cint, 1.cint)
+
+        # A source with one lit pixel in the middle.
+        var source = makeImage(ImagePixelFormat_ARGB, 5.cint, 5.cint, true)
+        source.setPixelAt(2.cint, 2.cint, makeColour(255'u8, 255'u8, 255'u8, 255'u8))
+        doAssert source.getPixelAt(1.cint, 2.cint).getAlpha() == 0'u8,
+                 "the source is lit where it should be dark"
+
+        var identityResult = makeImage(ImagePixelFormat_ARGB, 5.cint, 5.cint, true)
+        kernel.applyToImage(identityResult, source,
+                            makeRectangle(0.cint, 0.cint, 5.cint, 5.cint))
+        doAssert identityResult.getPixelAt(2.cint, 2.cint).getAlpha() > 0'u8,
+                 "the identity kernel lost the lit pixel"
+        doAssert identityResult.getPixelAt(1.cint, 2.cint).getAlpha() == 0'u8,
+                 "the identity kernel spread the lit pixel"
+
+        # A blur spreads it, which is the answer the identity kernel did not
+        # give at the same coordinate.
+        var blur = makeImageConvolutionKernel(3.cint)
+        blur.createGaussianBlur(1.5'f32)
+        var blurred = makeImage(ImagePixelFormat_ARGB, 5.cint, 5.cint, true)
+        blur.applyToImage(blurred, source,
+                          makeRectangle(0.cint, 0.cint, 5.cint, 5.cint))
+        doAssert blurred.getPixelAt(1.cint, 2.cint).getAlpha() > 0'u8,
+                 "the blur did not reach the neighbouring pixel"
+
+testImageConvolutionKernel()
