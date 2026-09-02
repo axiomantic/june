@@ -173,9 +173,15 @@ def map_type(type_spelling, declared, is_return, declaration=None, aliases=None)
     bare = text.replace("const ", "").strip()
 
     if bare.endswith("*") and text.startswith("const "):
-        # The override must keep the const to match the virtual it overrides,
-        # and Nim has no const pointer to declare the callback with.
-        return None
+        # The override keeps the const to match the virtual; the callback gets a
+        # mutable pointer, which the forwarder casts to.
+        pointee = bare[:-1].strip()
+        if pointee in ("void",):
+            return "constrawptr[pointer]"
+        if pointee in primitive_map and primitive_map[pointee]:
+            return f"constrawptr[{primitive_map[pointee]}]"
+        name = nim_name(pointee, declared, declaration, aliases)
+        return f"constrawptr[{name}]" if name else None
 
     if bare in ("void *", "void*"):
         return "pointer"
@@ -369,6 +375,22 @@ def map_constructor_type(clang_type, declared):
     return nim_name(bare, declared, type_declaration(clang_type))
 
 
+def handler_type(mapped):
+    """The Nim type a handler proc declares for a mapped parameter.
+
+    The markers are only meaningful inside the macro; a setter is an ordinary
+    proc, so each one has to be written as the type the callback actually
+    receives. constrawptr[pointer] is already `pointer` and takes no second ptr.
+    """
+    for marker in ("constptr[", "varref["):
+        if mapped.startswith(marker):
+            return "ptr " + mapped[len(marker):-1]
+    if mapped.startswith("constrawptr["):
+        inner = mapped[len("constrawptr["):-1]
+        return inner if inner == "pointer" else f"ptr {inner}"
+    return mapped
+
+
 def base_constructors(cursor, declared):
     """Signatures for the generated class's constructors.
 
@@ -436,10 +458,7 @@ def render_class(cursor, module, declared):
                 return None, f"{argument.type.spelling} in {method.spelling} has no Nim spelling"
             argument_name = argument.spelling or f"arg{index}"
             arguments.append(f"{argument_name}: {mapped}")
-            handler_types.append("ptr " + mapped[len("constptr["):-1]
-                                 if mapped.startswith("constptr[")
-                                 else "ptr " + mapped[len("varref["):-1]
-                                 if mapped.startswith("varref[") else mapped)
+            handler_types.append(handler_type(mapped))
             handler_args.append(f"{argument_name}: {handler_types[-1]}")
 
         returns = map_type(method.result_type.spelling, declared, is_return=True,
@@ -455,9 +474,11 @@ def render_class(cursor, module, declared):
 
         handler = ", ".join(handler_args)
         field = "on" + method.spelling[0].upper() + method.spelling[1:]
+        handler_returns = handler_type(returns) if returns else ""
         setters.append(
             f"proc set{method.spelling[0].upper()}{method.spelling[1:]}Handler*("
-            f"this: var Custom{name}, handler: proc({handler}){(': ' + returns) if returns else ''} "
+            f"this: var Custom{name}, handler: proc({handler})"
+            f"{(': ' + handler_returns) if handler_returns else ''} "
             "{.closure.}) =\n"
             f"    this.{field} = bindClosure(handler)")
 

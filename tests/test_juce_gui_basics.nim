@@ -775,6 +775,11 @@ proc testGeneratedSubclassesConstruct() =
         cdelete value
 
     block:
+        let value = newCustomOutputStream()
+        doAssert not value.isNil, "newCustomOutputStream returned nil"
+        cdelete value
+
+    block:
         let value = newCustomTimeSliceClient()
         doAssert not value.isNil, "newCustomTimeSliceClient returned nil"
         cdelete value
@@ -817,6 +822,11 @@ proc testGeneratedSubclassesConstruct() =
     block:
         let value = newCustomImagePixelDataBackupExtensions()
         doAssert not value.isNil, "newCustomImagePixelDataBackupExtensions returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomAccessibilityCellInterface()
+        doAssert not value.isNil, "newCustomAccessibilityCellInterface returned nil"
         cdelete value
 
     block:

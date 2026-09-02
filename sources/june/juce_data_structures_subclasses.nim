@@ -18,5 +18,12 @@ proc setPerformHandler*(this: var CustomUndoableAction, handler: proc(): bool {.
 proc setUndoHandler*(this: var CustomUndoableAction, handler: proc(): bool {.closure.}) =
     this.onUndo = bindClosure(handler)
 
-# Withheld, with the reason:
-#   ValueTreeSynchroniser: const void * in stateChanged has no Nim spelling
+defineCppClassInternal CustomValueTreeSynchroniser of ValueTreeSynchroniser:
+    include "juce_data_structures/juce_data_structures.h"
+    proc stateChanged(encodedChange: constrawptr[pointer], encodedChangeSize: csize_t) = discard
+
+proc newCustomValueTreeSynchroniser*(tree: ValueTree): ptr CustomValueTreeSynchroniser {.importcpp: "(new june::CustomValueTreeSynchroniser(@))".}
+
+proc setStateChangedHandler*(this: var CustomValueTreeSynchroniser, handler: proc(encodedChange: pointer, encodedChangeSize: csize_t) {.closure.}) =
+    this.onStateChanged = bindClosure(handler)
+
