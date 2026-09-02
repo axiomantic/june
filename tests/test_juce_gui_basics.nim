@@ -2705,4 +2705,49 @@ proc testUnbuildableParameterTypes() =
 
 
 testDrawables()
+# Reordering tabs, and the button each one owns ===============================
+#
+# testTabbedButtonBar above covers the names and the current index. This is the
+# ordering, the per-tab colour, and the TabBarButton the bar builds for each
+# tab, none of which counting alone would show.
+
+proc testTabReordering() =
+    initialiseJuce_GUI()
+
+    block:
+        var bar = makeTabbedButtonBar(TabbedButtonBarOrientation_TabsAtTop)
+
+        let red = makeColour(255'u8, 0'u8, 0'u8, 255'u8)
+        let green = makeColour(0'u8, 255'u8, 0'u8, 255'u8)
+        bar.addTab(makeString("First"), red, -1.cint)
+        bar.addTab(makeString("Second"), green, -1.cint)
+        bar.addTab(makeString("Third"), red, -1.cint)
+
+        doAssert bar.getTabBackgroundColour(1.cint) == green,
+                 "the second tab is not green"
+
+        bar.setCurrentTabIndex(2.cint)
+        doAssert $bar.getCurrentTabName() == "Third",
+                 "the current tab is " & $bar.getCurrentTabName()
+
+        # Moving reorders by name, which a count would not show.
+        bar.moveTab(0.cint, 2.cint)
+        doAssert $bar.getTabNames()[2.cint] == "First",
+                 "after moving, the third tab is " & $bar.getTabNames()[2.cint]
+
+        # The bar builds a TabBarButton per tab, and it carries the name.
+        let button = bar.getTabButton(0.cint)
+        doAssert button != nil, "the first tab has no button"
+        doAssert $button[].getButtonText() == "Second",
+                 "the button reads " & $button[].getButtonText()
+
+        bar.removeTab(0.cint)
+        doAssert bar.getNumTabs() == 2,
+                 "after removing one, " & $bar.getNumTabs() & " remain"
+        doAssert not bar.getTabNames().contains(makeString("Second")),
+                 "the removed tab is still listed"
+
+    shutdownJuce_GUI()
+
 testUnbuildableParameterTypes()
+testTabReordering()
