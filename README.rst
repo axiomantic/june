@@ -383,10 +383,12 @@ The generator reads the JUCE headers with libclang.
 
 .. code-block:: bash
 
-  python3 -m pip install --user libclang
+  # A virtual environment, because a system Python refuses --user installs
+  # under PEP 668. CI uses --break-system-packages on a throwaway runner.
+  python3 -m venv .venv && .venv/bin/pip install libclang
 
   for module in juce_core juce_events juce_data_structures juce_graphics juce_gui_basics; do
-    PYTHONPATH=tools python3 tools/inspect_juce.py --module "$module" > "sources/june/$module.nim"
+    PYTHONPATH=tools .venv/bin/python tools/inspect_juce.py --module "$module" > "sources/june/$module.nim"
   done
 
 A JUCE class with a pure virtual cannot be constructed, so one with no C++
@@ -398,7 +400,7 @@ covers ``Thread``, ``InputStream``, ``OutputStream``, ``Logger``,
 in a module, and is run the same way::
 
   for module in juce_core juce_events juce_data_structures juce_graphics juce_gui_basics; do
-    PYTHONPATH=tools python3 tools/generate_subclasses.py --module "$module" > "sources/june/${module}_subclasses.nim"
+    PYTHONPATH=tools .venv/bin/python tools/generate_subclasses.py --module "$module" > "sources/june/${module}_subclasses.nim"
   done
 
 Both generators read the platform's headers, and JUCE hides some classes behind
