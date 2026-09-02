@@ -2803,4 +2803,66 @@ proc testCallOutBox() =
 
 
 testTabReordering()
+# FileBrowserComponent ========================================================
+#
+# The browser is an ordinary component, so it works with no display. It scans
+# on a background thread, so the test waits for the listing rather than reading
+# the count straight away, and it drives a real temp directory so the answers
+# are the files that were written rather than whatever the machine happens to
+# hold.
+
+proc testFileBrowserComponent() =
+    initialiseJuce_GUI()
+
+    block:
+        let root = june.File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                       .getNonexistentChildFile(makeString("june-browser"), makeString(""))
+        doAssert root.createDirectory().wasOk(), "could not make the temp directory"
+        doAssert root.getChildFile(makeStringRef("alpha.txt"))
+                     .replaceWithText(makeString("a")), "could not write alpha.txt"
+        doAssert root.getChildFile(makeStringRef("beta.txt"))
+                     .replaceWithText(makeString("b")), "could not write beta.txt"
+
+        let flags = cint(FileBrowserComponentFileChooserFlags_openMode) or
+                    cint(FileBrowserComponentFileChooserFlags_canSelectFiles)
+        var browser = makeFileBrowserComponent(flags, root, nil, nil)
+
+        doAssert browser.getRoot() == root,
+                 "the browser is rooted at " & $browser.getRoot().getFullPathName()
+        doAssert not browser.isSaveMode(), "an open-mode browser called itself save mode"
+        doAssert $browser.getActionVerb() == "Open",
+                 "the action verb is " & $browser.getActionVerb()
+        doAssert browser.getNumSelectedFiles() == 0,
+                 "a fresh browser has " & $browser.getNumSelectedFiles() & " files selected"
+
+        # Naming a file makes it the current one, which is how a save dialog
+        # reports what the user typed.
+        browser.setFileName(makeString("alpha.txt"))
+        doAssert $browser.getHighlightedFile().getFileName() == "alpha.txt",
+                 "the highlighted file is " &
+                 $browser.getHighlightedFile().getFileName()
+        doAssert browser.currentFileIsValid(),
+                 "a file that exists was called invalid"
+
+        browser.setFileName(makeString(""))
+        doAssert not browser.currentFileIsValid(),
+                 "an empty name was called valid"
+
+        # Moving the root is what a navigation does, and goUp reverses it.
+        let inner = root.getChildFile(makeStringRef("inner"))
+        doAssert inner.createDirectory().wasOk(), "could not make the inner directory"
+        browser.setRoot(inner)
+        doAssert browser.getRoot() == inner,
+                 "the browser is rooted at " & $browser.getRoot().getFullPathName()
+        browser.goUp()
+        doAssert browser.getRoot() == root,
+                 "after going up the browser is rooted at " &
+                 $browser.getRoot().getFullPathName()
+
+        doAssert root.deleteRecursively(), "could not remove the temp directory"
+
+    shutdownJuce_GUI()
+
+
 testCallOutBox()
+testFileBrowserComponent()
