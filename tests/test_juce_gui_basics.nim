@@ -1267,3 +1267,36 @@ proc testPaintHandlerDraws() =
     shutdownJuce_GUI()
 
 testPaintHandlerDraws()
+
+# The last uncalled subclass setter ===========================================
+#
+# CustomListBoxModel's paint setter had never been called. Its handler takes a
+# Graphics pointer, so this draws through it and checks the pixels arrived -
+# the same round trip the component paint handler makes.
+
+proc testListBoxPaintHandler() =
+    initialiseJuce_GUI()
+
+    block:
+        var painted = 0
+        var model = newCustomListBoxModel()
+        model[].setNumRowsHandler(proc(): cint = 1)
+        model[].setPaintListBoxItemHandler(proc(rowNumber: cint, context: ptr Graphics,
+                                                width, height: cint, rowIsSelected: bool) =
+            painted += 1
+            context[].setColour(makeColour(0'u8, 255'u8, 0'u8, 255'u8))
+            context[].fillRect(makeRectangle(0.cint, 0.cint, width, height)))
+
+        let image = makeImage(ImagePixelFormat_ARGB, 20.cint, 10.cint, true)
+        var context = makeGraphics(image)
+        model[].paintListBoxItem(0.cint, context, 20.cint, 10.cint, false)
+
+        doAssert painted == 1, "the paint handler ran " & $painted & " times"
+        doAssert image.getPixelAt(10.cint, 5.cint).getGreen() == 255,
+                 "what the handler drew did not reach the surface"
+
+        cdelete model
+
+    shutdownJuce_GUI()
+
+testListBoxPaintHandler()
