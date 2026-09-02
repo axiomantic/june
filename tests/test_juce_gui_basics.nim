@@ -1444,3 +1444,48 @@ proc testDisplays() =
     shutdownJuce_GUI()
 
 testDisplays()
+
+# LookAndFeel_V3, at the pixels ===============================================
+#
+# The newer look and feel, checked the same way as V2: give it a surface and
+# read back what it drew. drawTreeviewPlusMinusBox is the useful one, because
+# it takes the area to draw in as an argument rather than reading it from a
+# component, so it can be asked to stay inside a box and checked against it.
+
+proc testLookAndFeelV3Draws() =
+    initialiseJuce_GUI()
+
+    block:
+        var feel = makeLookAndFeel_V3()
+        let image = makeImage(ImagePixelFormat_ARGB, 60.cint, 20.cint, true)
+        var context = makeGraphics(image)
+        doAssert image.getPixelAt(30.cint, 10.cint).getAlpha() == 0,
+                 "a cleared image was not transparent"
+
+        # Draw the box into the left third only.
+        feel.drawTreeviewPlusMinusBox(context,
+                                      makeRectangle(0.0'f32, 0.0'f32, 20.0'f32, 20.0'f32),
+                                      makeColour(0'u8, 0'u8, 0'u8, 255'u8), false, false)
+
+        doAssert image.getPixelAt(10.cint, 10.cint).getAlpha() > 0,
+                 "the plus-minus box left its own area transparent"
+        doAssert image.getPixelAt(50.cint, 10.cint).getAlpha() == 0,
+                 "the plus-minus box drew outside the area it was given"
+
+    block:
+        # A table header background fills the header's own bounds.
+        var feel = makeLookAndFeel_V3()
+        var header = makeTableHeaderComponent()
+        header.setBounds(makeRectangle(0.cint, 0.cint, 40.cint, 10.cint))
+        header.addColumn(makeString("Name"), 1.cint, 40.cint, 30.cint, -1.cint, 1.cint, -1.cint)
+
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 20.cint, true)
+        var context = makeGraphics(image)
+        feel.drawTableHeaderBackground(context, header)
+
+        doAssert image.getPixelAt(20.cint, 5.cint).getAlpha() > 0,
+                 "the header background did not draw"
+
+    shutdownJuce_GUI()
+
+testLookAndFeelV3Draws()
