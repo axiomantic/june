@@ -388,3 +388,28 @@ proc testPixelRGB() =
     doAssert pixel.getAlpha() == 255, "the float overload changed alpha"
 
 testPixelRGB()
+
+# AttributedString ============================================================
+#
+# Text with runs of font and colour attached. The text itself is what a caller
+# reads back, and appending concatenates rather than replacing.
+
+proc testAttributedString() =
+    var text = makeAttributedString(makeString("Hello"))
+    doAssert $text.getText() == "Hello", "getText gave " & $text.getText()
+
+    text.append(makeString(" there"))
+    doAssert $text.getText() == "Hello there", "append gave " & $text.getText()
+
+    # Appending with a colour attaches an attribute and still adds the text.
+    text.append(makeString("!"), makeColour(255'u8, 0'u8, 0'u8, 255'u8))
+    doAssert $text.getText() == "Hello there!", "the coloured append gave " & $text.getText()
+    doAssert text.getNumAttributes() > 0, "no attribute was recorded"
+
+    text.setText(makeString("replaced"))
+    doAssert $text.getText() == "replaced", "setText gave " & $text.getText()
+
+    text.clear()
+    doAssert $text.getText() == "", "clear left " & $text.getText()
+
+testAttributedString()
