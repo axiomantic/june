@@ -822,3 +822,88 @@ proc testStringRefParameters() =
   doAssert pairs.containsKey(key), "a String did not reach the StringRef parameter"
 
 testStringRefParameters()
+
+# Uuid, BigInteger, PropertySet and MemoryOutputStream ========================
+#
+# Four value types with no coverage. All deterministic: the Uuid is built from
+# a string rather than generated, so nothing here depends on randomness.
+
+proc testUuid() =
+  doAssert makeUuid(makeString("")).isNull(), "an empty Uuid was not null"
+
+  let text = "0123456789abcdef0123456789abcdef"
+  let id = makeUuid(makeString(text))
+  doAssert not id.isNull(), "a Uuid built from digits was null"
+  doAssert $id.toString() == text, "toString gave " & $id.toString()
+
+  # The dashed form is the same digits with four dashes in it.
+  let dashed = $id.toDashedString()
+  doAssert dashed.len == text.len + 4, "dashed form is " & dashed
+  doAssert dashed.replace("-", "") == text, "dashed form lost digits: " & dashed
+
+  # Two Uuids built from the same text are equal.
+  doAssert id == makeUuid(makeString(text)), "the same text gave different Uuids"
+
+proc testBigInteger() =
+  var value = makeBigInteger(0.cint)
+  doAssert value.isZero(), "a zero BigInteger did not report zero"
+
+  discard value.setBit(0.cint)
+  doAssert value.isOne(), "setting bit 0 did not give one"
+  doAssert value.toInteger() == 1, "toInteger gave " & $value.toInteger()
+
+  discard value.setBit(3.cint)
+  doAssert value.toInteger() == 9, "bits 0 and 3 gave " & $value.toInteger()
+
+  discard value.clearBit(0.cint)
+  doAssert value.toInteger() == 8, "clearing bit 0 gave " & $value.toInteger()
+
+  # A bit range reads back as the integer it spells.
+  var wide = makeBigInteger(0.cint)
+  discard wide.setRange(4.cint, 4.cint, true)
+  doAssert wide.getBitRangeAsInt(4.cint, 4.cint) == 15'u32,
+           "the range read back as " & $wide.getBitRangeAsInt(4.cint, 4.cint)
+
+  discard wide.clear()
+  doAssert wide.isZero(), "clear left something behind"
+
+proc testPropertySet() =
+  var settings = makePropertySet(false)
+  doAssert not settings.containsKey("missing"), "an empty set claimed a key"
+
+  settings.setValue("name", makejuce_var(makeString("june")))
+  settings.setValue("count", makejuce_var(7.cint))
+  settings.setValue("on", makejuce_var(true))
+
+  doAssert settings.containsKey("name"), "the key did not stick"
+  doAssert $settings.getValue("name", makeString("none")) == "june",
+           "getValue gave " & $settings.getValue("name", makeString("none"))
+  doAssert settings.getIntValue("count", 0.cint) == 7,
+           "getIntValue gave " & $settings.getIntValue("count", 0.cint)
+  doAssert settings.getBoolValue("on", false), "getBoolValue lost the flag"
+
+  # A missing key falls back to what the caller passed.
+  doAssert settings.getIntValue("missing", 42.cint) == 42, "the default was ignored"
+
+  settings.removeValue("name")
+  doAssert not settings.containsKey("name"), "removeValue left the key"
+
+  settings.clear()
+  doAssert not settings.containsKey("count"), "clear left a key"
+
+proc testMemoryOutputStream() =
+  var stream = makeMemoryOutputStream(16.uint64)
+  doAssert stream.getDataSize() == 0, "a fresh stream held " & $stream.getDataSize()
+
+  doAssert stream.writeText(makeString("hello"), false, false, cast[constChar](nil)),
+           "writeText reported failure"
+  doAssert stream.getDataSize() == 5, "the stream holds " & $stream.getDataSize()
+  doAssert $stream.toString() == "hello", "toString gave " & $stream.toString()
+
+  stream.reset()
+  doAssert stream.getDataSize() == 0, "reset left " & $stream.getDataSize() & " bytes"
+
+testUuid()
+testBigInteger()
+testPropertySet()
+testMemoryOutputStream()
