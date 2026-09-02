@@ -67,5 +67,5 @@ proc setCanBackupHandler*(this: var CustomImagePixelDataBackupExtensions, handle
 # Withheld, with the reason:
 #   ImagePixelData: Ptr returned by clone has no Nim spelling
 #   ImageType: ImagePixelData::Ptr returned by create has no Nim spelling
-#   LowLevelGraphicsContext: const Rectangle<int> & in clipToRectangle has no Nim spelling
+#   LowLevelGraphicsContext: fillRect is overloaded, which one handler cannot express
 #   Typeface: Typeface::Ptr returned by createSystemFallback has no Nim spelling

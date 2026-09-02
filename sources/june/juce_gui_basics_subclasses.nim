@@ -163,6 +163,19 @@ proc setGetWrappedConstrainerHandler*(this: var CustomBorderedComponentBoundsCon
 proc setGetAdditionalBorderHandler*(this: var CustomBorderedComponentBoundsConstrainer, handler: proc(): BorderSize[cint] {.closure.}) =
     this.onGetAdditionalBorder = bindClosure(handler)
 
+defineCppClassInternal CustomBubbleComponent of BubbleComponent:
+    include "juce_gui_basics/juce_gui_basics.h"
+    proc getContentSize(width: varref[cint], height: varref[cint]) = discard
+    proc paintContent(g: varref[Graphics], width: cint, height: cint) = discard
+
+proc newCustomBubbleComponent*(): ptr CustomBubbleComponent {.importcpp: "(new june::CustomBubbleComponent)".}
+
+proc setGetContentSizeHandler*(this: var CustomBubbleComponent, handler: proc(width: ptr cint, height: ptr cint) {.closure.}) =
+    this.onGetContentSize = bindClosure(handler)
+
+proc setPaintContentHandler*(this: var CustomBubbleComponent, handler: proc(g: ptr Graphics, width: cint, height: cint) {.closure.}) =
+    this.onPaintContent = bindClosure(handler)
+
 defineCppClassInternal CustomButtonPropertyComponent of ButtonPropertyComponent:
     include "juce_gui_basics/juce_gui_basics.h"
     proc buttonClicked() = discard
@@ -175,6 +188,27 @@ proc setButtonClickedHandler*(this: var CustomButtonPropertyComponent, handler: 
 
 proc setGetButtonTextHandler*(this: var CustomButtonPropertyComponent, handler: proc(): String {.closure.}) =
     this.onGetButtonText = bindClosure(handler)
+
+defineCppClassInternal CustomCachedComponentImage of CachedComponentImage:
+    include "juce_gui_basics/juce_gui_basics.h"
+    proc paint(arg0: varref[Graphics]) = discard
+    proc invalidateAll(): bool = discard
+    proc invalidate(area: constptr[Rectangle[cint]]): bool = discard
+    proc releaseResources() = discard
+
+proc newCustomCachedComponentImage*(): ptr CustomCachedComponentImage {.importcpp: "(new june::CustomCachedComponentImage)".}
+
+proc setPaintHandler*(this: var CustomCachedComponentImage, handler: proc(arg0: ptr Graphics) {.closure.}) =
+    this.onPaint = bindClosure(handler)
+
+proc setInvalidateAllHandler*(this: var CustomCachedComponentImage, handler: proc(): bool {.closure.}) =
+    this.onInvalidateAll = bindClosure(handler)
+
+proc setInvalidateHandler*(this: var CustomCachedComponentImage, handler: proc(area: ptr Rectangle[cint]): bool {.closure.}) =
+    this.onInvalidate = bindClosure(handler)
+
+proc setReleaseResourcesHandler*(this: var CustomCachedComponentImage, handler: proc() {.closure.}) =
+    this.onReleaseResources = bindClosure(handler)
 
 defineCppClassInternal CustomComponentMovementWatcher of ComponentMovementWatcher:
     include "juce_gui_basics/juce_gui_basics.h"
@@ -397,6 +431,89 @@ proc setIsInterestedInTextDragHandler*(this: var CustomTextDragAndDropTarget, ha
 proc setTextDroppedHandler*(this: var CustomTextDragAndDropTarget, handler: proc(text: ptr String, x: cint, y: cint) {.closure.}) =
     this.onTextDropped = bindClosure(handler)
 
+defineCppClassInternal CustomTextInputTarget of TextInputTarget:
+    include "juce_gui_basics/juce_gui_basics.h"
+    proc isTextInputActive(): bool {.cppconst.} = discard
+    proc getHighlightedRegion(): Range[cint] {.cppconst.} = discard
+    proc setHighlightedRegion(newRange: constptr[Range[cint]]) = discard
+    proc setTemporaryUnderlining(underlinedRegions: constptr[Array[Range[cint]]]) = discard
+    proc getTextInRange(range: constptr[Range[cint]]): String {.cppconst.} = discard
+    proc insertTextAtCaret(textToInsert: constptr[String]) = discard
+    proc getCaretPosition(): cint {.cppconst.} = discard
+    proc getCaretRectangleForCharIndex(characterIndex: cint): Rectangle[cint] {.cppconst.} = discard
+    proc getTotalNumChars(): cint {.cppconst.} = discard
+    proc getCharIndexForPoint(point: Point[cint]): cint {.cppconst.} = discard
+    proc getTextBounds(textRange: Range[cint]): RectangleList[cint] {.cppconst.} = discard
+
+proc newCustomTextInputTarget*(): ptr CustomTextInputTarget {.importcpp: "(new june::CustomTextInputTarget)".}
+
+proc setIsTextInputActiveHandler*(this: var CustomTextInputTarget, handler: proc(): bool {.closure.}) =
+    this.onIsTextInputActive = bindClosure(handler)
+
+proc setGetHighlightedRegionHandler*(this: var CustomTextInputTarget, handler: proc(): Range[cint] {.closure.}) =
+    this.onGetHighlightedRegion = bindClosure(handler)
+
+proc setSetHighlightedRegionHandler*(this: var CustomTextInputTarget, handler: proc(newRange: ptr Range[cint]) {.closure.}) =
+    this.onSetHighlightedRegion = bindClosure(handler)
+
+proc setSetTemporaryUnderliningHandler*(this: var CustomTextInputTarget, handler: proc(underlinedRegions: ptr Array[Range[cint]]) {.closure.}) =
+    this.onSetTemporaryUnderlining = bindClosure(handler)
+
+proc setGetTextInRangeHandler*(this: var CustomTextInputTarget, handler: proc(range: ptr Range[cint]): String {.closure.}) =
+    this.onGetTextInRange = bindClosure(handler)
+
+proc setInsertTextAtCaretHandler*(this: var CustomTextInputTarget, handler: proc(textToInsert: ptr String) {.closure.}) =
+    this.onInsertTextAtCaret = bindClosure(handler)
+
+proc setGetCaretPositionHandler*(this: var CustomTextInputTarget, handler: proc(): cint {.closure.}) =
+    this.onGetCaretPosition = bindClosure(handler)
+
+proc setGetCaretRectangleForCharIndexHandler*(this: var CustomTextInputTarget, handler: proc(characterIndex: cint): Rectangle[cint] {.closure.}) =
+    this.onGetCaretRectangleForCharIndex = bindClosure(handler)
+
+proc setGetTotalNumCharsHandler*(this: var CustomTextInputTarget, handler: proc(): cint {.closure.}) =
+    this.onGetTotalNumChars = bindClosure(handler)
+
+proc setGetCharIndexForPointHandler*(this: var CustomTextInputTarget, handler: proc(point: Point[cint]): cint {.closure.}) =
+    this.onGetCharIndexForPoint = bindClosure(handler)
+
+proc setGetTextBoundsHandler*(this: var CustomTextInputTarget, handler: proc(textRange: Range[cint]): RectangleList[cint] {.closure.}) =
+    this.onGetTextBounds = bindClosure(handler)
+
+defineCppClassInternal CustomToolbarItemComponent of ToolbarItemComponent:
+    include "juce_gui_basics/juce_gui_basics.h"
+    proc getToolbarItemSizes(toolbarThickness: cint, isToolbarVertical: bool, preferredSize: varref[cint], minSize: varref[cint], maxSize: varref[cint]): bool = discard
+    proc paintButtonArea(g: varref[Graphics], width: cint, height: cint, isMouseOver: bool, isMouseDown: bool) = discard
+    proc contentAreaChanged(newBounds: constptr[Rectangle[cint]]) = discard
+
+proc newCustomToolbarItemComponent*(itemId: cint, labelText: String, isBeingUsedAsAButton: bool): ptr CustomToolbarItemComponent {.importcpp: "(new june::CustomToolbarItemComponent(@))".}
+
+proc setGetToolbarItemSizesHandler*(this: var CustomToolbarItemComponent, handler: proc(toolbarThickness: cint, isToolbarVertical: bool, preferredSize: ptr cint, minSize: ptr cint, maxSize: ptr cint): bool {.closure.}) =
+    this.onGetToolbarItemSizes = bindClosure(handler)
+
+proc setPaintButtonAreaHandler*(this: var CustomToolbarItemComponent, handler: proc(g: ptr Graphics, width: cint, height: cint, isMouseOver: bool, isMouseDown: bool) {.closure.}) =
+    this.onPaintButtonArea = bindClosure(handler)
+
+proc setContentAreaChangedHandler*(this: var CustomToolbarItemComponent, handler: proc(newBounds: ptr Rectangle[cint]) {.closure.}) =
+    this.onContentAreaChanged = bindClosure(handler)
+
+defineCppClassInternal CustomToolbarItemFactory of ToolbarItemFactory:
+    include "juce_gui_basics/juce_gui_basics.h"
+    proc getAllToolbarItemIds(ids: varref[Array[cint]]) = discard
+    proc getDefaultItemSet(ids: varref[Array[cint]]) = discard
+    proc createItem(itemId: cint): ptr ToolbarItemComponent = discard
+
+proc newCustomToolbarItemFactory*(): ptr CustomToolbarItemFactory {.importcpp: "(new june::CustomToolbarItemFactory)".}
+
+proc setGetAllToolbarItemIdsHandler*(this: var CustomToolbarItemFactory, handler: proc(ids: ptr Array[cint]) {.closure.}) =
+    this.onGetAllToolbarItemIds = bindClosure(handler)
+
+proc setGetDefaultItemSetHandler*(this: var CustomToolbarItemFactory, handler: proc(ids: ptr Array[cint]) {.closure.}) =
+    this.onGetDefaultItemSet = bindClosure(handler)
+
+proc setCreateItemHandler*(this: var CustomToolbarItemFactory, handler: proc(itemId: cint): ptr ToolbarItemComponent {.closure.}) =
+    this.onCreateItem = bindClosure(handler)
+
 defineCppClassInternal CustomTooltipClient of TooltipClient:
     include "juce_gui_basics/juce_gui_basics.h"
     proc getTooltip(): String = discard
@@ -419,13 +536,8 @@ proc setMightContainSubItemsHandler*(this: var CustomTreeViewItem, handler: proc
 #   AccessibilityCellInterface: const AccessibilityHandler * returned by getTableHandler has no Nim spelling
 #   AccessibilityTableInterface: const AccessibilityHandler * returned by getCellHandler has no Nim spelling
 #   ApplicationCommandTarget: Array<CommandID> & in getAllCommands has no Nim spelling
-#   BubbleComponent: int & in getContentSize has no Nim spelling
-#   CachedComponentImage: const Rectangle<int> & in invalidate has no Nim spelling
 #   ComponentPeer: a pure virtual is private, so no subclass can implement it
 #   ComponentTraverser: std::vector<Component *> returned by getAllComponents has no Nim spelling
 #   DrawableShape: abstract with no overridable pure virtual
 #   MultiDocumentPanel: std::function<void (bool)> in tryToCloseDocumentAsync has no Nim spelling
-#   TextInputTarget: const Range<int> & in setHighlightedRegion has no Nim spelling
 #   ThreadWithProgressWindow: abstract with no overridable pure virtual
-#   ToolbarItemComponent: int & in getToolbarItemSizes has no Nim spelling
-#   ToolbarItemFactory: Array<int> & in getAllToolbarItemIds has no Nim spelling
