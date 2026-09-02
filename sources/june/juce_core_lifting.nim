@@ -80,7 +80,7 @@ include juce_core_subclasses
 # String and MemoryBlock both expose a C++ iterator, which has no Nim spelling,
 # and neither had a Nim one to loop with instead.
 
-iterator items*(this: String): uint16 =
+iterator items*(this: String): uint32 =
     for index in 0 ..< this.length():
         yield this[index]
 

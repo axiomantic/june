@@ -647,8 +647,8 @@ proc testRestoredBindings() =
   doAssert again.nextInt() == first, "the seeded sequence did not reproduce"
 
   # String::quoted wraps in the character it is given.
-  doAssert $makeString("hi").quoted(uint16('\'')) == "'hi'",
-           "quoted gave " & $makeString("hi").quoted(uint16('\''))
+  doAssert $makeString("hi").quoted(uint32('\'')) == "'hi'",
+           "quoted gave " & $makeString("hi").quoted(uint32('\''))
 
   # DynamicObject::clone returns an owning pointer to a copy.
   var original = makeDynamicObject()
@@ -768,7 +768,7 @@ proc testStringOperators() =
   appended += "lit"
   doAssert $appended == "mmbblit", "String += literal gave " & $appended
 
-  doAssert a[0.cint] == uint16('a'), "String [] gave " & $a[0.cint]
+  doAssert a[0.cint] == uint32('a'), "String [] gave " & $a[0.cint]
   doAssert a == makeString("aa"), "String == String"
   doAssert a == "aa", "String == literal"
 
@@ -928,8 +928,8 @@ proc testCharPointerUTF8() =
 
   # getAndAdvance walks the buffer one character at a time.
   var cursor = makeCharPointer_UTF8(cast[ptr char](buffer[0].addr))
-  doAssert cursor.getAndAdvance() == uint16('a'), "the first character"
-  doAssert cursor.getAndAdvance() == uint16('b'), "the second character"
+  doAssert cursor.getAndAdvance() == uint32('a'), "the first character"
+  doAssert cursor.getAndAdvance() == uint32('b'), "the second character"
   doAssert cursor.length() == 1'u64, "after two steps the rest is " & $cursor.length()
 
   var empty = ""
@@ -937,3 +937,70 @@ proc testCharPointerUTF8() =
            "an empty buffer reported non-empty"
 
 testCharPointerUTF8()
+
+# ByteOrder and CharacterFunctions ============================================
+#
+# Both are namespaces of static functions, so every assertion here is exact and
+# independent of the host - except isBigEndian, which is a property of it.
+
+proc testByteOrder() =
+  doAssert ByteOrder.swap(0x1234'u16) == 0x3412'u16,
+           "16-bit swap gave " & $ByteOrder.swap(0x1234'u16)
+  doAssert ByteOrder.swap(0x12345678'u32) == 0x78563412'u32,
+           "32-bit swap gave " & $ByteOrder.swap(0x12345678'u32)
+  doAssert ByteOrder.swap(0x0123456789abcdef'u64) == 0xefcdab8967452301'u64,
+           "64-bit swap gave " & $ByteOrder.swap(0x0123456789abcdef'u64)
+
+  # Swapping twice is the identity.
+  doAssert ByteOrder.swap(ByteOrder.swap(0xbeef'u16)) == 0xbeef'u16,
+           "a double swap did not round trip"
+
+  # The two readers disagree on the same bytes, in the way the names say.
+  var bytes = [0x01'u8, 0x02'u8, 0x03'u8, 0x04'u8]
+  let raw = cast[constPointer](bytes[0].addr)
+  doAssert ByteOrder.littleEndianInt(raw) == 0x04030201'u32,
+           "littleEndianInt gave " & $ByteOrder.littleEndianInt(raw)
+  doAssert ByteOrder.bigEndianInt(raw) == 0x01020304'u32,
+           "bigEndianInt gave " & $ByteOrder.bigEndianInt(raw)
+
+  # Whichever way the host runs, the two answers are byte-swaps of each other.
+  doAssert ByteOrder.swap(ByteOrder.littleEndianInt(raw)) == ByteOrder.bigEndianInt(raw),
+           "the two readers are not swaps of each other"
+
+proc testCharacterFunctions() =
+  doAssert CharacterFunctions.toUpperCase(uint32('a')) == uint32('A'), "toUpperCase"
+  doAssert CharacterFunctions.toLowerCase(uint32('Z')) == uint32('z'), "toLowerCase"
+  doAssert CharacterFunctions.isUpperCase(uint32('A')), "isUpperCase on A"
+  doAssert not CharacterFunctions.isUpperCase(uint32('a')), "isUpperCase on a"
+  doAssert CharacterFunctions.isLowerCase(uint32('a')), "isLowerCase on a"
+
+  # isDigit and isWhitespace are left out on purpose: JUCE declares each twice,
+  # once taking char and once taking juce_wchar, and an argument from Nim
+  # converts to both, so C++ cannot pick. Neither overload is callable.
+
+  # A character with no case is unchanged by either conversion.
+  doAssert CharacterFunctions.toUpperCase(uint32('5')) == uint32('5'), "toUpperCase on a digit"
+  doAssert CharacterFunctions.toLowerCase(uint32('5')) == uint32('5'), "toLowerCase on a digit"
+
+testByteOrder()
+testCharacterFunctions()
+
+# juce_wchar is 32 bits =======================================================
+#
+# JUCE's character type is 32-bit, and the generator briefly mapped it to
+# uint16 because libclang resolves juce_wchar to wchar_t. Everything that
+# returned a character truncated silently: String's operator[] gave 0xF600 for
+# U+1F600 rather than failing. This is the assertion that says it does not.
+
+proc testWideCharacters() =
+  let grinning = makeString("\u{1F600}")
+  doAssert grinning.length() == 1, "JUCE stored " & $grinning.length() & " characters"
+  doAssert uint32(grinning[0.cint]) == 0x1F600'u32,
+           "the character came back as " & $uint32(grinning[0.cint])
+
+  # And through the cursor, which returns the same type.
+  var cursor = grinning.getCharPointer()
+  doAssert uint32(cursor.getAndAdvance()) == 0x1F600'u32,
+           "getAndAdvance gave " & $uint32(cursor.getAndAdvance())
+
+testWideCharacters()

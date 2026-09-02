@@ -1095,7 +1095,7 @@ proc `tiltY=`*(this: var PenDetails, value: cfloat) {.header: juce_gui_basics, i
 proc `==`*(this: PenDetails, other: PenDetails): bool {.error: "juce::PenDetails defines no operator==; compare a property instead".}
 
 proc makeKeyPress*(): KeyPress {.header: juce_gui_basics, importcpp: "juce::KeyPress(@)".}
-proc makeKeyPress*(keyCode: cint, modifiers: ModifierKeys, textCharacter: uint16): KeyPress {.header: juce_gui_basics, importcpp: "juce::KeyPress(@)".}
+proc makeKeyPress*(keyCode: cint, modifiers: ModifierKeys, textCharacter: uint32): KeyPress {.header: juce_gui_basics, importcpp: "juce::KeyPress(@)".}
 proc makeKeyPress*(keyCode: cint): KeyPress {.header: juce_gui_basics, importcpp: "juce::KeyPress(@)".}
 proc spaceKey*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::spaceKey)".}
 proc escapeKey*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::escapeKey)".}
@@ -1177,7 +1177,7 @@ proc `==`*(this: KeyPress, keyCode: cint): bool {.header: juce_gui_basics, impor
 proc isValid*(this: KeyPress): bool {.header: juce_gui_basics, importcpp: "#.isValid()".}
 proc getKeyCode*(this: KeyPress): cint {.header: juce_gui_basics, importcpp: "#.getKeyCode()".}
 proc getModifiers*(this: KeyPress): ModifierKeys {.header: juce_gui_basics, importcpp: "#.getModifiers()".}
-proc getTextCharacter*(this: KeyPress): uint16 {.header: juce_gui_basics, importcpp: "#.getTextCharacter()".}
+proc getTextCharacter*(this: KeyPress): uint32 {.header: juce_gui_basics, importcpp: "#.getTextCharacter()".}
 proc isKeyCode*(this: KeyPress, keyCodeToCompare: cint): bool {.header: juce_gui_basics, importcpp: "#.isKeyCode(@)".}
 proc createFromDescription*(this: typedesc[KeyPress], textVersion: String): KeyPress {.header: juce_gui_basics, importcpp: "juce::KeyPress::createFromDescription(@)".}
 proc getTextDescription*(this: KeyPress): String {.header: juce_gui_basics, importcpp: "#.getTextDescription()".}
@@ -3025,7 +3025,7 @@ proc replaceColour*(this: var DrawableText, originalColour: Colour, replacementC
 proc createAccessibilityHandler*(this: var DrawableText): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
 proc `==`*(this: DrawableText, other: DrawableText): bool {.error: "juce::DrawableText defines no operator==; compare a property instead".}
 
-proc makeTextEditor*(componentName: String, passwordCharacter: uint16): TextEditor {.header: juce_gui_basics, importcpp: "juce::TextEditor(@)".}
+proc makeTextEditor*(componentName: String, passwordCharacter: uint32): TextEditor {.header: juce_gui_basics, importcpp: "juce::TextEditor(@)".}
 proc onTextChange*(this: TextEditor): CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onTextChange".}
 proc onTextChange*(this: var TextEditor): var CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onTextChange".}
 proc `onTextChange=`*(this: var TextEditor, value: CppFunctionObjectN0) {.header: juce_gui_basics, importcpp: "#.onTextChange = #".}
@@ -3051,8 +3051,8 @@ proc setCaretVisible*(this: var TextEditor, shouldBeVisible: bool) {.header: juc
 proc isCaretVisible*(this: TextEditor): bool {.header: juce_gui_basics, importcpp: "#.isCaretVisible()".}
 proc setScrollbarsShown*(this: var TextEditor, shouldBeEnabled: bool) {.header: juce_gui_basics, importcpp: "#.setScrollbarsShown(@)".}
 proc areScrollbarsShown*(this: TextEditor): bool {.header: juce_gui_basics, importcpp: "#.areScrollbarsShown()".}
-proc setPasswordCharacter*(this: var TextEditor, passwordCharacter: uint16) {.header: juce_gui_basics, importcpp: "#.setPasswordCharacter(@)".}
-proc getPasswordCharacter*(this: TextEditor): uint16 {.header: juce_gui_basics, importcpp: "#.getPasswordCharacter()".}
+proc setPasswordCharacter*(this: var TextEditor, passwordCharacter: uint32) {.header: juce_gui_basics, importcpp: "#.setPasswordCharacter(@)".}
+proc getPasswordCharacter*(this: TextEditor): uint32 {.header: juce_gui_basics, importcpp: "#.getPasswordCharacter()".}
 proc setPopupMenuEnabled*(this: var TextEditor, menuEnabled: bool) {.header: juce_gui_basics, importcpp: "#.setPopupMenuEnabled(@)".}
 proc isPopupMenuEnabled*(this: TextEditor): bool {.header: juce_gui_basics, importcpp: "#.isPopupMenuEnabled()".}
 proc isPopupMenuCurrentlyActive*(this: TextEditor): bool {.header: juce_gui_basics, importcpp: "#.isPopupMenuCurrentlyActive()".}
@@ -4025,7 +4025,7 @@ proc grabFocus*(this: var ComponentPeer) {.header: juce_gui_basics, importcpp: "
 proc handleFocusGain*(this: var ComponentPeer) {.header: juce_gui_basics, importcpp: "#.handleFocusGain()".}
 proc handleFocusLoss*(this: var ComponentPeer) {.header: juce_gui_basics, importcpp: "#.handleFocusLoss()".}
 proc getLastFocusedSubcomponent*(this: ComponentPeer): ptr Component {.header: juce_gui_basics, importcpp: "#.getLastFocusedSubcomponent()".}
-proc handleKeyPress*(this: var ComponentPeer, keyCode: cint, textCharacter: uint16): bool {.header: juce_gui_basics, importcpp: "#.handleKeyPress(@)".}
+proc handleKeyPress*(this: var ComponentPeer, keyCode: cint, textCharacter: uint32): bool {.header: juce_gui_basics, importcpp: "#.handleKeyPress(@)".}
 proc handleKeyPress*(this: var ComponentPeer, key: KeyPress): bool {.header: juce_gui_basics, importcpp: "#.handleKeyPress(@)".}
 proc handleKeyUpOrDown*(this: var ComponentPeer, isKeyDown: bool): bool {.header: juce_gui_basics, importcpp: "#.handleKeyUpOrDown(@)".}
 proc handleModifierKeysChange*(this: var ComponentPeer) {.header: juce_gui_basics, importcpp: "#.handleModifierKeysChange()".}

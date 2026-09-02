@@ -117,7 +117,14 @@ def remap_type(t, *args):
         "short": "int16",
         "long": "int64",
         "double": "float64",
-        "wchar_t": "uint16",
+        # 32 bits on macOS and Linux, which are the platforms this binding
+        # supports. libclang resolves juce_wchar to wchar_t before the mapping
+        # below is consulted, so getting this wrong truncated every character
+        # above U+FFFF - String's operator[] returned 0xF600 for U+1F600
+        # rather than failing. JUCE only spells CharPointer_UTF16::CharType as
+        # wchar_t where wchar_t is 16-bit, which is Windows, and there it uses
+        # int16 instead.
+        "wchar_t": "uint32",
         "juce::int8": "int8",
         "juce::int16": "int16",
         "juce::int32": "int32",
