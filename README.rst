@@ -341,6 +341,18 @@ Hand-written additions live in the ``*_lifting.nim`` files and in
   ``JUCEApplication`` and ``DocumentWindow`` that were already there. Most of those JUCE classes have a
   pure virtual, so they could not be instantiated without a subclass at all.
 
+A ``StringRef`` does not own its characters, exactly as in C++. Building one
+from a temporary leaves it pointing at freed memory, and the result is a wrong
+answer rather than a crash::
+
+  let bad = makeStringRef(makeString("aa"))   # the String is already gone
+  let ok = makeString("aa")
+  let good = makeStringRef(ok)                # ok outlives good
+
+Passing a Nim string straight to a ``StringRef`` parameter is safe: the
+converter's temporary lives for the duration of the call, which is the same
+contract C++ gives.
+
 Instantiate a class template with ``cint`` or ``cfloat``, never Nim's ``int`` or
 ``float``. Nim puts the parameter's C++ name into the template, and Nim's
 ``int`` is 64-bit, so ``Rectangle[int]`` asks for a ``juce::Rectangle<long
