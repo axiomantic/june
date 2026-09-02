@@ -607,3 +607,31 @@ proc testRectangleHelpers() =
 
 testRangeHelpers()
 testRectangleHelpers()
+
+# Range's setters =============================================================
+#
+# These mutate through a reference, so they need a var receiver or Nim lets
+# them be called on a let binding and quietly changes it. Point's setters
+# already had one; Range's did not.
+
+proc testRangeSetters() =
+    var span = makeRange(10.cint, 20.cint)
+
+    span.setStart(5.cint)
+    doAssert span.getStart() == 5, "setStart left the start at " & $span.getStart()
+    doAssert span.getEnd() == 20, "setStart moved the end"
+
+    span.setEnd(30.cint)
+    doAssert span.getEnd() == 30, "setEnd left the end at " & $span.getEnd()
+
+    span.setLength(10.cint)
+    doAssert span.getLength() == 10, "setLength gave " & $span.getLength()
+    doAssert span.getStart() == 5, "setLength moved the start"
+
+    var origin = makePoint(1.cint, 2.cint)
+    origin.setX(9.cint)
+    origin.setY(8.cint)
+    doAssert origin.getX() == 9 and origin.getY() == 8,
+             "the Point setters did not take"
+
+testRangeSetters()
