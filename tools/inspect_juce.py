@@ -1021,7 +1021,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
             [constructor_arg_types(x) for x in public_constructors], class_name)
 
         for ctor in public_constructors:
-            ctor_args, ctor_types = [], []
+            ctor_args, ctor_types, ctor_comment = [], [], ""
             for count, arg in enumerate(ctor.get_arguments()):
                 argument_type = remap_type(arg.type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap)
                 ctor_args.append(f"{remap_argument_name(arg.spelling, count)}: {argument_type}")
@@ -1031,7 +1031,10 @@ def run_main(juce_module_name, juce_class_name_to_export):
                     and ctor_types[0] in string_like_types
                     and ctor_types[0] != class_name
                     and ctor_types[0] != keep_string_constructor):
-                continue
+                ctor_comment = "# "
+                ctor_reason = f"redundant with the {keep_string_constructor} overload, which a string also reaches"
+            else:
+                ctor_reason = ""
 
             # A copy or move constructor would just shadow the plain one.
             if len(ctor_types) == 1 and ctor_types[0].replace("var ", "").replace("lent ", "") == class_name:
@@ -1041,7 +1044,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
             ctor_invalid = ("<" in rendered or "::" in rendered or "(" in rendered
                             or is_c_array(rendered)
                             or not type_is_declared(rendered, declared_type_names))
-            ctor_comment = "# " if ctor_invalid else ""
+            ctor_comment = ctor_comment or ("# " if ctor_invalid else "")
 
             declaration = nim_constructor_def.format(**{
                 "comment": ctor_comment,
@@ -1049,7 +1052,8 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 "method_args": ", ".join(ctor_args),
                 "juce_module_name": juce_module_name,
                 "spelling": qualified_name,
-                "reason": "  # a type that cannot be spelled in Nim" if ctor_comment else "" })
+                "reason": (f"  # {ctor_reason}" if ctor_reason
+                           else "  # a type that cannot be spelled in Nim" if ctor_comment else "") })
 
             signature = (f"make{class_name}", tuple(ctor_types))
             if declaration in emitted_declarations or signature in emitted_signatures:
@@ -1157,7 +1161,11 @@ def run_main(juce_module_name, juce_class_name_to_export):
             if (preferred_operand is not None and len(argument_types) == 1
                     and argument_types[0] in string_like_types
                     and argument_types[0] != preferred_operand):
-                continue
+                # Emitted as a comment rather than dropped, so that a binding
+                # withheld to keep a call unambiguous is as visible as one
+                # withheld because its type has no Nim spelling.
+                comment = "# "
+                reason = f"redundant with the {preferred_operand} overload, which a string also reaches"
 
             method_spelling = m.spelling
             method_name = remap_method_name(remap_wrapped_method_name(class_name, m.spelling))
