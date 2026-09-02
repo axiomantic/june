@@ -816,10 +816,26 @@ proc testRemainingGraphicsSubclasses() =
     block:
         var pixels = newCustomImagePixelData(ImagePixelFormat_ARGB, 4.cint, 4.cint)
         doAssert not pixels.isNil(), "the pixel data was not built"
+        # clone returns ImagePixelData::Ptr. The generator used to type this
+        # against DynamicObject::Ptr, which C++ rejects as an override.
+        pixels[].setCloneHandler(proc(): ReferenceCountedObjectPtr[ImagePixelData] =
+            makeReferenceCountedObjectPtr[ImagePixelData]())
+        pixels[].setCreateLowLevelContextHandler(
+            proc(): UniquePtr[LowLevelGraphicsContext] =
+                makeUniquePtr[LowLevelGraphicsContext]())
+        pixels[].setCreateTypeHandler(proc(): UniquePtr[ImageType] =
+            makeUniquePtr[ImageType]())
+        pixels[].setInitialiseBitmapDataHandler(proc(arg0: ptr ImageBitmapData,
+                                                     x: cint, y: cint,
+                                                     arg3: ImageBitmapDataReadWriteMode) = discard)
         cdelete pixels
 
         var typeface = newCustomTypeface(makeString("Name"), makeString("Style"))
         doAssert not typeface.isNil(), "the typeface was not built"
+        typeface[].setCreateSystemFallbackHandler(
+            proc(text: ptr String, language: ptr String): ReferenceCountedObjectPtr[Typeface] =
+                makeReferenceCountedObjectPtr[Typeface]())
+        typeface[].setGetNativeDetailsHandler(proc(): ptr TypefaceNative = nil)
         cdelete typeface
 
 testRemainingGraphicsSubclasses()

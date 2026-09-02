@@ -175,6 +175,9 @@ proc testRemainingEventsSubclasses() =
     block:
         var connection = newCustomInterprocessConnection(true, 0xf2b49e2c'u32)
         doAssert not connection.isNil(), "the connection was not built"
+        connection[].setConnectionMadeHandler(proc() = discard)
+        connection[].setConnectionLostHandler(proc() = discard)
+        connection[].setMessageReceivedHandler(proc(message: ptr MemoryBlock) = discard)
         cdelete connection
 
 testRemainingEventsSubclasses()
