@@ -494,3 +494,27 @@ proc testXmlRoundTrip() =
   doAssert $window[].getAllSubText() == "hello"
 
 testXmlRoundTrip()
+
+# URL =========================================================================
+#
+# URL parses on construction, so the accessors are pure value reads and need no
+# network. withParameter returns a new URL rather than mutating the receiver.
+
+proc testURL() =
+  let url = makeURL(makeString("https://example.com:8080/a/b?x=1"))
+  doAssert url.isWellFormed(), "a plain https URL was rejected"
+  doAssert $url.getScheme() == "https", "scheme was " & $url.getScheme()
+  doAssert $url.getDomain() == "example.com", "domain was " & $url.getDomain()
+  doAssert url.getPort() == 8080, "port was " & $url.getPort()
+  doAssert $url.getSubPath() == "a/b", "sub path was " & $url.getSubPath()
+
+  # The query string is only included when asked for.
+  doAssert not ($url.toString(false)).contains("x=1"), "toString(false) kept the query"
+  doAssert ($url.toString(true)).contains("x=1"), "toString(true) dropped the query"
+
+  # withParameter leaves the receiver alone.
+  let extended = url.withParameter(makeString("y"), makeString("2"))
+  doAssert ($extended.toString(true)).contains("y=2"), "the parameter was not added"
+  doAssert not ($url.toString(true)).contains("y=2"), "withParameter mutated the original"
+
+testURL()

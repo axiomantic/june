@@ -18,8 +18,8 @@ defineCppClassInternal JUCEApplication of JUCEApplication:
     proc getApplicationName(): constval[String] = discard
     proc getApplicationVersion(): constval[String] = discard
     proc moreThanOneInstanceAllowed(): bool = discard
-    proc anotherInstanceStarted(commandLine: constref[String]) = discard
-    proc initialise(commandLine: constref[String]) = discard
+    proc anotherInstanceStarted(commandLine: constptr[String]) = discard
+    proc initialise(commandLine: constptr[String]) = discard
     proc shutdown() = discard
     proc systemRequestedQuit() = discard
     proc suspended() = discard
@@ -97,16 +97,11 @@ proc newCustomComponent*(): ptr CustomComponent {.importcpp: "(new june::CustomC
 # paint receives a pointer because its C++ parameter is a mutable Graphics&,
 # which a std::function cannot take by value - Graphics is not copyable.
 #
-# The binding goes through a typed temporary. Assigning the bindClosure call
-# straight to the field makes Nim emit the importcpp pattern unsubstituted, as
-# `std::function<void('0)>`, which does not compile. Binding it to a variable of
-# the field's type first produces the right instantiation, so the wart lives
-# here once instead of at every call site.
-# Every handler is set through one of these rather than by assigning the field.
-# Assigning a bindClosure call straight to a callback field makes Nim emit the
-# importcpp pattern unsubstituted, as `std::function<void('0)>`, and emit broken
-# #line directives. Binding to a variable of the field's type first produces the
-# right instantiation, so the workaround lives here once.
+# The setters take a plain Nim closure and name the field's type themselves, so
+# a caller does not have to spell CppFunctionObjectN1[ptr Graphics]. Assigning
+# the field directly works too.
+# One setter per handler, so a caller passes a plain Nim closure and never has
+# to name the function-object type.
 template defineHandlerSetter(setterName, fieldName, ArgType: untyped) =
     proc setterName*(this: var CustomComponent, handler: proc(arg: ptr ArgType) {.closure.}) =
         let bound: CppFunctionObjectN1[ptr ArgType] = bindClosure(handler)
@@ -227,9 +222,8 @@ defineCppClassInternal CustomSliderListener of SliderListener:
 
 proc newCustomSliderListener*(): ptr CustomSliderListener {.importcpp: "(new june::CustomSliderListener)".}
 
-# Set through these rather than by assigning the field, for the same reason the
-# component handlers are: a bindClosure call assigned straight to one makes Nim
-# emit the importcpp pattern unsubstituted and broken #line directives with it.
+# The same shape as the component handler setters: a caller passes a plain Nim
+# closure and does not name the function-object type.
 template defineSliderListenerSetter(setterName, fieldName: untyped) =
     proc setterName*(this: var CustomSliderListener, handler: proc(slider: ptr Slider) {.closure.}) =
         let bound: CppFunctionObjectN1[ptr Slider] = bindClosure(handler)

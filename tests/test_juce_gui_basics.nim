@@ -562,3 +562,146 @@ proc testFlexBoxLayout() =
   shutdownJuce_GUI()
 
 testFlexBoxLayout()
+
+# KeyPress and ModifierKeys ===================================================
+#
+# Both are value types built from an integer key code and a flag set, so they
+# describe a keystroke without one having happened.
+
+proc testKeyPress() =
+    let modifiers = makeModifierKeys(ModifierKeysFlags_shiftModifier.cint)
+    doAssert modifiers.isShiftDown(), "shiftModifier did not read back as shift"
+    doAssert not makeModifierKeys().isShiftDown(), "empty modifiers reported shift"
+
+    let press = makeKeyPress('a'.ord.cint, modifiers, uint16('a'))
+    doAssert press.isValid(), "a constructed key press was invalid"
+    doAssert press.getKeyCode() == 'a'.ord.cint, "key code was " & $press.getKeyCode()
+    doAssert press.getTextCharacter() == uint16('a'), "text character did not survive"
+    doAssert press.getModifiers().isShiftDown(), "the modifiers did not survive"
+
+    # A default-constructed KeyPress describes no key at all.
+    doAssert not makeKeyPress().isValid(), "a default KeyPress claimed to be valid"
+
+    # The textual description round-trips through createFromDescription. JUCE
+    # normalises the key to upper case on the way out ("shift + A"), so it is
+    # the description that is stable across the trip, not the key code.
+    let description = press.getTextDescription()
+    let described = KeyPress.createFromDescription(description)
+    doAssert $described.getTextDescription() == $description,
+             "round trip turned " & $description & " into " & $described.getTextDescription()
+    doAssert described.getModifiers().isShiftDown(), "the round trip lost shift"
+
+testKeyPress()
+
+# Grid ========================================================================
+#
+# The CSS-grid layout engine. Like FlexBox this needs no components on screen:
+# performLayout writes the computed rectangle into each item's currentBounds.
+# templateColumns, templateRows and items are all reached through the var field
+# getters, so these append to the grid rather than to a copy of it.
+
+proc testGridLayout() =
+    initialiseJuce_GUI()
+
+    block:
+        var grid = makeGrid()
+        grid.templateColumns.add(makeGridTrackInfo(makeGridPx(40.0'f32)))
+        grid.templateColumns.add(makeGridTrackInfo(makeGridPx(40.0'f32)))
+        grid.templateRows.add(makeGridTrackInfo(makeGridPx(30.0'f32)))
+        grid.templateRows.add(makeGridTrackInfo(makeGridPx(30.0'f32)))
+        doAssert grid.templateColumns.size() == 2,
+                 "the grid has " & $grid.templateColumns.size() & " columns"
+
+        for _ in 0 ..< 4:
+            grid.items.add(makeGridItem())
+        doAssert grid.items.size() == 4, "the grid holds " & $grid.items.size() & " items"
+
+        grid.performLayout(makeRectangle(0.cint, 0.cint, 80.cint, 60.cint))
+
+        # Two 40px columns by two 30px rows, filled in row-major order.
+        let expected = [(0.0'f32, 0.0'f32), (40.0'f32, 0.0'f32),
+                        (0.0'f32, 30.0'f32), (40.0'f32, 30.0'f32)]
+        for index, (x, y) in expected:
+            let bounds = grid.items[index.cint].currentBounds
+            doAssert bounds.getX() == x,
+                     "item " & $index & " x is " & $bounds.getX() & ", wanted " & $x
+            doAssert bounds.getY() == y,
+                     "item " & $index & " y is " & $bounds.getY() & ", wanted " & $y
+            doAssert bounds.getWidth() == 40.0'f32,
+                     "item " & $index & " width is " & $bounds.getWidth()
+            doAssert bounds.getHeight() == 30.0'f32,
+                     "item " & $index & " height is " & $bounds.getHeight()
+
+    shutdownJuce_GUI()
+
+testGridLayout()
+
+# Viewport and Desktop ========================================================
+#
+# A Viewport scrolls a larger component behind a smaller window onto it. None of
+# that needs the component to be visible on screen.
+
+proc testViewportAndDesktop() =
+    initialiseJuce_GUI()
+
+    block:
+        var viewport = makeViewport(makeString("scroller"))
+        viewport.setSize(100.cint, 100.cint)
+        doAssert viewport.getViewedComponent() == nil, "a fresh viewport had a viewed component"
+
+        # The viewport takes ownership, so this is not freed here.
+        var content = newCustomComponent()
+        content[].setSize(400.cint, 400.cint)
+        viewport.setViewedComponent(content, true)
+        doAssert viewport.getViewedComponent() == cast[ptr Component](content),
+                 "the viewport is showing a different component"
+
+        # The visible window is smaller than the content, so it can scroll.
+        doAssert viewport.getViewWidth() <= 100, "view width is " & $viewport.getViewWidth()
+
+        viewport.setViewPosition(30.cint, 40.cint)
+        doAssert viewport.getViewPositionX() == 30, "x is " & $viewport.getViewPositionX()
+        doAssert viewport.getViewPositionY() == 40, "y is " & $viewport.getViewPositionY()
+
+        # getInstance returns var Desktop, a C++ reference. Binding it with
+        # `var d = ...` would copy, and Desktop's copy constructor is deleted,
+        # so the singleton is called through directly.
+        let original = Desktop.getInstance().getGlobalScaleFactor()
+        Desktop.getInstance().setGlobalScaleFactor(2.0'f32)
+        doAssert Desktop.getInstance().getGlobalScaleFactor() == 2.0'f32,
+                 "scale factor is " & $Desktop.getInstance().getGlobalScaleFactor()
+        Desktop.getInstance().setGlobalScaleFactor(original)
+
+    shutdownJuce_GUI()
+
+testViewportAndDesktop()
+
+# Direct callback assignment ==================================================
+#
+# Assigning a bindClosure result straight to a callback field, with no typed
+# temporary in between. The field's type is generic, which is the case that used
+# to make Nim emit its importcpp pattern verbatim - `std::function<void('0)>` -
+# and hand invalid C++ to the compiler. bindClosure is a template so that the
+# type is first rendered here, at the call site. If it ever becomes a proc
+# again, this file stops compiling. The returning shape, CppFunctionObjectR0,
+# is covered the same way by the application handlers in the examples.
+
+proc testDirectCallbackAssignment() =
+    initialiseJuce_GUI()
+
+    block:
+        var painted = 0
+        var component = newCustomComponent()
+        component[].onPaint = bindClosure(proc(g: ptr Graphics) = inc painted)
+
+        var resized = 0
+        component[].onResized = bindClosure(proc() = inc resized)
+
+        component[].setSize(10.cint, 10.cint)
+        doAssert resized == 1, "resized ran " & $resized & " times"
+
+        cdelete component
+
+    shutdownJuce_GUI()
+
+testDirectCallbackAssignment()

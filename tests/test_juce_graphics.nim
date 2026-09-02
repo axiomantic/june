@@ -248,3 +248,56 @@ proc testPath() =
   doAssert boxPath.isEmpty(), "clear left something behind"
 
 testPath()
+
+# Font ========================================================================
+#
+# Font is a value type wrapping a shared typeface. The metrics themselves come
+# from whatever the host has installed, so this asserts on the parts JUCE
+# controls: the height it was given back, the style flags, and the fact that
+# the with* methods return a new font rather than mutating the receiver.
+
+proc testFont() =
+    var font = makeFont(makeFontOptions(24.0'f32))
+    doAssert font.getHeight() == 24.0'f32, "height was " & $font.getHeight()
+
+    # withHeight leaves the receiver alone.
+    let taller = font.withHeight(48.0'f32)
+    doAssert taller.getHeight() == 48.0'f32, "taller was " & $taller.getHeight()
+    doAssert font.getHeight() == 24.0'f32, "withHeight mutated the original"
+
+    # setHeight does mutate it.
+    font.setHeight(12.0'f32)
+    doAssert font.getHeight() == 12.0'f32, "setHeight did not take"
+
+    # Style flags round-trip through the boldened/italicised accessors.
+    doAssert not font.isBold(), "a plain font reported bold"
+    doAssert not font.isItalic(), "a plain font reported italic"
+
+    let heavy = font.boldened()
+    doAssert heavy.isBold(), "boldened did not set bold"
+    doAssert not font.isBold(), "boldened mutated the original"
+
+    let slanted = font.italicised()
+    doAssert slanted.isItalic(), "italicised did not set italic"
+
+    # setBold is the in-place counterpart.
+    font.setBold(true)
+    doAssert font.isBold(), "setBold did not take"
+
+    # And the style flags agree with the predicates.
+    doAssert (font.getStyleFlags() and FontFontStyleFlags_bold.cint) != 0,
+             "style flags disagree with isBold"
+
+    # A wider string measures wider. The absolute widths depend on the host
+    # font, so only the ordering is asserted.
+    let plain = makeFont(makeFontOptions(20.0'f32))
+    let narrow = GlyphArrangement.getStringWidth(plain, makeString("i").toStringRef())
+    let wide = GlyphArrangement.getStringWidth(plain, makeString("wwwwww").toStringRef())
+    doAssert wide > narrow, "six w were not wider than one i"
+
+# Font reaches the shared typeface cache, which is torn down by the GUI
+# shutdown. Called outside a running subsystem it would be built and then
+# leaked, which the leak detector reports at exit.
+initialiseJuce_GUI()
+testFont()
+shutdownJuce_GUI()

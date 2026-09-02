@@ -48,7 +48,7 @@ proc newCustomAsyncUpdater*(): ptr CustomAsyncUpdater {.importcpp: "(new june::C
 
 defineCppClassInternal CustomActionListener of ActionListener:
     include "juce_events/juce_events.h"
-    proc actionListenerCallback(message: constref[String]) = discard
+    proc actionListenerCallback(message: constptr[String]) = discard
 
 proc newCustomActionListener*(): ptr CustomActionListener {.importcpp: "(new june::CustomActionListener)".}
 
