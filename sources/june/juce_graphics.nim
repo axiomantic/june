@@ -921,7 +921,7 @@ proc getColourGlyphFormats*(this: Typeface): cint {.header: juce_graphics, impor
 proc setTypefaceCacheSize*(this: typedesc[Typeface], numFontsToCache: cint) {.header: juce_graphics, importcpp: "juce::Typeface::setTypefaceCacheSize(@)".}
 proc clearTypefaceCache*(this: typedesc[Typeface]) {.header: juce_graphics, importcpp: "juce::Typeface::clearTypefaceCache()".}
 proc scanFolderForFonts*(this: typedesc[Typeface], folder: File) {.header: juce_graphics, importcpp: "juce::Typeface::scanFolderForFonts(@)".}
-proc getNominalGlyphForCodepoint*(this: Typeface, arg1: uint16): CppOptional[uint32] {.header: juce_graphics, importcpp: "#.getNominalGlyphForCodepoint(@)".}
+proc getNominalGlyphForCodepoint*(this: Typeface, arg1: uint32): CppOptional[uint32] {.header: juce_graphics, importcpp: "#.getNominalGlyphForCodepoint(@)".}
 proc createSystemFallback*(this: Typeface, text: String, language: String): ReferenceCountedObjectPtr[Typeface] {.header: juce_graphics, importcpp: "#.createSystemFallback(@)".}
 proc findSystemTypeface*(this: typedesc[Typeface]): ReferenceCountedObjectPtr[Typeface] {.header: juce_graphics, importcpp: "juce::Typeface::findSystemTypeface()".}
 proc getSupportedFeatures*(this: Typeface): CppVector[FontFeatureTag] {.header: juce_graphics, importcpp: "#.getSupportedFeatures()".}
@@ -1095,8 +1095,8 @@ proc `AttributedStringAttribute=`*(this: var AttributedStringAttribute, arg1: va
 proc `==`*(this: AttributedStringAttribute, other: AttributedStringAttribute): bool {.error: "juce::AttributedString::Attribute defines no operator==; compare a property instead".}
 
 proc makePositionedGlyph*(): PositionedGlyph {.header: juce_graphics, importcpp: "juce::PositionedGlyph(@)".}
-proc makePositionedGlyph*(font: Font, character: uint16, glyphNumber: cint, anchorX: cfloat, baselineY: cfloat, width: cfloat, isWhitespace: bool): PositionedGlyph {.header: juce_graphics, importcpp: "juce::PositionedGlyph(@)".}
-proc getCharacter*(this: PositionedGlyph): uint16 {.header: juce_graphics, importcpp: "#.getCharacter()".}
+proc makePositionedGlyph*(font: Font, character: uint32, glyphNumber: cint, anchorX: cfloat, baselineY: cfloat, width: cfloat, isWhitespace: bool): PositionedGlyph {.header: juce_graphics, importcpp: "juce::PositionedGlyph(@)".}
+proc getCharacter*(this: PositionedGlyph): uint32 {.header: juce_graphics, importcpp: "#.getCharacter()".}
 proc isWhitespace*(this: PositionedGlyph): bool {.header: juce_graphics, importcpp: "#.isWhitespace()".}
 proc getLeft*(this: PositionedGlyph): cfloat {.header: juce_graphics, importcpp: "#.getLeft()".}
 proc getRight*(this: PositionedGlyph): cfloat {.header: juce_graphics, importcpp: "#.getRight()".}
