@@ -93,3 +93,15 @@ proc testAsyncUpdater() =
 
 testAsyncUpdater()
 
+
+# std::exception is bound so that unhandledException can be overridden, which
+# is how a JUCE application reports a crash. There is no way to raise a C++
+# exception from Nim to call it with, so this checks the signature is callable
+# rather than the handler running.
+proc testUnhandledExceptionBinding() =
+  doAssert compiles(
+    proc(app: var JUCEApplicationBase, e: ptr CppException) =
+      app.unhandledException(e, makeString("source.nim"), 42.cint))
+  doAssert compiles(proc(e: CppException): constChar = e.what())
+
+testUnhandledExceptionBinding()
