@@ -95,7 +95,13 @@ proc cppTemplateName(name: string): string {.compiletime.} =
 proc cppTypeSpelling(node: NimNode, aliases: seq[(string, string)]): string {.compiletime.} =
   case node.kind:
   of nnkBracketExpr:
-    result = cppTemplateName($node[0]) & "<"
+    # The head goes through the same lookup as a plain name, so a nested class
+    # used as a template head is spelled the way C++ knows it rather than by
+    # its flattened Nim name.
+    result = cppAliasName($node[0], aliases)
+    if result.len == 0:
+      result = cppTemplateName($node[0])
+    result &= "<"
     for index in 1 ..< node.len:
       if index > 1: result &= ", "
       result &= cppTypeSpelling(node[index], aliases)
