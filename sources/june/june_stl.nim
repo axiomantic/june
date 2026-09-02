@@ -43,6 +43,14 @@ proc `=copy`*[T](dst: var UniquePtr[T], src: UniquePtr[T]) {.error: "a UniquePtr
 # do: the value is a C++ object, so its own destructor runs at scope exit.
 proc `=destroy`*[T](this: var UniquePtr[T]) = discard
 
+# There was no way to make one, so a Nim override of a virtual returning a
+# std::unique_ptr - ImagePixelData::createLowLevelContext and createType - could
+# not be written. The one taking a pointer takes ownership, as C++ does.
+proc makeUniquePtr*[T](): UniquePtr[T]
+    {.importcpp: "std::unique_ptr<'*0>()", header: "<memory>", constructor.}
+proc makeUniquePtr*[T](owned: ptr T): UniquePtr[T]
+    {.importcpp: "std::unique_ptr<'*0>(@)", header: "<memory>", constructor.}
+
 proc get*[T](this: UniquePtr[T]): ptr T {.importcpp: "#.get()".}
 proc release*[T](this: var UniquePtr[T]): ptr T {.importcpp: "#.release()".}
 proc reset*[T](this: var UniquePtr[T]) {.importcpp: "#.reset()".}

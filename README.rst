@@ -494,7 +494,10 @@ closure::
     true)
 
 JUCE calls the handler through the virtual, so ``stream.writeText(...)`` -
-which is JUCE's own code - reaches it. The suite asserts that.
+which is JUCE's own code - reaches it. The suite asserts that for this one and
+for the other subclasses it drives, not for every setter: a little over a third
+of the setters are called by a test today. Setting a handler is what
+type-checks and generates the setter, so the rest are unexercised.
 
 The test suite constructs every generated subclass, which is the check that
 matters, and ``check_handwritten_covered.py`` fails if one is not built. The
