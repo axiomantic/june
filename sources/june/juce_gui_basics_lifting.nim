@@ -235,3 +235,27 @@ defineSliderListenerSetter(setSliderDragEndedHandler, onSliderDragEnded)
 
 proc addListener*(this: var Slider, listener: ptr SliderListener) {.header: juce_gui_basics, importcpp: "#.addListener(@)".}
 proc removeListener*(this: var Slider, listener: ptr SliderListener) {.header: juce_gui_basics, importcpp: "#.removeListener(@)".}
+
+# ListBoxModel ================================================================
+#
+# getNumRows and paintListBoxItem are both pure virtual, so a ListBox had no
+# model it could be given. This is also the only override in the library whose
+# virtual returns a value rather than void: the generated forwarder returns the
+# callback's result, and a default-constructed one when no callback is set.
+
+defineCppClassInternal CustomListBoxModel of ListBoxModel:
+    include "juce_gui_basics/juce_gui_basics.h"
+    proc getNumRows(): cint = discard
+    proc paintListBoxItem(rowNumber: cint, g: varref[Graphics], width: cint,
+                          height: cint, rowIsSelected: bool) = discard
+
+proc newCustomListBoxModel*(): ptr CustomListBoxModel {.importcpp: "(new june::CustomListBoxModel)".}
+
+proc setNumRowsHandler*(this: var CustomListBoxModel, handler: proc(): cint {.closure.}) =
+    this.onGetNumRows = bindClosure(handler)
+
+proc setPaintListBoxItemHandler*(this: var CustomListBoxModel,
+                                 handler: proc(rowNumber: cint, g: ptr Graphics,
+                                               width, height: cint,
+                                               rowIsSelected: bool) {.closure.}) =
+    this.onPaintListBoxItem = bindClosure(handler)
