@@ -177,6 +177,7 @@ const
 
 proc makeAffineTransform*(): AffineTransform {.header: juce_graphics, importcpp: "juce::AffineTransform(@)".}
 proc makeAffineTransform*(mat00: cfloat, mat01: cfloat, mat02: cfloat, mat10: cfloat, mat11: cfloat, mat12: cfloat): AffineTransform {.header: juce_graphics, importcpp: "juce::AffineTransform(@)".}
+proc identity*(this: typedesc[AffineTransform]): AffineTransform {.header: juce_graphics, importcpp: "(juce::AffineTransform::identity)".}
 proc mat00*(this: AffineTransform): cfloat {.header: juce_graphics, importcpp: "#.mat00".}
 proc `mat00=`*(this: var AffineTransform, value: cfloat) {.header: juce_graphics, importcpp: "#.mat00 = #".}
 proc mat01*(this: AffineTransform): cfloat {.header: juce_graphics, importcpp: "#.mat01".}
@@ -232,6 +233,8 @@ proc getOnlyVerticalFlags*(this: Justification): cint {.header: juce_graphics, i
 proc getOnlyHorizontalFlags*(this: Justification): cint {.header: juce_graphics, importcpp: "#.getOnlyHorizontalFlags()".}
 
 proc makePath*(): Path {.header: juce_graphics, importcpp: "juce::Path(@)".}
+proc defaultToleranceForTesting*(this: typedesc[Path]): cfloat {.header: juce_graphics, importcpp: "(juce::Path::defaultToleranceForTesting)".}
+proc defaultToleranceForMeasurement*(this: typedesc[Path]): cfloat {.header: juce_graphics, importcpp: "(juce::Path::defaultToleranceForMeasurement)".}
 proc `Path=`*(this: var Path, arg1: Path): var Path {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc `==`*(this: Path, arg1: Path): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: Path, arg1: Path): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
@@ -832,6 +835,8 @@ proc `==`*(this: FontFeatureTag, other: FontFeatureTag): bool {.header: juce_gra
 # proc operator!=*(this: FontFeatureTag, other: FontFeatureTag): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 
 proc makeFontFeatureSetting*(featureTag: FontFeatureTag, featureValue: uint32): FontFeatureSetting {.header: juce_graphics, importcpp: "juce::FontFeatureSetting(@)".}
+proc featureEnabled*(this: typedesc[FontFeatureSetting]): cint {.header: juce_graphics, importcpp: "(juce::FontFeatureSetting::featureEnabled)".}
+proc featureDisabled*(this: typedesc[FontFeatureSetting]): cint {.header: juce_graphics, importcpp: "(juce::FontFeatureSetting::featureDisabled)".}
 proc tag*(this: FontFeatureSetting): FontFeatureTag {.header: juce_graphics, importcpp: "#.tag".}
 proc `tag=`*(this: var FontFeatureSetting, value: FontFeatureTag) {.header: juce_graphics, importcpp: "#.tag = #".}
 proc value*(this: FontFeatureSetting): uint32 {.header: juce_graphics, importcpp: "#.value".}

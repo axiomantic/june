@@ -95,6 +95,7 @@ proc `==`*(this: CallbackMessage, other: CallbackMessage): bool {.error: "juce::
 proc deleteAll*(this: typedesc[DeletedAtShutdown]) {.header: juce_events, importcpp: "juce::DeletedAtShutdown::deleteAll()".}
 proc `==`*(this: DeletedAtShutdown, other: DeletedAtShutdown): bool {.error: "juce::DeletedAtShutdown defines no operator==; compare a property instead".}
 
+# proc createInstance*(this: typedesc[JUCEApplicationBase]): JUCEApplicationBase ()() {.header: juce_events, importcpp: "(juce::JUCEApplicationBase::createInstance)".}  # a type that cannot be spelled in Nim
 proc getInstance*(this: typedesc[JUCEApplicationBase]): ptr JUCEApplicationBase {.header: juce_events, importcpp: "juce::JUCEApplicationBase::getInstance()".}
 proc getApplicationName*(this: var JUCEApplicationBase): String {.header: juce_events, importcpp: "#.getApplicationName()".}
 proc getApplicationVersion*(this: var JUCEApplicationBase): String {.header: juce_events, importcpp: "#.getApplicationVersion()".}
@@ -190,6 +191,7 @@ proc isTimerRunning*(this: MultiTimer, timerID: cint): bool {.header: juce_event
 proc getTimerInterval*(this: MultiTimer, timerID: cint): cint {.header: juce_events, importcpp: "#.getTimerInterval(@)".}
 proc `==`*(this: MultiTimer, other: MultiTimer): bool {.error: "juce::MultiTimer defines no operator==; compare a property instead".}
 
+# proc singletonHolder*(this: typedesc[ChildProcessManager]): juce::SingletonHolder<ChildProcessManager, juce::DummyCriticalSection, false> {.header: juce_events, importcpp: "(juce::ChildProcessManager::singletonHolder)".}  # a type that cannot be spelled in Nim
 proc getInstance*(this: typedesc[ChildProcessManager]): ptr ChildProcessManager {.header: juce_events, importcpp: "juce::ChildProcessManager::getInstance()".}
 proc getInstanceWithoutCreating*(this: typedesc[ChildProcessManager]): ptr ChildProcessManager {.header: juce_events, importcpp: "juce::ChildProcessManager::getInstanceWithoutCreating()".}
 proc deleteInstance*(this: typedesc[ChildProcessManager]) {.header: juce_events, importcpp: "juce::ChildProcessManager::deleteInstance()".}

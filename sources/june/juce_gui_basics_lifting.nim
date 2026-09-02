@@ -65,10 +65,6 @@ defineCppClassInternal DocumentWindow of DocumentWindow:
 
 proc newDocumentWindow*(name: String, colour: Colour, requiredButtons: int, addToDesktop: bool = true): ptr DocumentWindow {.importcpp: "(new june::DocumentWindow(@))".}
 
-proc minimiseButton*(this: typedesc[DocumentWindow]): cint {.header: juce_gui_basics, importcpp: "juce::DocumentWindow::minimiseButton".}
-proc maximiseButton*(this: typedesc[DocumentWindow]): cint {.header: juce_gui_basics, importcpp: "juce::DocumentWindow::maximiseButton".}
-proc closeButton*(this: typedesc[DocumentWindow]): cint {.header: juce_gui_basics, importcpp: "juce::DocumentWindow::closeButton".}
-proc allButtons*(this: typedesc[DocumentWindow]): cint {.header: juce_gui_basics, importcpp: "juce::DocumentWindow::allButtons".}
 
 # Component ===================================================================
 #

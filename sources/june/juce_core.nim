@@ -858,6 +858,7 @@ proc makeIdentifier*(): Identifier {.header: juce_core, importcpp: "juce::Identi
 # proc makeIdentifier*(name: constChar): Identifier {.header: juce_core, importcpp: "juce::Identifier(@)".}  # redundant with the String overload, which a string also reaches
 proc makeIdentifier*(name: String): Identifier {.header: juce_core, importcpp: "juce::Identifier(@)".}
 proc makeIdentifier*(nameStart: CharPointer_UTF8, nameEnd: CharPointer_UTF8): Identifier {.header: juce_core, importcpp: "juce::Identifier(@)".}
+proc null*(this: typedesc[Identifier]): Identifier {.header: juce_core, importcpp: "(juce::Identifier::null)".}
 proc `Identifier=`*(this: var Identifier, other: Identifier): var Identifier {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `==`*(this: Identifier, other: Identifier): bool {.header: juce_core, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: Identifier, other: Identifier): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
@@ -1709,6 +1710,7 @@ proc makeObjectWithKeyFirst*(this: typedesc[JSONUtils], source: CppMap[Identifie
 proc deepEqual*(this: typedesc[JSONUtils], a: juce_var, b: juce_var): bool {.header: juce_core, importcpp: "juce::JSONUtils::deepEqual(@)".}
 proc `==`*(this: JSONUtils, other: JSONUtils): bool {.error: "juce::JSONUtils defines no operator==; compare a property instead".}
 
+# proc marshallingVersion*(this: typedesc[SerialisationTraits]): nullopt_t {.header: juce_core, importcpp: "(juce::SerialisationTraits::marshallingVersion)".}  # a type that cannot be spelled in Nim
 proc `==`*(this: SerialisationTraits, other: SerialisationTraits): bool {.error: "juce::SerialisationTraits defines no operator==; compare a property instead".}
 
 proc withExplicitVersion*(this: ToVarOptions, x: CppOptional[cint]): ToVarOptions {.header: juce_core, importcpp: "#.withExplicitVersion(@)".}
@@ -1922,6 +1924,7 @@ proc reset*(this: WaitableEvent) {.header: juce_core, importcpp: "#.reset()".}
 proc `==`*(this: WaitableEvent, other: WaitableEvent): bool {.error: "juce::WaitableEvent defines no operator==; compare a property instead".}
 
 proc makeThread*(threadName: String, threadStackSize: uint64): Thread {.header: juce_core, importcpp: "juce::Thread(@)".}
+proc osDefaultStackSize*(this: typedesc[Thread]): uint64 {.header: juce_core, importcpp: "(juce::Thread::osDefaultStackSize)".}
 proc run*(this: var Thread) {.header: juce_core, importcpp: "#.run()".}
 proc startThread*(this: var Thread): bool {.header: juce_core, importcpp: "#.startThread()".}
 proc startThread*(this: var Thread, newPriority: ThreadPriority): bool {.header: juce_core, importcpp: "#.startThread(@)".}
