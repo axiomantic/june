@@ -554,7 +554,15 @@ def base_constructors(cursor, declared):
 
 
 def render_class(cursor, module, declared):
-    """The macro invocation for one class, or a reason it was withheld."""
+    """The macro invocation for one class, or a reason it was withheld.
+
+    The macro derives the C++ parent as juce::<the Nim name>. That is right for
+    a top-level class and wrong for a nested one, whose Nim name is the parts
+    joined together - it would name a juce::FlattenedName that does not exist.
+    No abstract class in these modules is nested, so nothing needs the
+    cppParent directive today, and a future one would fail to compile rather
+    than emit something wrong.
+    """
     name = cursor.spelling
     methods, has_private = pure_virtuals(cursor)
     if has_private:
@@ -565,6 +573,7 @@ def render_class(cursor, module, declared):
     aliases = {}
     lines = [f"defineCppClassInternal Custom{name} of {name}:",
              f'    include "{module}/{module}.h"']
+
     setters = []
     seen = set()
     for method in methods:
