@@ -378,7 +378,7 @@ proc getColourPosition*(this: ColourGradient, index: cint): float64 {.header: ju
 proc getColour*(this: ColourGradient, index: cint): Colour {.header: juce_graphics, importcpp: "#.getColour(@)".}
 proc setColour*(this: var ColourGradient, index: cint, newColour: Colour) {.header: juce_graphics, importcpp: "#.setColour(@)".}
 proc getColourAtPosition*(this: ColourGradient, position: float64): Colour {.header: juce_graphics, importcpp: "#.getColourAtPosition(@)".}
-# proc createLookupTable*(this: ColourGradient, transform: AffineTransform, resultLookupTable: HeapBlock<PixelARGB>): cint {.header: juce_graphics, importcpp: "#.createLookupTable(@)".}  # a type that cannot be spelled in Nim
+proc createLookupTable*(this: ColourGradient, transform: AffineTransform, resultLookupTable: HeapBlock[PixelARGB]): cint {.header: juce_graphics, importcpp: "#.createLookupTable(@)".}
 proc createLookupTable*(this: ColourGradient, resultLookupTable: ptr PixelARGB, numEntries: cint) {.header: juce_graphics, importcpp: "#.createLookupTable(@)".}
 proc isOpaque*(this: ColourGradient): bool {.header: juce_graphics, importcpp: "#.isOpaque()".}
 proc isInvisible*(this: ColourGradient): bool {.header: juce_graphics, importcpp: "#.isInvisible()".}

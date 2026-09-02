@@ -146,10 +146,25 @@ type
     OwnedArray*[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::OwnedArray".} = object
     ReferenceCountedObjectPtr*[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::ReferenceCountedObjectPtr".} = object
     Span*[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::Span".} = object
+    HeapBlock*[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::HeapBlock".} = object
     RectangleList*[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::RectangleList".} = object
     Parallelogram*[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::Parallelogram".} = object
 
 # Array
+# HeapBlock is JUCE's owning raw buffer. It is move-only, so it takes the same
+# treatment as UniquePtr: copying is a compile error, and the destructor is
+# left to C++.
+proc `=copy`*[T](dst: var HeapBlock[T], src: HeapBlock[T]) {.error: "a HeapBlock cannot be copied".}
+proc `=destroy`*[T](this: var HeapBlock[T]) = discard
+
+proc makeHeapBlock*[T](): HeapBlock[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::HeapBlock<'*0>()".}
+proc makeHeapBlock*[T](numElements: csize_t): HeapBlock[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::HeapBlock<'*0>(@)".}
+proc `[]`*[T](this: HeapBlock[T], index: cint): T {.importcpp: "#[#]".}
+proc `[]=`*[T](this: var HeapBlock[T], index: cint, value: T) {.importcpp: "#[#] = #".}
+proc get*[T](this: HeapBlock[T]): ptr T {.importcpp: "#.get()".}
+proc isNil*[T](this: HeapBlock[T]): bool {.importcpp: "(#.get() == nullptr)".}
+proc calloc*[T](this: var HeapBlock[T], numElements: csize_t) {.importcpp: "#.calloc(@)".}
+
 proc size*[T](this: Array[T]): cint {.importcpp: "#.size()".}
 proc isEmpty*[T](this: Array[T]): bool {.importcpp: "#.isEmpty()".}
 proc `[]`*[T](this: Array[T], index: cint): T {.importcpp: "#[#]".}
