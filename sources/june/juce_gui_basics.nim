@@ -934,6 +934,7 @@ proc `==`*(this: MouseListener, other: MouseListener): bool {.error: "juce::Mous
 
 proc makeModifierKeys*(): ModifierKeys {.header: juce_gui_basics, importcpp: "juce::ModifierKeys(@)".}
 proc makeModifierKeys*(flags: cint): ModifierKeys {.header: juce_gui_basics, importcpp: "juce::ModifierKeys(@)".}
+proc currentModifiers*(this: typedesc[ModifierKeys]): ModifierKeys {.header: juce_gui_basics, importcpp: "(juce::ModifierKeys::currentModifiers)".}
 proc `ModifierKeys=`*(this: var ModifierKeys, arg1: ModifierKeys): var ModifierKeys {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
 proc isCommandDown*(this: ModifierKeys): bool {.header: juce_gui_basics, importcpp: "#.isCommandDown()".}
 proc isPopupMenu*(this: ModifierKeys): bool {.header: juce_gui_basics, importcpp: "#.isPopupMenu()".}
@@ -959,6 +960,17 @@ proc getNumMouseButtonsDown*(this: ModifierKeys): cint {.header: juce_gui_basics
 proc getCurrentModifiers*(this: typedesc[ModifierKeys]): ModifierKeys {.header: juce_gui_basics, importcpp: "juce::ModifierKeys::getCurrentModifiers()".}
 proc getCurrentModifiersRealtime*(this: typedesc[ModifierKeys]): ModifierKeys {.header: juce_gui_basics, importcpp: "juce::ModifierKeys::getCurrentModifiersRealtime()".}
 
+proc defaultPressure*(this: typedesc[MouseInputSource]): cfloat {.header: juce_gui_basics, importcpp: "(juce::MouseInputSource::defaultPressure)".}
+proc defaultOrientation*(this: typedesc[MouseInputSource]): cfloat {.header: juce_gui_basics, importcpp: "(juce::MouseInputSource::defaultOrientation)".}
+proc defaultRotation*(this: typedesc[MouseInputSource]): cfloat {.header: juce_gui_basics, importcpp: "(juce::MouseInputSource::defaultRotation)".}
+proc defaultTiltX*(this: typedesc[MouseInputSource]): cfloat {.header: juce_gui_basics, importcpp: "(juce::MouseInputSource::defaultTiltX)".}
+proc defaultTiltY*(this: typedesc[MouseInputSource]): cfloat {.header: juce_gui_basics, importcpp: "(juce::MouseInputSource::defaultTiltY)".}
+proc invalidPressure*(this: typedesc[MouseInputSource]): cfloat {.header: juce_gui_basics, importcpp: "(juce::MouseInputSource::invalidPressure)".}
+proc invalidOrientation*(this: typedesc[MouseInputSource]): cfloat {.header: juce_gui_basics, importcpp: "(juce::MouseInputSource::invalidOrientation)".}
+proc invalidRotation*(this: typedesc[MouseInputSource]): cfloat {.header: juce_gui_basics, importcpp: "(juce::MouseInputSource::invalidRotation)".}
+proc invalidTiltX*(this: typedesc[MouseInputSource]): cfloat {.header: juce_gui_basics, importcpp: "(juce::MouseInputSource::invalidTiltX)".}
+proc invalidTiltY*(this: typedesc[MouseInputSource]): cfloat {.header: juce_gui_basics, importcpp: "(juce::MouseInputSource::invalidTiltY)".}
+proc offscreenMousePos*(this: typedesc[MouseInputSource]): Point[cfloat] {.header: juce_gui_basics, importcpp: "(juce::MouseInputSource::offscreenMousePos)".}
 proc `MouseInputSource=`*(this: var MouseInputSource, arg1: MouseInputSource): var MouseInputSource {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
 proc `==`*(this: MouseInputSource, other: MouseInputSource): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: MouseInputSource, other: MouseInputSource): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
@@ -1069,6 +1081,78 @@ proc `==`*(this: PenDetails, other: PenDetails): bool {.error: "juce::PenDetails
 proc makeKeyPress*(): KeyPress {.header: juce_gui_basics, importcpp: "juce::KeyPress(@)".}
 proc makeKeyPress*(keyCode: cint, modifiers: ModifierKeys, textCharacter: uint16): KeyPress {.header: juce_gui_basics, importcpp: "juce::KeyPress(@)".}
 proc makeKeyPress*(keyCode: cint): KeyPress {.header: juce_gui_basics, importcpp: "juce::KeyPress(@)".}
+proc spaceKey*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::spaceKey)".}
+proc escapeKey*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::escapeKey)".}
+proc returnKey*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::returnKey)".}
+proc tabKey*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::tabKey)".}
+proc deleteKey*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::deleteKey)".}
+proc backspaceKey*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::backspaceKey)".}
+proc insertKey*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::insertKey)".}
+proc upKey*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::upKey)".}
+proc downKey*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::downKey)".}
+proc leftKey*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::leftKey)".}
+proc rightKey*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::rightKey)".}
+proc pageUpKey*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::pageUpKey)".}
+proc pageDownKey*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::pageDownKey)".}
+proc homeKey*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::homeKey)".}
+proc endKey*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::endKey)".}
+proc F1Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F1Key)".}
+proc F2Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F2Key)".}
+proc F3Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F3Key)".}
+proc F4Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F4Key)".}
+proc F5Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F5Key)".}
+proc F6Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F6Key)".}
+proc F7Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F7Key)".}
+proc F8Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F8Key)".}
+proc F9Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F9Key)".}
+proc F10Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F10Key)".}
+proc F11Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F11Key)".}
+proc F12Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F12Key)".}
+proc F13Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F13Key)".}
+proc F14Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F14Key)".}
+proc F15Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F15Key)".}
+proc F16Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F16Key)".}
+proc F17Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F17Key)".}
+proc F18Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F18Key)".}
+proc F19Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F19Key)".}
+proc F20Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F20Key)".}
+proc F21Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F21Key)".}
+proc F22Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F22Key)".}
+proc F23Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F23Key)".}
+proc F24Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F24Key)".}
+proc F25Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F25Key)".}
+proc F26Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F26Key)".}
+proc F27Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F27Key)".}
+proc F28Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F28Key)".}
+proc F29Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F29Key)".}
+proc F30Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F30Key)".}
+proc F31Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F31Key)".}
+proc F32Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F32Key)".}
+proc F33Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F33Key)".}
+proc F34Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F34Key)".}
+proc F35Key*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::F35Key)".}
+proc numberPad0*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::numberPad0)".}
+proc numberPad1*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::numberPad1)".}
+proc numberPad2*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::numberPad2)".}
+proc numberPad3*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::numberPad3)".}
+proc numberPad4*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::numberPad4)".}
+proc numberPad5*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::numberPad5)".}
+proc numberPad6*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::numberPad6)".}
+proc numberPad7*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::numberPad7)".}
+proc numberPad8*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::numberPad8)".}
+proc numberPad9*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::numberPad9)".}
+proc numberPadAdd*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::numberPadAdd)".}
+proc numberPadSubtract*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::numberPadSubtract)".}
+proc numberPadMultiply*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::numberPadMultiply)".}
+proc numberPadDivide*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::numberPadDivide)".}
+proc numberPadSeparator*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::numberPadSeparator)".}
+proc numberPadDecimalPoint*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::numberPadDecimalPoint)".}
+proc numberPadEquals*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::numberPadEquals)".}
+proc numberPadDelete*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::numberPadDelete)".}
+proc playKey*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::playKey)".}
+proc stopKey*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::stopKey)".}
+proc fastForwardKey*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::fastForwardKey)".}
+proc rewindKey*(this: typedesc[KeyPress]): cint {.header: juce_gui_basics, importcpp: "(juce::KeyPress::rewindKey)".}
 proc `KeyPress=`*(this: var KeyPress, arg1: KeyPress): var KeyPress {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
 proc `==`*(this: KeyPress, other: KeyPress): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: KeyPress, other: KeyPress): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
@@ -1103,6 +1187,7 @@ proc getPreviousComponent*(this: var FocusTraverser, current: ptr Component): pt
 proc getAllComponents*(this: var FocusTraverser, parentComponent: ptr Component): CppVector[Component] {.header: juce_gui_basics, importcpp: "#.getAllComponents(@)".}
 proc `==`*(this: FocusTraverser, other: FocusTraverser): bool {.error: "juce::FocusTraverser defines no operator==; compare a property instead".}
 
+# proc singletonHolder*(this: typedesc[ModalComponentManager]): juce::SingletonHolder<ModalComponentManager, juce::DummyCriticalSection, false> {.header: juce_gui_basics, importcpp: "(juce::ModalComponentManager::singletonHolder)".}  # a type that cannot be spelled in Nim
 proc getInstance*(this: typedesc[ModalComponentManager]): ptr ModalComponentManager {.header: juce_gui_basics, importcpp: "juce::ModalComponentManager::getInstance()".}
 proc getInstanceWithoutCreating*(this: typedesc[ModalComponentManager]): ptr ModalComponentManager {.header: juce_gui_basics, importcpp: "juce::ModalComponentManager::getInstanceWithoutCreating()".}
 proc deleteInstance*(this: typedesc[ModalComponentManager]) {.header: juce_gui_basics, importcpp: "juce::ModalComponentManager::deleteInstance()".}
@@ -1866,6 +1951,7 @@ proc `==`*(this: ToggleButton, other: ToggleButton): bool {.error: "juce::Toggle
 
 proc makeComponentBuilder*(state: ValueTree): ComponentBuilder {.header: juce_gui_basics, importcpp: "juce::ComponentBuilder(@)".}
 proc makeComponentBuilder*(): ComponentBuilder {.header: juce_gui_basics, importcpp: "juce::ComponentBuilder(@)".}
+proc idProperty*(this: typedesc[ComponentBuilder]): Identifier {.header: juce_gui_basics, importcpp: "(juce::ComponentBuilder::idProperty)".}
 proc state*(this: ComponentBuilder): ValueTree {.header: juce_gui_basics, importcpp: "#.state".}
 proc `state=`*(this: var ComponentBuilder, value: ValueTree) {.header: juce_gui_basics, importcpp: "#.state = #".}
 proc getManagedComponent*(this: var ComponentBuilder): ptr Component {.header: juce_gui_basics, importcpp: "#.getManagedComponent()".}
@@ -2556,6 +2642,15 @@ proc moveToAbsolute*(this: var RelativeCoordinate, absoluteTargetPosition: float
 proc getExpression*(this: RelativeCoordinate): Expression {.header: juce_gui_basics, importcpp: "#.getExpression()".}
 proc toString*(this: RelativeCoordinate): String {.header: juce_gui_basics, importcpp: "#.toString()".}
 
+proc parent*(this: typedesc[RelativeCoordinateStrings]): String {.header: juce_gui_basics, importcpp: "(juce::RelativeCoordinate::Strings::parent)".}
+proc left*(this: typedesc[RelativeCoordinateStrings]): String {.header: juce_gui_basics, importcpp: "(juce::RelativeCoordinate::Strings::left)".}
+proc right*(this: typedesc[RelativeCoordinateStrings]): String {.header: juce_gui_basics, importcpp: "(juce::RelativeCoordinate::Strings::right)".}
+proc top*(this: typedesc[RelativeCoordinateStrings]): String {.header: juce_gui_basics, importcpp: "(juce::RelativeCoordinate::Strings::top)".}
+proc bottom*(this: typedesc[RelativeCoordinateStrings]): String {.header: juce_gui_basics, importcpp: "(juce::RelativeCoordinate::Strings::bottom)".}
+proc x*(this: typedesc[RelativeCoordinateStrings]): String {.header: juce_gui_basics, importcpp: "(juce::RelativeCoordinate::Strings::x)".}
+proc y*(this: typedesc[RelativeCoordinateStrings]): String {.header: juce_gui_basics, importcpp: "(juce::RelativeCoordinate::Strings::y)".}
+proc width*(this: typedesc[RelativeCoordinateStrings]): String {.header: juce_gui_basics, importcpp: "(juce::RelativeCoordinate::Strings::width)".}
+proc height*(this: typedesc[RelativeCoordinateStrings]): String {.header: juce_gui_basics, importcpp: "(juce::RelativeCoordinate::Strings::height)".}
 proc `==`*(this: RelativeCoordinateStrings, other: RelativeCoordinateStrings): bool {.error: "juce::RelativeCoordinate::Strings defines no operator==; compare a property instead".}
 
 proc getTypeOf*(this: typedesc[RelativeCoordinateStandardStrings], s: String): RelativeCoordinateStandardStringsType {.header: juce_gui_basics, importcpp: "juce::RelativeCoordinate::StandardStrings::getTypeOf(@)".}
@@ -2592,6 +2687,9 @@ proc getMarkers*(this: var MarkerListMarkerListHolder, xAxis: bool): ptr MarkerL
 proc `==`*(this: MarkerListMarkerListHolder, other: MarkerListMarkerListHolder): bool {.error: "juce::MarkerList::MarkerListHolder defines no operator==; compare a property instead".}
 
 proc makeMarkerListValueTreeWrapper*(state: ValueTree): MarkerListValueTreeWrapper {.header: juce_gui_basics, importcpp: "juce::MarkerList::ValueTreeWrapper(@)".}
+proc markerTag*(this: typedesc[MarkerListValueTreeWrapper]): Identifier {.header: juce_gui_basics, importcpp: "(juce::MarkerList::ValueTreeWrapper::markerTag)".}
+proc nameProperty*(this: typedesc[MarkerListValueTreeWrapper]): Identifier {.header: juce_gui_basics, importcpp: "(juce::MarkerList::ValueTreeWrapper::nameProperty)".}
+proc posProperty*(this: typedesc[MarkerListValueTreeWrapper]): Identifier {.header: juce_gui_basics, importcpp: "(juce::MarkerList::ValueTreeWrapper::posProperty)".}
 proc getState*(this: var MarkerListValueTreeWrapper): var ValueTree {.header: juce_gui_basics, importcpp: "#.getState()".}
 proc getNumMarkers*(this: MarkerListValueTreeWrapper): cint {.header: juce_gui_basics, importcpp: "#.getNumMarkers()".}
 proc getMarkerState*(this: MarkerListValueTreeWrapper, index: cint): ValueTree {.header: juce_gui_basics, importcpp: "#.getMarkerState(@)".}
@@ -3457,6 +3555,7 @@ proc getModel*(this: TableListBox): ptr TableListBoxModel {.header: juce_gui_bas
 proc `==`*(this: TableListBox, other: TableListBox): bool {.error: "juce::TableListBox defines no operator==; compare a property instead".}
 
 proc makeToolbar*(): Toolbar {.header: juce_gui_basics, importcpp: "juce::Toolbar(@)".}
+proc toolbarDragDescriptor*(this: typedesc[Toolbar]): constChar {.header: juce_gui_basics, importcpp: "(juce::Toolbar::toolbarDragDescriptor)".}
 proc setVertical*(this: var Toolbar, shouldBeVertical: bool) {.header: juce_gui_basics, importcpp: "#.setVertical(@)".}
 proc isVertical*(this: Toolbar): bool {.header: juce_gui_basics, importcpp: "#.isVertical()".}
 proc getThickness*(this: Toolbar): cint {.header: juce_gui_basics, importcpp: "#.getThickness()".}
@@ -3698,6 +3797,10 @@ proc close*(this: var ScopedMessageBox) {.header: juce_gui_basics, importcpp: "#
 proc `==`*(this: ScopedMessageBox, other: ScopedMessageBox): bool {.error: "juce::ScopedMessageBox defines no operator==; compare a property instead".}
 
 proc makeAlertWindow*(title: String, message: String, iconType: MessageBoxIconType, associatedComponent: ptr Component): AlertWindow {.header: juce_gui_basics, importcpp: "juce::AlertWindow(@)".}
+proc NoIcon*(this: typedesc[AlertWindow]): MessageBoxIconType {.header: juce_gui_basics, importcpp: "(juce::AlertWindow::NoIcon)".}
+proc QuestionIcon*(this: typedesc[AlertWindow]): MessageBoxIconType {.header: juce_gui_basics, importcpp: "(juce::AlertWindow::QuestionIcon)".}
+proc WarningIcon*(this: typedesc[AlertWindow]): MessageBoxIconType {.header: juce_gui_basics, importcpp: "(juce::AlertWindow::WarningIcon)".}
+proc InfoIcon*(this: typedesc[AlertWindow]): MessageBoxIconType {.header: juce_gui_basics, importcpp: "(juce::AlertWindow::InfoIcon)".}
 proc getAlertType*(this: AlertWindow): MessageBoxIconType {.header: juce_gui_basics, importcpp: "#.getAlertType()".}
 proc setMessage*(this: var AlertWindow, message: String) {.header: juce_gui_basics, importcpp: "#.setMessage(@)".}
 proc addButton*(this: var AlertWindow, name: String, returnValue: cint, shortcutKey1: KeyPress, shortcutKey2: KeyPress) {.header: juce_gui_basics, importcpp: "#.addButton(@)".}
@@ -4698,6 +4801,8 @@ proc makeFlexItem*(width: cfloat, height: cfloat, targetComponent: var Component
 proc makeFlexItem*(width: cfloat, height: cfloat, flexBoxToControl: var FlexBox): FlexItem {.header: juce_gui_basics, importcpp: "juce::FlexItem(@)".}
 proc makeFlexItem*(componentToControl: var Component): FlexItem {.header: juce_gui_basics, importcpp: "juce::FlexItem(@)".}
 proc makeFlexItem*(flexBoxToControl: var FlexBox): FlexItem {.header: juce_gui_basics, importcpp: "juce::FlexItem(@)".}
+proc autoValue*(this: typedesc[FlexItem]): cint {.header: juce_gui_basics, importcpp: "(juce::FlexItem::autoValue)".}
+proc notAssigned*(this: typedesc[FlexItem]): cint {.header: juce_gui_basics, importcpp: "(juce::FlexItem::notAssigned)".}
 proc currentBounds*(this: FlexItem): Rectangle[cfloat] {.header: juce_gui_basics, importcpp: "#.currentBounds".}
 proc `currentBounds=`*(this: var FlexItem, value: Rectangle[cfloat]) {.header: juce_gui_basics, importcpp: "#.currentBounds = #".}
 proc associatedComponent*(this: FlexItem): ptr Component {.header: juce_gui_basics, importcpp: "#.associatedComponent".}

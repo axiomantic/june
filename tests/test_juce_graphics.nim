@@ -202,3 +202,16 @@ proc testCppByte() =
     Typeface.createSystemTypefaceFor(data))
 
 testCppByte()
+
+# A static member variable is a VAR_DECL rather than a FIELD_DECL, so the field
+# pass never saw one and 115 constants had no binding. AffineTransform.identity
+# is the one an application reaches for most.
+proc testStaticConstants() =
+  doAssert AffineTransform.identity().isIdentity()
+  doAssert AffineTransform.identity().getTranslationX() == 0.0'f32
+  doAssert AffineTransform.identity().getScaleFactor() == 1.0'f32
+
+  # And it is the same value JUCE builds a rotation of zero into.
+  doAssert AffineTransform.rotation(0.0'f32).isIdentity()
+
+testStaticConstants()

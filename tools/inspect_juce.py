@@ -47,6 +47,15 @@ nim_function_def = """{comment}proc {function_name}*({function_args}){function_r
 # emitted a second time under the same name.
 free_functions_bound_by_lifting = {"initialiseJuce_GUI", "shutdownJuce_GUI"}
 
+# A static member variable. Not a call, so the pattern names it without
+# parentheses; it takes the class as a typedesc like a static method, which is
+# what makes AffineTransform.identity read the way it does in C++.
+# The pattern is parenthesised. Nim's importcpp for a proc wants something
+# call-shaped, and a bare qualified name makes the compiler fail with an
+# internal error rather than a message - which is why the hand-written
+# DocumentWindow constants had never actually been callable.
+nim_static_var_def = """{comment}proc {var_name}*(this: typedesc[{class_name}]): {var_type} {{.header: {juce_module_name}, importcpp: "({qualified_name}::{juce_spelling})".}}{reason}"""
+
 # A public field. C++ reaches one by name; Nim reaches it through a getter and a
 # setter, which is also what lets the binding stay an importcpp object with no
 # fields of its own.
@@ -1239,6 +1248,37 @@ def run_main(juce_module_name, juce_class_name_to_export):
             emitted_declarations.add(declaration)
             emitted_signatures.add(signature)
             print(declaration)
+
+        # Static member variables. AffineTransform::identity, AlertWindow's
+        # icon types and FlexItem::autoValue are constants an application
+        # reaches for, and a static member is a VAR_DECL rather than a
+        # FIELD_DECL, so the field pass does not see one.
+        for static_var in c.get_children():
+            if (static_var.kind != CursorKind.VAR_DECL
+                    or static_var.access_specifier != AccessSpecifier.PUBLIC
+                    or not static_var.spelling):
+                continue
+
+            var_type = remap_type(static_var.type, remap_inner_classes, enum_remap,
+                                  class_juce_map, global_nested_remap, unambiguous_nested_remap)
+            var_comment, var_reason = "", ""
+            if ("<" in var_type or "::" in var_type or "(" in var_type
+                    or is_c_array(var_type)
+                    or not type_is_declared(var_type, declared_type_names)):
+                var_comment = "# "
+                var_reason = unbound_type_reason(var_type)
+
+            var_name = remap_identifier(static_var.spelling)
+            var_signature = (f"typedesc[{class_name}]", var_name, (), var_type)
+            if var_signature in emitted_signatures:
+                continue
+            emitted_signatures.add(var_signature)
+
+            print(nim_static_var_def.format(**{
+                "comment": var_comment, "var_name": var_name, "class_name": class_name,
+                "var_type": var_type.replace("var ", ""), "juce_module_name": juce_module_name,
+                "qualified_name": qualified_name, "juce_spelling": static_var.spelling,
+                "reason": f"  # {var_reason}" if var_comment else "" }))
 
         # Public fields. A JUCE options or parameters struct is often nothing
         # but fields - Slider::RotaryParameters is two floats and a bool - so

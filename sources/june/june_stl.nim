@@ -21,9 +21,11 @@ type
   # Opaque: the only things C++ offers on one are comparison and a name whose
   # spelling is implementation defined.
   CppTypeIndex* {.header: "<typeindex>", importcpp: "std::type_index", bycopy.} = object
-  # std::byte is a distinct type in C++ rather than an alias for a character,
-  # so it needs its own binding: a Nim uint8 does not convert to one.
-  CppByte* {.header: "<cstddef>", importcpp: "std::byte".} = distinct uint8
+  # std::byte is a distinct type in C++ rather than an alias for a character.
+  # An object rather than `distinct uint8`: Nim emits the base type in some
+  # positions for a distinct integer, and libstdc++ rejects the conversion even
+  # where libc++ accepts it.
+  CppByte* {.header: "<cstddef>", importcpp: "std::byte", bycopy.} = object
   CppMap*[K, V] {.header: "<map>", importcpp: "std::map<'0, '1>", bycopy.} = object
   CppUnorderedMap*[K, V] {.header: "<unordered_map>", importcpp: "std::unordered_map<'0, '1>", bycopy.} = object
   # The size is a value rather than a type, so it is a static parameter: Nim
