@@ -1534,3 +1534,53 @@ proc testDrawableText() =
 
 testMessageBoxOptions()
 testDrawableText()
+
+# DialogWindowLaunchOptions and PropertyPanel =================================
+#
+# The options a dialog would be launched with, and the panel that holds
+# property rows. Neither needs a window: the dialog is only described here, and
+# the panel is an ordinary Component.
+
+proc testDialogWindowLaunchOptions() =
+    initialiseJuce_GUI()
+
+    block:
+        var options = makeDialogWindowLaunchOptions()
+        doAssert $options.dialogTitle() == "", "a fresh options object had a title"
+        doAssert options.componentToCentreAround() == nil,
+                 "a fresh options object had a component to centre around"
+
+        options.dialogTitle = makeString("Settings")
+        doAssert $options.dialogTitle() == "Settings",
+                 "the title came back as " & $options.dialogTitle()
+
+        options.dialogBackgroundColour = makeColour(10'u8, 20'u8, 30'u8, 255'u8)
+        doAssert options.dialogBackgroundColour().getRed() == 10,
+                 "the background red is " & $options.dialogBackgroundColour().getRed()
+        doAssert options.dialogBackgroundColour().getBlue() == 30,
+                 "the background blue is " & $options.dialogBackgroundColour().getBlue()
+
+        # The title survived the later write, so the var getters write into the
+        # options rather than into copies of them.
+        doAssert $options.dialogTitle() == "Settings", "the colour write clobbered the title"
+
+    shutdownJuce_GUI()
+
+proc testPropertyPanel() =
+    initialiseJuce_GUI()
+
+    block:
+        var panel = makePropertyPanel(makeString("Options"))
+        doAssert panel.isEmpty(), "a fresh panel was not empty"
+        doAssert panel.getSectionNames().size() == 0,
+                 "a fresh panel has " & $panel.getSectionNames().size() & " sections"
+        doAssert panel.getTotalContentHeight() == 0,
+                 "an empty panel is " & $panel.getTotalContentHeight() & " tall"
+
+        panel.clear()
+        doAssert panel.isEmpty(), "clear left something behind"
+
+    shutdownJuce_GUI()
+
+testDialogWindowLaunchOptions()
+testPropertyPanel()
