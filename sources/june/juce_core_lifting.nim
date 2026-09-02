@@ -15,11 +15,13 @@ proc toRawUTF8*(this: String): string =
 
 proc `$`*(text: String): string = text.toRawUTF8
 
-# JUCE has no operator< taking two Strings: StringRef declares one taking a
-# String, and there is a free one taking a String and a StringRef. Comparing
-# two Strings reaches both through the same converter, so Nim calls it
-# ambiguous. This one is an exact match and outranks both.
+# JUCE has no operator< or operator<= taking two Strings: StringRef declares one
+# taking a String, and there is a free one taking a String and a StringRef.
+# Comparing two Strings reaches both through the same converter, so Nim calls it
+# ambiguous. These are exact matches and outrank both. > and >= come from them,
+# so fixing these two fixes all four.
 proc `<`*(this: String, other: String): bool {.header: juce_core, importcpp: "# < #".}
+proc `<=`*(this: String, other: String): bool {.header: juce_core, importcpp: "# <= #".}
 
 converter toJuceString*(text: string): String = makeString(text)
 # No implicit String -> string. With toJuceString going the other way, any

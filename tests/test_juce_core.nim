@@ -719,3 +719,31 @@ proc testCoreIterators() =
   doAssert total == 0, "initialiseToZero left " & $total
 
 testCoreIterators()
+
+# Comparison operators ========================================================
+#
+# The generator comments out operator!=, operator> and operator>= on the
+# grounds that Nim derives them, which covers over a hundred bindings and was
+# never checked. It is checked here, together with the two String comparisons
+# that need an exact overload: both < and <= reach a StringRef one and a free
+# one through the same converter, and Nim calls that ambiguous.
+
+proc testComparisonOperators() =
+  let a = makeString("aaa")
+  let b = makeString("bbb")
+
+  doAssert a == a, "== on two Strings"
+  doAssert a != b, "!= was not derived from =="
+  doAssert not (a != a), "!= said a differs from itself"
+  doAssert a < b, "< on two Strings"
+  doAssert a <= b, "<= on two Strings"
+  doAssert b > a, "> was not derived from <"
+  doAssert b >= a, ">= was not derived from <="
+
+  # Another class, so this is not a String-only accident.
+  let small = makeRectangle(0.cint, 0.cint, 1.cint, 1.cint)
+  let large = makeRectangle(0.cint, 0.cint, 2.cint, 2.cint)
+  doAssert small != large, "Rectangle != was not derived from =="
+  doAssert small == small, "Rectangle == on itself"
+
+testComparisonOperators()
