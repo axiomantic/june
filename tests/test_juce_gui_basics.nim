@@ -1382,35 +1382,15 @@ proc testTabbedComponent() =
 testAccessibleState()
 testTabbedComponent()
 
-# AlertWindow and SidePanel ===================================================
+# SidePanel ===================================================================
 #
-# Two windows built without being shown. The buttons and the content are data
-# until something displays them, which is what makes them checkable here.
-
-proc testAlertWindow() =
-    initialiseJuce_GUI()
-
-    block:
-        var alert = makeAlertWindow(makeString("Title"), makeString("Message"),
-                                    MessageBoxIconType_WarningIcon, nil)
-        doAssert alert.getAlertType() == MessageBoxIconType_WarningIcon,
-                 "the icon type did not stick"
-        doAssert alert.getNumButtons() == 0, "a fresh window has " & $alert.getNumButtons() & " buttons"
-
-        alert.addButton(makeString("OK"), 1.cint, makeKeyPress(), makeKeyPress())
-        alert.addButton(makeString("Cancel"), 0.cint, makeKeyPress(), makeKeyPress())
-        doAssert alert.getNumButtons() == 2, "the window has " & $alert.getNumButtons() & " buttons"
-
-        # The buttons are reachable by index and by name, and they agree.
-        doAssert alert.getButton(0.cint) != nil, "the first button is missing"
-        doAssert alert.getButton(makeString("OK")) == alert.getButton(0.cint),
-                 "the button found by name is not the one at index 0"
-        doAssert alert.getButton(makeString("Nonexistent")) == nil,
-                 "a button that was never added was found"
-
-        alert.setMessage(makeString("Changed"))
-
-    shutdownJuce_GUI()
+# Built without being shown: the content it is given is data until something
+# displays it.
+#
+# AlertWindow is not here. Constructing one reaches the platform's window
+# system - on Linux that is X, and with no display it asserts twice and then
+# segfaults inside JUCE. It is a top-level window, so there is no headless way
+# to build one.
 
 proc testSidePanel() =
     initialiseJuce_GUI()
@@ -1430,5 +1410,4 @@ proc testSidePanel() =
 
     shutdownJuce_GUI()
 
-testAlertWindow()
 testSidePanel()
