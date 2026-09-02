@@ -3023,7 +3023,7 @@ proc getAssociatedComponent*(this: MessageBoxOptions): ptr Component {.header: j
 proc getParentComponent*(this: MessageBoxOptions): ptr Component {.header: juce_gui_basics, importcpp: "#.getParentComponent()".}
 proc `==`*(this: MessageBoxOptions, other: MessageBoxOptions): bool {.error: "juce::MessageBoxOptions defines no operator==; compare a property instead".}
 
-# proc makeScopedMessageBox*(arg1: std::shared_ptr<detail::ScopedMessageBoxImpl>): ScopedMessageBox {.header: juce_gui_basics, importcpp: "juce::ScopedMessageBox(@)".}  # a type that cannot be spelled in Nim
+# proc makeScopedMessageBox*(arg1: std::shared_ptr<detail::ScopedMessageBoxImpl>): ScopedMessageBox {.header: juce_gui_basics, importcpp: "juce::ScopedMessageBox(@)".}  # takes a type from juce::detail, which is JUCE's own implementation; the class is obtained from the API that creates it
 proc makeScopedMessageBox*(): ScopedMessageBox {.header: juce_gui_basics, importcpp: "juce::ScopedMessageBox(@)".}
 proc `ScopedMessageBox=`*(this: var ScopedMessageBox, arg1: ScopedMessageBox): var ScopedMessageBox {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
 proc close*(this: var ScopedMessageBox) {.header: juce_gui_basics, importcpp: "#.close()".}

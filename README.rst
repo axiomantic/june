@@ -322,9 +322,10 @@ ambiguous, a C array or ``std::initializer_list`` parameter because the same
 class takes a String, a value or the incremental API instead, and others
 because the generator excludes them on purpose. Only the ones marked as a type
 that cannot be spelled in Nim are missing capability, and each of those is a
-C++ shape with no Nim equivalent: a ``std::type_index``, a raw function-pointer
-typedef, a listener that is a class template, and the internal image and window
-backends. Count them with::
+C++ shape with no Nim equivalent. One is left, and it cannot be bound by
+anything: ``ComponentPeer::setMultimonitorPositionOverride`` returns a class
+declared inside its own function body, which has no name outside it even in
+C++. Count them with::
 
   grep -c 'cannot be spelled' sources/june/juce_*.nim
 
