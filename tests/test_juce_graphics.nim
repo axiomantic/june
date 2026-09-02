@@ -301,3 +301,45 @@ proc testFont() =
 initialiseJuce_GUI()
 testFont()
 shutdownJuce_GUI()
+
+# FillType and ColourGradient =================================================
+#
+# What a Graphics context is set to paint with, without painting anything.
+
+proc testFillType() =
+    var plain = makeFillType()
+    doAssert plain.isColour(), "a default FillType was not a colour"
+    doAssert not plain.isGradient(), "a default FillType claimed to be a gradient"
+
+    let opaque = makeColour(255'u8, 0'u8, 0'u8, 255'u8)
+    var red = makeFillType(opaque)
+    doAssert red.isColour(), "a colour fill was not a colour"
+    doAssert red.colour().getRed() == 255, "the red channel is " & $red.colour().getRed()
+    doAssert not red.isInvisible(), "an opaque fill reported invisible"
+
+    # A fully transparent colour makes the fill invisible.
+    red.setColour(makeColour(255'u8, 0'u8, 0'u8, 0'u8))
+    doAssert red.isInvisible(), "a transparent fill did not report invisible"
+
+proc testColourGradient() =
+    var gradient = makeColourGradient()
+    gradient.clearColours()
+    doAssert gradient.getNumColours() == 0,
+             "clearColours left " & $gradient.getNumColours()
+
+    let black = makeColour(0'u8, 0'u8, 0'u8, 255'u8)
+    let white = makeColour(255'u8, 255'u8, 255'u8, 255'u8)
+    discard gradient.addColour(0.0, black)
+    discard gradient.addColour(1.0, white)
+    doAssert gradient.getNumColours() == 2,
+             "the gradient holds " & $gradient.getNumColours() & " stops"
+    doAssert gradient.getColour(0.cint).getRed() == 0, "the first stop is not black"
+    doAssert gradient.getColour(1.cint).getRed() == 255, "the second stop is not white"
+
+    # A gradient makes the fill a gradient rather than a colour.
+    var fill = makeFillType(gradient)
+    doAssert fill.isGradient(), "a gradient fill was not a gradient"
+    doAssert not fill.isColour(), "a gradient fill claimed to be a colour"
+
+testFillType()
+testColourGradient()
