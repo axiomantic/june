@@ -52,6 +52,13 @@ iterator items*(this: XmlElement): ptr XmlElement =
     for index in 0 ..< this.getNumChildElements():
         yield this.getChildElement(index)
 
+# XmlElement's own attribute iterator is Iterator<AttributeIteratorTraits>, an
+# alias over a class template with no Nim spelling. The indexed accessors give
+# the same loop.
+iterator attributes*(this: XmlElement): tuple[name: String, value: String] =
+    for index in 0 ..< this.getNumAttributes():
+        yield (this.getAttributeName(index), this.getAttributeValue(index))
+
 iterator pairs*(this: NamedValueSet): tuple[name: Identifier, value: juce_var] =
     for index in 0 ..< this.size():
         yield (this.getName(index), this.getValueAt(index))

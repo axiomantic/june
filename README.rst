@@ -280,7 +280,8 @@ Hand-written additions live in the ``*_lifting.nim`` files and in
   ``SparseSet``, ``NormalisableRange``, ``Parallelogram``, ``Optional`` and
   ``ReferenceCountedObjectPtr``.
 - Iterators over the containers a caller loops over: ``ValueTree`` children and
-  properties, ``StringArray``, ``XmlElement`` children, ``NamedValueSet``,
+  properties, ``StringArray``, ``XmlElement`` children and attributes,
+  ``NamedValueSet``,
   ``Array``, ``OwnedArray``, ``Span``, ``RectangleList`` and ``std::vector``.
   JUCE's ``begin`` and ``end`` have no Nim spelling, so these are written over
   the indexed accessors instead.
