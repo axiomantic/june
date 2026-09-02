@@ -44,7 +44,7 @@ defineCppClassInternal CustomImagePixelData of ImagePixelData:
     cppTypeName ImageBitmapDataReadWriteMode, "Image::BitmapData::ReadWriteMode"
     cppTypeName ImageBitmapData, "Image::BitmapData"
     proc createLowLevelContext(): UniquePtr[LowLevelGraphicsContext] = discard
-    proc clone(): ReferenceCountedObjectPtr[ImagePixelData] = discard
+    proc clone(): ReferenceCountedObjectPtr[DynamicObject] = discard
     proc createType(): UniquePtr[ImageType] {.cppconst.} = discard
     proc initialiseBitmapData(arg0: varref[ImageBitmapData], x: cint, y: cint, arg3: ImageBitmapDataReadWriteMode) = discard
 
@@ -53,7 +53,7 @@ proc newCustomImagePixelData*(arg0: ImagePixelFormat, width: cint, height: cint)
 proc setCreateLowLevelContextHandler*(this: var CustomImagePixelData, handler: proc(): UniquePtr[LowLevelGraphicsContext] {.closure.}) =
     this.onCreateLowLevelContext = bindClosure(handler)
 
-proc setCloneHandler*(this: var CustomImagePixelData, handler: proc(): ReferenceCountedObjectPtr[ImagePixelData] {.closure.}) =
+proc setCloneHandler*(this: var CustomImagePixelData, handler: proc(): ReferenceCountedObjectPtr[DynamicObject] {.closure.}) =
     this.onClone = bindClosure(handler)
 
 proc setCreateTypeHandler*(this: var CustomImagePixelData, handler: proc(): UniquePtr[ImageType] {.closure.}) =
@@ -116,4 +116,4 @@ proc setGetNativeDetailsHandler*(this: var CustomTypeface, handler: proc(): ptr 
     this.onGetNativeDetails = bindClosure(handler)
 
 # Withheld, with the reason:
-#   LowLevelGraphicsContext: Span<const uint16_t> in drawGlyphs has no Nim spelling
+#   LowLevelGraphicsContext: const Font & returned by getFont has no Nim spelling
