@@ -518,6 +518,10 @@ def unbound_type_reason(rendered):
     if "initializer_list" in rendered:
         return ("a std::initializer_list parameter, which Nim cannot spell; "
                 "build the value with the incremental API instead")
+    if "detail::" in rendered:
+        return ("takes a type from juce::detail, which is JUCE's own "
+                "implementation; the class is obtained from the API that "
+                "creates it")
     return "a type that cannot be spelled in Nim"
 
 def is_anonymous_enum(cursor):
