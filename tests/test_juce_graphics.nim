@@ -461,3 +461,46 @@ proc testClipRegion() =
 testFillAllAndOpacity()
 testShapes()
 testClipRegion()
+
+# Image and ImageBitmapData ===================================================
+#
+# BitmapData is the raw buffer behind an Image. Reading a pixel through it and
+# through getPixelAt has to give the same answer, which is what says the stride
+# and format the binding reports are the ones the buffer actually has.
+
+proc testImageProperties() =
+    var image = makeImage(ImagePixelFormat_ARGB, 8.cint, 4.cint, true)
+    doAssert image.isValid(), "a constructed image was not valid"
+    doAssert not image.isNull(), "a constructed image reported null"
+    doAssert image.isARGB(), "an ARGB image did not report ARGB"
+    doAssert image.hasAlphaChannel(), "an ARGB image had no alpha channel"
+    doAssert image.getBounds().getWidth() == 8, "the bounds are " & $image.getBounds().getWidth()
+
+    # A rescaled copy has the size asked for and leaves the original alone.
+    let bigger = image.rescaled(16.cint, 8.cint, GraphicsResamplingQuality_lowResamplingQuality)
+    doAssert bigger.getWidth() == 16, "the rescaled image is " & $bigger.getWidth() & " wide"
+    doAssert image.getWidth() == 8, "rescaled changed the original"
+
+proc testImageBitmapData() =
+    var image = makeImage(ImagePixelFormat_ARGB, 8.cint, 4.cint, true)
+    # makeColour takes red, green, blue, alpha - in that order.
+    image.setPixelAt(2.cint, 1.cint, makeColour(10'u8, 20'u8, 30'u8, 255'u8))
+
+    var pixels = makeImageBitmapData(image, ImageBitmapDataReadWriteMode_readOnly)
+    doAssert pixels.width() == 8, "BitmapData reports width " & $pixels.width()
+    doAssert pixels.height() == 4, "BitmapData reports height " & $pixels.height()
+    doAssert pixels.pixelStride() == 4, "an ARGB pixel is " & $pixels.pixelStride() & " bytes"
+    doAssert pixels.lineStride() >= pixels.width() * pixels.pixelStride(),
+             "the line stride is shorter than a row"
+
+    # The same pixel through the raw buffer and through the accessor.
+    let raw = pixels.getPixelPointer(2.cint, 1.cint)
+    doAssert raw != nil, "getPixelPointer returned nothing"
+    let viaAccessor = image.getPixelAt(2.cint, 1.cint)
+    doAssert viaAccessor.getRed() == 10, "getPixelAt gave red " & $viaAccessor.getRed()
+    doAssert viaAccessor.getGreen() == 20, "getPixelAt gave green " & $viaAccessor.getGreen()
+    doAssert viaAccessor.getBlue() == 30, "getPixelAt gave blue " & $viaAccessor.getBlue()
+    doAssert viaAccessor.getAlpha() == 255, "getPixelAt gave alpha " & $viaAccessor.getAlpha()
+
+testImageProperties()
+testImageBitmapData()
