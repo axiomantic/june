@@ -445,6 +445,31 @@ two apart, so those two are named in the generator with the reason, and
 ``check_handwritten_covered.py`` fails unless a test builds every one of the
 constructors that is emitted.
 
+Every bound JUCE enum is a ``distinct cint``, and Nim renders **one** closure
+struct for ``proc(): cint`` and ``proc(): SomeEnum``, typing its function
+pointer from whichever it emits first::
+
+  typedef struct {
+    N_NIMCALL_PTR(juce::ThreadPoolJob::JobStatus, ClP_0) (void* ClE_0);
+    void* ClE_0;
+  } tyProc__bZhuB40paOmpcx9bHElqj9aQ;   // also used for proc(): cint
+
+A program holding both kinds then assigns a function pointer of the wrong type
+and the C++ compiler rejects it. So no Nim closure names a distinct enum. A
+subclass whose virtual returns one is marked ``basescalar`` by
+``tools/generate_subclasses.py``: the callback takes and returns ``cint``, the
+override keeps the enum to match the virtual, and the generated forwarder casts
+the value. For a binding that takes such a ``std::function`` -- JUCE has one,
+``ThreadPool.addJob`` -- ``bindEnumClosure`` does the same::
+
+  let job: CppFunctionObjectR0[ThreadPoolJobJobStatus] =
+    bindEnumClosure[ThreadPoolJobJobStatus](
+      proc(): cint = cint(ThreadPoolJobJobStatus_jobHasFinished))
+
+Both cast a value rather than a function pointer, which is defined. The suite
+sets a ``cint`` handler and an enum one in the same program, which is what makes
+the compiler check it.
+
 A method returning ``const T*`` is bound as ``ConstPtr[T]``, not ``ptr T``. Nim
 has no const pointer, and C++ does not convert ``const T*`` to ``T*``, so the
 plain ``ptr`` spelling produced 31 procs that could not be called at all --
