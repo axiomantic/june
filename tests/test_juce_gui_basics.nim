@@ -855,6 +855,16 @@ proc testGeneratedSubclassesConstruct() =
         cdelete value
 
     block:
+        let value = newCustomBubbleComponent()
+        doAssert not value.isNil, "newCustomBubbleComponent returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomCachedComponentImage()
+        doAssert not value.isNil, "newCustomCachedComponentImage returned nil"
+        cdelete value
+
+    block:
         let value = newCustomDarkModeSettingListener()
         doAssert not value.isNil, "newCustomDarkModeSettingListener returned nil"
         cdelete value
@@ -912,6 +922,16 @@ proc testGeneratedSubclassesConstruct() =
     block:
         let value = newCustomTextDragAndDropTarget()
         doAssert not value.isNil, "newCustomTextDragAndDropTarget returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomTextInputTarget()
+        doAssert not value.isNil, "newCustomTextInputTarget returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomToolbarItemFactory()
+        doAssert not value.isNil, "newCustomToolbarItemFactory returned nil"
         cdelete value
 
     block:

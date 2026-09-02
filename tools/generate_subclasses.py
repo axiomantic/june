@@ -192,7 +192,12 @@ def map_type(type_spelling, declared, is_return, declaration=None, aliases=None)
 
     if bare.endswith("&"):
         pointee = bare[:-1].strip()
-        name = nim_name(pointee, declared, declaration, aliases)
+        if pointee in primitive_map:
+            name = primitive_map[pointee] or None
+        elif pointee.endswith(">") and "<" in pointee:
+            name = map_template(pointee, declared, aliases)
+        else:
+            name = nim_name(pointee, declared, declaration, aliases)
         if not name:
             return None
         # A reference reaches the callback as a pointer either way: Nim hands an
