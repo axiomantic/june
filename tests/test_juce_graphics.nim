@@ -550,3 +550,60 @@ proc testRectangleList() =
 
 testBorderSize()
 testRectangleList()
+
+# The hand-written generics ===================================================
+#
+# A generic proc is only type-checked where it is instantiated, so a
+# hand-written one that names C++ which does not exist compiles fine until
+# something calls it. That is how makeBorderSize sat broken. These instantiate
+# the Range, Point and Rectangle helpers that nothing had called.
+
+proc testRangeHelpers() =
+    let span = makeRange(10.cint, 20.cint)
+    doAssert span.getStart() == 10, "start is " & $span.getStart()
+
+    doAssert Range[cint].emptyRange(5.cint).getLength() == 0,
+             "an empty range has length " & $Range[cint].emptyRange(5.cint).getLength()
+
+    doAssert span.movedToStartAt(0.cint).getEnd() == 10,
+             "moving the start left the end at " & $span.movedToStartAt(0.cint).getEnd()
+    doAssert span.movedToEndAt(30.cint).getStart() == 20,
+             "moving the end left the start at " & $span.movedToEndAt(30.cint).getStart()
+
+    doAssert span.expanded(5.cint).getLength() == 20,
+             "expanding gave length " & $span.expanded(5.cint).getLength()
+
+    # clipValue pins to the range, and intersects answers about overlap.
+    doAssert span.clipValue(0.cint) == 10, "clipValue below the range"
+    doAssert span.clipValue(50.cint) == 20, "clipValue above the range"
+    doAssert span.clipValue(15.cint) == 15, "clipValue inside the range"
+    doAssert span.intersects(makeRange(15.cint, 25.cint)), "overlapping ranges did not intersect"
+    doAssert not span.intersects(makeRange(30.cint, 40.cint)), "separate ranges intersected"
+
+proc testRectangleHelpers() =
+    let box = makeRectangle(0.cint, 0.cint, 20.cint, 10.cint)
+    doAssert box.getCentreX() == 10, "centre x is " & $box.getCentreX()
+    doAssert box.getCentreY() == 5, "centre y is " & $box.getCentreY()
+    doAssert box.getCentre().getX() == 10, "getCentre gave x " & $box.getCentre().getX()
+
+    let overlapping = makeRectangle(10.cint, 0.cint, 20.cint, 10.cint)
+    doAssert box.intersects(overlapping), "overlapping rectangles did not intersect"
+    doAssert box.getIntersection(overlapping).getWidth() == 10,
+             "the intersection is " & $box.getIntersection(overlapping).getWidth() & " wide"
+    doAssert box.getUnion(overlapping).getWidth() == 30,
+             "the union is " & $box.getUnion(overlapping).getWidth() & " wide"
+
+    doAssert box.expanded(5.cint).getWidth() == 30,
+             "expanding gave width " & $box.expanded(5.cint).getWidth()
+
+    # removeFromBottom takes a slice off and shrinks the receiver.
+    var shrinking = makeRectangle(0.cint, 0.cint, 20.cint, 10.cint)
+    let slice = shrinking.removeFromBottom(4.cint)
+    doAssert slice.getHeight() == 4, "the slice is " & $slice.getHeight() & " tall"
+    doAssert shrinking.getHeight() == 6, "what is left is " & $shrinking.getHeight() & " tall"
+
+    doAssert makePoint(0.cint, 0.cint).isOrigin(), "the origin did not report as origin"
+    doAssert not makePoint(1.cint, 0.cint).isOrigin(), "a moved point reported as origin"
+
+testRangeHelpers()
+testRectangleHelpers()
