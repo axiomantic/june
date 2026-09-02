@@ -43,8 +43,11 @@ proc newApplication*(): ptr JUCEApplication {.importcpp: "(new june::JUCEApplica
 proc constructApplication*(): JUCEApplication {.importcpp: "june::JUCEApplication()".}
 
 proc quit*(this: var JUCEApplicationBase) {.header: juce_gui_basics, importcpp: "juce::JUCEApplication::quit()".}
-proc getCommandLineParameterArray*(this: var JUCEApplicationBase): StringArray {.header: juce_gui_basics, importcpp: "juce::JUCEApplication::getCommandLineParameterArray()".}
-proc getCommandLineParameters*(this: var JUCEApplicationBase): String {.header: juce_gui_basics, importcpp: "juce::JUCEApplication::getCommandLineParameters()".}
+# Static in JUCE, and bound as static here. They took a receiver they never
+# used, which meant a caller needed an application instance to reach a function
+# that does not.
+proc getCommandLineParameterArray*(this: typedesc[JUCEApplication]): StringArray {.header: juce_gui_basics, importcpp: "juce::JUCEApplication::getCommandLineParameterArray()".}
+proc getCommandLineParameters*(this: typedesc[JUCEApplication]): String {.header: juce_gui_basics, importcpp: "juce::JUCEApplication::getCommandLineParameters()".}
 
 proc getInstance*(this: typedesc[JUCEApplication]): var JUCEApplication {.header: juce_gui_basics, importcpp: "(*dynamic_cast<june::JUCEApplication*>(juce::JUCEApplication::getInstance()))".}
 

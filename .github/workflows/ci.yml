@@ -29,6 +29,14 @@ jobs:
       - name: Install libclang
         run: python3 -m pip install --break-system-packages libclang
 
+      - name: Every hand-written binding is called
+        # The generated modules are checked by regenerating them. The
+        # hand-written layer has no such check, and an importcpp string only
+        # reaches the C++ compiler at the call site, so a binding nothing calls
+        # is never compiled. Seven defects were found in that layer by calling
+        # things for the first time.
+        run: python3 tools/check_handwritten_covered.py
+
       - name: Regenerate and compare
         shell: bash
         run: |
