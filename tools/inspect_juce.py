@@ -483,7 +483,7 @@ known_builtin_types = {
     "float", "float32", "float64", "bool", "char", "string", "cstring",
     "pointer", "void", "csize_t", "cchar", "cuchar", "cshort", "cushort",
     "cint", "cuint", "clong", "culong", "clonglong", "culonglong",
-    "cfloat", "cdouble", "constChar", "constPointer", "WChar",
+    "cfloat", "cdouble", "constChar", "constPointer", "WChar", "ConstPtr",
     "UniquePtr", "CppOptional", "CppVector", "CppFunctionObjectR1Ref",
     "CppString", "CppMap", "CppUnorderedMap", "CppArray", "CppException", "CppTypeIndex", "CppByte",
     "Rectangle", "Point", "Line", "BorderSize", "Range",
@@ -1529,7 +1529,26 @@ def run_main(juce_module_name, juce_class_name_to_export):
             reason = ""
             return_type = ""
             if m.result_type.spelling != "void":
-                return_type = f": {remap_type(m.result_type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap, unambiguous_nested_remap)}"
+                rendered_return = remap_type(
+                    m.result_type, remap_inner_classes, enum_remap,
+                    class_juce_map, global_nested_remap,
+                    unambiguous_nested_remap)
+                # A pointer to const is not a ptr. C++ does not convert
+                # `const T*` to `T*`, so every one of these was a proc that
+                # could not be called - and nothing noticed, because an
+                # importcpp string only reaches the C++ compiler at a call
+                # site. ConstPtr, in june_common, is the spelling that both
+                # compiles and keeps the const.
+                #
+                # Only the return position. A `const T*` parameter takes a
+                # plain `ptr T` already, because that conversion is the one
+                # C++ does make.
+                if (m.result_type.kind == TypeKind.POINTER
+                        and m.result_type.get_pointee().is_const_qualified()
+                        and rendered_return.startswith("ptr ")):
+                    rendered_return = (
+                        f"ConstPtr[{rendered_return[len('ptr '):]}]")
+                return_type = f": {rendered_return}"
 
             if m.result_type.spelling in ["CFStringRef", "OSType"]:
                 comment, reason = "# ", "a platform type with no Nim spelling"

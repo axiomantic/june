@@ -110,7 +110,7 @@ proc getType*(this: ValueTree): Identifier {.header: juce_data_structures, impor
 proc hasType*(this: ValueTree, typeName: Identifier): bool {.header: juce_data_structures, importcpp: "#.hasType(@)".}
 proc getProperty*(this: ValueTree, name: Identifier): juce_var {.header: juce_data_structures, importcpp: "#.getProperty(@)".}
 proc getProperty*(this: ValueTree, name: Identifier, defaultReturnValue: juce_var): juce_var {.header: juce_data_structures, importcpp: "#.getProperty(@)".}
-proc getPropertyPointer*(this: ValueTree, name: Identifier): ptr juce_var {.header: juce_data_structures, importcpp: "#.getPropertyPointer(@)".}
+proc getPropertyPointer*(this: ValueTree, name: Identifier): ConstPtr[juce_var] {.header: juce_data_structures, importcpp: "#.getPropertyPointer(@)".}
 proc `[]`*(this: ValueTree, name: Identifier): juce_var {.header: juce_data_structures, importcpp: "#.operator[](@)".}
 proc setProperty*(this: var ValueTree, name: Identifier, newValue: juce_var, undoManager: ptr UndoManager): var ValueTree {.header: juce_data_structures, importcpp: "#.setProperty(@)".}
 proc hasProperty*(this: ValueTree, name: Identifier): bool {.header: juce_data_structures, importcpp: "#.hasProperty(@)".}

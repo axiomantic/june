@@ -177,3 +177,31 @@ proc testPropertiesFileOptions() =
            "a later write clobbered the name"
 
 testPropertiesFileOptions()
+
+# ConstPtr ====================================================================
+#
+# getPropertyPointer returns a const var*, which the generator used to bind as
+# a plain `ptr juce_var`. C++ does not convert const var* to var*, so the proc
+# could not be called at all - and nothing said so, because an importcpp string
+# only reaches the C++ compiler at a call site.
+
+proc testConstPtr() =
+    block:
+        var tree = makeValueTree(makeIdentifier(makeString("settings")))
+        # setProperty returns the tree for chaining, which Nim will not drop
+        # on its own.
+        discard tree.setProperty(makeIdentifier(makeString("volume")),
+                                 makejuce_var(11.cint), nil)
+
+        let present = tree.getPropertyPointer(makeIdentifier(makeString("volume")))
+        doAssert not present.isNil(), "the property that was just set has no pointer"
+        doAssert present[].isInt(), "the property is not an int"
+        doAssert present[].toInt() == 11,
+                 "the property reads back as " & $present[].toInt()
+
+        # A name the tree does not carry has no pointer, which is the other
+        # half of the contract.
+        let absent = tree.getPropertyPointer(makeIdentifier(makeString("balance")))
+        doAssert absent.isNil(), "a property that was never set has a pointer"
+
+testConstPtr()
