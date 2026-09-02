@@ -2935,4 +2935,75 @@ proc testDrawableButton() =
 
 
 testFileBrowserComponent()
+# TreeView and TreeViewItem ===================================================
+#
+# TreeViewItem is abstract, so this needs CustomTreeViewItem. The row count is
+# the interesting answer: it counts what is visible, so opening and closing a
+# branch changes it while the item count stays the same.
+
+proc testTreeView() =
+    initialiseJuce_GUI()
+
+    block:
+        var root = newCustomTreeViewItem()
+        root[].setMightContainSubItemsHandler(proc(): bool = true)
+
+        var branch = newCustomTreeViewItem()
+        branch[].setMightContainSubItemsHandler(proc(): bool = true)
+
+        var leafOne = newCustomTreeViewItem()
+        leafOne[].setMightContainSubItemsHandler(proc(): bool = false)
+        var leafTwo = newCustomTreeViewItem()
+        leafTwo[].setMightContainSubItemsHandler(proc(): bool = false)
+
+        branch[].addSubItem(cast[ptr TreeViewItem](leafOne))
+        branch[].addSubItem(cast[ptr TreeViewItem](leafTwo))
+        root[].addSubItem(cast[ptr TreeViewItem](branch))
+
+        doAssert root[].getNumSubItems() == 1,
+                 "the root holds " & $root[].getNumSubItems() & " sub items"
+        doAssert branch[].getNumSubItems() == 2,
+                 "the branch holds " & $branch[].getNumSubItems() & " sub items"
+        doAssert branch[].getSubItem(1.cint) == cast[ptr TreeViewItem](leafTwo),
+                 "the second leaf is not the one that was added"
+
+        var tree = makeTreeView(makeString("tree"))
+        tree.setRootItem(cast[ptr TreeViewItem](root))
+        tree.setRootItemVisible(false)
+        doAssert tree.getRootItem() == cast[ptr TreeViewItem](root),
+                 "the tree reports another root"
+
+        # The branch starts closed, so only it is on a row.
+        branch[].setOpen(false)
+        doAssert not branch[].isOpen(), "the branch stayed open"
+        let closedRows = tree.getNumRowsInTree()
+        doAssert closedRows == 1,
+                 "with the branch closed the tree has " & $closedRows & " rows"
+
+        branch[].setOpen(true)
+        doAssert branch[].isOpen(), "the branch did not open"
+        doAssert tree.getNumRowsInTree() == 3,
+                 "with the branch open the tree has " &
+                 $tree.getNumRowsInTree() & " rows"
+
+        # Opening changed the rows without changing the items.
+        doAssert branch[].getNumSubItems() == 2,
+                 "opening changed the sub item count"
+
+        leafOne[].setSelected(true, true, NotificationType_dontSendNotification)
+        doAssert leafOne[].isSelected(), "the leaf did not become selected"
+        doAssert not leafTwo[].isSelected(), "the other leaf became selected too"
+
+        tree.clearSelectedItems()
+        doAssert not leafOne[].isSelected(), "clearing left the leaf selected"
+
+        # The tree owns nothing here, so the root is detached before the items
+        # go, and the root deletes the ones added under it.
+        tree.setRootItem(nil)
+        cdelete root
+
+    shutdownJuce_GUI()
+
+
 testDrawableButton()
+testTreeView()
