@@ -1327,3 +1327,59 @@ proc testHeapBlock() =
 
 testArrayHelpers()
 testHeapBlock()
+
+# SparseSet and the last hand-written helpers =================================
+#
+# SparseSet was bound with its readers and no way to fill it, so it could be
+# constructed and never used. addRange, removeRange and clear are what make it
+# a set rather than an empty one.
+
+proc testSparseSet() =
+  var occupied = makeSparseSet[cint]()
+  doAssert occupied.isEmpty(), "a fresh set was not empty"
+  doAssert occupied.getNumRanges() == 0, "a fresh set holds " & $occupied.getNumRanges()
+
+  occupied.addRange(makeRange(0.cint, 10.cint))
+  doAssert not occupied.isEmpty(), "a filled set reported empty"
+  doAssert occupied.getNumRanges() == 1, "the set holds " & $occupied.getNumRanges() & " ranges"
+  doAssert occupied.contains(5.cint), "the set did not contain a value inside its range"
+  doAssert not occupied.contains(20.cint), "the set contained a value outside its range"
+
+  # A second, separate range does not merge with the first.
+  occupied.addRange(makeRange(20.cint, 30.cint))
+  doAssert occupied.getNumRanges() == 2, "two separate ranges merged into " & $occupied.getNumRanges()
+  doAssert occupied.getTotalRange().getEnd() == 30,
+           "the total range ends at " & $occupied.getTotalRange().getEnd()
+
+  occupied.removeRange(makeRange(20.cint, 30.cint))
+  doAssert occupied.getNumRanges() == 1, "removeRange left " & $occupied.getNumRanges()
+
+  occupied.clear()
+  doAssert occupied.isEmpty(), "clear left something behind"
+
+proc testValueReturningHelpers() =
+  # The with* family returns a changed copy and leaves the receiver alone.
+  let span = makeRange(10.cint, 20.cint)
+  doAssert span.withStart(0.cint).getStart() == 0, "withStart"
+  doAssert span.withEnd(30.cint).getEnd() == 30, "withEnd"
+  doAssert span.withLength(5.cint).getLength() == 5, "withLength"
+  doAssert span.getStart() == 10, "one of the with* helpers mutated the receiver"
+  doAssert Range[cint].withStartAndLength(5.cint, 10.cint).getEnd() == 15,
+           "withStartAndLength gave the wrong end"
+
+  let point = makePoint(1.cint, 2.cint)
+  doAssert point.withY(9.cint).getY() == 9, "withY"
+  doAssert point.translated(3.cint, 4.cint).getX() == 4, "translated"
+  doAssert point.getY() == 2, "withY mutated the receiver"
+
+  let box = makeRectangle(0.cint, 0.cint, 20.cint, 10.cint)
+  doAssert box.withWidth(5.cint).getWidth() == 5, "withWidth"
+  doAssert box.withY(7.cint).getY() == 7, "withY on a Rectangle"
+  doAssert box.translated(2.cint, 3.cint).getX() == 2, "translated on a Rectangle"
+  doAssert box.getWidth() == 20, "one of the with* helpers mutated the rectangle"
+
+  var owned = makeOwnedArray[Component]()
+  doAssert owned.isEmpty(), "a fresh OwnedArray was not empty"
+
+testSparseSet()
+testValueReturningHelpers()
