@@ -503,6 +503,21 @@ def is_c_array(rendered):
     a number and are never empty, so the two cannot be confused."""
     return re.search(r"\[\s*\d*\s*\]", rendered) is not None
 
+def unbound_type_reason(rendered):
+    """Why a rendered signature could not be bound.
+
+    Two of these are not missing capability. A C array parameter always comes
+    with an overload taking a String or a value, and an initializer_list always
+    comes with the incremental API - add, set, appendChild - that the tests use.
+    """
+    if is_c_array(rendered):
+        return ("a C array parameter; every one of these has an overload "
+                "taking a String or a value instead")
+    if "initializer_list" in rendered:
+        return ("a std::initializer_list parameter, which Nim cannot spell; "
+                "build the value with the incremental API instead")
+    return "a type that cannot be spelled in Nim"
+
 def is_anonymous_enum(cursor):
     """libclang names an anonymous enum "(unnamed enum at path:line:col)"."""
     return not cursor.spelling or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", cursor.spelling)
@@ -1090,7 +1105,8 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 "juce_module_name": juce_module_name,
                 "spelling": qualified_name,
                 "reason": (f"  # {ctor_reason}" if ctor_reason
-                           else "  # a type that cannot be spelled in Nim" if ctor_comment else "") })
+                           else f"  # {unbound_type_reason(rendered)}" if ctor_comment
+                           else "") })
 
             signature = (f"make{class_name}", tuple(ctor_types))
             if declaration in emitted_declarations or signature in emitted_signatures:
@@ -1227,7 +1243,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 # Only when nothing more specific has been established: a
                 # begin() whose return type is also unspellable is still best
                 # described as an iterator the Nim ones replace.
-                reason = reason or "a type that cannot be spelled in Nim"
+                reason = reason or unbound_type_reason(rendered)
 
             declaration = nim_method_def.format(**{
                 "comment": comment,
