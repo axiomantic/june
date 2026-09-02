@@ -1623,7 +1623,7 @@ proc copyFileTo*(this: File, targetLocation: File): bool {.header: juce_core, im
 proc replaceFileIn*(this: File, targetLocation: File): bool {.header: juce_core, importcpp: "#.replaceFileIn(@)".}
 proc copyDirectoryTo*(this: File, newDirectory: File): bool {.header: juce_core, importcpp: "#.copyDirectoryTo(@)".}
 proc findChildFiles*(this: File, whatToLookFor: cint, searchRecursively: bool, wildCardPattern: String, followSymlinks: FileFollowSymlinks): Array[File] {.header: juce_core, importcpp: "#.findChildFiles(@)".}
-proc findChildFiles*(this: File, results: Array[File], whatToLookFor: cint, searchRecursively: bool, wildCardPattern: String, followSymlinks: FileFollowSymlinks): cint {.header: juce_core, importcpp: "#.findChildFiles(@)".}
+proc findChildFiles*(this: File, results: var Array[File], whatToLookFor: cint, searchRecursively: bool, wildCardPattern: String, followSymlinks: FileFollowSymlinks): cint {.header: juce_core, importcpp: "#.findChildFiles(@)".}
 proc getNumberOfChildFiles*(this: File, whatToLookFor: cint, wildCardPattern: String): cint {.header: juce_core, importcpp: "#.getNumberOfChildFiles(@)".}
 proc containsSubDirectories*(this: File): bool {.header: juce_core, importcpp: "#.containsSubDirectories()".}
 proc createInputStream*(this: File): UniquePtr[FileInputStream] {.header: juce_core, importcpp: "#.createInputStream()".}
@@ -1636,7 +1636,7 @@ proc replaceWithData*(this: File, dataToWrite: constPointer, numberOfBytes: uint
 proc appendText*(this: File, textToAppend: String, asUnicode: bool = false, writeUnicodeHeaderBytes: bool = false, lineEndings: constChar = "\r\n"): bool {.header: juce_core, importcpp: "#.appendText(@)".}
 proc replaceWithText*(this: File, textToWrite: String, asUnicode: bool = false, writeUnicodeHeaderBytes: bool = false, lineEndings: constChar = "\r\n"): bool {.header: juce_core, importcpp: "#.replaceWithText(@)".}
 proc hasIdenticalContentTo*(this: File, other: File): bool {.header: juce_core, importcpp: "#.hasIdenticalContentTo(@)".}
-proc findFileSystemRoots*(this: typedesc[File], results: Array[File]) {.header: juce_core, importcpp: "juce::File::findFileSystemRoots(@)".}
+proc findFileSystemRoots*(this: typedesc[File], results: var Array[File]) {.header: juce_core, importcpp: "juce::File::findFileSystemRoots(@)".}
 proc getVolumeLabel*(this: File): String {.header: juce_core, importcpp: "#.getVolumeLabel()".}
 proc getVolumeSerialNumber*(this: File): cint {.header: juce_core, importcpp: "#.getVolumeSerialNumber()".}
 proc getBytesFreeOnVolume*(this: File): int64 {.header: juce_core, importcpp: "#.getBytesFreeOnVolume()".}
@@ -1742,7 +1742,7 @@ proc addPath*(this: var FileSearchPath, arg1: FileSearchPath) {.header: juce_cor
 proc removeRedundantPaths*(this: var FileSearchPath) {.header: juce_core, importcpp: "#.removeRedundantPaths()".}
 proc removeNonExistentPaths*(this: var FileSearchPath) {.header: juce_core, importcpp: "#.removeNonExistentPaths()".}
 proc findChildFiles*(this: FileSearchPath, whatToLookFor: cint, searchRecursively: bool, wildCardPattern: String): Array[File] {.header: juce_core, importcpp: "#.findChildFiles(@)".}
-proc findChildFiles*(this: FileSearchPath, results: Array[File], whatToLookFor: cint, searchRecursively: bool, wildCardPattern: String): cint {.header: juce_core, importcpp: "#.findChildFiles(@)".}
+proc findChildFiles*(this: FileSearchPath, results: var Array[File], whatToLookFor: cint, searchRecursively: bool, wildCardPattern: String): cint {.header: juce_core, importcpp: "#.findChildFiles(@)".}
 proc isFileInPath*(this: FileSearchPath, fileToCheck: File, checkRecursively: bool): bool {.header: juce_core, importcpp: "#.isFileInPath(@)".}
 proc `==`*(this: FileSearchPath, other: FileSearchPath): bool {.error: "juce::FileSearchPath defines no operator==; compare a property instead".}
 
@@ -1908,7 +1908,7 @@ proc adjustedToGiveNewResult*(this: Expression, targetValue: float64, scope: Exp
 proc withRenamedSymbol*(this: Expression, oldSymbol: ExpressionSymbol, newName: String, scope: ExpressionScope): Expression {.header: juce_core, importcpp: "#.withRenamedSymbol(@)".}
 proc referencesSymbol*(this: Expression, symbol: ExpressionSymbol, scope: ExpressionScope): bool {.header: juce_core, importcpp: "#.referencesSymbol(@)".}
 proc usesAnySymbols*(this: Expression): bool {.header: juce_core, importcpp: "#.usesAnySymbols()".}
-proc findReferencedSymbols*(this: Expression, results: Array[ExpressionSymbol], scope: ExpressionScope) {.header: juce_core, importcpp: "#.findReferencedSymbols(@)".}
+proc findReferencedSymbols*(this: Expression, results: var Array[ExpressionSymbol], scope: ExpressionScope) {.header: juce_core, importcpp: "#.findReferencedSymbols(@)".}
 proc getType*(this: Expression): ExpressionType {.header: juce_core, importcpp: "#.getType()".}
 proc getSymbolOrFunction*(this: Expression): String {.header: juce_core, importcpp: "#.getSymbolOrFunction()".}
 proc getNumInputs*(this: Expression): cint {.header: juce_core, importcpp: "#.getNumInputs()".}
@@ -2174,7 +2174,7 @@ proc `isIPv6=`*(this: var IPAddress, value: bool) {.header: juce_core, importcpp
 proc any*(this: typedesc[IPAddress]): IPAddress {.header: juce_core, importcpp: "juce::IPAddress::any()".}
 proc broadcast*(this: typedesc[IPAddress]): IPAddress {.header: juce_core, importcpp: "juce::IPAddress::broadcast()".}
 proc local*(this: typedesc[IPAddress], IPv6: bool = false): IPAddress {.header: juce_core, importcpp: "juce::IPAddress::local(@)".}
-proc findAllAddresses*(this: typedesc[IPAddress], results: Array[IPAddress], includeIPv6: bool = false) {.header: juce_core, importcpp: "juce::IPAddress::findAllAddresses(@)".}
+proc findAllAddresses*(this: typedesc[IPAddress], results: var Array[IPAddress], includeIPv6: bool = false) {.header: juce_core, importcpp: "juce::IPAddress::findAllAddresses(@)".}
 proc getAllAddresses*(this: typedesc[IPAddress], includeIPv6: bool = false): Array[IPAddress] {.header: juce_core, importcpp: "juce::IPAddress::getAllAddresses(@)".}
 proc getLocalAddress*(this: typedesc[IPAddress], includeIPv6: bool = false): IPAddress {.header: juce_core, importcpp: "juce::IPAddress::getLocalAddress(@)".}
 proc isNull*(this: IPAddress): bool {.header: juce_core, importcpp: "#.isNull()".}
@@ -2196,7 +2196,7 @@ proc makeMACAddress*(): MACAddress {.header: juce_core, importcpp: "juce::MACAdd
 # proc makeMACAddress*(bytes: uint8[6]): MACAddress {.header: juce_core, importcpp: "juce::MACAddress(@)".}  # a C array parameter; every one of these has an overload taking a String or a value instead
 proc makeMACAddress*(address: StringRef): MACAddress {.header: juce_core, importcpp: "juce::MACAddress(@)".}
 proc getAllAddresses*(this: typedesc[MACAddress]): Array[MACAddress] {.header: juce_core, importcpp: "juce::MACAddress::getAllAddresses()".}
-proc findAllAddresses*(this: typedesc[MACAddress], results: Array[MACAddress]) {.header: juce_core, importcpp: "juce::MACAddress::findAllAddresses(@)".}
+proc findAllAddresses*(this: typedesc[MACAddress], results: var Array[MACAddress]) {.header: juce_core, importcpp: "juce::MACAddress::findAllAddresses(@)".}
 proc `MACAddress=`*(this: var MACAddress, arg1: MACAddress): var MACAddress {.header: juce_core, importcpp: "#.operator=(@)".}
 proc getBytes*(this: MACAddress): ptr uint8 {.header: juce_core, importcpp: "#.getBytes()".}
 proc toString*(this: MACAddress): String {.header: juce_core, importcpp: "#.toString()".}
@@ -2422,7 +2422,7 @@ proc `==`*(this: TimedDiagnostic, other: TimedDiagnostic): bool {.error: "juce::
 proc getName*(this: UnitTest): String {.header: juce_core, importcpp: "#.getName()".}
 proc getCategory*(this: UnitTest): String {.header: juce_core, importcpp: "#.getCategory()".}
 proc performTest*(this: var UnitTest, runner: ptr UnitTestRunner) {.header: juce_core, importcpp: "#.performTest(@)".}
-proc getAllTests*(this: typedesc[UnitTest]): Array[UnitTest] {.header: juce_core, importcpp: "juce::UnitTest::getAllTests()".}
+proc getAllTests*(this: typedesc[UnitTest]): var Array[UnitTest] {.header: juce_core, importcpp: "juce::UnitTest::getAllTests()".}
 proc getTestsInCategory*(this: typedesc[UnitTest], category: String): Array[UnitTest] {.header: juce_core, importcpp: "juce::UnitTest::getTestsInCategory(@)".}
 proc getTestsWithName*(this: typedesc[UnitTest], name: String): Array[UnitTest] {.header: juce_core, importcpp: "juce::UnitTest::getTestsWithName(@)".}
 proc getAllCategories*(this: typedesc[UnitTest]): StringArray {.header: juce_core, importcpp: "juce::UnitTest::getAllCategories()".}

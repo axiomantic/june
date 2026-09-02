@@ -418,6 +418,10 @@ subclass is unreachable from Nim however completely its methods are bound. That
 covers ``Thread``, ``InputStream``, ``OutputStream``, ``Logger``,
 ``UndoableAction``, ``KeyListener``, ``DragAndDropTarget``, ``TreeViewItem``,
 ``MenuBarModel`` and the rest of the abstract classes.
+``tools/inspect_juce.py`` therefore withholds ``make<Name>`` for an abstract
+class and names the ``Custom<Name>`` to build instead. Emitting one produced a
+binding that read as usable and was a compile error at every call site, which
+nothing caught because nothing called it.
 ``tools/generate_subclasses.py`` writes that subclass for every abstract class
 in a module, and is run the same way::
 
