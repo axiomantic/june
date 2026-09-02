@@ -4,7 +4,6 @@ import subprocess
 from collections import Counter
 
 import clang.cindex
-import typing
 import argparse
 import glob
 import re
@@ -800,7 +799,6 @@ def run_main(juce_module_name, juce_class_name_to_export):
     class_map = {}
     class_inheritance_map = {}
     class_inner = {}
-    class_field_map = {}
     class_juce_map = {}
 
     done_classes = set()
