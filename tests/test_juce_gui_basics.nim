@@ -1411,3 +1411,36 @@ proc testSidePanel() =
     shutdownJuce_GUI()
 
 testSidePanel()
+
+# Displays ====================================================================
+#
+# What JUCE knows about the screens. A headless Linux container reports none,
+# so the test asserts what holds either way: the list and the conversions agree
+# with each other rather than with any particular hardware.
+
+proc testDisplays() =
+    initialiseJuce_GUI()
+
+    block:
+        let screens = Desktop.getInstance().getDisplays()
+
+        # A logical rectangle converted to physical and back is unchanged,
+        # whatever the scale factor is - including when there are no displays
+        # at all and the scale is one.
+        let logical = makeRectangle(0.cint, 0.cint, 100.cint, 50.cint)
+        let physical = screens.logicalToPhysical(logical, nil)
+        let roundTripped = screens.physicalToLogical(physical, nil)
+        doAssert roundTripped.getWidth() == logical.getWidth(),
+                 "the round trip gave width " & $roundTripped.getWidth()
+        doAssert roundTripped.getHeight() == logical.getHeight(),
+                 "the round trip gave height " & $roundTripped.getHeight()
+
+        # A default-built Display is empty rather than garbage.
+        let blank = makeDisplaysDisplay()
+        doAssert not blank.isMain(), "a default Display called itself the main one"
+        doAssert blank.totalArea().getWidth() == 0,
+                 "a default Display has a total area " & $blank.totalArea().getWidth() & " wide"
+
+    shutdownJuce_GUI()
+
+testDisplays()
