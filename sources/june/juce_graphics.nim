@@ -27,6 +27,7 @@ type
   GraphicsScopedSaveState* {.header: juce_graphics, importcpp: "juce::Graphics::ScopedSaveState", inheritable, pure.} = object
   Image* {.header: juce_graphics, importcpp: "juce::Image", inheritable, pure.} = object
   ImageBitmapData* {.header: juce_graphics, importcpp: "juce::Image::BitmapData", inheritable, pure.} = object
+  ImageBitmapDataBitmapDataReleaser* {.header: juce_graphics, importcpp: "juce::Image::BitmapData::BitmapDataReleaser", inheritable, pure.} = object
   ImagePixelDataBackupExtensions* {.header: juce_graphics, importcpp: "juce::ImagePixelDataBackupExtensions", inheritable, pure.} = object
   ImagePixelData* {.header: juce_graphics, importcpp: "juce::ImagePixelData", inheritable, pure.} = object of ReferenceCountedObject
   ImagePixelDataListener* {.header: juce_graphics, importcpp: "juce::ImagePixelData::Listener", inheritable, pure.} = object
@@ -633,6 +634,8 @@ proc setPixelColour*(this: ImageBitmapData, x: cint, y: cint, colour: Colour) {.
 proc getBounds*(this: ImageBitmapData): Rectangle[cint] {.header: juce_graphics, importcpp: "#.getBounds()".}
 proc convertFrom*(this: var ImageBitmapData, src: ImageBitmapData): bool {.header: juce_graphics, importcpp: "#.convertFrom(@)".}
 proc `==`*(this: ImageBitmapData, other: ImageBitmapData): bool {.error: "juce::Image::BitmapData defines no operator==; compare a property instead".}
+
+proc `==`*(this: ImageBitmapDataBitmapDataReleaser, other: ImageBitmapDataBitmapDataReleaser): bool {.error: "juce::Image::BitmapData::BitmapDataReleaser defines no operator==; compare a property instead".}
 
 proc setBackupEnabled*(this: var ImagePixelDataBackupExtensions, arg1: bool) {.header: juce_graphics, importcpp: "#.setBackupEnabled(@)".}
 proc isBackupEnabled*(this: ImagePixelDataBackupExtensions): bool {.header: juce_graphics, importcpp: "#.isBackupEnabled()".}
