@@ -247,12 +247,20 @@ proc setReleaseResourcesHandler*(this: var CustomCachedComponentImage, handler: 
 
 defineCppClassInternal CustomComponentMovementWatcher of ComponentMovementWatcher:
     include "juce_gui_basics/juce_gui_basics.h"
+    proc componentMovedOrResized(wasMoved: bool, wasResized: bool) = discard
     proc componentPeerChanged() = discard
+    proc componentVisibilityChanged() = discard
 
 proc newCustomComponentMovementWatcher*(componentToWatch: ptr Component): ptr CustomComponentMovementWatcher {.importcpp: "(new june::CustomComponentMovementWatcher(@))".}
 
+proc setComponentMovedOrResizedHandler*(this: var CustomComponentMovementWatcher, handler: proc(wasMoved: bool, wasResized: bool) {.closure.}) =
+    this.onComponentMovedOrResized = bindClosure(handler)
+
 proc setComponentPeerChangedHandler*(this: var CustomComponentMovementWatcher, handler: proc() {.closure.}) =
     this.onComponentPeerChanged = bindClosure(handler)
+
+proc setComponentVisibilityChangedHandler*(this: var CustomComponentMovementWatcher, handler: proc() {.closure.}) =
+    this.onComponentVisibilityChanged = bindClosure(handler)
 
 defineCppClassInternal CustomComponentTraverser of ComponentTraverser:
     include "juce_gui_basics/juce_gui_basics.h"

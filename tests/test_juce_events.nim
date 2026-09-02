@@ -139,3 +139,17 @@ proc testServiceAggregate() =
                  "the service holds " & $service.instanceID()
 
 testServiceAggregate()
+
+# The remaining generated subclasses ==========================================
+#
+# CustomJUCEApplicationBase is not here: building one trips JUCE's assertion
+# that the process has a single application instance, the same reason
+# newApplication is listed uncallable in check_handwritten_covered.py.
+
+proc testRemainingEventsSubclasses() =
+    block:
+        var connection = newCustomInterprocessConnection(true, 0xf2b49e2c'u32)
+        doAssert not connection.isNil(), "the connection was not built"
+        cdelete connection
+
+testRemainingEventsSubclasses()

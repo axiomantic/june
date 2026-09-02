@@ -809,3 +809,17 @@ proc testGraphicsAggregates() =
         discard makeImageLayer()
 
 testGraphicsAggregates()
+
+# The remaining generated subclasses ==========================================
+
+proc testRemainingGraphicsSubclasses() =
+    block:
+        var pixels = newCustomImagePixelData(ImagePixelFormat_ARGB, 4.cint, 4.cint)
+        doAssert not pixels.isNil(), "the pixel data was not built"
+        cdelete pixels
+
+        var typeface = newCustomTypeface(makeString("Name"), makeString("Style"))
+        doAssert not typeface.isNil(), "the typeface was not built"
+        cdelete typeface
+
+testRemainingGraphicsSubclasses()

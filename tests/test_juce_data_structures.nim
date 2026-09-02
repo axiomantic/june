@@ -205,3 +205,14 @@ proc testConstPtr() =
         doAssert absent.isNil(), "a property that was never set has a pointer"
 
 testConstPtr()
+
+# The remaining generated subclasses ==========================================
+
+proc testRemainingDataStructuresSubclasses() =
+    block:
+        var tree = makeValueTree(makeIdentifier(makeString("root")))
+        var synchroniser = newCustomValueTreeSynchroniser(tree)
+        doAssert not synchroniser.isNil(), "the synchroniser was not built"
+        cdelete synchroniser
+
+testRemainingDataStructuresSubclasses()
