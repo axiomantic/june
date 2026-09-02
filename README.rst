@@ -313,7 +313,8 @@ Hand-written additions live in the ``*_lifting.nim`` files and in
   the indexed accessors instead.
 - The standard library types JUCE exposes: ``std::unique_ptr``,
   ``std::optional``, ``std::vector``, ``std::string``, ``std::map``,
-  ``std::unordered_map``, ``std::array`` and ``std::function``.
+  ``std::unordered_map``, ``std::array``, ``std::byte``, ``std::exception``,
+  ``std::type_index`` and ``std::function``.
 - Subclasses whose virtual methods call into Nim: ``CustomComponent``,
   ``CustomButton``, ``CustomTimer``, ``CustomAsyncUpdater``,
   ``CustomActionListener``, ``CustomChangeListener``, ``CustomSlider``,

@@ -123,6 +123,7 @@ def remap_type(t, *args):
         "std::string": "CppString",
         "std::exception": "CppException",
         "std::type_index": "CppTypeIndex",
+        "std::byte": "CppByte",
         "var": "juce_var",
         "var::NativeFunctionArgs": "juce_varNativeFunctionArgs",
         "NamedValueSet::NamedValue": "NamedValueSetNamedValue"
@@ -227,6 +228,10 @@ def remap_type(t, *args):
 # Nim's int is 64-bit, so Rectangle[int] would ask for juce::Rectangle<long long>
 # rather than the juce::Rectangle<int> that JUCE instantiates.
 cpp_value_types = {
+    # std::byte is a distinct C++ type rather than an alias for a character, so
+    # it needs a binding of its own; remap_template_arg reaches this table but
+    # not remap_type's, which is where the other std:: names live.
+    "std::byte": "CppByte",
     "int": "cint",
     "unsigned int": "cuint",
     "short": "cshort",
@@ -379,6 +384,12 @@ def remap_template_arg(spelling, *args):
             # template arguments. Guessing here is safe: a name that is not
             # declared is caught by the check at the emit site, which comments
             # the proc out exactly as an unresolved one already is.
+            # Only a JUCE nested name concatenates. A std:: name that reached
+            # here is one this binding does not know, and joining it would
+            # invent a plausible-looking type - std::byte became "stdbyte" -
+            # which the emit site then reports as merely undeclared.
+            if result.startswith("std::"):
+                return None
             qualifiers = [remap_class_name(part) for part in result.split("::")
                           if part and part != "juce"]
             result = "".join(qualifiers)
@@ -509,7 +520,7 @@ known_builtin_types = {
     "cint", "cuint", "clong", "culong", "clonglong", "culonglong",
     "cfloat", "cdouble", "constChar", "constPointer",
     "UniquePtr", "CppOptional", "CppVector", "CppFunctionObjectR1Ref",
-    "CppString", "CppMap", "CppUnorderedMap", "CppArray", "CppException", "CppTypeIndex",
+    "CppString", "CppMap", "CppUnorderedMap", "CppArray", "CppException", "CppTypeIndex", "CppByte",
     "Rectangle", "Point", "Line", "BorderSize", "Range",
     "Array", "OwnedArray", "ReferenceCountedObjectPtr",
     "Span", "RectangleList", "Parallelogram", "SparseSet", "Optional", "HeapBlock",
