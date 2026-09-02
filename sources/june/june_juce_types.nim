@@ -133,7 +133,14 @@ proc getEnd*[T](this: Line[T]): Point[T] {.header: "<juce_graphics/juce_graphics
 proc getLength*[T](this: Line[T]): T {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getLength()".}
 
 # BorderSize
-proc makeBorderSize*[T](topAndBottom: T, leftAndRight: T): BorderSize[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::BorderSize<'*0>(@)", constructor.}
+#
+# JUCE declares a four-gap constructor and a one-gap one, and nothing between.
+# The binding here used to take two - a top-and-bottom and a left-and-right -
+# which named a constructor that does not exist, so it never compiled for
+# anyone who called it.
+proc makeBorderSize*[T](): BorderSize[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::BorderSize<'*0>()", constructor.}
+proc makeBorderSize*[T](allGaps: T): BorderSize[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::BorderSize<'*0>(@)", constructor.}
+proc makeBorderSize*[T](top: T, left: T, bottom: T, right: T): BorderSize[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::BorderSize<'*0>(@)", constructor.}
 proc getTop*[T](this: BorderSize[T]): T {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getTop()".}
 proc getBottom*[T](this: BorderSize[T]): T {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getBottom()".}
 proc getLeft*[T](this: BorderSize[T]): T {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getLeft()".}
@@ -218,6 +225,12 @@ iterator items*[T](this: Span[T]): T =
     yield this[index]
 
 # RectangleList
+#
+# The accessors were here without a constructor, so the type could be named -
+# fillRectList and reduceClipRegion both take one - and never built.
+proc makeRectangleList*[T](): RectangleList[T] {.importcpp: "juce::RectangleList<'*0>()", constructor.}
+proc makeRectangleList*[T](rect: Rectangle[T]): RectangleList[T] {.importcpp: "juce::RectangleList<'*0>(@)", constructor.}
+
 proc getNumRectangles*[T](this: RectangleList[T]): cint {.importcpp: "#.getNumRectangles()".}
 proc getRectangle*[T](this: RectangleList[T], index: cint): Rectangle[T] {.importcpp: "#.getRectangle(@)".}
 proc isEmpty*[T](this: RectangleList[T]): bool {.importcpp: "#.isEmpty()".}

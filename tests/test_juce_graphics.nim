@@ -504,3 +504,49 @@ proc testImageBitmapData() =
 
 testImageProperties()
 testImageBitmapData()
+
+# BorderSize and RectangleList ================================================
+#
+# Two hand-written generic wrappers in june_juce_types, neither of which had
+# any coverage. Both are class templates, so instantiating them with cint is
+# also a check that the template machinery works for the hand-written ones and
+# not only the generated bindings.
+
+proc testBorderSize() =
+    # JUCE takes the four gaps in the order top, left, bottom, right.
+    let border = makeBorderSize(1.cint, 2.cint, 3.cint, 4.cint)
+    doAssert border.getTop() == 1, "top is " & $border.getTop()
+    doAssert border.getLeft() == 2, "left is " & $border.getLeft()
+    doAssert border.getBottom() == 3, "bottom is " & $border.getBottom()
+    doAssert border.getRight() == 4, "right is " & $border.getRight()
+
+    # The one-gap form sets all four the same.
+    let uniform = makeBorderSize(5.cint)
+    doAssert uniform.getTop() == 5 and uniform.getLeft() == 5 and
+             uniform.getBottom() == 5 and uniform.getRight() == 5,
+             "the uniform border is not uniform"
+
+proc testRectangleList() =
+    var rectangles = makeRectangleList[cint]()
+    doAssert rectangles.isEmpty(), "a fresh list was not empty"
+    doAssert rectangles.getNumRectangles() == 0,
+             "a fresh list holds " & $rectangles.getNumRectangles()
+
+    rectangles.add(makeRectangle(0.cint, 0.cint, 10.cint, 10.cint))
+    rectangles.add(makeRectangle(20.cint, 0.cint, 10.cint, 10.cint))
+    doAssert not rectangles.isEmpty(), "a filled list reported empty"
+    doAssert rectangles.getNumRectangles() == 2,
+             "the list holds " & $rectangles.getNumRectangles()
+
+    # The bounds span both rectangles rather than either one.
+    let bounds = rectangles.getBounds()
+    doAssert bounds.getWidth() == 30, "the bounds are " & $bounds.getWidth() & " wide"
+    doAssert bounds.getHeight() == 10, "the bounds are " & $bounds.getHeight() & " tall"
+
+    doAssert rectangles.getRectangle(0.cint).getWidth() == 10, "the first rectangle"
+
+    rectangles.clear()
+    doAssert rectangles.isEmpty(), "clear left something behind"
+
+testBorderSize()
+testRectangleList()
