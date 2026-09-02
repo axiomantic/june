@@ -573,6 +573,10 @@ def unbound_type_reason(rendered):
     if "initializer_list" in rendered:
         return ("a std::initializer_list parameter, which Nim cannot spell; "
                 "build the value with the incremental API instead")
+    if "..." in rendered:
+        return "a parameter pack, which has no fixed arity to give a Nim proc"
+    if "enable_if" in rendered or "is_enum_v" in rendered or "is_integral_v" in rendered:
+        return "a SFINAE-constrained signature, which Nim has no way to express"
     if "long double" in rendered:
         return ("a long double parameter, which Nim has no type for; the other "
                 "overloads take a float or an int")
