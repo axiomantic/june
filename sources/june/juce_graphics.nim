@@ -174,14 +174,25 @@ proc `AffineTransform=`*(this: var AffineTransform, arg1: AffineTransform): var 
 proc `==`*(this: AffineTransform, other: AffineTransform): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: AffineTransform, other: AffineTransform): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc translated*(this: AffineTransform, deltaX: cfloat, deltaY: cfloat): AffineTransform {.header: juce_graphics, importcpp: "#.translated(@)".}
+proc translation*(this: typedesc[AffineTransform], deltaX: cfloat, deltaY: cfloat): AffineTransform {.header: juce_graphics, importcpp: "juce::AffineTransform::translation(@)".}
 proc withAbsoluteTranslation*(this: AffineTransform, translationX: cfloat, translationY: cfloat): AffineTransform {.header: juce_graphics, importcpp: "#.withAbsoluteTranslation(@)".}
 proc rotated*(this: AffineTransform, angleInRadians: cfloat): AffineTransform {.header: juce_graphics, importcpp: "#.rotated(@)".}
 proc rotated*(this: AffineTransform, angleInRadians: cfloat, pivotX: cfloat, pivotY: cfloat): AffineTransform {.header: juce_graphics, importcpp: "#.rotated(@)".}
+proc rotation*(this: typedesc[AffineTransform], angleInRadians: cfloat): AffineTransform {.header: juce_graphics, importcpp: "juce::AffineTransform::rotation(@)".}
+proc rotation*(this: typedesc[AffineTransform], angleInRadians: cfloat, pivotX: cfloat, pivotY: cfloat): AffineTransform {.header: juce_graphics, importcpp: "juce::AffineTransform::rotation(@)".}
 proc scaled*(this: AffineTransform, factorX: cfloat, factorY: cfloat): AffineTransform {.header: juce_graphics, importcpp: "#.scaled(@)".}
 proc scaled*(this: AffineTransform, factor: cfloat): AffineTransform {.header: juce_graphics, importcpp: "#.scaled(@)".}
 proc scaled*(this: AffineTransform, factorX: cfloat, factorY: cfloat, pivotX: cfloat, pivotY: cfloat): AffineTransform {.header: juce_graphics, importcpp: "#.scaled(@)".}
+proc scale*(this: typedesc[AffineTransform], factorX: cfloat, factorY: cfloat): AffineTransform {.header: juce_graphics, importcpp: "juce::AffineTransform::scale(@)".}
+proc scale*(this: typedesc[AffineTransform], factor: cfloat): AffineTransform {.header: juce_graphics, importcpp: "juce::AffineTransform::scale(@)".}
+proc scale*(this: typedesc[AffineTransform], factorX: cfloat, factorY: cfloat, pivotX: cfloat, pivotY: cfloat): AffineTransform {.header: juce_graphics, importcpp: "juce::AffineTransform::scale(@)".}
 proc sheared*(this: AffineTransform, shearX: cfloat, shearY: cfloat): AffineTransform {.header: juce_graphics, importcpp: "#.sheared(@)".}
+proc shear*(this: typedesc[AffineTransform], shearX: cfloat, shearY: cfloat): AffineTransform {.header: juce_graphics, importcpp: "juce::AffineTransform::shear(@)".}
+proc verticalFlip*(this: typedesc[AffineTransform], height: cfloat): AffineTransform {.header: juce_graphics, importcpp: "juce::AffineTransform::verticalFlip(@)".}
+proc horizontalFlip*(this: typedesc[AffineTransform], width: cfloat): AffineTransform {.header: juce_graphics, importcpp: "juce::AffineTransform::horizontalFlip(@)".}
 proc inverted*(this: AffineTransform): AffineTransform {.header: juce_graphics, importcpp: "#.inverted()".}
+proc fromTargetPoints*(this: typedesc[AffineTransform], x00: cfloat, y00: cfloat, x10: cfloat, y10: cfloat, x01: cfloat, y01: cfloat): AffineTransform {.header: juce_graphics, importcpp: "juce::AffineTransform::fromTargetPoints(@)".}
+proc fromTargetPoints*(this: typedesc[AffineTransform], sourceX1: cfloat, sourceY1: cfloat, targetX1: cfloat, targetY1: cfloat, sourceX2: cfloat, sourceY2: cfloat, targetX2: cfloat, targetY2: cfloat, sourceX3: cfloat, sourceY3: cfloat, targetX3: cfloat, targetY3: cfloat): AffineTransform {.header: juce_graphics, importcpp: "juce::AffineTransform::fromTargetPoints(@)".}
 proc followedBy*(this: AffineTransform, other: AffineTransform): AffineTransform {.header: juce_graphics, importcpp: "#.followedBy(@)".}
 proc isIdentity*(this: AffineTransform): bool {.header: juce_graphics, importcpp: "#.isIdentity()".}
 proc isSingularity*(this: AffineTransform): bool {.header: juce_graphics, importcpp: "#.isSingularity()".}
@@ -336,6 +347,13 @@ proc makeColour*(hue: cfloat, saturation: cfloat, brightness: cfloat, alpha: cfl
 proc makeColour*(argb: PixelARGB): Colour {.header: juce_graphics, importcpp: "juce::Colour(@)".}
 proc makeColour*(rgb: PixelRGB): Colour {.header: juce_graphics, importcpp: "juce::Colour(@)".}
 proc makeColour*(alpha: PixelAlpha): Colour {.header: juce_graphics, importcpp: "juce::Colour(@)".}
+proc fromRGB*(this: typedesc[Colour], red: uint8, green: uint8, blue: uint8): Colour {.header: juce_graphics, importcpp: "juce::Colour::fromRGB(@)".}
+proc fromRGBA*(this: typedesc[Colour], red: uint8, green: uint8, blue: uint8, alpha: uint8): Colour {.header: juce_graphics, importcpp: "juce::Colour::fromRGBA(@)".}
+proc fromFloatRGBA*(this: typedesc[Colour], red: cfloat, green: cfloat, blue: cfloat, alpha: cfloat): Colour {.header: juce_graphics, importcpp: "juce::Colour::fromFloatRGBA(@)".}
+proc fromHSV*(this: typedesc[Colour], hue: cfloat, saturation: cfloat, brightness: cfloat, alpha: cfloat): Colour {.header: juce_graphics, importcpp: "juce::Colour::fromHSV(@)".}
+proc fromHSV*(this: typedesc[Colour], hue: cfloat, saturation: cfloat, brightness: cfloat, alpha: uint8): Colour {.header: juce_graphics, importcpp: "juce::Colour::fromHSV(@)".}
+proc fromHSL*(this: typedesc[Colour], hue: cfloat, saturation: cfloat, lightness: cfloat, alpha: cfloat): Colour {.header: juce_graphics, importcpp: "juce::Colour::fromHSL(@)".}
+proc fromHSL*(this: typedesc[Colour], hue: cfloat, saturation: cfloat, lightness: cfloat, alpha: uint8): Colour {.header: juce_graphics, importcpp: "juce::Colour::fromHSL(@)".}
 proc `Colour=`*(this: var Colour, arg1: Colour): var Colour {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc `==`*(this: Colour, other: Colour): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: Colour, other: Colour): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
@@ -379,13 +397,18 @@ proc brighter*(this: Colour, amountBrighter: cfloat = 0.4f): Colour {.header: ju
 proc darker*(this: Colour, amountDarker: cfloat = 0.4f): Colour {.header: juce_graphics, importcpp: "#.darker(@)".}
 proc contrasting*(this: Colour, amount: cfloat = 1.0f): Colour {.header: juce_graphics, importcpp: "#.contrasting(@)".}
 proc contrasting*(this: Colour, targetColour: Colour, minLuminosityDiff: cfloat): Colour {.header: juce_graphics, importcpp: "#.contrasting(@)".}
+proc contrasting*(this: typedesc[Colour], colour1: Colour, colour2: Colour): Colour {.header: juce_graphics, importcpp: "juce::Colour::contrasting(@)".}
+proc greyLevel*(this: typedesc[Colour], brightness: cfloat): Colour {.header: juce_graphics, importcpp: "juce::Colour::greyLevel(@)".}
 proc toString*(this: Colour): String {.header: juce_graphics, importcpp: "#.toString()".}
+proc fromString*(this: typedesc[Colour], encodedColourString: StringRef): Colour {.header: juce_graphics, importcpp: "juce::Colour::fromString(@)".}
 proc toDisplayString*(this: Colour, includeAlphaValue: bool): String {.header: juce_graphics, importcpp: "#.toDisplayString(@)".}
 
 proc makeColourGradient*(): ColourGradient {.header: juce_graphics, importcpp: "juce::ColourGradient(@)".}
 proc makeColourGradient*(colour1: Colour, x1: cfloat, y1: cfloat, colour2: Colour, x2: cfloat, y2: cfloat, isRadial: bool): ColourGradient {.header: juce_graphics, importcpp: "juce::ColourGradient(@)".}
 proc makeColourGradient*(colour1: Colour, point1: Point[cfloat], colour2: Colour, point2: Point[cfloat], isRadial: bool): ColourGradient {.header: juce_graphics, importcpp: "juce::ColourGradient(@)".}
 proc `ColourGradient=`*(this: var ColourGradient, arg1: ColourGradient): var ColourGradient {.header: juce_graphics, importcpp: "#.operator=(@)".}
+proc vertical*(this: typedesc[ColourGradient], colour1: Colour, y1: cfloat, colour2: Colour, y2: cfloat): ColourGradient {.header: juce_graphics, importcpp: "juce::ColourGradient::vertical(@)".}
+proc horizontal*(this: typedesc[ColourGradient], colour1: Colour, x1: cfloat, colour2: Colour, x2: cfloat): ColourGradient {.header: juce_graphics, importcpp: "juce::ColourGradient::horizontal(@)".}
 proc clearColours*(this: var ColourGradient) {.header: juce_graphics, importcpp: "#.clearColours()".}
 proc addColour*(this: var ColourGradient, proportionAlongGradient: float64, colour: Colour): cint {.header: juce_graphics, importcpp: "#.addColour(@)".}
 proc removeColour*(this: var ColourGradient, index: cint) {.header: juce_graphics, importcpp: "#.removeColour(@)".}
@@ -452,6 +475,12 @@ proc testFlags*(this: RectanglePlacement, flagsToTest: cint): bool {.header: juc
 proc applyTo*(this: RectanglePlacement, sourceX: var float64, sourceY: var float64, sourceW: var float64, sourceH: var float64, destinationX: float64, destinationY: float64, destinationW: float64, destinationH: float64) {.header: juce_graphics, importcpp: "#.applyTo(@)".}
 proc getTransformToFit*(this: RectanglePlacement, source: Rectangle[cfloat], destination: Rectangle[cfloat]): AffineTransform {.header: juce_graphics, importcpp: "#.getTransformToFit(@)".}
 
+proc getFromFile*(this: typedesc[ImageCache], file: File): Image {.header: juce_graphics, importcpp: "juce::ImageCache::getFromFile(@)".}
+proc getFromMemory*(this: typedesc[ImageCache], imageData: constPointer, dataSize: cint): Image {.header: juce_graphics, importcpp: "juce::ImageCache::getFromMemory(@)".}
+proc getFromHashCode*(this: typedesc[ImageCache], hashCode: int64): Image {.header: juce_graphics, importcpp: "juce::ImageCache::getFromHashCode(@)".}
+proc addImageToCache*(this: typedesc[ImageCache], image: Image, hashCode: int64) {.header: juce_graphics, importcpp: "juce::ImageCache::addImageToCache(@)".}
+proc setCacheTimeout*(this: typedesc[ImageCache], millisecs: cint) {.header: juce_graphics, importcpp: "juce::ImageCache::setCacheTimeout(@)".}
+proc releaseUnusedImages*(this: typedesc[ImageCache]) {.header: juce_graphics, importcpp: "juce::ImageCache::releaseUnusedImages()".}
 proc `==`*(this: ImageCache, other: ImageCache): bool {.error: "juce::ImageCache defines no operator==; compare a property instead".}
 
 proc makeImageConvolutionKernel*(size: cint): ImageConvolutionKernel {.header: juce_graphics, importcpp: "juce::ImageConvolutionKernel(@)".}
@@ -470,6 +499,11 @@ proc canUnderstand*(this: var ImageFileFormat, input: var InputStream): bool {.h
 proc usesFileExtension*(this: var ImageFileFormat, possibleFile: File): bool {.header: juce_graphics, importcpp: "#.usesFileExtension(@)".}
 proc decodeImage*(this: var ImageFileFormat, input: var InputStream): Image {.header: juce_graphics, importcpp: "#.decodeImage(@)".}
 proc writeImageToStream*(this: var ImageFileFormat, sourceImage: Image, destStream: var OutputStream): bool {.header: juce_graphics, importcpp: "#.writeImageToStream(@)".}
+proc findImageFormatForStream*(this: typedesc[ImageFileFormat], input: var InputStream): ptr ImageFileFormat {.header: juce_graphics, importcpp: "juce::ImageFileFormat::findImageFormatForStream(@)".}
+proc findImageFormatForFileExtension*(this: typedesc[ImageFileFormat], file: File): ptr ImageFileFormat {.header: juce_graphics, importcpp: "juce::ImageFileFormat::findImageFormatForFileExtension(@)".}
+proc loadFrom*(this: typedesc[ImageFileFormat], input: var InputStream): Image {.header: juce_graphics, importcpp: "juce::ImageFileFormat::loadFrom(@)".}
+proc loadFrom*(this: typedesc[ImageFileFormat], file: File): Image {.header: juce_graphics, importcpp: "juce::ImageFileFormat::loadFrom(@)".}
+proc loadFrom*(this: typedesc[ImageFileFormat], rawData: constPointer, numBytesOfData: uint64): Image {.header: juce_graphics, importcpp: "juce::ImageFileFormat::loadFrom(@)".}
 proc `==`*(this: ImageFileFormat, other: ImageFileFormat): bool {.error: "juce::ImageFileFormat defines no operator==; compare a property instead".}
 
 proc makePNGImageFormat*(): PNGImageFormat {.header: juce_graphics, importcpp: "juce::PNGImageFormat(@)".}
@@ -705,6 +739,7 @@ proc `==`*(this: FillType, arg1: FillType): bool {.header: juce_graphics, import
 
 # proc makeFontFeatureTag*(string: char ()[5]): FontFeatureTag {.header: juce_graphics, importcpp: "juce::FontFeatureTag(@)".}  # a C array parameter; every one of these has an overload taking a String or a value instead
 proc makeFontFeatureTag*(tagValue: uint32): FontFeatureTag {.header: juce_graphics, importcpp: "juce::FontFeatureTag(@)".}
+proc fromString*(this: typedesc[FontFeatureTag], tagString: String): FontFeatureTag {.header: juce_graphics, importcpp: "juce::FontFeatureTag::fromString(@)".}
 proc toString*(this: FontFeatureTag): String {.header: juce_graphics, importcpp: "#.toString()".}
 proc getTag*(this: FontFeatureTag): uint32 {.header: juce_graphics, importcpp: "#.getTag()".}
 proc `<`*(this: FontFeatureTag, other: FontFeatureTag): bool {.header: juce_graphics, importcpp: "#.operator<(@)".}
@@ -732,13 +767,20 @@ proc `==`*(this: TypefaceMetrics, other: TypefaceMetrics): bool {.error: "juce::
 
 proc getName*(this: Typeface): String {.header: juce_graphics, importcpp: "#.getName()".}
 proc getStyle*(this: Typeface): String {.header: juce_graphics, importcpp: "#.getStyle()".}
+proc createSystemTypefaceFor*(this: typedesc[Typeface], font: Font): ReferenceCountedObjectPtr[Typeface] {.header: juce_graphics, importcpp: "juce::Typeface::createSystemTypefaceFor(@)".}
+proc createSystemTypefaceFor*(this: typedesc[Typeface], fontFileData: constPointer, fontFileDataSize: uint64): ReferenceCountedObjectPtr[Typeface] {.header: juce_graphics, importcpp: "juce::Typeface::createSystemTypefaceFor(@)".}
+# proc createSystemTypefaceFor*(this: typedesc[Typeface], arg1: Span[stdbyte]): ReferenceCountedObjectPtr[Typeface] {.header: juce_graphics, importcpp: "juce::Typeface::createSystemTypefaceFor(@)".}  # a type that cannot be spelled in Nim
 proc getMetrics*(this: Typeface, arg1: TypefaceMetricsKind): TypefaceMetrics {.header: juce_graphics, importcpp: "#.getMetrics(@)".}
 proc getOutlineForGlyph*(this: Typeface, glyphNumber: cint, path: var Path) {.header: juce_graphics, importcpp: "#.getOutlineForGlyph(@)".}
 proc getGlyphBounds*(this: Typeface, glyphNumber: cint): Rectangle[cfloat] {.header: juce_graphics, importcpp: "#.getGlyphBounds(@)".}
 proc getLayersForGlyph*(this: Typeface, glyphNumber: cint, arg2: AffineTransform): CppVector[GlyphLayer] {.header: juce_graphics, importcpp: "#.getLayersForGlyph(@)".}
 proc getColourGlyphFormats*(this: Typeface): cint {.header: juce_graphics, importcpp: "#.getColourGlyphFormats()".}
+proc setTypefaceCacheSize*(this: typedesc[Typeface], numFontsToCache: cint) {.header: juce_graphics, importcpp: "juce::Typeface::setTypefaceCacheSize(@)".}
+proc clearTypefaceCache*(this: typedesc[Typeface]) {.header: juce_graphics, importcpp: "juce::Typeface::clearTypefaceCache()".}
+proc scanFolderForFonts*(this: typedesc[Typeface], folder: File) {.header: juce_graphics, importcpp: "juce::Typeface::scanFolderForFonts(@)".}
 proc getNominalGlyphForCodepoint*(this: Typeface, arg1: uint16): CppOptional[uint32] {.header: juce_graphics, importcpp: "#.getNominalGlyphForCodepoint(@)".}
 proc createSystemFallback*(this: Typeface, text: String, language: String): ReferenceCountedObjectPtr[Typeface] {.header: juce_graphics, importcpp: "#.createSystemFallback(@)".}
+proc findSystemTypeface*(this: typedesc[Typeface]): ReferenceCountedObjectPtr[Typeface] {.header: juce_graphics, importcpp: "juce::Typeface::findSystemTypeface()".}
 proc getSupportedFeatures*(this: Typeface): CppVector[FontFeatureTag] {.header: juce_graphics, importcpp: "#.getSupportedFeatures()".}
 proc getNativeDetails*(this: Typeface): ptr TypefaceNative {.header: juce_graphics, importcpp: "#.getNativeDetails()".}
 proc `==`*(this: Typeface, other: Typeface): bool {.error: "juce::Typeface defines no operator==; compare a property instead".}
@@ -808,6 +850,12 @@ proc setPreferredFallbackFamilies*(this: var Font, fallbacks: StringArray) {.hea
 proc getPreferredFallbackFamilies*(this: Font): StringArray {.header: juce_graphics, importcpp: "#.getPreferredFallbackFamilies()".}
 proc setFallbackEnabled*(this: var Font, enabled: bool) {.header: juce_graphics, importcpp: "#.setFallbackEnabled(@)".}
 proc getFallbackEnabled*(this: Font): bool {.header: juce_graphics, importcpp: "#.getFallbackEnabled()".}
+proc getDefaultSansSerifFontName*(this: typedesc[Font]): String {.header: juce_graphics, importcpp: "juce::Font::getDefaultSansSerifFontName()".}
+proc getSystemUIFontName*(this: typedesc[Font]): String {.header: juce_graphics, importcpp: "juce::Font::getSystemUIFontName()".}
+proc getDefaultSerifFontName*(this: typedesc[Font]): String {.header: juce_graphics, importcpp: "juce::Font::getDefaultSerifFontName()".}
+proc getDefaultMonospacedFontName*(this: typedesc[Font]): String {.header: juce_graphics, importcpp: "juce::Font::getDefaultMonospacedFontName()".}
+proc getDefaultStyle*(this: typedesc[Font]): String {.header: juce_graphics, importcpp: "juce::Font::getDefaultStyle()".}
+proc getDefaultTypefaceForFont*(this: typedesc[Font], font: Font): ReferenceCountedObjectPtr[Typeface] {.header: juce_graphics, importcpp: "juce::Font::getDefaultTypefaceForFont(@)".}
 proc withHeight*(this: Font, height: cfloat): Font {.header: juce_graphics, importcpp: "#.withHeight(@)".}
 proc withPointHeight*(this: Font, heightInPoints: cfloat): Font {.header: juce_graphics, importcpp: "#.withPointHeight(@)".}
 proc setHeight*(this: var Font, newHeight: cfloat) {.header: juce_graphics, importcpp: "#.setHeight(@)".}
@@ -837,6 +885,8 @@ proc removeFeatureSetting*(this: var Font, featureToRemove: FontFeatureTag) {.he
 proc getHorizontalScale*(this: Font): cfloat {.header: juce_graphics, importcpp: "#.getHorizontalScale()".}
 proc withHorizontalScale*(this: Font, scaleFactor: cfloat): Font {.header: juce_graphics, importcpp: "#.withHorizontalScale(@)".}
 proc setHorizontalScale*(this: var Font, scaleFactor: cfloat) {.header: juce_graphics, importcpp: "#.setHorizontalScale(@)".}
+proc getDefaultMinimumHorizontalScaleFactor*(this: typedesc[Font]): cfloat {.header: juce_graphics, importcpp: "juce::Font::getDefaultMinimumHorizontalScaleFactor()".}
+proc setDefaultMinimumHorizontalScaleFactor*(this: typedesc[Font], newMinimumScaleFactor: cfloat) {.header: juce_graphics, importcpp: "juce::Font::setDefaultMinimumHorizontalScaleFactor(@)".}
 proc getExtraKerningFactor*(this: Font): cfloat {.header: juce_graphics, importcpp: "#.getExtraKerningFactor()".}
 proc withExtraKerningFactor*(this: Font, extraKerning: cfloat): Font {.header: juce_graphics, importcpp: "#.withExtraKerningFactor(@)".}
 proc setExtraKerningFactor*(this: var Font, extraKerning: cfloat) {.header: juce_graphics, importcpp: "#.setExtraKerningFactor(@)".}
@@ -847,8 +897,12 @@ proc setDescentOverride*(this: var Font, arg1: CppOptional[cfloat]) {.header: ju
 proc setSizeAndStyle*(this: var Font, newHeight: cfloat, newStyleFlags: cint, newHorizontalScale: cfloat, newKerningAmount: cfloat) {.header: juce_graphics, importcpp: "#.setSizeAndStyle(@)".}
 proc setSizeAndStyle*(this: var Font, newHeight: cfloat, newStyle: String, newHorizontalScale: cfloat, newKerningAmount: cfloat) {.header: juce_graphics, importcpp: "#.setSizeAndStyle(@)".}
 proc getTypefacePtr*(this: Font): ReferenceCountedObjectPtr[Typeface] {.header: juce_graphics, importcpp: "#.getTypefacePtr()".}
+proc findFonts*(this: typedesc[Font], results: Array[Font]) {.header: juce_graphics, importcpp: "juce::Font::findFonts(@)".}
+proc findAllTypefaceNames*(this: typedesc[Font]): StringArray {.header: juce_graphics, importcpp: "juce::Font::findAllTypefaceNames()".}
+proc findAllTypefaceStyles*(this: typedesc[Font], family: String): StringArray {.header: juce_graphics, importcpp: "juce::Font::findAllTypefaceStyles(@)".}
 proc findSuitableFontForText*(this: Font, text: String, language: String): Font {.header: juce_graphics, importcpp: "#.findSuitableFontForText(@)".}
 proc toString*(this: Font): String {.header: juce_graphics, importcpp: "#.toString()".}
+proc fromString*(this: typedesc[Font], fontDescription: String): Font {.header: juce_graphics, importcpp: "juce::Font::fromString(@)".}
 proc getNativeDetails*(this: Font): FontNative {.header: juce_graphics, importcpp: "#.getNativeDetails()".}
 proc getHeightToPointsFactor*(this: Font): cfloat {.header: juce_graphics, importcpp: "#.getHeightToPointsFactor()".}
 
@@ -928,6 +982,9 @@ proc moveRangeOfGlyphs*(this: var GlyphArrangement, startIndex: cint, numGlyphs:
 proc removeRangeOfGlyphs*(this: var GlyphArrangement, startIndex: cint, numGlyphs: cint) {.header: juce_graphics, importcpp: "#.removeRangeOfGlyphs(@)".}
 proc stretchRangeOfGlyphs*(this: var GlyphArrangement, startIndex: cint, numGlyphs: cint, horizontalScaleFactor: cfloat) {.header: juce_graphics, importcpp: "#.stretchRangeOfGlyphs(@)".}
 proc justifyGlyphs*(this: var GlyphArrangement, startIndex: cint, numGlyphs: cint, x: cfloat, y: cfloat, width: cfloat, height: cfloat, justification: Justification) {.header: juce_graphics, importcpp: "#.justifyGlyphs(@)".}
+proc getStringBounds*(this: typedesc[GlyphArrangement], font: Font, text: StringRef): Rectangle[cfloat] {.header: juce_graphics, importcpp: "juce::GlyphArrangement::getStringBounds(@)".}
+proc getStringWidth*(this: typedesc[GlyphArrangement], font: Font, text: StringRef): cfloat {.header: juce_graphics, importcpp: "juce::GlyphArrangement::getStringWidth(@)".}
+proc getStringWidthInt*(this: typedesc[GlyphArrangement], font: Font, text: StringRef): cint {.header: juce_graphics, importcpp: "juce::GlyphArrangement::getStringWidthInt(@)".}
 proc `==`*(this: GlyphArrangement, other: GlyphArrangement): bool {.error: "juce::GlyphArrangement defines no operator==; compare a property instead".}
 
 proc makeTextLayout*(): TextLayout {.header: juce_graphics, importcpp: "juce::TextLayout(@)".}
@@ -950,6 +1007,10 @@ proc ensureStorageAllocated*(this: var TextLayout, numLinesNeeded: cint) {.heade
 # proc `end`*(this: TextLayout): _iterator {.header: juce_graphics, importcpp: "#.end()".}  # a C++ iterator; loop with the Nim iterator instead
 # proc cend*(this: TextLayout): _iterator {.header: juce_graphics, importcpp: "#.cend()".}  # a C++ iterator; loop with the Nim iterator instead
 proc recalculateSize*(this: var TextLayout) {.header: juce_graphics, importcpp: "#.recalculateSize()".}
+proc getStringBounds*(this: typedesc[TextLayout], string: AttributedString): Rectangle[cfloat] {.header: juce_graphics, importcpp: "juce::TextLayout::getStringBounds(@)".}
+proc getStringBounds*(this: typedesc[TextLayout], font: Font, text: StringRef): Rectangle[cfloat] {.header: juce_graphics, importcpp: "juce::TextLayout::getStringBounds(@)".}
+proc getStringWidth*(this: typedesc[TextLayout], string: AttributedString): cfloat {.header: juce_graphics, importcpp: "juce::TextLayout::getStringWidth(@)".}
+proc getStringWidth*(this: typedesc[TextLayout], font: Font, text: StringRef): cfloat {.header: juce_graphics, importcpp: "juce::TextLayout::getStringWidth(@)".}
 proc `==`*(this: TextLayout, other: TextLayout): bool {.error: "juce::TextLayout defines no operator==; compare a property instead".}
 
 proc makeTextLayoutGlyph*(glyphCode: cint, anchor: Point[cfloat], width: cfloat): TextLayoutGlyph {.header: juce_graphics, importcpp: "juce::TextLayout::Glyph(@)".}

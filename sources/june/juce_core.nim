@@ -309,8 +309,55 @@ proc `==`*(this: OrderedContainerHelpers, other: OrderedContainerHelpers): bool 
 proc makeScopedAutoReleasePool*(): ScopedAutoReleasePool {.header: juce_core, importcpp: "juce::ScopedAutoReleasePool(@)".}
 proc `==`*(this: ScopedAutoReleasePool, other: ScopedAutoReleasePool): bool {.error: "juce::ScopedAutoReleasePool defines no operator==; compare a property instead".}
 
+proc swap*(this: typedesc[ByteOrder], value: uint16): uint16 {.header: juce_core, importcpp: "juce::ByteOrder::swap(@)".}
+proc swap*(this: typedesc[ByteOrder], value: int16): int16 {.header: juce_core, importcpp: "juce::ByteOrder::swap(@)".}
+proc swap*(this: typedesc[ByteOrder], value: uint32): uint32 {.header: juce_core, importcpp: "juce::ByteOrder::swap(@)".}
+proc swap*(this: typedesc[ByteOrder], value: cint): cint {.header: juce_core, importcpp: "juce::ByteOrder::swap(@)".}
+proc swap*(this: typedesc[ByteOrder], value: uint64): uint64 {.header: juce_core, importcpp: "juce::ByteOrder::swap(@)".}
+proc swap*(this: typedesc[ByteOrder], value: int64): int64 {.header: juce_core, importcpp: "juce::ByteOrder::swap(@)".}
+proc swap*(this: typedesc[ByteOrder], value: cfloat): cfloat {.header: juce_core, importcpp: "juce::ByteOrder::swap(@)".}
+proc swap*(this: typedesc[ByteOrder], value: float64): float64 {.header: juce_core, importcpp: "juce::ByteOrder::swap(@)".}
+proc littleEndianInt*(this: typedesc[ByteOrder], bytes: constPointer): uint32 {.header: juce_core, importcpp: "juce::ByteOrder::littleEndianInt(@)".}
+proc littleEndianInt64*(this: typedesc[ByteOrder], bytes: constPointer): uint64 {.header: juce_core, importcpp: "juce::ByteOrder::littleEndianInt64(@)".}
+proc littleEndianShort*(this: typedesc[ByteOrder], bytes: constPointer): uint16 {.header: juce_core, importcpp: "juce::ByteOrder::littleEndianShort(@)".}
+proc littleEndian24Bit*(this: typedesc[ByteOrder], bytes: constPointer): cint {.header: juce_core, importcpp: "juce::ByteOrder::littleEndian24Bit(@)".}
+proc littleEndian24BitToChars*(this: typedesc[ByteOrder], value: cint, destBytes: pointer) {.header: juce_core, importcpp: "juce::ByteOrder::littleEndian24BitToChars(@)".}
+proc bigEndianInt*(this: typedesc[ByteOrder], bytes: constPointer): uint32 {.header: juce_core, importcpp: "juce::ByteOrder::bigEndianInt(@)".}
+proc bigEndianInt64*(this: typedesc[ByteOrder], bytes: constPointer): uint64 {.header: juce_core, importcpp: "juce::ByteOrder::bigEndianInt64(@)".}
+proc bigEndianShort*(this: typedesc[ByteOrder], bytes: constPointer): uint16 {.header: juce_core, importcpp: "juce::ByteOrder::bigEndianShort(@)".}
+proc bigEndian24Bit*(this: typedesc[ByteOrder], bytes: constPointer): cint {.header: juce_core, importcpp: "juce::ByteOrder::bigEndian24Bit(@)".}
+proc bigEndian24BitToChars*(this: typedesc[ByteOrder], value: cint, destBytes: pointer) {.header: juce_core, importcpp: "juce::ByteOrder::bigEndian24BitToChars(@)".}
+proc makeInt*(this: typedesc[ByteOrder], leastSig: uint8, mostSig: uint8): uint16 {.header: juce_core, importcpp: "juce::ByteOrder::makeInt(@)".}
+proc makeInt*(this: typedesc[ByteOrder], leastSig: uint8, byte1: uint8, byte2: uint8, mostSig: uint8): uint32 {.header: juce_core, importcpp: "juce::ByteOrder::makeInt(@)".}
+proc makeInt*(this: typedesc[ByteOrder], leastSig: uint8, byte1: uint8, byte2: uint8, byte3: uint8, byte4: uint8, byte5: uint8, byte6: uint8, mostSig: uint8): uint64 {.header: juce_core, importcpp: "juce::ByteOrder::makeInt(@)".}
+proc isBigEndian*(this: typedesc[ByteOrder]): bool {.header: juce_core, importcpp: "juce::ByteOrder::isBigEndian()".}
 proc `==`*(this: ByteOrder, other: ByteOrder): bool {.error: "juce::ByteOrder defines no operator==; compare a property instead".}
 
+proc toUpperCase*(this: typedesc[CharacterFunctions], character: uint16): uint16 {.header: juce_core, importcpp: "juce::CharacterFunctions::toUpperCase(@)".}
+proc toLowerCase*(this: typedesc[CharacterFunctions], character: uint16): uint16 {.header: juce_core, importcpp: "juce::CharacterFunctions::toLowerCase(@)".}
+proc isUpperCase*(this: typedesc[CharacterFunctions], character: uint16): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isUpperCase(@)".}
+proc isLowerCase*(this: typedesc[CharacterFunctions], character: uint16): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isLowerCase(@)".}
+proc isWhitespace*(this: typedesc[CharacterFunctions], character: char): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isWhitespace(@)".}
+proc isWhitespace*(this: typedesc[CharacterFunctions], character: uint16): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isWhitespace(@)".}
+proc isDigit*(this: typedesc[CharacterFunctions], character: char): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isDigit(@)".}
+proc isDigit*(this: typedesc[CharacterFunctions], character: uint16): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isDigit(@)".}
+proc isLetter*(this: typedesc[CharacterFunctions], character: char): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isLetter(@)".}
+proc isLetter*(this: typedesc[CharacterFunctions], character: uint16): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isLetter(@)".}
+proc isLetterOrDigit*(this: typedesc[CharacterFunctions], character: char): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isLetterOrDigit(@)".}
+proc isLetterOrDigit*(this: typedesc[CharacterFunctions], character: uint16): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isLetterOrDigit(@)".}
+proc isPrintable*(this: typedesc[CharacterFunctions], character: char): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isPrintable(@)".}
+proc isPrintable*(this: typedesc[CharacterFunctions], character: uint16): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isPrintable(@)".}
+proc getHexDigitValue*(this: typedesc[CharacterFunctions], digit: uint16): cint {.header: juce_core, importcpp: "juce::CharacterFunctions::getHexDigitValue(@)".}
+proc getUnicodeCharFromWindows1252Codepage*(this: typedesc[CharacterFunctions], windows1252Char: uint8): uint16 {.header: juce_core, importcpp: "juce::CharacterFunctions::getUnicodeCharFromWindows1252Codepage(@)".}
+proc isPartOfBasicMultilingualPlane*(this: typedesc[CharacterFunctions], character: uint16): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isPartOfBasicMultilingualPlane(@)".}
+proc isAscii*(this: typedesc[CharacterFunctions], character: uint16): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isAscii(@)".}
+proc isAsciiControlCharacter*(this: typedesc[CharacterFunctions], character: uint16): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isAsciiControlCharacter(@)".}
+proc isSurrogate*(this: typedesc[CharacterFunctions], character: uint16): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isSurrogate(@)".}
+proc isHighSurrogate*(this: typedesc[CharacterFunctions], character: uint16): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isHighSurrogate(@)".}
+proc isLowSurrogate*(this: typedesc[CharacterFunctions], character: uint16): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isLowSurrogate(@)".}
+proc isNonSurrogateCodePoint*(this: typedesc[CharacterFunctions], character: uint16): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isNonSurrogateCodePoint(@)".}
+proc compare*(this: typedesc[CharacterFunctions], char1: uint16, char2: uint16): cint {.header: juce_core, importcpp: "juce::CharacterFunctions::compare(@)".}
+proc compareIgnoreCase*(this: typedesc[CharacterFunctions], char1: uint16, char2: uint16): cint {.header: juce_core, importcpp: "juce::CharacterFunctions::compareIgnoreCase(@)".}
 proc `==`*(this: CharacterFunctions, other: CharacterFunctions): bool {.error: "juce::CharacterFunctions defines no operator==; compare a property instead".}
 
 proc makeCharPointer_UTF8*(rawPointer: ptr char): CharPointer_UTF8 {.header: juce_core, importcpp: "juce::CharPointer_UTF8(@)".}
@@ -339,6 +386,7 @@ proc length*(this: CharPointer_UTF8): uint64 {.header: juce_core, importcpp: "#.
 proc lengthUpTo*(this: CharPointer_UTF8, maxCharsToCount: uint64): uint64 {.header: juce_core, importcpp: "#.lengthUpTo(@)".}
 proc lengthUpTo*(this: CharPointer_UTF8, `end`: CharPointer_UTF8): uint64 {.header: juce_core, importcpp: "#.lengthUpTo(@)".}
 proc sizeInBytes*(this: CharPointer_UTF8): uint64 {.header: juce_core, importcpp: "#.sizeInBytes()".}
+proc getBytesRequiredFor*(this: typedesc[CharPointer_UTF8], charToWrite: uint16): uint64 {.header: juce_core, importcpp: "juce::CharPointer_UTF8::getBytesRequiredFor(@)".}
 proc findTerminatingNull*(this: CharPointer_UTF8): CharPointer_UTF8 {.header: juce_core, importcpp: "#.findTerminatingNull()".}
 proc write*(this: var CharPointer_UTF8, charToWrite: uint16) {.header: juce_core, importcpp: "#.write(@)".}
 proc writeNull*(this: CharPointer_UTF8) {.header: juce_core, importcpp: "#.writeNull()".}
@@ -359,7 +407,10 @@ proc getIntValue64*(this: CharPointer_UTF8): int64 {.header: juce_core, importcp
 proc getDoubleValue*(this: CharPointer_UTF8): float64 {.header: juce_core, importcpp: "#.getDoubleValue()".}
 proc findEndOfWhitespace*(this: CharPointer_UTF8): CharPointer_UTF8 {.header: juce_core, importcpp: "#.findEndOfWhitespace()".}
 proc incrementToEndOfWhitespace*(this: var CharPointer_UTF8) {.header: juce_core, importcpp: "#.incrementToEndOfWhitespace()".}
+proc canRepresent*(this: typedesc[CharPointer_UTF8], character: uint16): bool {.header: juce_core, importcpp: "juce::CharPointer_UTF8::canRepresent(@)".}
+proc isValidString*(this: typedesc[CharPointer_UTF8], codeUnits: ptr char, maxBytesToRead: cint): bool {.header: juce_core, importcpp: "juce::CharPointer_UTF8::isValidString(@)".}
 proc atomicSwap*(this: var CharPointer_UTF8, newValue: CharPointer_UTF8): CharPointer_UTF8 {.header: juce_core, importcpp: "#.atomicSwap(@)".}
+proc isByteOrderMark*(this: typedesc[CharPointer_UTF8], possibleByteOrder: constPointer): bool {.header: juce_core, importcpp: "juce::CharPointer_UTF8::isByteOrderMark(@)".}
 
 proc makeCharPointer_UTF16*(rawPointer: ptr int16): CharPointer_UTF16 {.header: juce_core, importcpp: "juce::CharPointer_UTF16(@)".}
 proc `CharPointer_UTF16=`*(this: var CharPointer_UTF16, other: CharPointer_UTF16): var CharPointer_UTF16 {.header: juce_core, importcpp: "#.operator=(@)".}
@@ -389,6 +440,7 @@ proc length*(this: CharPointer_UTF16): uint64 {.header: juce_core, importcpp: "#
 proc lengthUpTo*(this: CharPointer_UTF16, maxCharsToCount: uint64): uint64 {.header: juce_core, importcpp: "#.lengthUpTo(@)".}
 proc lengthUpTo*(this: CharPointer_UTF16, `end`: CharPointer_UTF16): uint64 {.header: juce_core, importcpp: "#.lengthUpTo(@)".}
 proc sizeInBytes*(this: CharPointer_UTF16): uint64 {.header: juce_core, importcpp: "#.sizeInBytes()".}
+proc getBytesRequiredFor*(this: typedesc[CharPointer_UTF16], charToWrite: uint16): uint64 {.header: juce_core, importcpp: "juce::CharPointer_UTF16::getBytesRequiredFor(@)".}
 proc findTerminatingNull*(this: CharPointer_UTF16): CharPointer_UTF16 {.header: juce_core, importcpp: "#.findTerminatingNull()".}
 proc writeAll*(this: var CharPointer_UTF16, src: CharPointer_UTF16) {.header: juce_core, importcpp: "#.writeAll(@)".}
 proc indexOf*(this: CharPointer_UTF16, charToFind: uint16): cint {.header: juce_core, importcpp: "#.indexOf(@)".}
@@ -406,7 +458,11 @@ proc getIntValue64*(this: CharPointer_UTF16): int64 {.header: juce_core, importc
 proc getDoubleValue*(this: CharPointer_UTF16): float64 {.header: juce_core, importcpp: "#.getDoubleValue()".}
 proc findEndOfWhitespace*(this: CharPointer_UTF16): CharPointer_UTF16 {.header: juce_core, importcpp: "#.findEndOfWhitespace()".}
 proc incrementToEndOfWhitespace*(this: var CharPointer_UTF16) {.header: juce_core, importcpp: "#.incrementToEndOfWhitespace()".}
+proc canRepresent*(this: typedesc[CharPointer_UTF16], character: uint16): bool {.header: juce_core, importcpp: "juce::CharPointer_UTF16::canRepresent(@)".}
+proc isValidString*(this: typedesc[CharPointer_UTF16], codeUnits: ptr int16, maxBytesToRead: cint): bool {.header: juce_core, importcpp: "juce::CharPointer_UTF16::isValidString(@)".}
 proc atomicSwap*(this: var CharPointer_UTF16, newValue: CharPointer_UTF16): CharPointer_UTF16 {.header: juce_core, importcpp: "#.atomicSwap(@)".}
+proc isByteOrderMarkBigEndian*(this: typedesc[CharPointer_UTF16], possibleByteOrder: constPointer): bool {.header: juce_core, importcpp: "juce::CharPointer_UTF16::isByteOrderMarkBigEndian(@)".}
+proc isByteOrderMarkLittleEndian*(this: typedesc[CharPointer_UTF16], possibleByteOrder: constPointer): bool {.header: juce_core, importcpp: "juce::CharPointer_UTF16::isByteOrderMarkLittleEndian(@)".}
 
 proc makeCharPointer_UTF32*(rawPointer: ptr uint16): CharPointer_UTF32 {.header: juce_core, importcpp: "juce::CharPointer_UTF32(@)".}
 proc `CharPointer_UTF32=`*(this: var CharPointer_UTF32, other: CharPointer_UTF32): var CharPointer_UTF32 {.header: juce_core, importcpp: "#.operator=(@)".}
@@ -437,6 +493,7 @@ proc length*(this: CharPointer_UTF32): uint64 {.header: juce_core, importcpp: "#
 proc lengthUpTo*(this: CharPointer_UTF32, maxCharsToCount: uint64): uint64 {.header: juce_core, importcpp: "#.lengthUpTo(@)".}
 proc lengthUpTo*(this: CharPointer_UTF32, `end`: CharPointer_UTF32): uint64 {.header: juce_core, importcpp: "#.lengthUpTo(@)".}
 proc sizeInBytes*(this: CharPointer_UTF32): uint64 {.header: juce_core, importcpp: "#.sizeInBytes()".}
+proc getBytesRequiredFor*(this: typedesc[CharPointer_UTF32], arg1: uint16): uint64 {.header: juce_core, importcpp: "juce::CharPointer_UTF32::getBytesRequiredFor(@)".}
 proc findTerminatingNull*(this: CharPointer_UTF32): CharPointer_UTF32 {.header: juce_core, importcpp: "#.findTerminatingNull()".}
 proc writeAll*(this: var CharPointer_UTF32, src: CharPointer_UTF32) {.header: juce_core, importcpp: "#.writeAll(@)".}
 proc compare*(this: CharPointer_UTF32, other: CharPointer_UTF32): cint {.header: juce_core, importcpp: "#.compare(@)".}
@@ -455,6 +512,8 @@ proc getIntValue64*(this: CharPointer_UTF32): int64 {.header: juce_core, importc
 proc getDoubleValue*(this: CharPointer_UTF32): float64 {.header: juce_core, importcpp: "#.getDoubleValue()".}
 proc findEndOfWhitespace*(this: CharPointer_UTF32): CharPointer_UTF32 {.header: juce_core, importcpp: "#.findEndOfWhitespace()".}
 proc incrementToEndOfWhitespace*(this: var CharPointer_UTF32) {.header: juce_core, importcpp: "#.incrementToEndOfWhitespace()".}
+proc canRepresent*(this: typedesc[CharPointer_UTF32], character: uint16): bool {.header: juce_core, importcpp: "juce::CharPointer_UTF32::canRepresent(@)".}
+proc isValidString*(this: typedesc[CharPointer_UTF32], codeUnits: ptr uint16, maxBytesToRead: cint): bool {.header: juce_core, importcpp: "juce::CharPointer_UTF32::isValidString(@)".}
 proc atomicSwap*(this: var CharPointer_UTF32, newValue: CharPointer_UTF32): CharPointer_UTF32 {.header: juce_core, importcpp: "#.atomicSwap(@)".}
 
 proc makeCharPointer_ASCII*(rawPointer: ptr char): CharPointer_ASCII {.header: juce_core, importcpp: "juce::CharPointer_ASCII(@)".}
@@ -486,6 +545,7 @@ proc length*(this: CharPointer_ASCII): uint64 {.header: juce_core, importcpp: "#
 proc lengthUpTo*(this: CharPointer_ASCII, maxCharsToCount: uint64): uint64 {.header: juce_core, importcpp: "#.lengthUpTo(@)".}
 proc lengthUpTo*(this: CharPointer_ASCII, `end`: CharPointer_ASCII): uint64 {.header: juce_core, importcpp: "#.lengthUpTo(@)".}
 proc sizeInBytes*(this: CharPointer_ASCII): uint64 {.header: juce_core, importcpp: "#.sizeInBytes()".}
+proc getBytesRequiredFor*(this: typedesc[CharPointer_ASCII], arg1: uint16): uint64 {.header: juce_core, importcpp: "juce::CharPointer_ASCII::getBytesRequiredFor(@)".}
 proc findTerminatingNull*(this: CharPointer_ASCII): CharPointer_ASCII {.header: juce_core, importcpp: "#.findTerminatingNull()".}
 proc compare*(this: CharPointer_ASCII, other: CharPointer_ASCII): cint {.header: juce_core, importcpp: "#.compare(@)".}
 proc compareUpTo*(this: CharPointer_ASCII, other: CharPointer_ASCII, maxChars: cint): cint {.header: juce_core, importcpp: "#.compareUpTo(@)".}
@@ -505,6 +565,8 @@ proc getIntValue64*(this: CharPointer_ASCII): int64 {.header: juce_core, importc
 proc getDoubleValue*(this: CharPointer_ASCII): float64 {.header: juce_core, importcpp: "#.getDoubleValue()".}
 proc findEndOfWhitespace*(this: CharPointer_ASCII): CharPointer_ASCII {.header: juce_core, importcpp: "#.findEndOfWhitespace()".}
 proc incrementToEndOfWhitespace*(this: var CharPointer_ASCII) {.header: juce_core, importcpp: "#.incrementToEndOfWhitespace()".}
+proc canRepresent*(this: typedesc[CharPointer_ASCII], character: uint16): bool {.header: juce_core, importcpp: "juce::CharPointer_ASCII::canRepresent(@)".}
+proc isValidString*(this: typedesc[CharPointer_ASCII], dataToTest: ptr char, maxBytesToRead: cint): bool {.header: juce_core, importcpp: "juce::CharPointer_ASCII::isValidString(@)".}
 
 proc makeString*(): String {.header: juce_core, importcpp: "juce::String(@)".}
 proc makeString*(text: constChar): String {.header: juce_core, importcpp: "juce::String(@)".}
@@ -534,6 +596,7 @@ proc makeString*(doubleValue: float64): String {.header: juce_core, importcpp: "
 proc makeString*(floatValue: cfloat, numberOfDecimalPlaces: cint, useScientificNotation: bool): String {.header: juce_core, importcpp: "juce::String(@)".}
 proc makeString*(doubleValue: float64, numberOfDecimalPlaces: cint, useScientificNotation: bool): String {.header: juce_core, importcpp: "juce::String(@)".}
 proc makeString*(arg1: bool): String {.header: juce_core, importcpp: "juce::String(@)".}
+proc charToString*(this: typedesc[String], character: uint16): String {.header: juce_core, importcpp: "juce::String::charToString(@)".}
 proc hashCode*(this: String): cint {.header: juce_core, importcpp: "#.hashCode()".}
 proc hashCode64*(this: String): int64 {.header: juce_core, importcpp: "#.hashCode64()".}
 proc hash*(this: String): uint64 {.header: juce_core, importcpp: "#.hash()".}
@@ -620,8 +683,10 @@ proc initialSectionNotContaining*(this: String, charactersToStopAt: StringRef): 
 proc isQuotedString*(this: String): bool {.header: juce_core, importcpp: "#.isQuotedString()".}
 proc unquoted*(this: String): String {.header: juce_core, importcpp: "#.unquoted()".}
 # proc quoted*(this: String, quoteCharacter: uint16): String {.header: juce_core, importcpp: "#.quoted(@)".}  # excluded deliberately: see skip_class_method
+proc repeatedString*(this: typedesc[String], stringToRepeat: StringRef, numberOfTimesToRepeat: cint): String {.header: juce_core, importcpp: "juce::String::repeatedString(@)".}
 proc paddedLeft*(this: String, padCharacter: uint16, minimumLength: cint): String {.header: juce_core, importcpp: "#.paddedLeft(@)".}
 proc paddedRight*(this: String, padCharacter: uint16, minimumLength: cint): String {.header: juce_core, importcpp: "#.paddedRight(@)".}
+proc createStringFromData*(this: typedesc[String], data: constPointer, size: cint): String {.header: juce_core, importcpp: "juce::String::createStringFromData(@)".}
 # proc begin*(this: String): CharPointer_UTF8 {.header: juce_core, importcpp: "#.begin()".}  # a C++ iterator; loop with the Nim iterator instead
 # proc `end`*(this: String): CharPointer_UTF8 {.header: juce_core, importcpp: "#.end()".}  # a C++ iterator; loop with the Nim iterator instead
 proc getIntValue*(this: String): cint {.header: juce_core, importcpp: "#.getIntValue()".}
@@ -631,6 +696,7 @@ proc getFloatValue*(this: String): cfloat {.header: juce_core, importcpp: "#.get
 proc getDoubleValue*(this: String): float64 {.header: juce_core, importcpp: "#.getDoubleValue()".}
 proc getHexValue32*(this: String): cint {.header: juce_core, importcpp: "#.getHexValue32()".}
 proc getHexValue64*(this: String): int64 {.header: juce_core, importcpp: "#.getHexValue64()".}
+proc toHexString*(this: typedesc[String], data: constPointer, size: cint, groupSize: cint = 1): String {.header: juce_core, importcpp: "juce::String::toHexString(@)".}
 proc getCharPointer*(this: String): CharPointer_UTF8 {.header: juce_core, importcpp: "#.getCharPointer()".}
 proc toUTF8*(this: String): CharPointer_UTF8 {.header: juce_core, importcpp: "#.toUTF8()".}
 proc toRawUTF8Impl*(this: String): constChar {.header: juce_core, importcpp: "#.toRawUTF8()".}
@@ -638,12 +704,14 @@ proc toUTF16*(this: String): CharPointer_UTF16 {.header: juce_core, importcpp: "
 proc toUTF32*(this: String): CharPointer_UTF32 {.header: juce_core, importcpp: "#.toUTF32()".}
 proc toWideCharPointer*(this: String): ptr uint16 {.header: juce_core, importcpp: "#.toWideCharPointer()".}
 proc toStdString*(this: String): CppString {.header: juce_core, importcpp: "#.toStdString()".}
+proc fromUTF8*(this: typedesc[String], utf8buffer: constChar, bufferSizeBytes: cint = -1): String {.header: juce_core, importcpp: "juce::String::fromUTF8(@)".}
 proc getNumBytesAsUTF8*(this: String): uint64 {.header: juce_core, importcpp: "#.getNumBytesAsUTF8()".}
 proc copyToUTF8*(this: String, destBuffer: ptr char, maxBufferSizeBytes: uint64): uint64 {.header: juce_core, importcpp: "#.copyToUTF8(@)".}
 proc copyToUTF16*(this: String, destBuffer: ptr int16, maxBufferSizeBytes: uint64): uint64 {.header: juce_core, importcpp: "#.copyToUTF16(@)".}
 proc copyToUTF32*(this: String, destBuffer: ptr uint16, maxBufferSizeBytes: uint64): uint64 {.header: juce_core, importcpp: "#.copyToUTF32(@)".}
 proc preallocateBytes*(this: var String, numBytesNeeded: uint64) {.header: juce_core, importcpp: "#.preallocateBytes(@)".}
 proc swapWith*(this: var String, other: var String) {.header: juce_core, importcpp: "#.swapWith(@)".}
+# proc fromCFString*(this: typedesc[String], cfString: ptr struct __CFString): String {.header: juce_core, importcpp: "juce::String::fromCFString(@)".}  # a type that cannot be spelled in Nim
 # proc toCFString*(this: String): ptr struct __CFString {.header: juce_core, importcpp: "#.toCFString()".}  # a platform type with no Nim spelling
 proc convertToPrecomposedUnicode*(this: String): String {.header: juce_core, importcpp: "#.convertToPrecomposedUnicode()".}
 proc getReferenceCount*(this: String): cint {.header: juce_core, importcpp: "#.getReferenceCount()".}
@@ -666,6 +734,10 @@ proc `<=`*(this: StringRef, s: String): bool {.header: juce_core, importcpp: "#.
 proc `==`*(this: StringRef, s: StringRef): bool {.header: juce_core, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: StringRef, s: StringRef): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 
+proc setCurrentLogger*(this: typedesc[Logger], newLogger: ptr Logger) {.header: juce_core, importcpp: "juce::Logger::setCurrentLogger(@)".}
+proc getCurrentLogger*(this: typedesc[Logger]): ptr Logger {.header: juce_core, importcpp: "juce::Logger::getCurrentLogger()".}
+proc writeToLog*(this: typedesc[Logger], message: String) {.header: juce_core, importcpp: "juce::Logger::writeToLog(@)".}
+proc outputDebugString*(this: typedesc[Logger], text: String) {.header: juce_core, importcpp: "juce::Logger::outputDebugString(@)".}
 proc `==`*(this: Logger, other: Logger): bool {.error: "juce::Logger defines no operator==; compare a property instead".}
 
 proc makeMemoryBlock*(): MemoryBlock {.header: juce_core, importcpp: "juce::MemoryBlock(@)".}
@@ -761,6 +833,7 @@ proc write*(this: var SingleThreadedAbstractFifo, num: cint): CppArray[Range[cin
 proc read*(this: var SingleThreadedAbstractFifo, num: cint): CppArray[Range[cint], 2] {.header: juce_core, importcpp: "#.read(@)".}
 proc `==`*(this: SingleThreadedAbstractFifo, other: SingleThreadedAbstractFifo): bool {.error: "juce::SingleThreadedAbstractFifo defines no operator==; compare a property instead".}
 
+proc getDefault*(this: typedesc[NewLine]): constChar {.header: juce_core, importcpp: "juce::NewLine::getDefault()".}
 proc `==`*(this: NewLine, other: NewLine): bool {.error: "juce::NewLine defines no operator==; compare a property instead".}
 
 proc makeStringPool*(): StringPool {.header: juce_core, importcpp: "juce::StringPool(@)".}
@@ -769,6 +842,7 @@ proc getPooledString*(this: var StringPool, original: String): String {.header: 
 # proc getPooledString*(this: var StringPool, original: StringRef): String {.header: juce_core, importcpp: "#.getPooledString(@)".}  # redundant with the String overload, which a string also reaches
 proc getPooledString*(this: var StringPool, start: CharPointer_UTF8, `end`: CharPointer_UTF8): String {.header: juce_core, importcpp: "#.getPooledString(@)".}
 proc garbageCollect*(this: var StringPool) {.header: juce_core, importcpp: "#.garbageCollect()".}
+proc getGlobalPool*(this: typedesc[StringPool]): var StringPool {.header: juce_core, importcpp: "juce::StringPool::getGlobalPool()".}
 proc `==`*(this: StringPool, other: StringPool): bool {.error: "juce::StringPool defines no operator==; compare a property instead".}
 
 proc makeIdentifier*(): Identifier {.header: juce_core, importcpp: "juce::Identifier(@)".}
@@ -788,6 +862,7 @@ proc toString*(this: Identifier): String {.header: juce_core, importcpp: "#.toSt
 proc getCharPointer*(this: Identifier): CharPointer_UTF8 {.header: juce_core, importcpp: "#.getCharPointer()".}
 proc isValid*(this: Identifier): bool {.header: juce_core, importcpp: "#.isValid()".}
 proc isNull*(this: Identifier): bool {.header: juce_core, importcpp: "#.isNull()".}
+proc isValidIdentifier*(this: typedesc[Identifier], possibleIdentifier: String): bool {.header: juce_core, importcpp: "juce::Identifier::isValidIdentifier(@)".}
 
 proc makeStringArray*(): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
 proc makeStringArray*(firstValue: String): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
@@ -822,6 +897,9 @@ proc mergeArray*(this: var StringArray, other: StringArray, ignoreCase: bool = f
 proc addTokens*(this: var StringArray, stringToTokenise: StringRef, preserveQuotedStrings: bool): cint {.header: juce_core, importcpp: "#.addTokens(@)".}
 proc addTokens*(this: var StringArray, stringToTokenise: StringRef, breakCharacters: StringRef, quoteCharacters: StringRef): cint {.header: juce_core, importcpp: "#.addTokens(@)".}
 proc addLines*(this: var StringArray, stringToBreakUp: StringRef): cint {.header: juce_core, importcpp: "#.addLines(@)".}
+proc fromTokens*(this: typedesc[StringArray], stringToTokenise: StringRef, preserveQuotedStrings: bool): StringArray {.header: juce_core, importcpp: "juce::StringArray::fromTokens(@)".}
+proc fromTokens*(this: typedesc[StringArray], stringToTokenise: StringRef, breakCharacters: StringRef, quoteCharacters: StringRef): StringArray {.header: juce_core, importcpp: "juce::StringArray::fromTokens(@)".}
+proc fromLines*(this: typedesc[StringArray], stringToBreakUp: StringRef): StringArray {.header: juce_core, importcpp: "juce::StringArray::fromLines(@)".}
 proc clear*(this: var StringArray) {.header: juce_core, importcpp: "#.clear()".}
 proc clearQuick*(this: var StringArray) {.header: juce_core, importcpp: "#.clearQuick()".}
 proc remove*(this: var StringArray, index: cint) {.header: juce_core, importcpp: "#.remove(@)".}
@@ -838,6 +916,57 @@ proc sortNatural*(this: var StringArray) {.header: juce_core, importcpp: "#.sort
 proc ensureStorageAllocated*(this: var StringArray, minNumElements: cint) {.header: juce_core, importcpp: "#.ensureStorageAllocated(@)".}
 proc minimiseStorageOverheads*(this: var StringArray) {.header: juce_core, importcpp: "#.minimiseStorageOverheads()".}
 
+proc getJUCEVersion*(this: typedesc[SystemStats]): String {.header: juce_core, importcpp: "juce::SystemStats::getJUCEVersion()".}
+proc getOperatingSystemType*(this: typedesc[SystemStats]): SystemStatsOperatingSystemType {.header: juce_core, importcpp: "juce::SystemStats::getOperatingSystemType()".}
+proc getOperatingSystemName*(this: typedesc[SystemStats]): String {.header: juce_core, importcpp: "juce::SystemStats::getOperatingSystemName()".}
+proc isOperatingSystem64Bit*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::isOperatingSystem64Bit()".}
+proc getEnvironmentVariable*(this: typedesc[SystemStats], name: String, defaultValue: String): String {.header: juce_core, importcpp: "juce::SystemStats::getEnvironmentVariable(@)".}
+proc getLogonName*(this: typedesc[SystemStats]): String {.header: juce_core, importcpp: "juce::SystemStats::getLogonName()".}
+proc getFullUserName*(this: typedesc[SystemStats]): String {.header: juce_core, importcpp: "juce::SystemStats::getFullUserName()".}
+proc getComputerName*(this: typedesc[SystemStats]): String {.header: juce_core, importcpp: "juce::SystemStats::getComputerName()".}
+proc getUserLanguage*(this: typedesc[SystemStats]): String {.header: juce_core, importcpp: "juce::SystemStats::getUserLanguage()".}
+proc getUserRegion*(this: typedesc[SystemStats]): String {.header: juce_core, importcpp: "juce::SystemStats::getUserRegion()".}
+proc getDisplayLanguage*(this: typedesc[SystemStats]): String {.header: juce_core, importcpp: "juce::SystemStats::getDisplayLanguage()".}
+proc getDeviceDescription*(this: typedesc[SystemStats]): String {.header: juce_core, importcpp: "juce::SystemStats::getDeviceDescription()".}
+proc getDeviceManufacturer*(this: typedesc[SystemStats]): String {.header: juce_core, importcpp: "juce::SystemStats::getDeviceManufacturer()".}
+proc getDeviceIdentifiers*(this: typedesc[SystemStats]): StringArray {.header: juce_core, importcpp: "juce::SystemStats::getDeviceIdentifiers()".}
+proc getUniqueDeviceID*(this: typedesc[SystemStats]): String {.header: juce_core, importcpp: "juce::SystemStats::getUniqueDeviceID()".}
+proc getMachineIdentifiers*(this: typedesc[SystemStats], flags: SystemStatsMachineIdFlags): StringArray {.header: juce_core, importcpp: "juce::SystemStats::getMachineIdentifiers(@)".}
+proc getNumCpus*(this: typedesc[SystemStats]): cint {.header: juce_core, importcpp: "juce::SystemStats::getNumCpus()".}
+proc getNumPhysicalCpus*(this: typedesc[SystemStats]): cint {.header: juce_core, importcpp: "juce::SystemStats::getNumPhysicalCpus()".}
+proc getCpuSpeedInMegahertz*(this: typedesc[SystemStats]): cint {.header: juce_core, importcpp: "juce::SystemStats::getCpuSpeedInMegahertz()".}
+proc getCpuVendor*(this: typedesc[SystemStats]): String {.header: juce_core, importcpp: "juce::SystemStats::getCpuVendor()".}
+proc getCpuModel*(this: typedesc[SystemStats]): String {.header: juce_core, importcpp: "juce::SystemStats::getCpuModel()".}
+proc hasMMX*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::hasMMX()".}
+proc has3DNow*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::has3DNow()".}
+proc hasFMA3*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::hasFMA3()".}
+proc hasFMA4*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::hasFMA4()".}
+proc hasSSE*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::hasSSE()".}
+proc hasSSE2*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::hasSSE2()".}
+proc hasSSE3*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::hasSSE3()".}
+proc hasSSSE3*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::hasSSSE3()".}
+proc hasSSE41*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::hasSSE41()".}
+proc hasSSE42*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::hasSSE42()".}
+proc hasAVX*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::hasAVX()".}
+proc hasAVX2*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::hasAVX2()".}
+proc hasAVX512F*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::hasAVX512F()".}
+proc hasAVX512BW*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::hasAVX512BW()".}
+proc hasAVX512CD*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::hasAVX512CD()".}
+proc hasAVX512DQ*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::hasAVX512DQ()".}
+proc hasAVX512ER*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::hasAVX512ER()".}
+proc hasAVX512IFMA*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::hasAVX512IFMA()".}
+proc hasAVX512PF*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::hasAVX512PF()".}
+proc hasAVX512VBMI*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::hasAVX512VBMI()".}
+proc hasAVX512VL*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::hasAVX512VL()".}
+proc hasAVX512VPOPCNTDQ*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::hasAVX512VPOPCNTDQ()".}
+proc hasNeon*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::hasNeon()".}
+proc getMemorySizeInMegabytes*(this: typedesc[SystemStats]): cint {.header: juce_core, importcpp: "juce::SystemStats::getMemorySizeInMegabytes()".}
+proc getPageSize*(this: typedesc[SystemStats]): cint {.header: juce_core, importcpp: "juce::SystemStats::getPageSize()".}
+proc getStackBacktrace*(this: typedesc[SystemStats]): String {.header: juce_core, importcpp: "juce::SystemStats::getStackBacktrace()".}
+# proc setApplicationCrashHandler*(this: typedesc[SystemStats], arg1: void ()(pointer)) {.header: juce_core, importcpp: "juce::SystemStats::setApplicationCrashHandler(@)".}  # a type that cannot be spelled in Nim
+proc isRunningInAppExtensionSandbox*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::isRunningInAppExtensionSandbox()".}
+proc isAppSandboxEnabled*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::isAppSandboxEnabled()".}
+proc getCpuSpeedInMegaherz*(this: typedesc[SystemStats]): cint {.header: juce_core, importcpp: "juce::SystemStats::getCpuSpeedInMegaherz()".}
 proc `==`*(this: SystemStats, other: SystemStats): bool {.error: "juce::SystemStats defines no operator==; compare a property instead".}
 
 proc makeStringPairArray*(ignoreCaseWhenComparingKeys: bool): StringPairArray {.header: juce_core, importcpp: "juce::StringPairArray(@)".}
@@ -873,6 +1002,10 @@ proc `==`*(this: TextDiffChange, other: TextDiffChange): bool {.error: "juce::Te
 proc makeLocalisedStrings*(fileContents: String, ignoreCaseOfKeys: bool): LocalisedStrings {.header: juce_core, importcpp: "juce::LocalisedStrings(@)".}
 proc makeLocalisedStrings*(fileToLoad: File, ignoreCaseOfKeys: bool): LocalisedStrings {.header: juce_core, importcpp: "juce::LocalisedStrings(@)".}
 proc `LocalisedStrings=`*(this: var LocalisedStrings, arg1: LocalisedStrings): var LocalisedStrings {.header: juce_core, importcpp: "#.operator=(@)".}
+proc setCurrentMappings*(this: typedesc[LocalisedStrings], newTranslations: ptr LocalisedStrings) {.header: juce_core, importcpp: "juce::LocalisedStrings::setCurrentMappings(@)".}
+proc getCurrentMappings*(this: typedesc[LocalisedStrings]): ptr LocalisedStrings {.header: juce_core, importcpp: "juce::LocalisedStrings::getCurrentMappings()".}
+proc translateWithCurrentMappings*(this: typedesc[LocalisedStrings], text: String): String {.header: juce_core, importcpp: "juce::LocalisedStrings::translateWithCurrentMappings(@)".}
+# proc translateWithCurrentMappings*(this: typedesc[LocalisedStrings], text: constChar): String {.header: juce_core, importcpp: "juce::LocalisedStrings::translateWithCurrentMappings(@)".}  # redundant with the String overload, which a string also reaches
 proc translate*(this: LocalisedStrings, text: String): String {.header: juce_core, importcpp: "#.translate(@)".}
 proc translate*(this: LocalisedStrings, text: String, resultIfNotFound: String): String {.header: juce_core, importcpp: "#.translate(@)".}
 proc getLanguageName*(this: LocalisedStrings): String {.header: juce_core, importcpp: "#.getLanguageName()".}
@@ -882,8 +1015,14 @@ proc addStrings*(this: var LocalisedStrings, arg1: LocalisedStrings) {.header: j
 proc setFallback*(this: var LocalisedStrings, fallbackStrings: ptr LocalisedStrings) {.header: juce_core, importcpp: "#.setFallback(@)".}
 proc `==`*(this: LocalisedStrings, other: LocalisedStrings): bool {.error: "juce::LocalisedStrings defines no operator==; compare a property instead".}
 
+proc convertToBase64*(this: typedesc[Base64], base64Result: var OutputStream, sourceData: constPointer, sourceDataSize: uint64): bool {.header: juce_core, importcpp: "juce::Base64::convertToBase64(@)".}
+proc convertFromBase64*(this: typedesc[Base64], binaryOutput: var OutputStream, base64TextInput: StringRef): bool {.header: juce_core, importcpp: "juce::Base64::convertFromBase64(@)".}
+proc toBase64*(this: typedesc[Base64], sourceData: constPointer, sourceDataSize: uint64): String {.header: juce_core, importcpp: "juce::Base64::toBase64(@)".}
+proc toBase64*(this: typedesc[Base64], textToEncode: String): String {.header: juce_core, importcpp: "juce::Base64::toBase64(@)".}
 proc `==`*(this: Base64, other: Base64): bool {.error: "juce::Base64 defines no operator==; compare a property instead".}
 
+proc ok*(this: typedesc[Result]): Result {.header: juce_core, importcpp: "juce::Result::ok()".}
+proc fail*(this: typedesc[Result], errorMessage: String): Result {.header: juce_core, importcpp: "juce::Result::fail(@)".}
 proc wasOk*(this: Result): bool {.header: juce_core, importcpp: "#.wasOk()".}
 proc failed*(this: Result): bool {.header: juce_core, importcpp: "#.failed()".}
 # proc operator!*(this: Result): bool {.header: juce_core, importcpp: "#.operator!()".}  # an operator with no Nim spelling
@@ -897,6 +1036,7 @@ proc makeUuid*(uuidString: String): Uuid {.header: juce_core, importcpp: "juce::
 proc makeUuid*(rawData: ptr uint8): Uuid {.header: juce_core, importcpp: "juce::Uuid(@)".}
 proc `Uuid=`*(this: var Uuid, arg1: Uuid): var Uuid {.header: juce_core, importcpp: "#.operator=(@)".}
 proc isNull*(this: Uuid): bool {.header: juce_core, importcpp: "#.isNull()".}
+proc null*(this: typedesc[Uuid]): Uuid {.header: juce_core, importcpp: "juce::Uuid::null()".}
 proc `==`*(this: Uuid, arg1: Uuid): bool {.header: juce_core, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: Uuid, arg1: Uuid): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `<`*(this: Uuid, arg1: Uuid): bool {.header: juce_core, importcpp: "#.operator<(@)".}
@@ -914,6 +1054,7 @@ proc getClockSeqLow*(this: Uuid): uint8 {.header: juce_core, importcpp: "#.getCl
 proc getNode*(this: Uuid): uint64 {.header: juce_core, importcpp: "#.getNode()".}
 proc hash*(this: Uuid): uint64 {.header: juce_core, importcpp: "#.hash()".}
 proc getRawData*(this: Uuid): ptr uint8 {.header: juce_core, importcpp: "#.getRawData()".}
+proc size*(this: typedesc[Uuid]): uint64 {.header: juce_core, importcpp: "juce::Uuid::size()".}
 proc `Uuid=`*(this: var Uuid, rawData: ptr uint8): var Uuid {.header: juce_core, importcpp: "#.operator=(@)".}
 
 proc makeArgumentList*(executable: String, arguments: StringArray): ArgumentList {.header: juce_core, importcpp: "juce::ArgumentList(@)".}
@@ -955,6 +1096,8 @@ proc addVersionCommand*(this: var ConsoleApplication, versionArgument: String, v
 proc addHelpCommand*(this: var ConsoleApplication, helpArgument: String, helpMessage: String, makeDefaultCommand: bool) {.header: juce_core, importcpp: "#.addHelpCommand(@)".}
 proc printCommandList*(this: ConsoleApplication, arg1: ArgumentList) {.header: juce_core, importcpp: "#.printCommandList(@)".}
 proc printCommandDetails*(this: ConsoleApplication, arg1: ArgumentList, arg2: ConsoleApplicationCommand) {.header: juce_core, importcpp: "#.printCommandDetails(@)".}
+proc fail*(this: typedesc[ConsoleApplication], errorMessage: String, returnCode: cint = 1) {.header: juce_core, importcpp: "juce::ConsoleApplication::fail(@)".}
+proc invokeCatchingFailures*(this: typedesc[ConsoleApplication], functionToCall: CppFunctionObjectR0[cint]): cint {.header: juce_core, importcpp: "juce::ConsoleApplication::invokeCatchingFailures(@)".}
 # proc findAndRunCommand*(this: ConsoleApplication, arg1: ArgumentList, optionMustBeFirstArg: bool = false): cint {.header: juce_core, importcpp: "#.findAndRunCommand(@)".}  # excluded deliberately: see skip_class_method
 # proc findAndRunCommand*(this: ConsoleApplication, argc: cint, argv: ptr char[]): cint {.header: juce_core, importcpp: "#.findAndRunCommand(@)".}  # excluded deliberately: see skip_class_method
 proc findCommand*(this: ConsoleApplication, arg1: ArgumentList, optionMustBeFirstArg: bool): ptr ConsoleApplicationCommand {.header: juce_core, importcpp: "#.findCommand(@)".}
@@ -990,6 +1133,7 @@ proc `juce_var=`*(this: var juce_var, value: Array[juce_var]): var juce_var {.he
 proc `juce_var=`*(this: var juce_var, `object`: ptr ReferenceCountedObject): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `juce_var=`*(this: var juce_var, `method`: CppFunctionObjectR1Ref[juce_var, juce_varNativeFunctionArgs]): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
 proc swapWith*(this: var juce_var, other: var juce_var) {.header: juce_core, importcpp: "#.swapWith(@)".}
+proc undefined*(this: typedesc[juce_var]): juce_var {.header: juce_core, importcpp: "juce::var::undefined()".}
 proc toString*(this: juce_var): String {.header: juce_core, importcpp: "#.toString()".}
 proc getArray*(this: juce_var): ptr Array[juce_var] {.header: juce_core, importcpp: "#.getArray()".}
 proc getBinaryData*(this: juce_var): ptr MemoryBlock {.header: juce_core, importcpp: "#.getBinaryData()".}
@@ -1035,6 +1179,7 @@ proc call*(this: juce_var, `method`: Identifier, arg1: juce_var, arg2: juce_var,
 proc invoke*(this: juce_var, `method`: Identifier, arguments: ptr juce_var, numArguments: cint): juce_var {.header: juce_core, importcpp: "#.invoke(@)".}
 proc getNativeFunction*(this: juce_var): CppFunctionObjectR1Ref[juce_var, juce_varNativeFunctionArgs] {.header: juce_core, importcpp: "#.getNativeFunction()".}
 proc writeToStream*(this: juce_var, output: var OutputStream) {.header: juce_core, importcpp: "#.writeToStream(@)".}
+proc readFromStream*(this: typedesc[juce_var], input: var InputStream): juce_var {.header: juce_core, importcpp: "juce::var::readFromStream(@)".}
 
 proc makejuce_varNativeFunctionArgs*(thisObject: juce_var, args: ptr juce_var, numArgs: cint): juce_varNativeFunctionArgs {.header: juce_core, importcpp: "juce::var::NativeFunctionArgs(@)".}
 proc `==`*(this: juce_varNativeFunctionArgs, other: juce_varNativeFunctionArgs): bool {.error: "juce::var::NativeFunctionArgs defines no operator==; compare a property instead".}
@@ -1068,6 +1213,17 @@ proc clear*(this: var NamedValueSet) {.header: juce_core, importcpp: "#.clear()"
 proc setFromXmlAttributes*(this: var NamedValueSet, xml: XmlElement) {.header: juce_core, importcpp: "#.setFromXmlAttributes(@)".}
 proc copyToXmlAttributes*(this: NamedValueSet, xml: var XmlElement) {.header: juce_core, importcpp: "#.copyToXmlAttributes(@)".}
 
+proc parse*(this: typedesc[JSON], text: String, parsedResult: var juce_var): Result {.header: juce_core, importcpp: "juce::JSON::parse(@)".}
+proc parse*(this: typedesc[JSON], text: String): juce_var {.header: juce_core, importcpp: "juce::JSON::parse(@)".}
+proc parse*(this: typedesc[JSON], file: File): juce_var {.header: juce_core, importcpp: "juce::JSON::parse(@)".}
+proc parse*(this: typedesc[JSON], input: var InputStream): juce_var {.header: juce_core, importcpp: "juce::JSON::parse(@)".}
+proc toString*(this: typedesc[JSON], objectToFormat: juce_var, allOnOneLine: bool = false, maximumDecimalPlaces: cint = 15): String {.header: juce_core, importcpp: "juce::JSON::toString(@)".}
+proc toString*(this: typedesc[JSON], objectToFormat: juce_var, formatOptions: JSONFormatOptions): String {.header: juce_core, importcpp: "juce::JSON::toString(@)".}
+proc fromString*(this: typedesc[JSON], arg1: StringRef): juce_var {.header: juce_core, importcpp: "juce::JSON::fromString(@)".}
+proc writeToStream*(this: typedesc[JSON], output: var OutputStream, objectToFormat: juce_var, allOnOneLine: bool = false, maximumDecimalPlaces: cint = 15) {.header: juce_core, importcpp: "juce::JSON::writeToStream(@)".}
+proc writeToStream*(this: typedesc[JSON], output: var OutputStream, objectToFormat: juce_var, formatOptions: JSONFormatOptions) {.header: juce_core, importcpp: "juce::JSON::writeToStream(@)".}
+proc escapeString*(this: typedesc[JSON], arg1: StringRef): String {.header: juce_core, importcpp: "juce::JSON::escapeString(@)".}
+proc parseQuotedString*(this: typedesc[JSON], text: var CharPointer_UTF8, result: var juce_var): Result {.header: juce_core, importcpp: "juce::JSON::parseQuotedString(@)".}
 proc `==`*(this: JSON, other: JSON): bool {.error: "juce::JSON defines no operator==; compare a property instead".}
 
 proc withSpacing*(this: JSONFormatOptions, x: JSONSpacing): JSONFormatOptions {.header: juce_core, importcpp: "#.withSpacing(@)".}
@@ -1098,11 +1254,26 @@ proc equals*(this: DynamicObject, other: DynamicObject): bool {.header: juce_cor
 proc `==`*(this: DynamicObject, other: DynamicObject): bool {.header: juce_core, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: DynamicObject, other: DynamicObject): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 
+proc generateHash*(this: typedesc[DefaultHashFunctions], key: uint32, upperLimit: cint): cint {.header: juce_core, importcpp: "juce::DefaultHashFunctions::generateHash(@)".}
+proc generateHash*(this: typedesc[DefaultHashFunctions], key: cint, upperLimit: cint): cint {.header: juce_core, importcpp: "juce::DefaultHashFunctions::generateHash(@)".}
+proc generateHash*(this: typedesc[DefaultHashFunctions], key: uint64, upperLimit: cint): cint {.header: juce_core, importcpp: "juce::DefaultHashFunctions::generateHash(@)".}
+proc generateHash*(this: typedesc[DefaultHashFunctions], key: int64, upperLimit: cint): cint {.header: juce_core, importcpp: "juce::DefaultHashFunctions::generateHash(@)".}
+proc generateHash*(this: typedesc[DefaultHashFunctions], key: String, upperLimit: cint): cint {.header: juce_core, importcpp: "juce::DefaultHashFunctions::generateHash(@)".}
+proc generateHash*(this: typedesc[DefaultHashFunctions], key: juce_var, upperLimit: cint): cint {.header: juce_core, importcpp: "juce::DefaultHashFunctions::generateHash(@)".}
+proc generateHash*(this: typedesc[DefaultHashFunctions], key: constPointer, upperLimit: cint): cint {.header: juce_core, importcpp: "juce::DefaultHashFunctions::generateHash(@)".}
+proc generateHash*(this: typedesc[DefaultHashFunctions], key: Uuid, upperLimit: cint): cint {.header: juce_core, importcpp: "juce::DefaultHashFunctions::generateHash(@)".}
 proc `==`*(this: DefaultHashFunctions, other: DefaultHashFunctions): bool {.error: "juce::DefaultHashFunctions defines no operator==; compare a property instead".}
 
 proc makeRelativeTime*(): RelativeTime {.header: juce_core, importcpp: "juce::RelativeTime(@)".}
 proc makeRelativeTime*(seconds: float64): RelativeTime {.header: juce_core, importcpp: "juce::RelativeTime(@)".}
 proc `RelativeTime=`*(this: var RelativeTime, other: RelativeTime): var RelativeTime {.header: juce_core, importcpp: "#.operator=(@)".}
+proc milliseconds*(this: typedesc[RelativeTime], milliseconds: cint): RelativeTime {.header: juce_core, importcpp: "juce::RelativeTime::milliseconds(@)".}
+proc milliseconds*(this: typedesc[RelativeTime], milliseconds: int64): RelativeTime {.header: juce_core, importcpp: "juce::RelativeTime::milliseconds(@)".}
+proc seconds*(this: typedesc[RelativeTime], seconds: float64): RelativeTime {.header: juce_core, importcpp: "juce::RelativeTime::seconds(@)".}
+proc minutes*(this: typedesc[RelativeTime], numberOfMinutes: float64): RelativeTime {.header: juce_core, importcpp: "juce::RelativeTime::minutes(@)".}
+proc hours*(this: typedesc[RelativeTime], numberOfHours: float64): RelativeTime {.header: juce_core, importcpp: "juce::RelativeTime::hours(@)".}
+proc days*(this: typedesc[RelativeTime], numberOfDays: float64): RelativeTime {.header: juce_core, importcpp: "juce::RelativeTime::days(@)".}
+proc weeks*(this: typedesc[RelativeTime], numberOfWeeks: float64): RelativeTime {.header: juce_core, importcpp: "juce::RelativeTime::weeks(@)".}
 proc inMilliseconds*(this: RelativeTime): int64 {.header: juce_core, importcpp: "#.inMilliseconds()".}
 proc inSeconds*(this: RelativeTime): float64 {.header: juce_core, importcpp: "#.inSeconds()".}
 proc inMinutes*(this: RelativeTime): float64 {.header: juce_core, importcpp: "#.inMinutes()".}
@@ -1121,6 +1292,7 @@ proc makeTime*(): Time {.header: juce_core, importcpp: "juce::Time(@)".}
 proc makeTime*(millisecondsSinceEpoch: int64): Time {.header: juce_core, importcpp: "juce::Time(@)".}
 proc makeTime*(year: cint, month: cint, day: cint, hours: cint, minutes: cint, seconds: cint, milliseconds: cint, useLocalTime: bool): Time {.header: juce_core, importcpp: "juce::Time(@)".}
 proc `Time=`*(this: var Time, arg1: Time): var Time {.header: juce_core, importcpp: "#.operator=(@)".}
+proc getCurrentTime*(this: typedesc[Time]): Time {.header: juce_core, importcpp: "juce::Time::getCurrentTime()".}
 proc toMilliseconds*(this: Time): int64 {.header: juce_core, importcpp: "#.toMilliseconds()".}
 proc getYear*(this: Time): cint {.header: juce_core, importcpp: "#.getYear()".}
 proc getMonth*(this: Time): cint {.header: juce_core, importcpp: "#.getMonth()".}
@@ -1142,9 +1314,22 @@ proc getUTCOffsetString*(this: Time, includeDividerCharacters: bool): String {.h
 proc toString*(this: Time, includeDate: bool, includeTime: bool, includeSeconds: bool = true, use24HourClock: bool = false): String {.header: juce_core, importcpp: "#.toString(@)".}
 proc formatted*(this: Time, format: String): String {.header: juce_core, importcpp: "#.formatted(@)".}
 proc toISO8601*(this: Time, includeDividerCharacters: bool): String {.header: juce_core, importcpp: "#.toISO8601(@)".}
+proc fromISO8601*(this: typedesc[Time], iso8601: StringRef): Time {.header: juce_core, importcpp: "juce::Time::fromISO8601(@)".}
 proc `+=`*(this: var Time, delta: RelativeTime) {.header: juce_core, importcpp: "#.operator+=(@)".}
 proc `-=`*(this: var Time, delta: RelativeTime) {.header: juce_core, importcpp: "#.operator-=(@)".}
 proc setSystemTimeToThisTime*(this: Time): bool {.header: juce_core, importcpp: "#.setSystemTimeToThisTime()".}
+proc getWeekdayName*(this: typedesc[Time], dayNumber: cint, threeLetterVersion: bool): String {.header: juce_core, importcpp: "juce::Time::getWeekdayName(@)".}
+proc getMonthName*(this: typedesc[Time], monthNumber: cint, threeLetterVersion: bool): String {.header: juce_core, importcpp: "juce::Time::getMonthName(@)".}
+proc currentTimeMillis*(this: typedesc[Time]): int64 {.header: juce_core, importcpp: "juce::Time::currentTimeMillis()".}
+proc getMillisecondCounter*(this: typedesc[Time]): uint32 {.header: juce_core, importcpp: "juce::Time::getMillisecondCounter()".}
+proc getMillisecondCounterHiRes*(this: typedesc[Time]): float64 {.header: juce_core, importcpp: "juce::Time::getMillisecondCounterHiRes()".}
+proc waitForMillisecondCounter*(this: typedesc[Time], targetTime: uint32) {.header: juce_core, importcpp: "juce::Time::waitForMillisecondCounter(@)".}
+proc getApproximateMillisecondCounter*(this: typedesc[Time]): uint32 {.header: juce_core, importcpp: "juce::Time::getApproximateMillisecondCounter()".}
+proc getHighResolutionTicks*(this: typedesc[Time]): int64 {.header: juce_core, importcpp: "juce::Time::getHighResolutionTicks()".}
+proc getHighResolutionTicksPerSecond*(this: typedesc[Time]): int64 {.header: juce_core, importcpp: "juce::Time::getHighResolutionTicksPerSecond()".}
+proc highResolutionTicksToSeconds*(this: typedesc[Time], ticks: int64): float64 {.header: juce_core, importcpp: "juce::Time::highResolutionTicksToSeconds(@)".}
+proc secondsToHighResolutionTicks*(this: typedesc[Time], seconds: float64): int64 {.header: juce_core, importcpp: "juce::Time::secondsToHighResolutionTicks(@)".}
+proc getCompilationDate*(this: typedesc[Time]): Time {.header: juce_core, importcpp: "juce::Time::getCompilationDate()".}
 proc `==`*(this: Time, other: Time): bool {.error: "juce::Time defines no operator==; compare a property instead".}
 
 proc getTotalLength*(this: var InputStream): int64 {.header: juce_core, importcpp: "#.getTotalLength()".}
@@ -1265,6 +1450,7 @@ proc existsAsFile*(this: File): bool {.header: juce_core, importcpp: "#.existsAs
 proc isDirectory*(this: File): bool {.header: juce_core, importcpp: "#.isDirectory()".}
 proc isRoot*(this: File): bool {.header: juce_core, importcpp: "#.isRoot()".}
 proc getSize*(this: File): int64 {.header: juce_core, importcpp: "#.getSize()".}
+proc descriptionOfSizeInBytes*(this: typedesc[File], bytes: int64): String {.header: juce_core, importcpp: "juce::File::descriptionOfSizeInBytes(@)".}
 proc getFullPathName*(this: File): String {.header: juce_core, importcpp: "#.getFullPathName()".}
 proc getFileName*(this: File): String {.header: juce_core, importcpp: "#.getFileName()".}
 proc getRelativePathFrom*(this: File, directoryToBeRelativeTo: File): String {.header: juce_core, importcpp: "#.getRelativePathFrom(@)".}
@@ -1320,6 +1506,7 @@ proc replaceWithData*(this: File, dataToWrite: constPointer, numberOfBytes: uint
 proc appendText*(this: File, textToAppend: String, asUnicode: bool = false, writeUnicodeHeaderBytes: bool = false, lineEndings: constChar = "\r\n"): bool {.header: juce_core, importcpp: "#.appendText(@)".}
 proc replaceWithText*(this: File, textToWrite: String, asUnicode: bool = false, writeUnicodeHeaderBytes: bool = false, lineEndings: constChar = "\r\n"): bool {.header: juce_core, importcpp: "#.replaceWithText(@)".}
 proc hasIdenticalContentTo*(this: File, other: File): bool {.header: juce_core, importcpp: "#.hasIdenticalContentTo(@)".}
+proc findFileSystemRoots*(this: typedesc[File], results: Array[File]) {.header: juce_core, importcpp: "juce::File::findFileSystemRoots(@)".}
 proc getVolumeLabel*(this: File): String {.header: juce_core, importcpp: "#.getVolumeLabel()".}
 proc getVolumeSerialNumber*(this: File): cint {.header: juce_core, importcpp: "#.getVolumeSerialNumber()".}
 proc getBytesFreeOnVolume*(this: File): int64 {.header: juce_core, importcpp: "#.getBytesFreeOnVolume()".}
@@ -1329,14 +1516,27 @@ proc isOnHardDisk*(this: File): bool {.header: juce_core, importcpp: "#.isOnHard
 proc isOnRemovableDrive*(this: File): bool {.header: juce_core, importcpp: "#.isOnRemovableDrive()".}
 proc startAsProcess*(this: File, parameters: String): bool {.header: juce_core, importcpp: "#.startAsProcess(@)".}
 proc revealToUser*(this: File) {.header: juce_core, importcpp: "#.revealToUser()".}
+proc getSpecialLocation*(this: typedesc[File], `type`: FileSpecialLocationType): File {.header: juce_core, importcpp: "juce::File::getSpecialLocation(@)".}
+proc createTempFile*(this: typedesc[File], fileNameEnding: StringRef): File {.header: juce_core, importcpp: "juce::File::createTempFile(@)".}
+proc getCurrentWorkingDirectory*(this: typedesc[File]): File {.header: juce_core, importcpp: "juce::File::getCurrentWorkingDirectory()".}
 proc setAsCurrentWorkingDirectory*(this: File): bool {.header: juce_core, importcpp: "#.setAsCurrentWorkingDirectory()".}
+proc getSeparatorChar*(this: typedesc[File]): uint16 {.header: juce_core, importcpp: "juce::File::getSeparatorChar()".}
+proc getSeparatorString*(this: typedesc[File]): StringRef {.header: juce_core, importcpp: "juce::File::getSeparatorString()".}
+proc createLegalFileName*(this: typedesc[File], fileNameToFix: String): String {.header: juce_core, importcpp: "juce::File::createLegalFileName(@)".}
+proc createLegalPathName*(this: typedesc[File], pathNameToFix: String): String {.header: juce_core, importcpp: "juce::File::createLegalPathName(@)".}
+proc areFileNamesCaseSensitive*(this: typedesc[File]): bool {.header: juce_core, importcpp: "juce::File::areFileNamesCaseSensitive()".}
+proc isAbsolutePath*(this: typedesc[File], path: StringRef): bool {.header: juce_core, importcpp: "juce::File::isAbsolutePath(@)".}
+proc createFileWithoutCheckingPath*(this: typedesc[File], absolutePath: String): File {.header: juce_core, importcpp: "juce::File::createFileWithoutCheckingPath(@)".}
+proc addTrailingSeparator*(this: typedesc[File], path: String): String {.header: juce_core, importcpp: "juce::File::addTrailingSeparator(@)".}
 proc createSymbolicLink*(this: File, linkFileToCreate: File, overwriteExisting: bool): bool {.header: juce_core, importcpp: "#.createSymbolicLink(@)".}
 proc isSymbolicLink*(this: File): bool {.header: juce_core, importcpp: "#.isSymbolicLink()".}
 proc getLinkedTarget*(this: File): File {.header: juce_core, importcpp: "#.getLinkedTarget()".}
+proc createSymbolicLink*(this: typedesc[File], linkFileToCreate: File, nativePathOfTarget: String, overwriteExisting: bool): bool {.header: juce_core, importcpp: "juce::File::createSymbolicLink(@)".}
 proc getNativeLinkedTarget*(this: File): String {.header: juce_core, importcpp: "#.getNativeLinkedTarget()".}
 # proc getMacOSType*(this: File): uint32 {.header: juce_core, importcpp: "#.getMacOSType()".}  # a platform type with no Nim spelling
 proc isBundle*(this: File): bool {.header: juce_core, importcpp: "#.isBundle()".}
 proc addToDock*(this: File) {.header: juce_core, importcpp: "#.addToDock()".}
+proc getContainerForSecurityApplicationGroupIdentifier*(this: typedesc[File], appGroup: String): File {.header: juce_core, importcpp: "juce::File::getContainerForSecurityApplicationGroupIdentifier(@)".}
 
 proc makeFileNaturalFileComparator*(shouldPutFoldersFirst: bool): FileNaturalFileComparator {.header: juce_core, importcpp: "juce::File::NaturalFileComparator(@)".}
 proc compareElements*(this: FileNaturalFileComparator, firstFile: File, secondFile: File): cint {.header: juce_core, importcpp: "#.compareElements(@)".}
@@ -1451,10 +1651,19 @@ proc `==`*(this: FileInputSource, other: FileInputSource): bool {.error: "juce::
 
 proc makeFileLogger*(fileToWriteTo: File, welcomeMessage: String, maxInitialFileSizeBytes: int64): FileLogger {.header: juce_core, importcpp: "juce::FileLogger(@)".}
 proc getLogFile*(this: FileLogger): File {.header: juce_core, importcpp: "#.getLogFile()".}
+proc createDefaultAppLogger*(this: typedesc[FileLogger], logFileSubDirectoryName: String, logFileName: String, welcomeMessage: String, maxInitialFileSizeBytes: int64): ptr FileLogger {.header: juce_core, importcpp: "juce::FileLogger::createDefaultAppLogger(@)".}
+proc createDateStampedLogger*(this: typedesc[FileLogger], logFileSubDirectoryName: String, logFileNameRoot: String, logFileNameSuffix: String, welcomeMessage: String): ptr FileLogger {.header: juce_core, importcpp: "juce::FileLogger::createDateStampedLogger(@)".}
+proc getSystemLogFileFolder*(this: typedesc[FileLogger]): File {.header: juce_core, importcpp: "juce::FileLogger::getSystemLogFileFolder()".}
 proc logMessage*(this: var FileLogger, arg1: String) {.header: juce_core, importcpp: "#.logMessage(@)".}
+proc trimFileSize*(this: typedesc[FileLogger], file: File, maxFileSize: int64) {.header: juce_core, importcpp: "juce::FileLogger::trimFileSize(@)".}
 proc `==`*(this: FileLogger, other: FileLogger): bool {.error: "juce::FileLogger defines no operator==; compare a property instead".}
 
 proc makeJSONUtils*(): JSONUtils {.header: juce_core, importcpp: "juce::JSONUtils(@)".}
+proc getPointer*(this: typedesc[JSONUtils], v: juce_var, pointer: String): CppOptional[juce_var] {.header: juce_core, importcpp: "juce::JSONUtils::getPointer(@)".}
+proc setPointer*(this: typedesc[JSONUtils], v: juce_var, pointer: String, newValue: juce_var): CppOptional[juce_var] {.header: juce_core, importcpp: "juce::JSONUtils::setPointer(@)".}
+proc makeObject*(this: typedesc[JSONUtils], source: CppMap[Identifier, juce_var]): juce_var {.header: juce_core, importcpp: "juce::JSONUtils::makeObject(@)".}
+proc makeObjectWithKeyFirst*(this: typedesc[JSONUtils], source: CppMap[Identifier, juce_var], key: Identifier): juce_var {.header: juce_core, importcpp: "juce::JSONUtils::makeObjectWithKeyFirst(@)".}
+proc deepEqual*(this: typedesc[JSONUtils], a: juce_var, b: juce_var): bool {.header: juce_core, importcpp: "juce::JSONUtils::deepEqual(@)".}
 proc `==`*(this: JSONUtils, other: JSONUtils): bool {.error: "juce::JSONUtils defines no operator==; compare a property instead".}
 
 proc `==`*(this: SerialisationTraits, other: SerialisationTraits): bool {.error: "juce::SerialisationTraits defines no operator==; compare a property instead".}
@@ -1469,6 +1678,8 @@ proc `==`*(this: ToVar, other: ToVar): bool {.error: "juce::ToVar defines no ope
 
 proc `==`*(this: FromVar, other: FromVar): bool {.error: "juce::FromVar defines no operator==; compare a property instead".}
 
+proc fromVar*(this: typedesc[VariantConverter], v: juce_var): String {.header: juce_core, importcpp: "juce::VariantConverter::fromVar(@)".}
+proc toVar*(this: typedesc[VariantConverter], s: String): juce_var {.header: juce_core, importcpp: "juce::VariantConverter::toVar(@)".}
 proc `==`*(this: VariantConverter, other: VariantConverter): bool {.error: "juce::VariantConverter defines no operator==; compare a property instead".}
 
 proc makeBigInteger*(): BigInteger {.header: juce_core, importcpp: "juce::BigInteger(@)".}
@@ -1553,6 +1764,9 @@ proc `-`*(this: Expression, arg1: Expression): Expression {.header: juce_core, i
 proc `*`*(this: Expression, arg1: Expression): Expression {.header: juce_core, importcpp: "#.operator*(@)".}
 proc `/`*(this: Expression, arg1: Expression): Expression {.header: juce_core, importcpp: "#.operator/(@)".}
 proc `-`*(this: Expression): Expression {.header: juce_core, importcpp: "#.operator-()".}
+proc symbol*(this: typedesc[Expression], symbol: String): Expression {.header: juce_core, importcpp: "juce::Expression::symbol(@)".}
+proc function*(this: typedesc[Expression], functionName: String, parameters: Array[Expression]): Expression {.header: juce_core, importcpp: "juce::Expression::function(@)".}
+proc parse*(this: typedesc[Expression], stringToParse: var CharPointer_UTF8, parseError: var String): Expression {.header: juce_core, importcpp: "juce::Expression::parse(@)".}
 proc evaluate*(this: Expression): float64 {.header: juce_core, importcpp: "#.evaluate()".}
 proc evaluate*(this: Expression, scope: ExpressionScope): float64 {.header: juce_core, importcpp: "#.evaluate(@)".}
 proc evaluate*(this: Expression, scope: ExpressionScope, evaluationError: var String): float64 {.header: juce_core, importcpp: "#.evaluate(@)".}
@@ -1597,8 +1811,12 @@ proc setSeed*(this: var Random, newSeed: int64) {.header: juce_core, importcpp: 
 proc getSeed*(this: Random): int64 {.header: juce_core, importcpp: "#.getSeed()".}
 proc combineSeed*(this: var Random, seedValue: int64) {.header: juce_core, importcpp: "#.combineSeed(@)".}
 proc setSeedRandomly*(this: var Random) {.header: juce_core, importcpp: "#.setSeedRandomly()".}
+proc getSystemRandom*(this: typedesc[Random]): var Random {.header: juce_core, importcpp: "juce::Random::getSystemRandom()".}
 proc `==`*(this: Random, other: Random): bool {.error: "juce::Random defines no operator==; compare a property instead".}
 
+proc request*(this: typedesc[RuntimePermissions], permission: RuntimePermissionsPermissionID, callback: CppFunctionObjectN1[bool]) {.header: juce_core, importcpp: "juce::RuntimePermissions::request(@)".}
+proc isRequired*(this: typedesc[RuntimePermissions], permission: RuntimePermissionsPermissionID): bool {.header: juce_core, importcpp: "juce::RuntimePermissions::isRequired(@)".}
+proc isGranted*(this: typedesc[RuntimePermissions], permission: RuntimePermissionsPermissionID): bool {.header: juce_core, importcpp: "juce::RuntimePermissions::isGranted(@)".}
 proc `==`*(this: RuntimePermissions, other: RuntimePermissions): bool {.error: "juce::RuntimePermissions defines no operator==; compare a property instead".}
 
 proc makeChildProcess*(): ChildProcess {.header: juce_core, importcpp: "juce::ChildProcess(@)".}
@@ -1630,6 +1848,18 @@ proc makeInterProcessLockScopedLockType*(l: var InterProcessLock): InterProcessL
 proc isLocked*(this: InterProcessLockScopedLockType): bool {.header: juce_core, importcpp: "#.isLocked()".}
 proc `==`*(this: InterProcessLockScopedLockType, other: InterProcessLockScopedLockType): bool {.error: "juce::InterProcessLock::ScopedLockType defines no operator==; compare a property instead".}
 
+proc setPriority*(this: typedesc[Process], priority: ProcessProcessPriority) {.header: juce_core, importcpp: "juce::Process::setPriority(@)".}
+proc terminate*(this: typedesc[Process]) {.header: juce_core, importcpp: "juce::Process::terminate()".}
+proc isForegroundProcess*(this: typedesc[Process]): bool {.header: juce_core, importcpp: "juce::Process::isForegroundProcess()".}
+proc makeForegroundProcess*(this: typedesc[Process]) {.header: juce_core, importcpp: "juce::Process::makeForegroundProcess()".}
+proc hide*(this: typedesc[Process]) {.header: juce_core, importcpp: "juce::Process::hide()".}
+proc raisePrivilege*(this: typedesc[Process]) {.header: juce_core, importcpp: "juce::Process::raisePrivilege()".}
+proc lowerPrivilege*(this: typedesc[Process]) {.header: juce_core, importcpp: "juce::Process::lowerPrivilege()".}
+proc isRunningUnderDebugger*(this: typedesc[Process]): bool {.header: juce_core, importcpp: "juce::Process::isRunningUnderDebugger()".}
+proc openDocument*(this: typedesc[Process], documentURL: String, parameters: String): bool {.header: juce_core, importcpp: "juce::Process::openDocument(@)".}
+proc openEmailWithAttachments*(this: typedesc[Process], targetEmailAddress: String, emailSubject: String, bodyText: String, filesToAttach: StringArray): bool {.header: juce_core, importcpp: "juce::Process::openEmailWithAttachments(@)".}
+proc setDockIconVisible*(this: typedesc[Process], isVisible: bool) {.header: juce_core, importcpp: "juce::Process::setDockIconVisible(@)".}
+proc setMaxNumberOfFileHandles*(this: typedesc[Process], maxNumberOfFiles: cint): bool {.header: juce_core, importcpp: "juce::Process::setMaxNumberOfFileHandles(@)".}
 proc `==`*(this: Process, other: Process): bool {.error: "juce::Process defines no operator==; compare a property instead".}
 
 proc makeSpinLock*(): SpinLock {.header: juce_core, importcpp: "juce::SpinLock(@)".}
@@ -1650,18 +1880,27 @@ proc startThread*(this: var Thread): bool {.header: juce_core, importcpp: "#.sta
 proc startThread*(this: var Thread, newPriority: ThreadPriority): bool {.header: juce_core, importcpp: "#.startThread(@)".}
 proc startRealtimeThread*(this: var Thread, options: ThreadRealtimeOptions): bool {.header: juce_core, importcpp: "#.startRealtimeThread(@)".}
 proc stopThread*(this: var Thread, timeOutMilliseconds: cint): bool {.header: juce_core, importcpp: "#.stopThread(@)".}
+proc launch*(this: typedesc[Thread], functionToRun: CppFunctionObjectN0): bool {.header: juce_core, importcpp: "juce::Thread::launch(@)".}
+proc launch*(this: typedesc[Thread], priority: ThreadPriority, functionToRun: CppFunctionObjectN0): bool {.header: juce_core, importcpp: "juce::Thread::launch(@)".}
 proc isThreadRunning*(this: Thread): bool {.header: juce_core, importcpp: "#.isThreadRunning()".}
 proc signalThreadShouldExit*(this: var Thread) {.header: juce_core, importcpp: "#.signalThreadShouldExit()".}
 proc threadShouldExit*(this: Thread): bool {.header: juce_core, importcpp: "#.threadShouldExit()".}
+proc currentThreadShouldExit*(this: typedesc[Thread]): bool {.header: juce_core, importcpp: "juce::Thread::currentThreadShouldExit()".}
 proc waitForThreadToExit*(this: Thread, timeOutMilliseconds: cint): bool {.header: juce_core, importcpp: "#.waitForThreadToExit(@)".}
 proc addListener*(this: var Thread, arg1: ptr ThreadListener) {.header: juce_core, importcpp: "#.addListener(@)".}
 proc removeListener*(this: var Thread, arg1: ptr ThreadListener) {.header: juce_core, importcpp: "#.removeListener(@)".}
 proc isRealtime*(this: Thread): bool {.header: juce_core, importcpp: "#.isRealtime()".}
 proc setAffinityMask*(this: var Thread, affinityMask: uint32) {.header: juce_core, importcpp: "#.setAffinityMask(@)".}
+proc setCurrentThreadAffinityMask*(this: typedesc[Thread], affinityMask: uint32) {.header: juce_core, importcpp: "juce::Thread::setCurrentThreadAffinityMask(@)".}
+proc sleep*(this: typedesc[Thread], milliseconds: cint) {.header: juce_core, importcpp: "juce::Thread::sleep(@)".}
+proc `yield`*(this: typedesc[Thread]) {.header: juce_core, importcpp: "juce::Thread::yield()".}
 proc wait*(this: Thread, timeOutMilliseconds: float64): bool {.header: juce_core, importcpp: "#.wait(@)".}
 proc notify*(this: Thread) {.header: juce_core, importcpp: "#.notify()".}
+proc getCurrentThreadId*(this: typedesc[Thread]): pointer {.header: juce_core, importcpp: "juce::Thread::getCurrentThreadId()".}
+proc getCurrentThread*(this: typedesc[Thread]): ptr Thread {.header: juce_core, importcpp: "juce::Thread::getCurrentThread()".}
 proc getThreadId*(this: Thread): pointer {.header: juce_core, importcpp: "#.getThreadId()".}
 proc getThreadName*(this: Thread): String {.header: juce_core, importcpp: "#.getThreadName()".}
+proc setCurrentThreadName*(this: typedesc[Thread], newThreadName: String) {.header: juce_core, importcpp: "juce::Thread::setCurrentThreadName(@)".}
 proc `==`*(this: Thread, other: Thread): bool {.error: "juce::Thread defines no operator==; compare a property instead".}
 
 proc withPriority*(this: ThreadRealtimeOptions, newPriority: cint): ThreadRealtimeOptions {.header: juce_core, importcpp: "#.withPriority(@)".}
@@ -1695,6 +1934,7 @@ proc shouldExit*(this: ThreadPoolJob): bool {.header: juce_core, importcpp: "#.s
 proc signalJobShouldExit*(this: var ThreadPoolJob) {.header: juce_core, importcpp: "#.signalJobShouldExit()".}
 # proc addListener*(this: var ThreadPoolJob, arg1: ptr ThreadListener) {.header: juce_core, importcpp: "#.addListener(@)".}  # excluded deliberately: see skip_class_method
 # proc removeListener*(this: var ThreadPoolJob, arg1: ptr ThreadListener) {.header: juce_core, importcpp: "#.removeListener(@)".}  # excluded deliberately: see skip_class_method
+proc getCurrentThreadPoolJob*(this: typedesc[ThreadPoolJob]): ptr ThreadPoolJob {.header: juce_core, importcpp: "juce::ThreadPoolJob::getCurrentThreadPoolJob()".}
 proc `==`*(this: ThreadPoolJob, other: ThreadPoolJob): bool {.error: "juce::ThreadPoolJob defines no operator==; compare a property instead".}
 
 proc withThreadName*(this: ThreadPoolOptions, newThreadName: String): ThreadPoolOptions {.header: juce_core, importcpp: "#.withThreadName(@)".}
@@ -1772,6 +2012,12 @@ proc makeIPAddress*(address1: uint8, address2: uint8, address3: uint8, address4:
 proc makeIPAddress*(address1: uint16, address2: uint16, address3: uint16, address4: uint16, address5: uint16, address6: uint16, address7: uint16, address8: uint16): IPAddress {.header: juce_core, importcpp: "juce::IPAddress(@)".}
 proc makeIPAddress*(asNativeEndian32Bit: uint32): IPAddress {.header: juce_core, importcpp: "juce::IPAddress(@)".}
 proc makeIPAddress*(address: String): IPAddress {.header: juce_core, importcpp: "juce::IPAddress(@)".}
+proc any*(this: typedesc[IPAddress]): IPAddress {.header: juce_core, importcpp: "juce::IPAddress::any()".}
+proc broadcast*(this: typedesc[IPAddress]): IPAddress {.header: juce_core, importcpp: "juce::IPAddress::broadcast()".}
+proc local*(this: typedesc[IPAddress], IPv6: bool = false): IPAddress {.header: juce_core, importcpp: "juce::IPAddress::local(@)".}
+proc findAllAddresses*(this: typedesc[IPAddress], results: Array[IPAddress], includeIPv6: bool = false) {.header: juce_core, importcpp: "juce::IPAddress::findAllAddresses(@)".}
+proc getAllAddresses*(this: typedesc[IPAddress], includeIPv6: bool = false): Array[IPAddress] {.header: juce_core, importcpp: "juce::IPAddress::getAllAddresses(@)".}
+proc getLocalAddress*(this: typedesc[IPAddress], includeIPv6: bool = false): IPAddress {.header: juce_core, importcpp: "juce::IPAddress::getLocalAddress(@)".}
 proc isNull*(this: IPAddress): bool {.header: juce_core, importcpp: "#.isNull()".}
 proc toString*(this: IPAddress): String {.header: juce_core, importcpp: "#.toString()".}
 proc compare*(this: IPAddress, arg1: IPAddress): cint {.header: juce_core, importcpp: "#.compare(@)".}
@@ -1781,10 +2027,17 @@ proc `<`*(this: IPAddress, arg1: IPAddress): bool {.header: juce_core, importcpp
 # proc operator>*(this: IPAddress, arg1: IPAddress): bool {.header: juce_core, importcpp: "#.operator>(@)".}  # Nim derives > and >= from < and <=
 proc `<=`*(this: IPAddress, arg1: IPAddress): bool {.header: juce_core, importcpp: "#.operator<=(@)".}
 # proc operator>=*(this: IPAddress, arg1: IPAddress): bool {.header: juce_core, importcpp: "#.operator>=(@)".}  # Nim derives > and >= from < and <=
+proc getFormattedAddress*(this: typedesc[IPAddress], unformattedAddress: String): String {.header: juce_core, importcpp: "juce::IPAddress::getFormattedAddress(@)".}
+proc isIPv4MappedAddress*(this: typedesc[IPAddress], mappedAddress: IPAddress): bool {.header: juce_core, importcpp: "juce::IPAddress::isIPv4MappedAddress(@)".}
+proc convertIPv4MappedAddressToIPv4*(this: typedesc[IPAddress], mappedAddress: IPAddress): IPAddress {.header: juce_core, importcpp: "juce::IPAddress::convertIPv4MappedAddressToIPv4(@)".}
+proc convertIPv4AddressToIPv4Mapped*(this: typedesc[IPAddress], addressToMap: IPAddress): IPAddress {.header: juce_core, importcpp: "juce::IPAddress::convertIPv4AddressToIPv4Mapped(@)".}
+proc getInterfaceBroadcastAddress*(this: typedesc[IPAddress], interfaceAddress: IPAddress): IPAddress {.header: juce_core, importcpp: "juce::IPAddress::getInterfaceBroadcastAddress(@)".}
 
 proc makeMACAddress*(): MACAddress {.header: juce_core, importcpp: "juce::MACAddress(@)".}
 # proc makeMACAddress*(bytes: uint8[6]): MACAddress {.header: juce_core, importcpp: "juce::MACAddress(@)".}  # a C array parameter; every one of these has an overload taking a String or a value instead
 proc makeMACAddress*(address: StringRef): MACAddress {.header: juce_core, importcpp: "juce::MACAddress(@)".}
+proc getAllAddresses*(this: typedesc[MACAddress]): Array[MACAddress] {.header: juce_core, importcpp: "juce::MACAddress::getAllAddresses()".}
+proc findAllAddresses*(this: typedesc[MACAddress], results: Array[MACAddress]) {.header: juce_core, importcpp: "juce::MACAddress::findAllAddresses(@)".}
 proc `MACAddress=`*(this: var MACAddress, arg1: MACAddress): var MACAddress {.header: juce_core, importcpp: "#.operator=(@)".}
 proc getBytes*(this: MACAddress): ptr uint8 {.header: juce_core, importcpp: "#.getBytes()".}
 proc toString*(this: MACAddress): String {.header: juce_core, importcpp: "#.toString()".}
@@ -1881,6 +2134,8 @@ proc withPOSTData*(this: URL, postData: MemoryBlock): URL {.header: juce_core, i
 proc getPostData*(this: URL): String {.header: juce_core, importcpp: "#.getPostData()".}
 proc getPostDataAsMemoryBlock*(this: URL): MemoryBlock {.header: juce_core, importcpp: "#.getPostDataAsMemoryBlock()".}
 proc launchInDefaultBrowser*(this: URL): bool {.header: juce_core, importcpp: "#.launchInDefaultBrowser()".}
+proc isProbablyAWebsiteURL*(this: typedesc[URL], possibleURL: String): bool {.header: juce_core, importcpp: "juce::URL::isProbablyAWebsiteURL(@)".}
+proc isProbablyAnEmailAddress*(this: typedesc[URL], possibleEmailAddress: String): bool {.header: juce_core, importcpp: "juce::URL::isProbablyAnEmailAddress(@)".}
 # proc createInputStream*(this: URL, options: URLInputStreamOptions): UniquePtr[InputStream] {.header: juce_core, importcpp: "#.createInputStream(@)".}  # excluded deliberately: see skip_class_method
 proc createOutputStream*(this: URL): UniquePtr[OutputStream] {.header: juce_core, importcpp: "#.createOutputStream()".}
 # proc downloadToFile*(this: var URL, targetLocation: File, extraHeaders: String, listener: ptr URLDownloadTaskListener = nil, usePostCommand: bool = false): UniquePtr[URLDownloadTask] {.header: juce_core, importcpp: "#.downloadToFile(@)".}  # excluded deliberately: see skip_class_method
@@ -1888,6 +2143,9 @@ proc createOutputStream*(this: URL): UniquePtr[OutputStream] {.header: juce_core
 proc readEntireBinaryStream*(this: URL, destData: var MemoryBlock, usePostCommand: bool = false): bool {.header: juce_core, importcpp: "#.readEntireBinaryStream(@)".}
 proc readEntireTextStream*(this: URL, usePostCommand: bool = false): String {.header: juce_core, importcpp: "#.readEntireTextStream(@)".}
 proc readEntireXmlStream*(this: URL, usePostCommand: bool = false): UniquePtr[XmlElement] {.header: juce_core, importcpp: "#.readEntireXmlStream(@)".}
+proc addEscapeChars*(this: typedesc[URL], stringToAddEscapeCharsTo: String, isParameter: bool, roundBracketsAreLegal: bool = true): String {.header: juce_core, importcpp: "juce::URL::addEscapeChars(@)".}
+proc removeEscapeChars*(this: typedesc[URL], stringToRemoveEscapeCharsFrom: String): String {.header: juce_core, importcpp: "juce::URL::removeEscapeChars(@)".}
+proc createWithoutParsing*(this: typedesc[URL], url: String): URL {.header: juce_core, importcpp: "juce::URL::createWithoutParsing(@)".}
 # proc createInputStream*(this: URL, doPostLikeRequest: bool, progressCallback: ptr bool (pointer, int, int) = nil, progressCallbackContext: pointer = nil, extraHeaders: String, connectionTimeOutMs: cint = 0, responseHeaders: ptr StringPairArray = nil, statusCode: ptr cint = nil, numRedirectsToFollow: cint = 5, httpRequestCmd: String): UniquePtr[InputStream] {.header: juce_core, importcpp: "#.createInputStream(@)".}  # excluded deliberately: see skip_class_method
 
 proc makeURLInputStreamOptions*(parameterHandling: URLParameterHandling): URLInputStreamOptions {.header: juce_core, importcpp: "juce::URL::InputStreamOptions(@)".}
@@ -1975,6 +2233,10 @@ proc makeUnitTest*(name: String, category: String): UnitTest {.header: juce_core
 proc getName*(this: UnitTest): String {.header: juce_core, importcpp: "#.getName()".}
 proc getCategory*(this: UnitTest): String {.header: juce_core, importcpp: "#.getCategory()".}
 proc performTest*(this: var UnitTest, runner: ptr UnitTestRunner) {.header: juce_core, importcpp: "#.performTest(@)".}
+proc getAllTests*(this: typedesc[UnitTest]): Array[UnitTest] {.header: juce_core, importcpp: "juce::UnitTest::getAllTests()".}
+proc getTestsInCategory*(this: typedesc[UnitTest], category: String): Array[UnitTest] {.header: juce_core, importcpp: "juce::UnitTest::getTestsInCategory(@)".}
+proc getTestsWithName*(this: typedesc[UnitTest], name: String): Array[UnitTest] {.header: juce_core, importcpp: "juce::UnitTest::getTestsWithName(@)".}
+proc getAllCategories*(this: typedesc[UnitTest]): StringArray {.header: juce_core, importcpp: "juce::UnitTest::getAllCategories()".}
 proc initialise*(this: var UnitTest) {.header: juce_core, importcpp: "#.initialise()".}
 proc shutdown*(this: var UnitTest) {.header: juce_core, importcpp: "#.shutdown()".}
 proc runTest*(this: var UnitTest) {.header: juce_core, importcpp: "#.runTest()".}
@@ -2006,6 +2268,8 @@ proc getDocumentElementIfTagMatches*(this: var XmlDocument, requiredTag: StringR
 proc getLastParseError*(this: XmlDocument): String {.header: juce_core, importcpp: "#.getLastParseError()".}
 proc setInputSource*(this: var XmlDocument, newSource: ptr InputSource) {.header: juce_core, importcpp: "#.setInputSource(@)".}
 proc setEmptyTextElementsIgnored*(this: var XmlDocument, shouldBeIgnored: bool) {.header: juce_core, importcpp: "#.setEmptyTextElementsIgnored(@)".}
+proc parse*(this: typedesc[XmlDocument], file: File): UniquePtr[XmlElement] {.header: juce_core, importcpp: "juce::XmlDocument::parse(@)".}
+proc parse*(this: typedesc[XmlDocument], xmlData: String): UniquePtr[XmlElement] {.header: juce_core, importcpp: "juce::XmlDocument::parse(@)".}
 proc `==`*(this: XmlDocument, other: XmlDocument): bool {.error: "juce::XmlDocument defines no operator==; compare a property instead".}
 
 proc equals*(this: XmlAttribute, otherName: StringRef, otherValue: StringRef, ignoreCase: bool): bool {.header: juce_core, importcpp: "#.equals(@)".}
@@ -2069,6 +2333,8 @@ proc getAllSubText*(this: XmlElement): String {.header: juce_core, importcpp: "#
 proc getChildElementAllSubText*(this: XmlElement, childTagName: StringRef, defaultReturnValue: String): String {.header: juce_core, importcpp: "#.getChildElementAllSubText(@)".}
 proc addTextElement*(this: var XmlElement, text: String) {.header: juce_core, importcpp: "#.addTextElement(@)".}
 proc deleteAllTextElements*(this: var XmlElement) {.header: juce_core, importcpp: "#.deleteAllTextElements()".}
+proc createTextElement*(this: typedesc[XmlElement], text: String): ptr XmlElement {.header: juce_core, importcpp: "juce::XmlElement::createTextElement(@)".}
+proc isValidXmlName*(this: typedesc[XmlElement], possibleName: StringRef): bool {.header: juce_core, importcpp: "juce::XmlElement::isValidXmlName(@)".}
 # proc getChildIterator*(this: XmlElement): Iterator<GetNextElement> {.header: juce_core, importcpp: "#.getChildIterator()".}  # a C++ iterator; loop with the Nim iterator instead
 # proc getChildWithTagNameIterator*(this: XmlElement, name: StringRef): Iterator<GetNextElementWithTagName> {.header: juce_core, importcpp: "#.getChildWithTagNameIterator(@)".}  # a C++ iterator; loop with the Nim iterator instead
 # proc getAttributeIterator*(this: XmlElement): AttributeIterator {.header: juce_core, importcpp: "#.getAttributeIterator()".}  # a C++ iterator; loop with the Nim iterator instead
@@ -2176,9 +2442,15 @@ proc getUrl*(this: AndroidDocumentPermission): URL {.header: juce_core, importcp
 proc getPersistedTime*(this: AndroidDocumentPermission): int64 {.header: juce_core, importcpp: "#.getPersistedTime()".}
 proc isReadPermission*(this: AndroidDocumentPermission): bool {.header: juce_core, importcpp: "#.isReadPermission()".}
 proc isWritePermission*(this: AndroidDocumentPermission): bool {.header: juce_core, importcpp: "#.isWritePermission()".}
+proc takePersistentReadWriteAccess*(this: typedesc[AndroidDocumentPermission], arg1: URL) {.header: juce_core, importcpp: "juce::AndroidDocumentPermission::takePersistentReadWriteAccess(@)".}
+proc releasePersistentReadWriteAccess*(this: typedesc[AndroidDocumentPermission], arg1: URL) {.header: juce_core, importcpp: "juce::AndroidDocumentPermission::releasePersistentReadWriteAccess(@)".}
+proc getPersistedPermissions*(this: typedesc[AndroidDocumentPermission]): CppVector[AndroidDocumentPermission] {.header: juce_core, importcpp: "juce::AndroidDocumentPermission::getPersistedPermissions()".}
 proc `==`*(this: AndroidDocumentPermission, other: AndroidDocumentPermission): bool {.error: "juce::AndroidDocumentPermission defines no operator==; compare a property instead".}
 
 proc makeAndroidDocument*(): AndroidDocument {.header: juce_core, importcpp: "juce::AndroidDocument(@)".}
+proc fromFile*(this: typedesc[AndroidDocument], filePath: File): AndroidDocument {.header: juce_core, importcpp: "juce::AndroidDocument::fromFile(@)".}
+proc fromDocument*(this: typedesc[AndroidDocument], documentUrl: URL): AndroidDocument {.header: juce_core, importcpp: "juce::AndroidDocument::fromDocument(@)".}
+proc fromTree*(this: typedesc[AndroidDocument], treeUrl: URL): AndroidDocument {.header: juce_core, importcpp: "juce::AndroidDocument::fromTree(@)".}
 proc `AndroidDocument=`*(this: var AndroidDocument, arg1: AndroidDocument): var AndroidDocument {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `==`*(this: AndroidDocument, arg1: AndroidDocument): bool {.header: juce_core, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: AndroidDocument, arg1: AndroidDocument): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
@@ -2198,6 +2470,8 @@ proc getNativeInfo*(this: AndroidDocument): AndroidDocumentNativeInfo {.header: 
 proc `==`*(this: AndroidDocumentNativeInfo, other: AndroidDocumentNativeInfo): bool {.error: "juce::AndroidDocument::NativeInfo defines no operator==; compare a property instead".}
 
 proc makeAndroidDocumentIterator*(): AndroidDocumentIterator {.header: juce_core, importcpp: "juce::AndroidDocumentIterator(@)".}
+proc makeNonRecursive*(this: typedesc[AndroidDocumentIterator], arg1: AndroidDocument): AndroidDocumentIterator {.header: juce_core, importcpp: "juce::AndroidDocumentIterator::makeNonRecursive(@)".}
+proc makeRecursive*(this: typedesc[AndroidDocumentIterator], arg1: AndroidDocument): AndroidDocumentIterator {.header: juce_core, importcpp: "juce::AndroidDocumentIterator::makeRecursive(@)".}
 proc `==`*(this: AndroidDocumentIterator, other: AndroidDocumentIterator): bool {.header: juce_core, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: AndroidDocumentIterator, other: AndroidDocumentIterator): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `*`*(this: AndroidDocumentIterator): AndroidDocument {.header: juce_core, importcpp: "#.operator*()".}

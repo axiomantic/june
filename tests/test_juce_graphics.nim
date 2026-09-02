@@ -165,3 +165,27 @@ proc testNestedClassMethods() =
   doAssert colour.getBlue() == 30'u8
 
 testNestedClassMethods()
+
+# Static methods were skipped outright, so the factory half of JUCE's API was
+# missing: Colour.fromRGB, AffineTransform.rotation and the rest. A static has
+# no receiver, so it takes the class as a typedesc.
+proc testStaticMethods() =
+  let red = Colour.fromRGB(255'u8, 0'u8, 0'u8)
+  doAssert red.getRed() == 255'u8
+  doAssert red.getGreen() == 0'u8
+
+  let translucent = Colour.fromRGBA(1'u8, 2'u8, 3'u8, 128'u8)
+  doAssert translucent.getAlpha() == 128'u8
+
+  # AffineTransform's named constructors are how a transform is built at all.
+  let moved = AffineTransform.translation(10.0'f32, 20.0'f32)
+  doAssert moved.getTranslationX() == 10.0'f32, "x came back as " & $moved.getTranslationX()
+  doAssert moved.getTranslationY() == 20.0'f32
+  doAssert not moved.isIdentity()
+
+  let doubled = AffineTransform.scale(2.0'f32)
+  doAssert doubled.getScaleFactor() == 2.0'f32, "scale came back as " & $doubled.getScaleFactor()
+
+  doAssert AffineTransform.rotation(0.0'f32).isIdentity()
+
+testStaticMethods()

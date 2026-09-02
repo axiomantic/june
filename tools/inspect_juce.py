@@ -41,6 +41,11 @@ include {juce_module_name}_lifting
 # {(&NTIv2_...)}, and C++ rejects it: JUCE's classes have no such member.
 nim_class_def = """  {class_name}{export} {{.header: {juce_module_name}, importcpp: "{spelling}", inheritable, pure.}} = object{base}"""
 
+# A static method has no receiver, so it takes the class as a typedesc and is
+# called as Time.currentTimeMillis(). That is the spelling juce_events_lifting
+# already used for MessageManager.getInstance.
+nim_static_method_def = """{comment}proc {method_name}*(this: typedesc[{class_name}]{method_args}){method_return} {{.header: {juce_module_name}, importcpp: "{qualified_name}::{juce_spelling}({juce_args})".}}{reason}"""
+
 nim_method_def = """{comment}proc {method_name}*({method_args}){method_return} {{.header: {juce_module_name}, importcpp: "#.{juce_spelling}({juce_args})".}}{reason}"""
 
 # Deliberately not {.constructor.}. That pragma makes Nim emit a C++ declaration,
@@ -1220,12 +1225,12 @@ def run_main(juce_module_name, juce_class_name_to_export):
             is_static_method = m.is_static_method()
             is_const_method = m.is_const_method()
 
-            if is_static_method: # TODO
-                continue
-
             comment = ""
 
-            args = [ f"this: {'' if is_const_method else 'var '}{class_name}" ]
+            # A static method's receiver is the class itself rather than a
+            # value, so it carries no `this` argument into the C++ call.
+            args = ([] if is_static_method
+                    else [f"this: {'' if is_const_method else 'var '}{class_name}"])
             argument_types = []
             for count, arg in enumerate(m.get_arguments()):
                 default_value = ""
@@ -1239,6 +1244,16 @@ def run_main(juce_module_name, juce_class_name_to_export):
 
                 spelling = remap_argument_name(arg.spelling, count)
                 argument_type = remap_type(arg.type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap, unambiguous_nested_remap)
+
+                # `nil` is a value only for a nilable type. A std::function
+                # binds to an object, and the CppFunctionObject types are in the
+                # builtin set, so the check below would let `= nil` through on
+                # one - which is what a static method taking an optional
+                # callback turned up.
+                if default_value.strip() == "= nil" and not (
+                        argument_type.startswith("ptr ")
+                        or argument_type in ("pointer", "cstring")):
+                    default_value = ""
 
                 # A default is only kept where the literal is already a value of
                 # the parameter's type here. The converters that would make, say,
@@ -1319,16 +1334,30 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 # described as an iterator the Nim ones replace.
                 reason = reason or unbound_type_reason(rendered)
 
-            declaration = nim_method_def.format(**{
-                "comment": comment,
-                "method_name": method_name,
-                "method_args": ", ".join(args),
-                "method_return": return_type,
-                "juce_module_name": juce_module_name,
-                "juce_spelling": method_spelling,
-                "juce_args": "@" if len(args) > 1 else "",
-                "reason": f"  # {reason}" if comment and reason else "",
-            })
+            if is_static_method:
+                declaration = nim_static_method_def.format(**{
+                    "comment": comment,
+                    "method_name": method_name,
+                    "class_name": class_name,
+                    "method_args": (", " + ", ".join(args)) if args else "",
+                    "method_return": return_type,
+                    "juce_module_name": juce_module_name,
+                    "qualified_name": qualified_name,
+                    "juce_spelling": method_spelling,
+                    "juce_args": "@" if args else "",
+                    "reason": f"  # {reason}" if comment and reason else "",
+                })
+            else:
+                declaration = nim_method_def.format(**{
+                    "comment": comment,
+                    "method_name": method_name,
+                    "method_args": ", ".join(args),
+                    "method_return": return_type,
+                    "juce_module_name": juce_module_name,
+                    "juce_spelling": method_spelling,
+                    "juce_args": "@" if len(args) > 1 else "",
+                    "reason": f"  # {reason}" if comment and reason else "",
+                })
 
             # libclang can hand back the same method more than once for a single
             # class, and Nim rejects the repeat as a redefinition.
@@ -1338,7 +1367,8 @@ def run_main(juce_module_name, juce_class_name_to_export):
             # LockingAsyncUpdater.triggerAsyncUpdate collide; without the
             # const-ness, the const and non-const overloads of a getter do, and
             # dropping the const one makes it uncallable on a `let`.
-            signature = (args[0], method_name, tuple(argument_types), return_type)
+            receiver = f"typedesc[{class_name}]" if is_static_method else args[0]
+            signature = (receiver, method_name, tuple(argument_types), return_type)
             if declaration in emitted_declarations or signature in emitted_signatures:
                 continue
             emitted_declarations.add(declaration)
