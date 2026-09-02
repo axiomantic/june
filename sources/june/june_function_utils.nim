@@ -65,14 +65,6 @@ macro CppFunctionObject*(types: varargs[untyped]): untyped =
     else:
         result = newIdentNode("CppFunctionObjectN0")
 
-macro CppFunctionObjectRet*(types: varargs[untyped]): untyped =
-    if len(types) == 0:
-        error "Need at least one type in CppFunctionObjectRet"
-
-    result = nnkBracketExpr.newTree newIdentNode("CppFunctionObjectR" & $(len(types) - 1))
-    for t in types:
-        result.add newIdentNode($t)
-
 proc bindInternal(p: CppFunctionClosureN0, env: pointer): CppFunctionObjectN0 {.header: "<june.h>", importcpp: "june::bind(@)".}
 proc bindInternal[R](p: CppFunctionClosureR0[R], env: pointer): CppFunctionObjectR0[R] {.header: "<june.h>", importcpp: "june::bind(@)".}
 proc bindInternal[T](p: CppFunctionClosureN1[T], env: pointer): CppFunctionObjectN1[T] {.header: "<june.h>", importcpp: "june::bind(@)".}

@@ -313,11 +313,12 @@ testGenericContainerIteration()
 # largeIntegerValue) and String(int64 decimalInteger) -- and both used to be
 # emitted, which made every call matching them ambiguous and so uncallable.
 proc testNoDuplicateOverloads() =
-  doAssert compiles(makeString(5'i64))
+  # Only the u64 form is asserted with `compiles`: nothing else in the suite
+  # calls it, so this is what checks that overload resolves. The i64 form is
+  # called outright below, which checks the same thing more strongly.
   doAssert compiles(makeString(5'u64))
   doAssert $makeString(5'i64) == "5"
 
-  doAssert compiles(makejuce_var(makeString("x")))
   doAssert makejuce_var(makeString("x")).isString()
 
 testNoDuplicateOverloads()
@@ -409,8 +410,9 @@ testFreeFunctionOperators()
 proc onCrash(platformSpecificData: pointer) {.cdecl.} = discard
 
 proc testCrashHandlerBinding() =
+  # Called outright. A `compiles` assertion on the same expression could not
+  # fail: the call above has to compile for this file to build at all.
   SystemStats.setApplicationCrashHandler(onCrash)
-  doAssert compiles(SystemStats.setApplicationCrashHandler(onCrash))
 
 testCrashHandlerBinding()
 

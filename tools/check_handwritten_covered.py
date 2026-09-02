@@ -22,6 +22,11 @@ import sys
 
 hand_written = [
     "june_juce_types.nim", "june_stl.nim", "june_common.nim",
+    # june_cpp_utils exports the defineCppClass macros. It was left out, so
+    # they were checked by nothing; both are called, so listing it costs
+    # nothing and closes the hole by file as the keyword above closes it by
+    # declaration.
+    "june_cpp_utils.nim",
     "june_function_utils.nim", "juce_core_lifting.nim", "juce_events_lifting.nim",
     "juce_graphics_lifting.nim", "juce_gui_basics_lifting.nim",
     "juce_data_structures_lifting.nim",
@@ -40,7 +45,13 @@ uncallable = {
         "called it would have to invent a leak or a double free to finish",
 }
 
-export = re.compile(r'(?:proc|iterator|template|converter) `?(\w+)`?\*')
+# `macro` belongs here with the rest. A macro is only checked where it is
+# expanded, exactly as an importcpp proc is only checked where it is called, so
+# a macro nothing expands is unverified in the same way and for the same
+# reason. Omitting the keyword left this gate reporting every hand-written
+# binding covered while it could not see that kind of export at all.
+export = re.compile(
+    r'(?:proc|iterator|template|converter|macro) `?(\w+)`?\*')
 
 
 def check_licence_headers():
@@ -99,6 +110,7 @@ def check_licence_headers():
 
 def main():
     declared = {}
+    declarations = []
     for name in hand_written:
         path = os.path.join("sources", "june", name)
         if not os.path.exists(path):
@@ -108,6 +120,13 @@ def main():
                 match = export.match(line)
                 if match:
                     declared.setdefault(match.group(1), name)
+                    # Kept alongside, because setdefault throws the second
+                    # and later files away: `items` is declared in five of
+                    # these and `release` in two. The check is by NAME on
+                    # purpose, but the figure printed at the end must not
+                    # read as a count of declarations when it is a count of
+                    # names.
+                    declarations.append((match.group(1), name))
 
     used = ""
     for pattern in ("tests/test_juce_*.nim", "examples/*.nim"):
@@ -140,8 +159,11 @@ def main():
     if uncovered or stale or not licences_ok:
         sys.exit(1)
 
-    print(f"all {len(declared)} hand-written bindings are called "
-          f"({len(uncallable)} listed as uncallable)")
+    shared = len(declarations) - len(declared)
+    print(f"all {len(declared)} hand-written binding names are called "
+          f"({len(uncallable)} listed as uncallable"
+          + (f", {shared} declarations share a name with another"
+             if shared else "") + ")")
 
 
 if __name__ == "__main__":

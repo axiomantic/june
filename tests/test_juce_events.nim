@@ -39,6 +39,17 @@ proc testCustomTimer() =
     doAssert timer[].getTimerInterval() == 10
     timer[].stopTimer()
     doAssert not timer[].isTimerRunning()
+
+    # Nothing dispatches here, so the callback cannot have run: a Timer is
+    # driven by the MessageManager's loop, which a test has no business
+    # starting. `ticks` is asserted rather than left unread, because a counter
+    # that is written and never checked reads as verification that is not
+    # happening. What the assignment above does verify is that JUCE accepted
+    # the std::function the Nim closure was bound into.
+    doAssert ticks == 0,
+             "the timer callback ran with no dispatch loop, " &
+             "which means this test no longer says what it claims"
+
     cdelete timer
 
   shutdownJuce_GUI()
@@ -56,6 +67,20 @@ proc testCallAsync() =
   shutdownJuce_GUI()
 
 testCallAsync()
+
+# The macro spelling of a closure type =====================================
+#
+# june_function_utils exports CppFunctionObject, which builds the concrete
+# CppFunctionObjectN<n> name from a proc signature. Everything else in the
+# suite writes the concrete name, so until this test the macro was expanded by
+# exactly one place in the lifting layer: a macro is only checked where it is
+# used, exactly like an importcpp proc is only checked where it is called.
+
+proc testClosureTypeMacros() =
+    doAssert CppFunctionObject() is CppFunctionObjectN0
+    doAssert CppFunctionObject(cint) is CppFunctionObjectN1[cint]
+
+testClosureTypeMacros()
 
 # AsyncUpdater, ActionListener and ChangeListener each have a pure virtual, so
 # none could be instantiated without a subclass, and no subclass was possible.
