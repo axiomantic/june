@@ -445,6 +445,13 @@ two apart, so those two are named in the generator with the reason, and
 ``check_handwritten_covered.py`` fails unless a test builds every one of the
 constructors that is emitted.
 
+Three methods are withheld because JUCE declares them and defines them nowhere:
+``RelativeCoordinate::references`` and ``createTree`` on ``RelativePointPath``'s
+``QuadraticTo`` and ``CubicTo``. Nothing in the headers says so -- the binding
+compiles, and the call fails at the link step -- so they are named in
+``tools/inspect_juce.py`` with that reason, each one found by linking a call to
+it.
+
 Every bound JUCE enum is a ``distinct cint``, and Nim renders **one** closure
 struct for ``proc(): cint`` and ``proc(): SomeEnum``, typing its function
 pointer from whichever it emits first::

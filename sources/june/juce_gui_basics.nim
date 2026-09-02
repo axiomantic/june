@@ -2920,7 +2920,7 @@ proc `RelativeCoordinate=`*(this: var RelativeCoordinate, arg1: RelativeCoordina
 proc `==`*(this: RelativeCoordinate, arg1: RelativeCoordinate): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: RelativeCoordinate, arg1: RelativeCoordinate): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc resolve*(this: RelativeCoordinate, evaluationScope: ptr ExpressionScope): float64 {.header: juce_gui_basics, importcpp: "#.resolve(@)".}
-proc references*(this: RelativeCoordinate, coordName: String, evaluationScope: ptr ExpressionScope): bool {.header: juce_gui_basics, importcpp: "#.references(@)".}
+# proc references*(this: RelativeCoordinate, coordName: String, evaluationScope: ptr ExpressionScope): bool {.header: juce_gui_basics, importcpp: "#.references(@)".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
 proc isRecursive*(this: RelativeCoordinate, evaluationScope: ptr ExpressionScope): bool {.header: juce_gui_basics, importcpp: "#.isRecursive(@)".}
 proc isDynamic*(this: RelativeCoordinate): bool {.header: juce_gui_basics, importcpp: "#.isDynamic()".}
 proc moveToAbsolute*(this: var RelativeCoordinate, absoluteTargetPosition: float64, evaluationScope: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.moveToAbsolute(@)".}
@@ -3126,7 +3126,7 @@ proc makeRelativePointPathQuadraticTo*(controlPoint: RelativePoint, endPoint: Re
 # proc controlPoints*(this: RelativePointPathQuadraticTo): RelativePoint[2] {.header: juce_gui_basics, importcpp: "#.controlPoints".}  # a fixed-size C array member, which Nim cannot spell and which no other accessor exposes
 # proc controlPoints*(this: var RelativePointPathQuadraticTo): var RelativePoint[2] {.header: juce_gui_basics, importcpp: "#.controlPoints".}  # a fixed-size C array member, which Nim cannot spell and which no other accessor exposes
 # proc `controlPoints=`*(this: var RelativePointPathQuadraticTo, value: RelativePoint[2]) {.header: juce_gui_basics, importcpp: "#.controlPoints = #".}  # a fixed-size C array member, which Nim cannot spell and which no other accessor exposes
-proc createTree*(this: RelativePointPathQuadraticTo): ValueTree {.header: juce_gui_basics, importcpp: "#.createTree()".}
+# proc createTree*(this: RelativePointPathQuadraticTo): ValueTree {.header: juce_gui_basics, importcpp: "#.createTree()".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
 proc addToPath*(this: RelativePointPathQuadraticTo, path: var Path, arg2: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.addToPath(@)".}
 proc getControlPoints*(this: var RelativePointPathQuadraticTo, numPoints: var cint): ptr RelativePoint {.header: juce_gui_basics, importcpp: "#.getControlPoints(@)".}
 proc clone*(this: RelativePointPathQuadraticTo): ptr RelativePointPathElementBase {.header: juce_gui_basics, importcpp: "#.clone()".}
@@ -3136,7 +3136,7 @@ proc makeRelativePointPathCubicTo*(controlPoint1: RelativePoint, controlPoint2: 
 # proc controlPoints*(this: RelativePointPathCubicTo): RelativePoint[3] {.header: juce_gui_basics, importcpp: "#.controlPoints".}  # a fixed-size C array member, which Nim cannot spell and which no other accessor exposes
 # proc controlPoints*(this: var RelativePointPathCubicTo): var RelativePoint[3] {.header: juce_gui_basics, importcpp: "#.controlPoints".}  # a fixed-size C array member, which Nim cannot spell and which no other accessor exposes
 # proc `controlPoints=`*(this: var RelativePointPathCubicTo, value: RelativePoint[3]) {.header: juce_gui_basics, importcpp: "#.controlPoints = #".}  # a fixed-size C array member, which Nim cannot spell and which no other accessor exposes
-proc createTree*(this: RelativePointPathCubicTo): ValueTree {.header: juce_gui_basics, importcpp: "#.createTree()".}
+# proc createTree*(this: RelativePointPathCubicTo): ValueTree {.header: juce_gui_basics, importcpp: "#.createTree()".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
 proc addToPath*(this: RelativePointPathCubicTo, path: var Path, arg2: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.addToPath(@)".}
 proc getControlPoints*(this: var RelativePointPathCubicTo, numPoints: var cint): ptr RelativePoint {.header: juce_gui_basics, importcpp: "#.getControlPoints(@)".}
 proc clone*(this: RelativePointPathCubicTo): ptr RelativePointPathElementBase {.header: juce_gui_basics, importcpp: "#.clone()".}
