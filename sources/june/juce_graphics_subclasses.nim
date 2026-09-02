@@ -39,6 +39,29 @@ proc setDecodeImageHandler*(this: var CustomImageFileFormat, handler: proc(input
 proc setWriteImageToStreamHandler*(this: var CustomImageFileFormat, handler: proc(sourceImage: ptr Image, destStream: ptr OutputStream): bool {.closure.}) =
     this.onWriteImageToStream = bindClosure(handler)
 
+defineCppClassInternal CustomImagePixelData of ImagePixelData:
+    include "juce_graphics/juce_graphics.h"
+    cppTypeName ImageBitmapDataReadWriteMode, "Image::BitmapData::ReadWriteMode"
+    cppTypeName ImageBitmapData, "Image::BitmapData"
+    proc createLowLevelContext(): UniquePtr[LowLevelGraphicsContext] = discard
+    proc clone(): ReferenceCountedObjectPtr[ImagePixelData] = discard
+    proc createType(): UniquePtr[ImageType] {.cppconst.} = discard
+    proc initialiseBitmapData(arg0: varref[ImageBitmapData], x: cint, y: cint, arg3: ImageBitmapDataReadWriteMode) = discard
+
+proc newCustomImagePixelData*(arg0: ImagePixelFormat, width: cint, height: cint): ptr CustomImagePixelData {.importcpp: "(new june::CustomImagePixelData(@))".}
+
+proc setCreateLowLevelContextHandler*(this: var CustomImagePixelData, handler: proc(): UniquePtr[LowLevelGraphicsContext] {.closure.}) =
+    this.onCreateLowLevelContext = bindClosure(handler)
+
+proc setCloneHandler*(this: var CustomImagePixelData, handler: proc(): ReferenceCountedObjectPtr[ImagePixelData] {.closure.}) =
+    this.onClone = bindClosure(handler)
+
+proc setCreateTypeHandler*(this: var CustomImagePixelData, handler: proc(): UniquePtr[ImageType] {.closure.}) =
+    this.onCreateType = bindClosure(handler)
+
+proc setInitialiseBitmapDataHandler*(this: var CustomImagePixelData, handler: proc(arg0: ptr ImageBitmapData, x: cint, y: cint, arg3: ImageBitmapDataReadWriteMode) {.closure.}) =
+    this.onInitialiseBitmapData = bindClosure(handler)
+
 defineCppClassInternal CustomImagePixelDataBackupExtensions of ImagePixelDataBackupExtensions:
     include "juce_graphics/juce_graphics.h"
     proc setBackupEnabled(arg0: bool) = discard
@@ -64,8 +87,33 @@ proc setNeedsBackupHandler*(this: var CustomImagePixelDataBackupExtensions, hand
 proc setCanBackupHandler*(this: var CustomImagePixelDataBackupExtensions, handler: proc(): bool {.closure.}) =
     this.onCanBackup = bindClosure(handler)
 
+defineCppClassInternal CustomImageType of ImageType:
+    include "juce_graphics/juce_graphics.h"
+    cppTypeName ImagePixelFormat, "Image::PixelFormat"
+    proc create(arg0: ImagePixelFormat, width: cint, height: cint, shouldClearImage: bool): ReferenceCountedObjectPtr[ImagePixelData] {.cppconst.} = discard
+    proc getTypeID(): cint {.cppconst.} = discard
+
+proc newCustomImageType*(): ptr CustomImageType {.importcpp: "(new june::CustomImageType)".}
+
+proc setCreateHandler*(this: var CustomImageType, handler: proc(arg0: ImagePixelFormat, width: cint, height: cint, shouldClearImage: bool): ReferenceCountedObjectPtr[ImagePixelData] {.closure.}) =
+    this.onCreate = bindClosure(handler)
+
+proc setGetTypeIDHandler*(this: var CustomImageType, handler: proc(): cint {.closure.}) =
+    this.onGetTypeID = bindClosure(handler)
+
+defineCppClassInternal CustomTypeface of Typeface:
+    include "juce_graphics/juce_graphics.h"
+    cppTypeName TypefaceNative, "Typeface::Native"
+    proc createSystemFallback(text: constptr[String], language: constptr[String]): ReferenceCountedObjectPtr[Typeface] {.cppconst.} = discard
+    proc getNativeDetails(): constrawptr[TypefaceNative] {.cppconst.} = discard
+
+proc newCustomTypeface*(arg0: String, arg1: String): ptr CustomTypeface {.importcpp: "(new june::CustomTypeface(@))".}
+
+proc setCreateSystemFallbackHandler*(this: var CustomTypeface, handler: proc(text: ptr String, language: ptr String): ReferenceCountedObjectPtr[Typeface] {.closure.}) =
+    this.onCreateSystemFallback = bindClosure(handler)
+
+proc setGetNativeDetailsHandler*(this: var CustomTypeface, handler: proc(): ptr TypefaceNative {.closure.}) =
+    this.onGetNativeDetails = bindClosure(handler)
+
 # Withheld, with the reason:
-#   ImagePixelData: Ptr returned by clone has no Nim spelling
-#   ImageType: ImagePixelData::Ptr returned by create has no Nim spelling
-#   LowLevelGraphicsContext: fillRect is overloaded, which one handler cannot express
-#   Typeface: Typeface::Ptr returned by createSystemFallback has no Nim spelling
+#   LowLevelGraphicsContext: Span<const uint16_t> in drawGlyphs has no Nim spelling

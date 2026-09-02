@@ -746,10 +746,15 @@ testListBoxModel()
 # Generated subclasses: construction ==========================================
 #
 # Every generated subclass, actually constructed. Compiling one is not evidence
-# that it works: the generated C++ class has a template forwarding constructor,
-# so `new june::CustomThread` is instantiated only where something calls it, and
-# a class whose base has no default constructor builds cleanly right up until it
-# is used. juce::Thread, which takes a name, is exactly that case.
+# that it works, twice over. The generated C++ class has a template forwarding
+# constructor, so `new june::CustomThread` is instantiated only where something
+# calls it, and a class whose base has no default constructor builds cleanly
+# right up until it is used. And a subclass that leaves an inherited pure
+# virtual unimplemented is still abstract, which also only shows at the `new`.
+#
+# CustomJUCEApplicationBase is left out: its constructor asserts unless it is
+# the process's one application instance, so constructing it here would be
+# invalid by design rather than a defect in the binding.
 
 proc testGeneratedSubclassesConstruct() =
     initialiseJuce_GUI()
@@ -825,6 +830,11 @@ proc testGeneratedSubclassesConstruct() =
         cdelete value
 
     block:
+        let value = newCustomImageType()
+        doAssert not value.isNil, "newCustomImageType returned nil"
+        cdelete value
+
+    block:
         let value = newCustomAccessibilityCellInterface()
         doAssert not value.isNil, "newCustomAccessibilityCellInterface returned nil"
         cdelete value
@@ -875,6 +885,11 @@ proc testGeneratedSubclassesConstruct() =
         cdelete value
 
     block:
+        let value = newCustomComponentTraverser()
+        doAssert not value.isNil, "newCustomComponentTraverser returned nil"
+        cdelete value
+
+    block:
         let value = newCustomDarkModeSettingListener()
         doAssert not value.isNil, "newCustomDarkModeSettingListener returned nil"
         cdelete value
@@ -887,6 +902,11 @@ proc testGeneratedSubclassesConstruct() =
     block:
         let value = newCustomDrawable()
         doAssert not value.isNil, "newCustomDrawable returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomDrawableShape()
+        doAssert not value.isNil, "newCustomDrawableShape returned nil"
         cdelete value
 
     block:
