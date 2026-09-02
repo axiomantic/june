@@ -172,6 +172,17 @@ The no-argument overrides -- ``onResized``, ``onMoved``, ``onVisibilityChanged``
 ``onParentHierarchyChanged``, ``onChildrenChanged`` -- are assigned directly with
 ``bindClosure``.
 
+Where the C++ base is named through an alias, name it with ``cppParent``: the
+generated subclass has to derive from a spelling C++ accepts, and
+``Slider::Listener`` is an alias for the class template
+``SliderListener<Slider>``, which cannot be derived from by its Nim name.
+
+.. code-block:: nim
+
+  defineCppClassInternal CustomSliderListener of SliderListener:
+      cppParent "juce::Slider::Listener"
+      proc sliderValueChanged(slider: ptr Slider) = discard
+
 ``CustomButton`` and ``CustomTimer`` work the same way. Both subclass a JUCE
 class whose pure virtual made it impossible to instantiate before:
 ``Button::paintButton`` and ``Timer::timerCallback``.
@@ -292,8 +303,8 @@ Hand-written additions live in the ``*_lifting.nim`` files and in
 - Subclasses whose virtual methods call into Nim: ``CustomComponent``,
   ``CustomButton``, ``CustomTimer``, ``CustomAsyncUpdater``,
   ``CustomActionListener``, ``CustomChangeListener``, ``CustomSlider``,
-  ``CustomLabel`` and ``CustomLookAndFeel``, plus the ``JUCEApplication`` and
-  ``DocumentWindow`` that were already there. Most of those JUCE classes have a
+  ``CustomLabel``, ``CustomLookAndFeel`` and ``CustomSliderListener``, plus the
+  ``JUCEApplication`` and ``DocumentWindow`` that were already there. Most of those JUCE classes have a
   pure virtual, so they could not be instantiated without a subclass at all.
 
 Instantiate a class template with ``cint`` or ``cfloat``, never Nim's ``int`` or

@@ -652,6 +652,10 @@ def skip_class_method(class_name, method_name):
         # A plain C++ function pointer, which the generator cannot spell.
         # juce_events_lifting binds it by hand.
         "MessageManager": {"callFunctionOnMessageThread"},
+        # Slider::Listener is an alias for the class template
+        # SliderListener<Slider>. juce_gui_basics_lifting binds the type
+        # through the alias and these two along with it.
+        "Slider": {"addListener", "removeListener"},
         "URL": {"downloadToFile", "createInputStream"},
         "XmlElement": {"getChildIterator", "getChildWithTagNameIterator"},
     }

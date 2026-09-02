@@ -128,6 +128,18 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
   # derives from Component, and Button stays a Component rather than a sibling.
   let appendType = if internalClass and className == parentClassName: "Impl" else: ""
 
+  # The C++ parent is normally the Nim parent's name under the namespace, which
+  # holds while a binding is named after the class it binds. It does not hold
+  # for a type bound through an alias: Slider::Listener is an alias for the
+  # class template SliderListener<Slider>, and only the alias can be named. A
+  # `cppParent "..."` line in the body gives the spelling to derive from.
+  var cppParentSpelling = ""
+  for node in body.children:
+    if node.kind in {nnkCall, nnkCommand} and node.len == 2 and
+       node[0].kind == nnkIdent and $node[0] == "cppParent" and
+       node[1].kind == nnkStrLit:
+      cppParentSpelling = $node[1]
+
   # Nim codegen list of functions
   var nimObjectBodyDecl = nnkRecList.newTree()
 
@@ -141,12 +153,14 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
 
   var cppClassDefinition = ""
   cppClassDefinition &= "namespace june { using namespace juce;\n\n"
-  cppClassDefinition &= "struct " & className & " : " & parentNamespace & "::" & parentClassName & " {\n"
+  let cppParent = if cppParentSpelling.len > 0: cppParentSpelling
+                  else: parentNamespace & "::" & parentClassName
+  cppClassDefinition &= "struct " & className & " : " & cppParent & " {\n"
   # A public forwarding constructor rather than `using Parent::Parent`. An
   # inherited constructor keeps the base's access, and juce::Button's is
   # protected, so the subclass could not be constructed from outside at all.
   cppClassDefinition &= "    template <typename... Args>\n"
-  cppClassDefinition &= "    " & className & "(Args&&... args) : " & parentNamespace & "::" & parentClassName & "(std::forward<Args>(args)...) {}\n\n"
+  cppClassDefinition &= "    " & className & "(Args&&... args) : " & cppParent & "(std::forward<Args>(args)...) {}\n\n"
 
   for node in body.children:
     case node.kind:
@@ -290,6 +304,10 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
       cppIncludeDefinition &= "#include \"" & $node[0] & "\"\n\n"
 
     of nnkDiscardStmt:
+      continue
+
+    of nnkCommand:
+      # cppParent was read above; nothing else is a command here.
       continue
 
     else:

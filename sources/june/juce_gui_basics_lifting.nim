@@ -208,3 +208,40 @@ proc setDrawRotarySliderHandler*(this: var CustomLookAndFeel,
     let bound: CppFunctionObjectN9[ptr Graphics, cint, cint, cint, cint,
                                    cfloat, cfloat, cfloat, ptr Slider] = bindClosure(handler)
     this.onDrawRotarySlider = bound
+
+
+# Slider listeners ============================================================
+#
+# Slider::Listener is an alias for SliderListener<Slider>, a class template the
+# generator cannot spell, so addListener and removeListener were comments. The
+# alias itself is a name C++ accepts, which is enough to bind the type.
+#
+# CustomSlider already covers reacting to one slider. A listener is the other
+# shape: one object watching several sliders, told which one changed.
+
+type
+    SliderListener* {.header: juce_gui_basics, importcpp: "juce::Slider::Listener", inheritable, pure.} = object
+
+defineCppClassInternal CustomSliderListener of SliderListener:
+    cppParent "juce::Slider::Listener"
+    include "juce_gui_basics/juce_gui_basics.h"
+    proc sliderValueChanged(slider: ptr Slider) = discard
+    proc sliderDragStarted(slider: ptr Slider) = discard
+    proc sliderDragEnded(slider: ptr Slider) = discard
+
+proc newCustomSliderListener*(): ptr CustomSliderListener {.importcpp: "(new june::CustomSliderListener)".}
+
+# Set through these rather than by assigning the field, for the same reason the
+# component handlers are: a bindClosure call assigned straight to one makes Nim
+# emit the importcpp pattern unsubstituted and broken #line directives with it.
+template defineSliderListenerSetter(setterName, fieldName: untyped) =
+    proc setterName*(this: var CustomSliderListener, handler: proc(slider: ptr Slider) {.closure.}) =
+        let bound: CppFunctionObjectN1[ptr Slider] = bindClosure(handler)
+        this.fieldName = bound
+
+defineSliderListenerSetter(setSliderValueChangedHandler, onSliderValueChanged)
+defineSliderListenerSetter(setSliderDragStartedHandler, onSliderDragStarted)
+defineSliderListenerSetter(setSliderDragEndedHandler, onSliderDragEnded)
+
+proc addListener*(this: var Slider, listener: ptr SliderListener) {.header: juce_gui_basics, importcpp: "#.addListener(@)".}
+proc removeListener*(this: var Slider, listener: ptr SliderListener) {.header: juce_gui_basics, importcpp: "#.removeListener(@)".}

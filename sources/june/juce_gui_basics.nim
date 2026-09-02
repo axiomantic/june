@@ -2614,8 +2614,8 @@ proc getMaxValue*(this: Slider): float64 {.header: juce_gui_basics, importcpp: "
 proc getMaxValueObject*(this: var Slider): var Value {.header: juce_gui_basics, importcpp: "#.getMaxValueObject()".}
 proc setMaxValue*(this: var Slider, newValue: float64, notification: NotificationType, allowNudgingOfOtherValues: bool = false) {.header: juce_gui_basics, importcpp: "#.setMaxValue(@)".}
 proc setMinAndMaxValues*(this: var Slider, newMinValue: float64, newMaxValue: float64, notification: NotificationType) {.header: juce_gui_basics, importcpp: "#.setMinAndMaxValues(@)".}
-# proc addListener*(this: var Slider, listener: ptr Listener) {.header: juce_gui_basics, importcpp: "#.addListener(@)".}  # a type that cannot be spelled in Nim
-# proc removeListener*(this: var Slider, listener: ptr Listener) {.header: juce_gui_basics, importcpp: "#.removeListener(@)".}  # a type that cannot be spelled in Nim
+# proc addListener*(this: var Slider, listener: ptr Listener) {.header: juce_gui_basics, importcpp: "#.addListener(@)".}  # excluded deliberately: see skip_class_method
+# proc removeListener*(this: var Slider, listener: ptr Listener) {.header: juce_gui_basics, importcpp: "#.removeListener(@)".}  # excluded deliberately: see skip_class_method
 proc setDoubleClickReturnValue*(this: var Slider, shouldDoubleClickBeEnabled: bool, valueToSetOnDoubleClick: float64, singleClickModifiers: ModifierKeys) {.header: juce_gui_basics, importcpp: "#.setDoubleClickReturnValue(@)".}
 proc getDoubleClickReturnValue*(this: Slider): float64 {.header: juce_gui_basics, importcpp: "#.getDoubleClickReturnValue()".}
 proc isDoubleClickReturnEnabled*(this: Slider): bool {.header: juce_gui_basics, importcpp: "#.isDoubleClickReturnEnabled()".}

@@ -310,3 +310,45 @@ proc testTypeIndexBinding() =
   doAssert compiles(proc(a: CppTypeIndex): constChar = a.name())
 
 testTypeIndexBinding()
+
+# A Slider listener. CustomSlider covers reacting to one slider; this is the
+# other shape, one object watching several and told which one changed.
+proc testSliderListener() =
+  initialiseJuce_GUI()
+
+  var changed = 0
+  var lastWidth = 0.cint
+
+  block:
+    let listener = newCustomSliderListener()
+    listener[].setSliderValueChangedHandler(proc(slider: ptr Slider) =
+      changed += 1
+      lastWidth = slider[].getWidth())
+
+    var first = makeSlider()
+    var second = makeSlider()
+    first.setBounds(0.cint, 0.cint, 30.cint, 20.cint)
+    second.setBounds(0.cint, 0.cint, 50.cint, 20.cint)
+    first.addListener(cast[ptr SliderListener](listener))
+    second.addListener(cast[ptr SliderListener](listener))
+
+    first.setRange(0.0, 10.0, 1.0)
+    first.setValue(3.0, NotificationType_sendNotificationSync)
+    doAssert changed == 1, "the listener saw " & $changed & " changes"
+    doAssert lastWidth == 30, "the wrong slider was reported: width " & $lastWidth
+
+    second.setRange(0.0, 10.0, 1.0)
+    second.setValue(4.0, NotificationType_sendNotificationSync)
+    doAssert changed == 2, "one listener should hear both sliders"
+    doAssert lastWidth == 50, "the second slider should be the one reported"
+
+    first.removeListener(cast[ptr SliderListener](listener))
+    first.setValue(9.0, NotificationType_sendNotificationSync)
+    doAssert changed == 2, "removeListener did not detach it"
+
+    second.removeListener(cast[ptr SliderListener](listener))
+    cdelete listener
+
+  shutdownJuce_GUI()
+
+testSliderListener()
