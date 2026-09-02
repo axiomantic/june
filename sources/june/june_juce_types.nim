@@ -245,6 +245,13 @@ proc makeOwnedArray*[T](): OwnedArray[T] {.header: "<juce_core/juce_core.h>", im
 
 proc size*[T](this: Array[T]): cint {.importcpp: "#.size()".}
 proc isEmpty*[T](this: Array[T]): bool {.importcpp: "#.isEmpty()".}
+# Nim builds a temporary for a by-value result, so `[]` needs T to be
+# default-constructible. juce::TextLayout::Glyph is not, which made every
+# element of a TextLayout run unreachable. getReference hands back JUCE's own
+# reference instead and needs nothing of T.
+proc getReference*[T](this: var Array[T], index: cint): var T
+    {.header: "<juce_core/juce_core.h>", importcpp: "#.getReference(#)".}
+
 proc `[]`*[T](this: Array[T], index: cint): T {.importcpp: "#[#]".}
 proc getFirst*[T](this: Array[T]): T {.importcpp: "#.getFirst()".}
 proc getLast*[T](this: Array[T]): T {.importcpp: "#.getLast()".}
