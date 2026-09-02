@@ -521,11 +521,17 @@ closure::
 
 JUCE calls the handler through the virtual, so ``stream.writeText(...)`` -
 which is JUCE's own code - reaches it. The suite asserts that for this one and
-for the other subclasses it drives, not for every setter. Setting a handler is
-what type-checks and generates it, so a setter no test calls is unexercised;
-the ones left are on classes the suite has no way to drive, such as
-``CustomJUCEApplicationBase``. No figure is quoted here on purpose -- a count
-in prose goes stale silently, and nothing reads this one.
+for every setter it can. Setting a handler is what type-checks and generates
+it, so a setter no test calls is never compiled at all, and
+``check_handwritten_covered.py`` fails when one is not called. The only ones
+left out are ``CustomJUCEApplicationBase``'s, named in that checker with the
+reason: building one trips JUCE's assertion that the process has a single
+application instance.
+
+Calling them is what found ``CustomImagePixelData::clone`` typed against the
+wrong class's ``Ptr``, and what showed that ``UniquePtr``,
+``ReferenceCountedObjectPtr``, ``CppVector`` and ``CppString`` had no
+constructor, so no override returning one could be written at all.
 
 The test suite constructs every generated subclass, which is the check that
 matters, and ``check_handwritten_covered.py`` fails if one is not built. The
