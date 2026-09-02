@@ -281,6 +281,9 @@ Hand-written additions live in the ``*_lifting.nim`` files and in
   ``Image::BitmapData`` is ``ImageBitmapData``. At any depth:
   ``Expression::Scope::Visitor`` is ``ExpressionScopeVisitor``.
 - Constructors, as ``make<ClassName>`` procs.
+- Static methods, taking the class as a ``typedesc``, so ``Colour::fromRGB`` is
+  ``Colour.fromRGB(r, g, b)`` and ``AffineTransform::rotation`` is
+  ``AffineTransform.rotation(angle)``.
 - Enums, as distinct integer types. Enumerators are prefixed with the type name:
   ``JustificationFlags_centred``, ``NotificationType_sendNotification``.
 - Operators. ``==``, ``<``, ``<=``, ``+``, ``-``, ``*``, ``/`` and ``[]`` are

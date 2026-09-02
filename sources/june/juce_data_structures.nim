@@ -130,8 +130,13 @@ proc getSibling*(this: ValueTree, delta: cint): ValueTree {.header: juce_data_st
 # proc begin*(this: ValueTree): ValueTreeIterator {.header: juce_data_structures, importcpp: "#.begin()".}  # a C++ iterator; loop with the Nim iterator instead
 # proc `end`*(this: ValueTree): ValueTreeIterator {.header: juce_data_structures, importcpp: "#.end()".}  # a C++ iterator; loop with the Nim iterator instead
 proc createXml*(this: ValueTree): UniquePtr[XmlElement] {.header: juce_data_structures, importcpp: "#.createXml()".}
+proc fromXml*(this: typedesc[ValueTree], xml: XmlElement): ValueTree {.header: juce_data_structures, importcpp: "juce::ValueTree::fromXml(@)".}
+proc fromXml*(this: typedesc[ValueTree], xmlText: String): ValueTree {.header: juce_data_structures, importcpp: "juce::ValueTree::fromXml(@)".}
 proc toXmlString*(this: ValueTree, format: XmlElementTextFormat): String {.header: juce_data_structures, importcpp: "#.toXmlString(@)".}
 proc writeToStream*(this: ValueTree, output: var OutputStream) {.header: juce_data_structures, importcpp: "#.writeToStream(@)".}
+proc readFromStream*(this: typedesc[ValueTree], input: var InputStream): ValueTree {.header: juce_data_structures, importcpp: "juce::ValueTree::readFromStream(@)".}
+proc readFromData*(this: typedesc[ValueTree], data: constPointer, numBytes: uint64): ValueTree {.header: juce_data_structures, importcpp: "juce::ValueTree::readFromData(@)".}
+proc readFromGZIPData*(this: typedesc[ValueTree], data: constPointer, numBytes: uint64): ValueTree {.header: juce_data_structures, importcpp: "juce::ValueTree::readFromGZIPData(@)".}
 proc addListener*(this: var ValueTree, listener: ptr ValueTreeListener) {.header: juce_data_structures, importcpp: "#.addListener(@)".}
 proc removeListener*(this: var ValueTree, listener: ptr ValueTreeListener) {.header: juce_data_structures, importcpp: "#.removeListener(@)".}
 proc setPropertyExcludingListener*(this: var ValueTree, listenerToExclude: ptr ValueTreeListener, name: Identifier, newValue: juce_var, undoManager: ptr UndoManager): var ValueTree {.header: juce_data_structures, importcpp: "#.setPropertyExcludingListener(@)".}
@@ -155,6 +160,7 @@ proc `==`*(this: ValueTreeListener, other: ValueTreeListener): bool {.error: "ju
 proc makeValueTreeSynchroniser*(tree: ValueTree): ValueTreeSynchroniser {.header: juce_data_structures, importcpp: "juce::ValueTreeSynchroniser(@)".}
 proc stateChanged*(this: var ValueTreeSynchroniser, encodedChange: constPointer, encodedChangeSize: uint64) {.header: juce_data_structures, importcpp: "#.stateChanged(@)".}
 proc sendFullSyncCallback*(this: var ValueTreeSynchroniser) {.header: juce_data_structures, importcpp: "#.sendFullSyncCallback()".}
+proc applyChange*(this: typedesc[ValueTreeSynchroniser], target: var ValueTree, encodedChangeData: constPointer, encodedChangeDataSize: uint64, undoManager: ptr UndoManager): bool {.header: juce_data_structures, importcpp: "juce::ValueTreeSynchroniser::applyChange(@)".}
 proc getRoot*(this: var ValueTreeSynchroniser): ValueTree {.header: juce_data_structures, importcpp: "#.getRoot()".}
 proc `==`*(this: ValueTreeSynchroniser, other: ValueTreeSynchroniser): bool {.error: "juce::ValueTreeSynchroniser defines no operator==; compare a property instead".}
 

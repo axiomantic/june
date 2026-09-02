@@ -50,6 +50,9 @@ let NotificationType_sendNotificationAsync* {.header: juce_events, importcpp: "j
 let InterprocessConnectionNotify_no* {.header: juce_events, importcpp: "juce::InterprocessConnection::Notify::no".}: InterprocessConnectionNotify
 let InterprocessConnectionNotify_yes* {.header: juce_events, importcpp: "juce::InterprocessConnection::Notify::yes".}: InterprocessConnectionNotify
 
+proc getInstance*(this: typedesc[MessageManager]): ptr MessageManager {.header: juce_events, importcpp: "juce::MessageManager::getInstance()".}
+proc getInstanceWithoutCreating*(this: typedesc[MessageManager]): ptr MessageManager {.header: juce_events, importcpp: "juce::MessageManager::getInstanceWithoutCreating()".}
+proc deleteInstance*(this: typedesc[MessageManager]) {.header: juce_events, importcpp: "juce::MessageManager::deleteInstance()".}
 proc runDispatchLoop*(this: var MessageManager) {.header: juce_events, importcpp: "#.runDispatchLoop()".}
 proc stopDispatchLoop*(this: var MessageManager) {.header: juce_events, importcpp: "#.stopDispatchLoop()".}
 proc hasStopMessageBeenSent*(this: MessageManager): bool {.header: juce_events, importcpp: "#.hasStopMessageBeenSent()".}
@@ -58,6 +61,9 @@ proc isThisTheMessageThread*(this: MessageManager): bool {.header: juce_events, 
 proc setCurrentThreadAsMessageThread*(this: var MessageManager) {.header: juce_events, importcpp: "#.setCurrentThreadAsMessageThread()".}
 proc getCurrentMessageThread*(this: MessageManager): pointer {.header: juce_events, importcpp: "#.getCurrentMessageThread()".}
 proc currentThreadHasLockedMessageManager*(this: MessageManager): bool {.header: juce_events, importcpp: "#.currentThreadHasLockedMessageManager()".}
+proc existsAndIsLockedByCurrentThread*(this: typedesc[MessageManager]): bool {.header: juce_events, importcpp: "juce::MessageManager::existsAndIsLockedByCurrentThread()".}
+proc existsAndIsCurrentThread*(this: typedesc[MessageManager]): bool {.header: juce_events, importcpp: "juce::MessageManager::existsAndIsCurrentThread()".}
+proc broadcastMessage*(this: typedesc[MessageManager], messageText: String) {.header: juce_events, importcpp: "juce::MessageManager::broadcastMessage(@)".}
 proc registerBroadcastListener*(this: var MessageManager, listener: ptr ActionListener) {.header: juce_events, importcpp: "#.registerBroadcastListener(@)".}
 proc deregisterBroadcastListener*(this: var MessageManager, listener: ptr ActionListener) {.header: juce_events, importcpp: "#.deregisterBroadcastListener(@)".}
 proc deliverBroadcastMessage*(this: var MessageManager, arg1: String) {.header: juce_events, importcpp: "#.deliverBroadcastMessage(@)".}
@@ -86,8 +92,10 @@ proc makeCallbackMessage*(): CallbackMessage {.header: juce_events, importcpp: "
 proc messageCallback*(this: var CallbackMessage) {.header: juce_events, importcpp: "#.messageCallback()".}
 proc `==`*(this: CallbackMessage, other: CallbackMessage): bool {.error: "juce::CallbackMessage defines no operator==; compare a property instead".}
 
+proc deleteAll*(this: typedesc[DeletedAtShutdown]) {.header: juce_events, importcpp: "juce::DeletedAtShutdown::deleteAll()".}
 proc `==`*(this: DeletedAtShutdown, other: DeletedAtShutdown): bool {.error: "juce::DeletedAtShutdown defines no operator==; compare a property instead".}
 
+proc getInstance*(this: typedesc[JUCEApplicationBase]): ptr JUCEApplicationBase {.header: juce_events, importcpp: "juce::JUCEApplicationBase::getInstance()".}
 proc getApplicationName*(this: var JUCEApplicationBase): String {.header: juce_events, importcpp: "#.getApplicationName()".}
 proc getApplicationVersion*(this: var JUCEApplicationBase): String {.header: juce_events, importcpp: "#.getApplicationVersion()".}
 proc moreThanOneInstanceAllowed*(this: var JUCEApplicationBase): bool {.header: juce_events, importcpp: "#.moreThanOneInstanceAllowed()".}
@@ -100,11 +108,19 @@ proc resumed*(this: var JUCEApplicationBase) {.header: juce_events, importcpp: "
 proc unhandledException*(this: var JUCEApplicationBase, arg1: ptr CppException, sourceFilename: String, lineNumber: cint) {.header: juce_events, importcpp: "#.unhandledException(@)".}
 proc memoryWarningReceived*(this: var JUCEApplicationBase) {.header: juce_events, importcpp: "#.memoryWarningReceived()".}
 proc backButtonPressed*(this: var JUCEApplicationBase): bool {.header: juce_events, importcpp: "#.backButtonPressed()".}
+proc quit*(this: typedesc[JUCEApplicationBase]) {.header: juce_events, importcpp: "juce::JUCEApplicationBase::quit()".}
+proc getCommandLineParameterArray*(this: typedesc[JUCEApplicationBase]): StringArray {.header: juce_events, importcpp: "juce::JUCEApplicationBase::getCommandLineParameterArray()".}
+proc getCommandLineParameters*(this: typedesc[JUCEApplicationBase]): String {.header: juce_events, importcpp: "juce::JUCEApplicationBase::getCommandLineParameters()".}
 proc setApplicationReturnValue*(this: var JUCEApplicationBase, newReturnValue: cint) {.header: juce_events, importcpp: "#.setApplicationReturnValue(@)".}
 proc getApplicationReturnValue*(this: JUCEApplicationBase): cint {.header: juce_events, importcpp: "#.getApplicationReturnValue()".}
+proc isStandaloneApp*(this: typedesc[JUCEApplicationBase]): bool {.header: juce_events, importcpp: "juce::JUCEApplicationBase::isStandaloneApp()".}
 proc isInitialising*(this: JUCEApplicationBase): bool {.header: juce_events, importcpp: "#.isInitialising()".}
+proc main*(this: typedesc[JUCEApplicationBase]): cint {.header: juce_events, importcpp: "juce::JUCEApplicationBase::main()".}
+# proc main*(this: typedesc[JUCEApplicationBase], argc: cint, argv: constChar[]): cint {.header: juce_events, importcpp: "juce::JUCEApplicationBase::main(@)".}  # a C array parameter; every one of these has an overload taking a String or a value instead
+proc appWillTerminateByForce*(this: typedesc[JUCEApplicationBase]) {.header: juce_events, importcpp: "juce::JUCEApplicationBase::appWillTerminateByForce()".}
 proc initialiseApp*(this: var JUCEApplicationBase): bool {.header: juce_events, importcpp: "#.initialiseApp()".}
 proc shutdownApp*(this: var JUCEApplicationBase): cint {.header: juce_events, importcpp: "#.shutdownApp()".}
+proc sendUnhandledException*(this: typedesc[JUCEApplicationBase], arg1: ptr CppException, sourceFile: constChar, lineNumber: cint) {.header: juce_events, importcpp: "juce::JUCEApplicationBase::sendUnhandledException(@)".}
 proc sendCommandLineToPreexistingInstance*(this: var JUCEApplicationBase): bool {.header: juce_events, importcpp: "#.sendCommandLineToPreexistingInstance()".}
 proc `==`*(this: JUCEApplicationBase, other: JUCEApplicationBase): bool {.error: "juce::JUCEApplicationBase defines no operator==; compare a property instead".}
 
@@ -160,6 +176,8 @@ proc startTimerHz*(this: var Timer, timerFrequencyHz: cint) {.header: juce_event
 proc stopTimer*(this: var Timer) {.header: juce_events, importcpp: "#.stopTimer()".}
 proc isTimerRunning*(this: Timer): bool {.header: juce_events, importcpp: "#.isTimerRunning()".}
 proc getTimerInterval*(this: Timer): cint {.header: juce_events, importcpp: "#.getTimerInterval()".}
+proc callAfterDelay*(this: typedesc[Timer], milliseconds: cint, functionToCall: CppFunctionObjectN0) {.header: juce_events, importcpp: "juce::Timer::callAfterDelay(@)".}
+proc callPendingTimersSynchronously*(this: typedesc[Timer]) {.header: juce_events, importcpp: "juce::Timer::callPendingTimersSynchronously()".}
 proc `==`*(this: Timer, other: Timer): bool {.error: "juce::Timer defines no operator==; compare a property instead".}
 
 proc makeTimedCallback*(callbackIn: CppFunctionObjectN0): TimedCallback {.header: juce_events, importcpp: "juce::TimedCallback(@)".}
@@ -172,6 +190,9 @@ proc isTimerRunning*(this: MultiTimer, timerID: cint): bool {.header: juce_event
 proc getTimerInterval*(this: MultiTimer, timerID: cint): cint {.header: juce_events, importcpp: "#.getTimerInterval(@)".}
 proc `==`*(this: MultiTimer, other: MultiTimer): bool {.error: "juce::MultiTimer defines no operator==; compare a property instead".}
 
+proc getInstance*(this: typedesc[ChildProcessManager]): ptr ChildProcessManager {.header: juce_events, importcpp: "juce::ChildProcessManager::getInstance()".}
+proc getInstanceWithoutCreating*(this: typedesc[ChildProcessManager]): ptr ChildProcessManager {.header: juce_events, importcpp: "juce::ChildProcessManager::getInstanceWithoutCreating()".}
+proc deleteInstance*(this: typedesc[ChildProcessManager]) {.header: juce_events, importcpp: "juce::ChildProcessManager::deleteInstance()".}
 proc clearSingletonInstance*(this: var ChildProcessManager) {.header: juce_events, importcpp: "#.clearSingletonInstance()".}
 proc addChildProcessExitedListener*(this: var ChildProcessManager, listener: CppFunctionObjectN1[ChildProcess]): ErasedScopeGuard {.header: juce_events, importcpp: "#.addChildProcessExitedListener(@)".}
 proc hasRunningProcess*(this: ChildProcessManager): bool {.header: juce_events, importcpp: "#.hasRunningProcess()".}
