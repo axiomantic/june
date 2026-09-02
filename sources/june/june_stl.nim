@@ -18,6 +18,9 @@ type
   # Bound so that JUCEApplication's unhandledException can be overridden. The
   # only thing worth reading off one is its message.
   CppException* {.header: "<exception>", importcpp: "std::exception", inheritable, pure.} = object
+  # Opaque: the only things C++ offers on one are comparison and a name whose
+  # spelling is implementation defined.
+  CppTypeIndex* {.header: "<typeindex>", importcpp: "std::type_index", bycopy.} = object
   CppMap*[K, V] {.header: "<map>", importcpp: "std::map<'0, '1>", bycopy.} = object
   CppUnorderedMap*[K, V] {.header: "<unordered_map>", importcpp: "std::unordered_map<'0, '1>", bycopy.} = object
   # The size is a value rather than a type, so it is a static parameter: Nim
@@ -50,6 +53,10 @@ proc value*[T](this: CppOptional[T]): T {.importcpp: "#.value()".}
 proc valueOr*[T](this: CppOptional[T], fallback: T): T {.importcpp: "#.value_or(@)".}
 
 proc what*(this: CppException): constChar {.importcpp: "#.what()".}
+
+proc `==`*(this: CppTypeIndex, other: CppTypeIndex): bool {.importcpp: "(# == #)".}
+proc `<`*(this: CppTypeIndex, other: CppTypeIndex): bool {.importcpp: "(# < #)".}
+proc name*(this: CppTypeIndex): constChar {.importcpp: "#.name()".}
 
 proc size*[K, V](this: CppMap[K, V]): csize_t {.importcpp: "#.size()".}
 proc isEmpty*[K, V](this: CppMap[K, V]): bool {.importcpp: "#.empty()".}
