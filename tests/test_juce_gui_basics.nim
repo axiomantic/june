@@ -705,3 +705,40 @@ proc testDirectCallbackAssignment() =
     shutdownJuce_GUI()
 
 testDirectCallbackAssignment()
+
+# ListBoxModel ================================================================
+#
+# getNumRows and paintListBoxItem are both pure virtual, so a ListBox could not
+# be given a model at all before there was a subclass. getNumRows is also the
+# only override in the library whose virtual returns a value, so this is what
+# covers the generated forwarder's returning form: the callback's result when
+# one is set, and a default-constructed value when none is.
+
+proc testListBoxModel() =
+    initialiseJuce_GUI()
+
+    block:
+        var model = newCustomListBoxModel()
+
+        # No handler yet, so the forwarder takes its `else return {}` branch.
+        doAssert model[].getNumRows() == 0,
+                 "an unset callback returned " & $model[].getNumRows()
+
+        model[].setNumRowsHandler(proc(): cint = 7)
+        doAssert model[].getNumRows() == 7,
+                 "getNumRows returned " & $model[].getNumRows()
+
+        # And the same value arrives through the C++ virtual, called by JUCE
+        # rather than by Nim.
+        var box = makeListBox(makeString("list"), cast[ptr ListBoxModel](model))
+        box.updateContent()
+        doAssert box.getListBoxModel() == cast[ptr ListBoxModel](model),
+                 "the box is holding a different model"
+        doAssert box.getListBoxModel()[].getNumRows() == 7,
+                 "through the box it is " & $box.getListBoxModel()[].getNumRows()
+
+        cdelete model
+
+    shutdownJuce_GUI()
+
+testListBoxModel()
