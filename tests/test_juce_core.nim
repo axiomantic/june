@@ -574,3 +574,22 @@ proc testGeneratedSubclassDispatch() =
   cdelete stream
 
 testGeneratedSubclassDispatch()
+
+# A generated Thread, run ====================================================
+#
+# juce::Thread::run is pure virtual, so a background thread could not be
+# written in Nim at all before the subclass existed. This starts one and waits
+# for it, so the handler runs on a thread JUCE created rather than on this one.
+
+proc testGeneratedThreadRuns() =
+  var ran = false
+  var thread = newCustomThread(makeString("june-test"), 0.csize_t)
+  thread[].setRunHandler(proc() = ran = true)
+
+  doAssert thread[].startThread(), "the thread did not start"
+  doAssert thread[].waitForThreadToExit(5000.cint), "the thread did not finish in time"
+  doAssert ran, "run() was never called"
+
+  cdelete thread
+
+testGeneratedThreadRuns()
