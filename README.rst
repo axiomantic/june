@@ -445,6 +445,12 @@ two apart, so those two are named in the generator with the reason, and
 ``check_handwritten_covered.py`` fails unless a test builds every one of the
 constructors that is emitted.
 
+``cnew`` takes a constructor call, not a name. Its ``importcpp`` pattern
+expands to ``new T(args)``, so ``cnew(makeDrawableRectangle())`` works and
+``cnew(existingValue)`` is rejected with "call expression expected for C++
+pattern". Where the object needs configuring before it is handed over, build it
+with ``cnew`` first and configure it through the pointer.
+
 ``Array[T]``'s ``[]`` returns by value, and Nim builds a temporary for that,
 which needs ``T`` to be default-constructible. ``juce::TextLayout::Glyph`` is
 not, so every element of a laid-out run was unreachable. ``getReference`` is
