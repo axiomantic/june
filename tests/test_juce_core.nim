@@ -1236,3 +1236,56 @@ proc testExpression() =
 
 testIPAddress()
 testExpression()
+
+# StringPairArray =============================================================
+#
+# The key/value store behind URL parameters and file metadata. Its lookups take
+# a StringRef, so a Nim literal reaches them through the converter.
+
+proc testStringPairArray() =
+  var pairs = makeStringPairArray(true)
+  doAssert pairs.size() == 0, "a fresh array holds " & $pairs.size()
+
+  pairs.set(makeString("host"), makeString("example.com"))
+  pairs.set(makeString("port"), makeString("8080"))
+  doAssert pairs.size() == 2, "the array holds " & $pairs.size()
+  doAssert $pairs.getValue("host", makeString("none")) == "example.com",
+           "getValue gave " & $pairs.getValue("host", makeString("none"))
+
+  # Built with ignoreCase, so a differently-cased key finds the same entry.
+  doAssert pairs.containsKey("HOST"), "the case-insensitive lookup missed"
+
+  # The keys and values come back as parallel arrays.
+  doAssert pairs.getAllKeys().size() == 2, "getAllKeys returned the wrong count"
+  doAssert pairs.getAllValues().size() == 2, "getAllValues returned the wrong count"
+
+  pairs.remove("host")
+  doAssert pairs.size() == 1, "after removal the array holds " & $pairs.size()
+  pairs.clear()
+  doAssert pairs.size() == 0, "clear left " & $pairs.size()
+
+# MemoryInputStream ===========================================================
+#
+# Reads back what MemoryOutputStream wrote, which is the pair of concrete
+# streams the abstract InputStream and OutputStream subclasses stand in for.
+
+proc testMemoryInputStream() =
+  var output = makeMemoryOutputStream(16.uint64)
+  doAssert output.writeText(makeString("hello"), false, false, cast[constChar](nil)),
+           "writeText reported failure"
+
+  var input = makeMemoryInputStream(output.getData(), output.getDataSize(), false)
+  doAssert input.getTotalLength() == 5, "the stream is " & $input.getTotalLength() & " bytes"
+  doAssert input.getPosition() == 0, "a fresh stream is at " & $input.getPosition()
+  doAssert not input.isExhausted(), "a full stream reported exhausted"
+
+  var buffer: array[8, char]
+  doAssert input.read(buffer[0].addr, 5.cint) == 5, "read returned the wrong count"
+  doAssert buffer[0] == 'h' and buffer[4] == 'o', "the bytes came back wrong"
+  doAssert input.isExhausted(), "the stream was not exhausted after reading it all"
+
+  doAssert input.setPosition(0.int64), "setPosition reported failure"
+  doAssert input.getPosition() == 0, "setPosition left it at " & $input.getPosition()
+
+testStringPairArray()
+testMemoryInputStream()
