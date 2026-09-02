@@ -401,6 +401,11 @@ in a module, and is run the same way::
     PYTHONPATH=tools python3 tools/generate_subclasses.py --module "$module" > "sources/june/${module}_subclasses.nim"
   done
 
+Both generators read the platform's headers, and JUCE hides some classes behind
+``JUCE_MAC`` or ``JUCE_WINDOWS``, so the committed files are the macOS output
+and CI checks them there. A ``generated files are current`` job regenerates and
+diffs, which is what stops a generator change from landing without its output.
+
 A class it cannot express is listed at the end of the file with the reason, in
 the same style as an unbound proc. Count what is left with::
 
