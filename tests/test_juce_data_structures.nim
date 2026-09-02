@@ -97,3 +97,51 @@ proc testGeneratedUndoableAction() =
   doAssert undone == 1, "undo ran " & $undone & " times"
 
 testGeneratedUndoableAction()
+
+# Value =======================================================================
+#
+# A shared reference to a var. Two Values referring to the same source see each
+# other's writes, which is the whole point of the class and the only part worth
+# asserting.
+
+proc testValue() =
+  var first = makeValue(makejuce_var(makeString("start")))
+  doAssert $first.toString() == "start", "toString gave " & $first.toString()
+
+  var second = makeValue()
+  second.referTo(first)
+  doAssert second.refersToSameSourceAs(first), "referTo did not share the source"
+
+  first.setValue(makejuce_var(makeString("changed")))
+  doAssert $second.toString() == "changed",
+           "the other Value did not see the write: " & $second.toString()
+
+  # A Value made on its own does not share with it.
+  var separate = makeValue(makejuce_var(makeString("other")))
+  doAssert not separate.refersToSameSourceAs(first), "an unrelated Value shared the source"
+
+# ValueTreePropertyWithDefault ================================================
+#
+# A property that falls back to a default until something writes to it. The
+# isUsingDefault flag is what distinguishes the two states, and it is exactly
+# the sort of thing that reads true forever if bound wrong.
+
+proc testValueTreePropertyWithDefault() =
+  var tree = makeValueTree(makeIdentifier("settings"))
+  var property = makeValueTreePropertyWithDefault(tree, makeIdentifier("volume"), nil)
+
+  property.setDefault(makejuce_var(50.cint))
+  doAssert property.isUsingDefault(), "a fresh property was not using its default"
+  doAssert property.get().toString() == makejuce_var(50.cint).toString(),
+           "the default did not come back"
+
+  property.setValue(makejuce_var(80.cint), nil)
+  doAssert not property.isUsingDefault(), "after a write it still reported the default"
+  doAssert property.get().toString() == makejuce_var(80.cint).toString(),
+           "the written value did not come back"
+
+  property.resetToDefault()
+  doAssert property.isUsingDefault(), "resetToDefault did not restore the default"
+
+testValue()
+testValueTreePropertyWithDefault()
