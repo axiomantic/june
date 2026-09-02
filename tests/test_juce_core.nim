@@ -628,3 +628,51 @@ proc testTime() =
   doAssert makeTime(0.int64).toMilliseconds() == 0, "the epoch was not zero"
 
 testTime()
+
+# Methods the skip table used to withhold ======================================
+#
+# Each of these was excluded by name with no reason recorded. Skipping by name
+# also took overloads with it: ConsoleApplication::findAndRunCommand has one
+# form taking an ArgumentList and one taking a C array, and only the second
+# cannot be bound. The generator judges each signature on its own now, so the
+# C array form is the only one still commented and it says why.
+
+proc testRestoredBindings() =
+  # Random, seeded so the sequence is reproducible.
+  var random = makeRandom(12345.int64)
+  let first = random.nextInt()
+  let bounded = random.nextInt(10.cint)
+  doAssert bounded >= 0 and bounded < 10, "bounded nextInt gave " & $bounded
+  var again = makeRandom(12345.int64)
+  doAssert again.nextInt() == first, "the seeded sequence did not reproduce"
+
+  # String::quoted wraps in the character it is given.
+  doAssert $makeString("hi").quoted(uint16('\'')) == "'hi'",
+           "quoted gave " & $makeString("hi").quoted(uint16('\''))
+
+  # DynamicObject::clone returns an owning pointer to a copy.
+  var original = makeDynamicObject()
+  original.setProperty(makeIdentifier("n"), makejuce_var(7.cint))
+  let copied = original.clone()
+  doAssert not copied.isNil(), "clone returned nothing"
+  doAssert copied.get()[].hasProperty(makeIdentifier("n")), "the clone lost the property"
+
+  # RelativeTime::getDescription returns the given text for a zero duration.
+  doAssert $makeRelativeTime(0.0).getDescription(makeString("none")) == "none",
+           "getDescription gave " & $makeRelativeTime(0.0).getDescription(makeString("none"))
+
+  # StringArray::appendNumbersToDuplicates renames the second occurrence.
+  var names = makeStringArray()
+  names.add(makeString("dup"))
+  names.add(makeString("dup"))
+  # JUCE gives the two suffix strings defaults that the generator cannot spell,
+  # so all four arguments are passed. " (" and ")" are what JUCE defaults to.
+  var opening = " ("
+  var closing = ")"
+  names.appendNumbersToDuplicates(false, false,
+                                  makeCharPointer_UTF8(cast[ptr char](opening[0].addr)),
+                                  makeCharPointer_UTF8(cast[ptr char](closing[0].addr)))
+  doAssert names.size() == 2, "the array holds " & $names.size()
+  doAssert $names[1.cint] != "dup", "the duplicate was not renumbered"
+
+testRestoredBindings()
