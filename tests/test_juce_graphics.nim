@@ -147,3 +147,21 @@ proc testDoublyNestedEnums() =
            PathIteratorPathElementType_closePath.cint
 
 testDoublyNestedEnums()
+
+# Nested classes had a type and nothing else: one could be held and passed and
+# never built or called on. Image::BitmapData is the pixel-access API, and it
+# is the case that proves the methods reach the right C++ class.
+proc testNestedClassMethods() =
+  var image = makeImage(ImagePixelFormat_ARGB, 4.cint, 4.cint, true)
+  var graphics = makeGraphics(image)
+  graphics.setColour(makeColour(10'u8, 20'u8, 30'u8, 255'u8))
+  graphics.fillRect(0.cint, 0.cint, 4.cint, 4.cint)
+
+  let pixels = makeImageBitmapData(image, ImageBitmapDataReadWriteMode_readOnly)
+  let colour = pixels.getPixelColour(1.cint, 1.cint)
+
+  doAssert colour.getRed() == 10'u8, "red came back as " & $colour.getRed()
+  doAssert colour.getGreen() == 20'u8
+  doAssert colour.getBlue() == 30'u8
+
+testNestedClassMethods()

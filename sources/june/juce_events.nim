@@ -63,6 +63,12 @@ proc deregisterBroadcastListener*(this: var MessageManager, listener: ptr Action
 proc deliverBroadcastMessage*(this: var MessageManager, arg1: String) {.header: juce_events, importcpp: "#.deliverBroadcastMessage(@)".}
 proc `==`*(this: MessageManager, other: MessageManager): bool {.error: "juce::MessageManager defines no operator==; compare a property instead".}
 
+proc makeMessageManagerMessageBase*(): MessageManagerMessageBase {.header: juce_events, importcpp: "juce::MessageManager::MessageBase(@)".}
+proc messageCallback*(this: var MessageManagerMessageBase) {.header: juce_events, importcpp: "#.messageCallback()".}
+proc post*(this: var MessageManagerMessageBase): bool {.header: juce_events, importcpp: "#.post()".}
+proc `MessageManagerMessageBase=`*(this: var MessageManagerMessageBase, arg1: MessageManagerMessageBase): var MessageManagerMessageBase {.header: juce_events, importcpp: "#.operator=(@)".}
+proc `==`*(this: MessageManagerMessageBase, other: MessageManagerMessageBase): bool {.error: "juce::MessageManager::MessageBase defines no operator==; compare a property instead".}
+
 proc makeMessageManagerLock*(threadToCheckForExitSignal: ptr Thread): MessageManagerLock {.header: juce_events, importcpp: "juce::MessageManagerLock(@)".}
 proc makeMessageManagerLock*(jobToCheckForExitSignal: ptr ThreadPoolJob): MessageManagerLock {.header: juce_events, importcpp: "juce::MessageManagerLock(@)".}
 proc lockWasGained*(this: MessageManagerLock): bool {.header: juce_events, importcpp: "#.lockWasGained()".}
@@ -215,6 +221,15 @@ proc sendMessageToSlave*(this: var ChildProcessCoordinator, mb: MemoryBlock): bo
 proc `==`*(this: ChildProcessCoordinator, other: ChildProcessCoordinator): bool {.error: "juce::ChildProcessCoordinator defines no operator==; compare a property instead".}
 
 proc `==`*(this: NetworkServiceDiscovery, other: NetworkServiceDiscovery): bool {.error: "juce::NetworkServiceDiscovery defines no operator==; compare a property instead".}
+
+proc makeNetworkServiceDiscoveryAdvertiser*(serviceTypeUID: String, serviceDescription: String, broadcastPort: cint, connectionPort: cint, minTimeBetweenBroadcasts: RelativeTime): NetworkServiceDiscoveryAdvertiser {.header: juce_events, importcpp: "juce::NetworkServiceDiscovery::Advertiser(@)".}
+proc `==`*(this: NetworkServiceDiscoveryAdvertiser, other: NetworkServiceDiscoveryAdvertiser): bool {.error: "juce::NetworkServiceDiscovery::Advertiser defines no operator==; compare a property instead".}
+
+proc `==`*(this: NetworkServiceDiscoveryService, other: NetworkServiceDiscoveryService): bool {.error: "juce::NetworkServiceDiscovery::Service defines no operator==; compare a property instead".}
+
+proc makeNetworkServiceDiscoveryAvailableServiceList*(serviceTypeUID: String, broadcastPort: cint): NetworkServiceDiscoveryAvailableServiceList {.header: juce_events, importcpp: "juce::NetworkServiceDiscovery::AvailableServiceList(@)".}
+proc getServices*(this: NetworkServiceDiscoveryAvailableServiceList): CppVector[NetworkServiceDiscoveryService] {.header: juce_events, importcpp: "#.getServices()".}
+proc `==`*(this: NetworkServiceDiscoveryAvailableServiceList, other: NetworkServiceDiscoveryAvailableServiceList): bool {.error: "juce::NetworkServiceDiscovery::AvailableServiceList defines no operator==; compare a property instead".}
 
 proc makeScopedLowPowerModeDisabler*(): ScopedLowPowerModeDisabler {.header: juce_events, importcpp: "juce::ScopedLowPowerModeDisabler(@)".}
 proc `==`*(this: ScopedLowPowerModeDisabler, other: ScopedLowPowerModeDisabler): bool {.error: "juce::ScopedLowPowerModeDisabler defines no operator==; compare a property instead".}

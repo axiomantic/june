@@ -275,7 +275,10 @@ Hand-written additions live in the ``*_lifting.nim`` files and in
 ``june_juce_types.nim``.
 
 - Classes, with their inheritance, so a ``TextButton`` accepts every
-  ``Component`` method.
+  ``Component`` method. Nested classes too, with their own methods and
+  constructors, under the name of the class that encloses them:
+  ``LookAndFeel_V4::ColourScheme`` is ``LookAndFeel_V4ColourScheme`` and
+  ``Image::BitmapData`` is ``ImageBitmapData``.
 - Constructors, as ``make<ClassName>`` procs.
 - Enums, as distinct integer types. Enumerators are prefixed with the type name:
   ``JustificationFlags_centred``, ``NotificationType_sendNotification``.

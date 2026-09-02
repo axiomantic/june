@@ -547,15 +547,20 @@ def type_is_declared(rendered, declared):
 
 #==================================================================================================
 
-def remap_identifier(identifier):
-    remap_table = {
-        "type": "`type`",
-        "end": "`end`",
-        "object": "`object`",
-        "method": "`method`",
-    }
+# Every Nim keyword, not the handful that happened to come up. A C++ parameter
+# or method named after one is a syntax error, and each was found by the
+# compiler rejecting a regenerated file.
+nim_keywords = frozenset("""
+    addr and as asm bind block break case cast concept const continue converter
+    defer discard distinct div do elif else end enum except export finally for
+    from func if import in include interface is isnot iterator let macro method
+    mixin mod nil not notin object of or out proc ptr raise ref return shl shr
+    static template try tuple type using var when while xor yield
+""".split())
 
-    return remap_table.get(identifier, identifier)
+
+def remap_identifier(identifier):
+    return f"`{identifier}`" if identifier in nim_keywords else identifier
 
 def remap_method_name(method_name):
     return remap_identifier(method_name)
@@ -944,9 +949,15 @@ def run_main(juce_module_name, juce_class_name_to_export):
         declared_type_names.add(enum_name)
         enum_remap[qualified] = enum_name
         if owner:
-            # libclang prints a nested name as it was written, so the parameter
-            # arrives as Image::BitmapData::ReadWriteMode without the namespace.
-            enum_remap[f"{owner}::{enum_cursor.spelling}"] = enum_name
+            # libclang prints a nested name as it was written, and how much of
+            # the path it writes depends on the scope it was written in:
+            # LookAndFeel_V4::ColourScheme::UIColour arrives as
+            # ColourScheme::UIColour inside LookAndFeel_V4. Register every
+            # suffix of the owner path so each spelling resolves.
+            owner_parts = owner.split("::")
+            for index in range(len(owner_parts)):
+                suffix = "::".join(owner_parts[index:])
+                enum_remap[f"{suffix}::{enum_cursor.spelling}"] = enum_name
         else:
             enum_remap[enum_cursor.spelling] = enum_name
 
@@ -1033,20 +1044,37 @@ def run_main(juce_module_name, juce_class_name_to_export):
         key.split("::")[-1]: value for key, value in global_nested_remap.items()
         if bare_nested_counts[key.split("::")[-1]] == 1}
 
+    # A nested class is emitted as a type but had no methods and no
+    # constructors, so one could be held and passed and never built or called
+    # on: LookAndFeel_V4::ColourScheme, Image::BitmapData and PopupMenu::Options
+    # among them. Emitting for the inner classes too treats each as a class in
+    # its own right, under the concatenated name its type already carries.
+    emission_targets = []
+    # A top-level class owns its name. juce::MessageManagerLock and
+    # juce::MessageManager::Lock are different classes that concatenate to the
+    # same Nim name, and emitting for both puts one class's methods on the
+    # other's type.
+    top_level_names = {remap_exported_class_name(x.spelling) for x in all_classes}
     for c in module_classes:
+        emission_targets.append((c, remap_exported_class_name(c.spelling), f"juce::{c.spelling}"))
+        for ic in class_inner.get(c.spelling, []):
+            inner_name = f"{remap_class_name(c.spelling)}{ic.spelling}"
+            if inner_name in top_level_names:
+                continue
+            emission_targets.append(
+                (ic, inner_name, f"juce::{c.spelling}::{ic.spelling}"))
+
+    for c, class_name, qualified_name in emission_targets:
         if juce_class_name_to_export is not None and c.spelling != juce_class_name_to_export:
             continue
 
         if c.spelling.startswith("this_will_fail_to_link"):
             continue
 
-        class_name = remap_exported_class_name(c.spelling)
-        qualified_name = f"juce::{c.spelling}"
-
         remap_inner_classes = {}
-        for ic in class_inner[c.spelling]:
+        for ic in class_inner.get(c.spelling, []):
             mapped_inner = f"{class_name}{ic.spelling}"
-            remap_inner_classes[f"juce::{c.spelling}::{ic.spelling}"] = mapped_inner
+            remap_inner_classes[f"{qualified_name}::{ic.spelling}"] = mapped_inner
 
             # Inside its own class a nested type is spelled bare, so
             # Slider::Listener arrives as "Listener". Map that too, unless a
@@ -1060,8 +1088,12 @@ def run_main(juce_module_name, juce_class_name_to_export):
             if (node.kind != CursorKind.ENUM_DECL or is_anonymous_enum(node)
                     or node.access_specifier != AccessSpecifier.PUBLIC):
                 continue
-            mapped_enum = f"{remap_class_name(c.spelling)}{node.spelling}"
-            remap_inner_classes[f"juce::{c.spelling}::{node.spelling}"] = mapped_enum
+            # class_name and qualified_name rather than c.spelling: those
+            # coincide for a top-level class and do not for an inner one, whose
+            # Nim name carries its enclosing class and whose C++ name carries
+            # the whole path.
+            mapped_enum = f"{class_name}{node.spelling}"
+            remap_inner_classes[f"{qualified_name}::{node.spelling}"] = mapped_enum
             if f"juce::{node.spelling}" not in class_juce_map:
                 remap_inner_classes[node.spelling] = mapped_enum
 
@@ -1078,9 +1110,11 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 remap_inner_classes.setdefault(node.spelling, resolved)
                 remap_inner_classes.setdefault(f"juce::{c.spelling}::{node.spelling}", resolved)
 
-        if c.spelling in done_classes:
+        # Keyed on the qualified name: several classes have an inner Options,
+        # and the bare name would let the first one seen suppress the rest.
+        if qualified_name in done_classes:
             continue
-        done_classes.add(c.spelling)
+        done_classes.add(qualified_name)
 
         #print(c.spelling)
         #print(list(map(lambda x: x.spelling, class_inheritance_map[c.spelling])))
