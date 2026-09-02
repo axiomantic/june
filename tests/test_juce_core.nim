@@ -232,6 +232,13 @@ proc testStlContainers() =
   # constructors rather than choosing one.
   doAssert $pairs.getValue("accept", makeString("")) == "text/plain"
 
+  var unordered = makeCppUnorderedMap[String, String]()
+  unordered[makeString("host")] = makeString("localhost")
+  doAssert unordered.size() == 1.csize_t
+  doAssert unordered.contains(makeString("host"))
+  pairs.addUnorderedMap(unordered)
+  doAssert $pairs.getValue("host", makeString("")) == "localhost"
+
   var fifo = makeSingleThreadedAbstractFifo(8.cint)
   let ranges = fifo.write(3.cint)
   doAssert ranges.len() == 2
