@@ -28,5 +28,21 @@ type
 converter toConstChar*(text: string): constChar = cast[constChar](text.cstring)
 
 
+# A pointer to const, which Nim has no type for. `ptr T` is mutable, and C++
+# does not convert `const T*` to `T*`, so binding a method that returns one as
+# `ptr T` produced a proc that could not be called at all: 25 of them sat in the
+# generated files, uncompiled, because an importcpp string only reaches the C++
+# compiler at a call site.
+#
+# It is distinct rather than an alias so that nothing implicitly turns it back
+# into a `ptr T`. `[]` yields the value for reading, which is enough to call any
+# method JUCE declares const and is refused for one taking `var T` - which is
+# exactly what the C++ const means.
+type ConstPtr*[T] {.importcpp: "const '0 *", nodecl.} = object
+
+proc isNil*[T](p: ConstPtr[T]): bool {.importcpp: "(# == nullptr)", nodecl.}
+proc `[]`*[T](p: ConstPtr[T]): lent T {.importcpp: "(*#)", nodecl.}
+proc `==`*[T](a: ConstPtr[T], b: ConstPtr[T]): bool {.importcpp: "(# == #)", nodecl.}
+
 proc cnew*[T](x: T): ptr T {.importcpp: "(new '*0#@)", nodecl.}
 proc cdelete*[T](x: ptr T) {.importcpp: "(delete @)", nodecl.}
