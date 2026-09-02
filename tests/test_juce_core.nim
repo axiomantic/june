@@ -907,3 +907,33 @@ testUuid()
 testBigInteger()
 testPropertySet()
 testMemoryOutputStream()
+
+# CharPointer_UTF8 ============================================================
+#
+# JUCE's UTF-8 cursor over a raw buffer. It does not own the bytes, so the Nim
+# string behind it has to outlive it, the same contract StringRef has.
+
+proc testCharPointerUTF8() =
+  var buffer = "abc"
+  let start = makeCharPointer_UTF8(cast[ptr char](buffer[0].addr))
+
+  doAssert not start.isEmpty(), "a non-empty buffer reported empty"
+  doAssert start.isNotEmpty(), "isNotEmpty disagreed with isEmpty"
+  doAssert start.length() == 3'u64, "length gave " & $start.length()
+  doAssert start.sizeInBytes() == 4'u64,
+           "sizeInBytes gave " & $start.sizeInBytes() & ", the terminator included"
+
+  # lengthUpTo stops counting where it is told to.
+  doAssert start.lengthUpTo(2'u64) == 2'u64, "lengthUpTo gave " & $start.lengthUpTo(2'u64)
+
+  # getAndAdvance walks the buffer one character at a time.
+  var cursor = makeCharPointer_UTF8(cast[ptr char](buffer[0].addr))
+  doAssert cursor.getAndAdvance() == uint16('a'), "the first character"
+  doAssert cursor.getAndAdvance() == uint16('b'), "the second character"
+  doAssert cursor.length() == 1'u64, "after two steps the rest is " & $cursor.length()
+
+  var empty = ""
+  doAssert makeCharPointer_UTF8(cast[ptr char](empty.cstring)).isEmpty(),
+           "an empty buffer reported non-empty"
+
+testCharPointerUTF8()
