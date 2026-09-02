@@ -220,6 +220,15 @@ iterator items*[T](this: OwnedArray[T]): ptr T =
     yield this[index]
 
 # ReferenceCountedObjectPtr
+# There was no way to make one. Everything that produced a
+# ReferenceCountedObjectPtr came out of JUCE, so a Nim override of a virtual
+# that has to return one - ImagePixelData::clone, Typeface::createSystemFallback
+# - could not be written at all.
+proc makeReferenceCountedObjectPtr*[T](): ReferenceCountedObjectPtr[T]
+    {.header: "<juce_core/juce_core.h>", importcpp: "juce::ReferenceCountedObjectPtr<'*0>()", constructor.}
+proc makeReferenceCountedObjectPtr*[T](target: ptr T): ReferenceCountedObjectPtr[T]
+    {.header: "<juce_core/juce_core.h>", importcpp: "juce::ReferenceCountedObjectPtr<'*0>(@)", constructor.}
+
 proc get*[T](this: ReferenceCountedObjectPtr[T]): ptr T {.importcpp: "#.get()".}
 proc isNil*[T](this: ReferenceCountedObjectPtr[T]): bool {.importcpp: "(# == nullptr)".}
 

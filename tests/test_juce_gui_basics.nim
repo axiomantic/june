@@ -2245,20 +2245,32 @@ proc testRemainingGuiSubclasses() =
     block:
         var buttonProperty = newCustomButtonPropertyComponent(makeString("prop"), true)
         doAssert not buttonProperty.isNil(), "the button property was not built"
+        buttonProperty[].setButtonClickedHandler(proc() = discard)
+        buttonProperty[].setGetButtonTextHandler(proc(): String = makeString("text"))
         cdelete buttonProperty
 
         var property = newCustomPropertyComponent(makeString("prop"), 20.cint)
         doAssert not property.isNil(), "the property was not built"
+        property[].setRefreshHandler(proc() = discard)
         cdelete property
 
         var watched = newCustomComponent()
         var watcher = newCustomComponentMovementWatcher(cast[ptr Component](watched))
         doAssert not watcher.isNil(), "the movement watcher was not built"
+        # Three pure virtuals. The generator used to emit only one of them, and
+        # the subclass stayed abstract.
+        watcher[].setComponentMovedOrResizedHandler(proc(wasMoved: bool,
+                                                         wasResized: bool) = discard)
+        watcher[].setComponentPeerChangedHandler(proc() = discard)
+        watcher[].setComponentVisibilityChangedHandler(proc() = discard)
         cdelete watcher
 
         var positioner = newCustomRelativeCoordinatePositionerBase(
             cast[ptr Component](watched)[])
         doAssert not positioner.isNil(), "the positioner was not built"
+        positioner[].setApplyNewBoundsHandler(proc(newBounds: ptr Rectangle[cint]) = discard)
+        positioner[].setRegisterCoordinatesHandler(proc(): bool = true)
+        positioner[].setApplyToComponentBoundsHandler(proc() = discard)
         cdelete positioner
         cdelete watched
 
@@ -2266,6 +2278,12 @@ proc testRemainingGuiSubclasses() =
         var listing = makeDirectoryContentsList(nil, scanner)
         var display = newCustomDirectoryContentsDisplayComponent(listing)
         doAssert not display.isNil(), "the contents display was not built"
+        display[].setGetNumSelectedFilesHandler(proc(): cint = 0.cint)
+        display[].setGetSelectedFileHandler(proc(index: cint): june.File =
+            makeFile(makeString("")))
+        display[].setDeselectAllFilesHandler(proc() = discard)
+        display[].setScrollToTopHandler(proc() = discard)
+        display[].setSetSelectedFileHandler(proc(arg0: ptr june.File) = discard)
         cdelete display
 
     shutdownJuce_GUI()

@@ -1524,8 +1524,24 @@ proc testRemainingCoreSubclasses() =
         doAssert not job.isNil(), "the job was not built"
         cdelete job
 
+        # Setting a handler is what type-checks and generates the setter. An
+        # uncalled one is neither, and the C++ field it assigns to is never
+        # touched.
+        job[].setRunJobHandler(proc(): ThreadPoolJobJobStatus =
+            ThreadPoolJobJobStatus_jobHasFinished)
+
         var unitTest = newCustomUnitTest(makeString("name"), makeString("category"))
         doAssert not unitTest.isNil(), "the unit test was not built"
+        unitTest[].setRunTestHandler(proc() = discard)
         cdelete unitTest
+
+        # Neither smart pointer had a constructor, so a Nim override of a
+        # virtual returning one could not be written at all.
+        let empty = makeUniquePtr[XmlElement]()
+        doAssert empty.isNil(), "a default unique_ptr is not nil"
+        var owned = makeUniquePtr[XmlElement](cnew(makeXmlElement(makeString("tag"))))
+        doAssert not owned.isNil(), "a unique_ptr over a pointer is nil"
+        doAssert $owned.get()[].getTagName() == "tag",
+                 "the element is " & $owned.get()[].getTagName()
 
 testRemainingCoreSubclasses()
