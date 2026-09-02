@@ -2374,4 +2374,101 @@ proc testAccessibilityAndInputSubclasses() =
 
 
 testRemainingGuiSubclasses()
+# The last of the gui subclass handlers =======================================
+#
+# A setter nothing calls is neither type-checked in its body nor generated, and
+# the C++ field it assigns to is never written. What is left after this block
+# is CustomJUCEApplicationBase, which no test can build.
+
+proc testRemainingGuiHandlers() =
+    initialiseJuce_GUI()
+
+    block:
+        var cached = newCustomCachedComponentImage()
+        cached[].setInvalidateAllHandler(proc(): bool = true)
+        cached[].setInvalidateHandler(proc(area: ptr Rectangle[cint]): bool = true)
+        cached[].setReleaseResourcesHandler(proc() = discard)
+        cdelete cached
+
+        var textDrag = newCustomTextDragAndDropTarget()
+        textDrag[].setIsInterestedInTextDragHandler(proc(text: ptr String): bool = false)
+        textDrag[].setTextDroppedHandler(proc(text: ptr String, x: cint, y: cint) = discard)
+        cdelete textDrag
+
+        var fileDrag = newCustomFileDragAndDropTarget()
+        fileDrag[].setIsInterestedInFileDragHandler(proc(files: ptr StringArray): bool = false)
+        fileDrag[].setFilesDroppedHandler(proc(files: ptr StringArray, x: cint,
+                                               y: cint) = discard)
+        cdelete fileDrag
+
+        var drag = newCustomDragAndDropTarget()
+        drag[].setIsInterestedInDragSourceHandler(
+            proc(dragSourceDetails: ptr DragAndDropTargetSourceDetails): bool = false)
+        drag[].setItemDroppedHandler(
+            proc(dragSourceDetails: ptr DragAndDropTargetSourceDetails) = discard)
+        cdelete drag
+
+        var bubble = newCustomBubbleComponent()
+        bubble[].setGetContentSizeHandler(proc(width: ptr cint, height: ptr cint) =
+            width[] = 10.cint
+            height[] = 10.cint)
+        bubble[].setPaintContentHandler(proc(g: ptr Graphics, width: cint,
+                                             height: cint) = discard)
+        cdelete bubble
+
+        var bordered = newCustomBorderedComponentBoundsConstrainer()
+        bordered[].setGetWrappedConstrainerHandler(
+            proc(): ptr ComponentBoundsConstrainer = nil)
+        bordered[].setGetAdditionalBorderHandler(proc(): BorderSize[cint] =
+            makeBorderSize(0.cint))
+        cdelete bordered
+
+        var commandListener = newCustomApplicationCommandManagerListener()
+        commandListener[].setApplicationCommandInvokedHandler(
+            proc(arg0: ptr ApplicationCommandTargetInvocationInfo) = discard)
+        commandListener[].setApplicationCommandListChangedHandler(proc() = discard)
+        cdelete commandListener
+
+        var cell = newCustomAccessibilityCellInterface()
+        cell[].setGetDisclosureLevelHandler(proc(): cint = 0.cint)
+        cell[].setGetTableHandlerHandler(proc(): ptr AccessibilityHandler = nil)
+        cdelete cell
+
+        var tooltip = newCustomTooltipClient()
+        tooltip[].setGetTooltipHandler(proc(): String = makeString("tip"))
+        cdelete tooltip
+
+        var keys = newCustomKeyListener()
+        keys[].setKeyPressedHandler(proc(key: ptr KeyPress,
+                                         originatingComponent: ptr Component): bool = false)
+        cdelete keys
+
+        var focus = newCustomFocusChangeListener()
+        focus[].setGlobalFocusChangedHandler(
+            proc(focusedComponent: ptr Component) = discard)
+        cdelete focus
+
+        var filenameListener = newCustomFilenameComponentListener()
+        filenameListener[].setFilenameComponentChangedHandler(
+            proc(fileComponentThatHasChanged: ptr FilenameComponent) = discard)
+        cdelete filenameListener
+
+        var preview = newCustomFilePreviewComponent()
+        preview[].setSelectedFileChangedHandler(
+            proc(newSelectedFile: ptr june.File) = discard)
+        cdelete preview
+
+        var darkMode = newCustomDarkModeSettingListener()
+        darkMode[].setDarkModeSettingChangedHandler(proc() = discard)
+        cdelete darkMode
+
+        var item = newCustomToolbarItemComponent(1.cint, makeString("item"), true)
+        item[].setContentAreaChangedHandler(
+            proc(newBounds: ptr Rectangle[cint]) = discard)
+        cdelete item
+
+    shutdownJuce_GUI()
+
+
 testAccessibilityAndInputSubclasses()
+testRemainingGuiHandlers()
