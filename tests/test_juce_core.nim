@@ -457,3 +457,38 @@ proc testFunctionTemplates() =
   doAssert not exactlyEqual(1.0'f64, 1.5'f64)
 
 testFunctionTemplates()
+
+# XmlElement is 56 bound procs and had only its attribute iterator covered.
+# Round-tripping through the parser exercises the whole path: build, serialise,
+# parse back, and read the same values out.
+proc testXmlRoundTrip() =
+  var root = makeXmlElement(makeString("settings"))
+  root.setAttribute(makeIdentifier("version"), makeString("2"))
+  root.setAttribute(makeIdentifier("name"), makeString("june"))
+
+  var child = cnew makeXmlElement(makeString("window"))
+  child[].setAttribute(makeIdentifier("width"), 640.cint)
+  child[].addTextElement(makeString("hello"))
+  root.addChildElement(child)
+
+  doAssert root.hasTagName("settings")
+  doAssert $root.getStringAttribute("name") == "june"
+  doAssert root.getIntAttribute("version", 0.cint) == 2
+
+  let serialised = $root.toString(makeXmlElementTextFormat())
+  doAssert serialised.contains("<settings"), "serialised as " & serialised
+  doAssert serialised.contains("width=\"640\""), "serialised as " & serialised
+
+  # And it parses back to the same values.
+  var document = makeXmlDocument(makeString(serialised))
+  let parsed = document.getDocumentElement()
+  doAssert not parsed.isNil(), "the document did not parse"
+  doAssert parsed.get()[].hasTagName("settings")
+  doAssert parsed.get()[].getIntAttribute("version", 0.cint) == 2
+
+  let window = parsed.get()[].getChildByName("window")
+  doAssert window != nil, "the child did not survive the round trip"
+  doAssert window[].getIntAttribute("width", 0.cint) == 640
+  doAssert $window[].getAllSubText() == "hello"
+
+testXmlRoundTrip()

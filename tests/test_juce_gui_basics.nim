@@ -457,3 +457,64 @@ proc testWeakReferenceField() =
   shutdownJuce_GUI()
 
 testWeakReferenceField()
+
+# TextEditor is the largest untested widget at 121 bound procs. Everything here
+# is state the editor holds, so none of it needs a window on screen.
+proc testTextEditor() =
+  initialiseJuce_GUI()
+
+  block:
+    var editor = makeTextEditor(makeString("editor"), 0'u16)
+    doAssert editor.isEmpty()
+    doAssert editor.getTotalNumChars() == 0
+
+    editor.setText(makeString("hello world"), false)
+    doAssert not editor.isEmpty()
+    doAssert $editor.getText() == "hello world"
+    doAssert editor.getTotalNumChars() == 11
+
+    doAssert $editor.getTextInRange(makeRange(0.cint, 5.cint)) == "hello"
+
+    editor.setHighlightedRegion(makeRange(6.cint, 11.cint))
+    doAssert $editor.getHighlightedText() == "world",
+             "the highlight gave " & $editor.getHighlightedText()
+
+    editor.setCaretPosition(0.cint)
+    editor.insertTextAtCaret(makeString(">> "))
+    doAssert $editor.getText() == ">> hello world", "insert gave " & $editor.getText()
+
+    editor.setReadOnly(true)
+    doAssert editor.isReadOnly()
+    editor.setMultiLine(true)
+    doAssert editor.isMultiLine()
+
+  shutdownJuce_GUI()
+
+testTextEditor()
+
+# ComboBox, the next largest at 62.
+proc testComboBox() =
+  initialiseJuce_GUI()
+
+  block:
+    var box = makeComboBox(makeString("choices"))
+    doAssert box.getNumItems() == 0
+
+    box.addItem(makeString("first"), 1.cint)
+    box.addItem(makeString("second"), 2.cint)
+    doAssert box.getNumItems() == 2
+    doAssert $box.getItemText(0.cint) == "first"
+    doAssert $box.getItemText(1.cint) == "second"
+
+    doAssert box.getSelectedId() == 0, "nothing should be selected yet"
+    box.setSelectedId(2.cint, NotificationType_dontSendNotification)
+    doAssert box.getSelectedId() == 2
+    doAssert $box.getText() == "second", "the box shows " & $box.getText()
+
+    box.clear(NotificationType_dontSendNotification)
+    doAssert box.getNumItems() == 0
+    doAssert box.getSelectedId() == 0
+
+  shutdownJuce_GUI()
+
+testComboBox()
