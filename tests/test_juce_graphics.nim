@@ -215,3 +215,36 @@ proc testStaticConstants() =
   doAssert AffineTransform.rotation(0.0'f32).isIdentity()
 
 testStaticConstants()
+
+# Path is 57 bound procs and had no test. It is pure geometry, so every
+# assertion here is a real computation rather than a smoke check.
+proc testPath() =
+  var path = makePath()
+  doAssert path.isEmpty()
+
+  path.startNewSubPath(0.0'f32, 0.0'f32)
+  path.lineTo(10.0'f32, 0.0'f32)
+  path.lineTo(10.0'f32, 5.0'f32)
+  path.closeSubPath()
+
+  doAssert not path.isEmpty()
+
+  let bounds = path.getBounds()
+  doAssert bounds.getX() == 0.0'f32, "x was " & $bounds.getX()
+  doAssert bounds.getWidth() == 10.0'f32, "width was " & $bounds.getWidth()
+  doAssert bounds.getHeight() == 5.0'f32
+
+  # A point inside the triangle, and one outside it.
+  doAssert path.contains(9.0'f32, 4.0'f32, 1.0'f32)
+  doAssert not path.contains(0.0'f32, 5.0'f32, 1.0'f32)
+
+  # A rectangle added to a fresh path has the perimeter it should.
+  var boxPath = makePath()
+  boxPath.addRectangle(0.0'f32, 0.0'f32, 3.0'f32, 4.0'f32)
+  doAssert boxPath.getLength(AffineTransform.identity(), 1.0'f32) == 14.0'f32,
+           "perimeter was " & $boxPath.getLength(AffineTransform.identity(), 1.0'f32)
+
+  boxPath.clear()
+  doAssert boxPath.isEmpty(), "clear left something behind"
+
+testPath()
