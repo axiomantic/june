@@ -2745,6 +2745,67 @@ proc parseXML*(fileToParse: File): UniquePtr[XmlElement] {.header: juce_core, im
 proc parseXMLIfTagMatches*(textToParse: String, requiredTag: StringRef): UniquePtr[XmlElement] {.header: juce_core, importcpp: "juce::parseXMLIfTagMatches(@)".}
 proc parseXMLIfTagMatches*(fileToParse: File, requiredTag: StringRef): UniquePtr[XmlElement] {.header: juce_core, importcpp: "juce::parseXMLIfTagMatches(@)".}
 
+proc zerostruct*[Type](structure: Type) {.header: juce_core, importcpp: "juce::zerostruct(@)".}
+proc deleteAndZero*[Type](pointer: Type) {.header: juce_core, importcpp: "juce::deleteAndZero(@)".}
+proc snapPointerToAlignment*[Type, IntegerType](basePointer: ptr Type, alignmentBytes: IntegerType): ptr Type {.header: juce_core, importcpp: "juce::snapPointerToAlignment(@)".}
+proc getAddressDifference*[Type1, Type2](pointer1: ptr Type1, pointer2: ptr Type2): cint {.header: juce_core, importcpp: "juce::getAddressDifference(@)".}
+proc createCopyIfNotNull*[Type](objectToCopy: ptr Type): ptr Type {.header: juce_core, importcpp: "juce::createCopyIfNotNull(@)".}
+proc readUnaligned*[Type](srcPtr: constPointer): Type {.header: juce_core, importcpp: "juce::readUnaligned(@)".}
+proc writeUnaligned*[Type](dstPtr: pointer, value: Type) {.header: juce_core, importcpp: "juce::writeUnaligned(@)".}
+proc unalignedPointerCast*[Type](`ptr`: pointer): Type {.header: juce_core, importcpp: "juce::unalignedPointerCast(@)".}
+proc unalignedPointerCast*[Type](`ptr`: constPointer): Type {.header: juce_core, importcpp: "juce::unalignedPointerCast(@)".}
+proc addBytesToPointer*[Type, IntegerType](basePointer: ptr Type, bytes: IntegerType): ptr Type {.header: juce_core, importcpp: "juce::addBytesToPointer(@)".}
+proc rawToUniquePtr*[T](`ptr`: ptr T): UniquePtr[T] {.header: juce_core, importcpp: "juce::rawToUniquePtr(@)".}
+# proc ignoreUnused*[Types](arg1: Types ...) {.header: juce_core, importcpp: "juce::ignoreUnused(@)".}  # a type that cannot be spelled in Nim
+proc juce_hypot*[Type](a: Type, b: Type): Type {.header: juce_core, importcpp: "juce::juce_hypot(@)".}
+proc degreesToRadians*[FloatType](degrees: FloatType): FloatType {.header: juce_core, importcpp: "juce::degreesToRadians(@)".}
+proc radiansToDegrees*[FloatType](radians: FloatType): FloatType {.header: juce_core, importcpp: "juce::radiansToDegrees(@)".}
+proc juce_isfinite*[NumericType](value: NumericType): bool {.header: juce_core, importcpp: "juce::juce_isfinite(@)".}
+proc exactlyEqual*[Type](a: Type, b: Type): bool {.header: juce_core, importcpp: "juce::exactlyEqual(@)".}
+# proc absoluteTolerance*[Type](tolerance: Type): Tolerance<Type> {.header: juce_core, importcpp: "juce::absoluteTolerance(@)".}  # a type that cannot be spelled in Nim
+# proc relativeTolerance*[Type](tolerance: Type): Tolerance<Type> {.header: juce_core, importcpp: "juce::relativeTolerance(@)".}  # a type that cannot be spelled in Nim
+proc nextFloatUp*[FloatType](value: FloatType): FloatType {.header: juce_core, importcpp: "juce::nextFloatUp(@)".}
+proc nextFloatDown*[FloatType](value: FloatType): FloatType {.header: juce_core, importcpp: "juce::nextFloatDown(@)".}
+proc jmax*[Type](a: Type, b: Type): Type {.header: juce_core, importcpp: "juce::jmax(@)".}
+proc jmax*[Type](a: Type, b: Type, c: Type): Type {.header: juce_core, importcpp: "juce::jmax(@)".}
+proc jmax*[Type](a: Type, b: Type, c: Type, d: Type): Type {.header: juce_core, importcpp: "juce::jmax(@)".}
+proc jmin*[Type](a: Type, b: Type): Type {.header: juce_core, importcpp: "juce::jmin(@)".}
+proc jmin*[Type](a: Type, b: Type, c: Type): Type {.header: juce_core, importcpp: "juce::jmin(@)".}
+proc jmin*[Type](a: Type, b: Type, c: Type, d: Type): Type {.header: juce_core, importcpp: "juce::jmin(@)".}
+proc jmap*[Type](value0To1: Type, targetRangeMin: Type, targetRangeMax: Type): Type {.header: juce_core, importcpp: "juce::jmap(@)".}
+proc jmap*[Type](sourceValue: Type, sourceRangeMin: Type, sourceRangeMax: Type, targetRangeMin: Type, targetRangeMax: Type): Type {.header: juce_core, importcpp: "juce::jmap(@)".}
+proc mapToLog10*[Type](value0To1: Type, logRangeMin: Type, logRangeMax: Type): Type {.header: juce_core, importcpp: "juce::mapToLog10(@)".}
+proc mapFromLog10*[Type](valueInLogRange: Type, logRangeMin: Type, logRangeMax: Type): Type {.header: juce_core, importcpp: "juce::mapFromLog10(@)".}
+proc findMinimum*[Type, Size](data: ptr Type, numValues: Size): Type {.header: juce_core, importcpp: "juce::findMinimum(@)".}
+proc findMaximum*[Type, Size](values: ptr Type, numValues: Size): Type {.header: juce_core, importcpp: "juce::findMaximum(@)".}
+proc findMinAndMax*[Type](values: ptr Type, numValues: cint, lowest: Type, highest: Type) {.header: juce_core, importcpp: "juce::findMinAndMax(@)".}
+proc jlimit*[Type](lowerLimit: Type, upperLimit: Type, valueToConstrain: Type): Type {.header: juce_core, importcpp: "juce::jlimit(@)".}
+proc isPositiveAndBelow*[Type1, Type2](valueToTest: Type1, upperLimit: Type2): bool {.header: juce_core, importcpp: "juce::isPositiveAndBelow(@)".}
+proc isPositiveAndBelow*[Type](valueToTest: cint, upperLimit: Type): bool {.header: juce_core, importcpp: "juce::isPositiveAndBelow(@)".}
+proc isPositiveAndNotGreaterThan*[Type1, Type2](valueToTest: Type1, upperLimit: Type2): bool {.header: juce_core, importcpp: "juce::isPositiveAndNotGreaterThan(@)".}
+proc isPositiveAndNotGreaterThan*[Type](valueToTest: cint, upperLimit: Type): bool {.header: juce_core, importcpp: "juce::isPositiveAndNotGreaterThan(@)".}
+proc isWithin*[Type](a: Type, b: Type, tolerance: Type): bool {.header: juce_core, importcpp: "juce::isWithin(@)".}
+proc roundToInt*[FloatType](value: FloatType): cint {.header: juce_core, importcpp: "juce::roundToInt(@)".}
+proc truncatePositiveToUnsignedInt*[FloatType](value: FloatType): uint32 {.header: juce_core, importcpp: "juce::truncatePositiveToUnsignedInt(@)".}
+proc isPowerOfTwo*[IntegerType](value: IntegerType): bool {.header: juce_core, importcpp: "juce::isPowerOfTwo(@)".}
+proc negativeAwareModulo*[IntegerType](dividend: IntegerType, divisor: IntegerType): IntegerType {.header: juce_core, importcpp: "juce::negativeAwareModulo(@)".}
+proc square*[NumericType](n: NumericType): NumericType {.header: juce_core, importcpp: "juce::square(@)".}
+# proc toUnderlyingType*[T](t: T): std::enable_if_t<std::is_enum_v<T>, std::underlying_type_t<T>> {.header: juce_core, importcpp: "juce::toUnderlyingType(@)".}  # a type that cannot be spelled in Nim
+# proc deleteAndZero*[Type](arg1: ScopedPointer<Type>) {.header: juce_core, importcpp: "juce::deleteAndZero(@)".}  # a type that cannot be spelled in Nim
+proc makeOptional*[Value](v: Value): Optional[Value] {.header: juce_core, importcpp: "juce::makeOptional(@)".}
+# proc makeRange*[Begin, End](begin: Begin, `end`: End): auto {.header: juce_core, importcpp: "juce::makeRange(@)".}  # a type that cannot be spelled in Nim
+# proc enumerate*[Range, Index](range: Range, startingValue: Index): auto {.header: juce_core, importcpp: "juce::enumerate(@)".}  # a type that cannot be spelled in Nim
+proc sortArray*[ElementType, ElementComparator](comparator: ElementComparator, array: ptr ElementType, firstElement: cint, lastElement: cint, retainOrderOfEquivalentItems: bool) {.header: juce_core, importcpp: "juce::sortArray(@)".}
+proc findInsertIndexInSortedArray*[ElementType, ElementComparator](comparator: ElementComparator, array: ptr ElementType, newElement: ElementType, firstElement: cint, lastElement: cint): cint {.header: juce_core, importcpp: "juce::findInsertIndexInSortedArray(@)".}
+# proc withMember*[Object, OtherObject, Member, Other](copy: Object, member: Member OtherObject::, value: Other): Object {.header: juce_core, importcpp: "juce::withMember(@)".}  # a type that cannot be spelled in Nim
+# proc toFnPtr*[Functor](functor: Functor): auto {.header: juce_core, importcpp: "juce::toFnPtr(@)".}  # a type that cannot be spelled in Nim
+# proc addSorted*[ElementComparator, ObjectClass, TypeOfCriticalSectionToUse](comparator: ElementComparator, newObject: ptr ObjectClass): cint {.header: juce_core, importcpp: "juce::addSorted(@)".}  # a template parameter that appears only in the return type, which nothing can deduce
+# proc indexOfSorted*[ElementComparator, ObjectClass, TypeOfCriticalSectionToUse](comparator: ElementComparator, objectToLookFor: ptr ObjectClass): cint {.header: juce_core, importcpp: "juce::indexOfSorted(@)".}  # a template parameter that appears only in the return type, which nothing can deduce
+# proc sort*[ElementComparator, ObjectClass, TypeOfCriticalSectionToUse](comparator: ElementComparator, retainOrderOfEquivalentItems: bool) {.header: juce_core, importcpp: "juce::sort(@)".}  # a template parameter that appears only in the return type, which nothing can deduce
+# proc named*[T](c: std::string_view, t: T): auto {.header: juce_core, importcpp: "juce::named(@)".}  # a type that cannot be spelled in Nim
+# proc serialisationSize*[T](t: T): std::enable_if_t<std::is_integral_v<T>, SerialisationSize<T>> {.header: juce_core, importcpp: "juce::serialisationSize(@)".}  # a type that cannot be spelled in Nim
+# proc serialisationSize*[T](t: T): std::enable_if_t<std::is_integral_v<T>, SerialisationSize< T>> {.header: juce_core, importcpp: "juce::serialisationSize(@)".}  # a type that cannot be spelled in Nim
+
 
 
 include juce_core_lifting

@@ -5050,6 +5050,7 @@ proc createSnapshotOfNativeWindow*(nativeWindowHandle: pointer): Image {.header:
 
 
 
+
 include juce_gui_basics_lifting
 
 proc `$`*(this: RelativeCoordinate): string = $this.toString()

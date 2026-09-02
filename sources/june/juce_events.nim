@@ -267,5 +267,6 @@ proc `==`*(this: ScopedLowPowerModeDisabler, other: ScopedLowPowerModeDisabler):
 
 
 
+
 include juce_events_lifting
 
