@@ -1231,3 +1231,39 @@ proc testLookAndFeelDraws() =
     shutdownJuce_GUI()
 
 testLookAndFeelDraws()
+
+# A Nim paint handler, called by JUCE ========================================
+#
+# The whole round trip in one assertion: JUCE's paintEntireComponent calls the
+# generated subclass's paint override, which calls the std::function, which
+# calls back into Nim, which draws - and the pixels on the surface are the
+# proof it happened. Everything before this checked that a handler was reached;
+# this checks that what it did reached the screen.
+
+proc testPaintHandlerDraws() =
+    initialiseJuce_GUI()
+
+    block:
+        var painted = 0
+        var component = newCustomComponent()
+        component[].setBounds(makeRectangle(0.cint, 0.cint, 20.cint, 20.cint))
+        component[].setPaintHandler(proc(context: ptr Graphics) =
+            painted += 1
+            context[].setColour(makeColour(0'u8, 0'u8, 255'u8, 255'u8))
+            context[].fillRect(makeRectangle(0.cint, 0.cint, 10.cint, 10.cint)))
+
+        let image = makeImage(ImagePixelFormat_ARGB, 20.cint, 20.cint, true)
+        var context = makeGraphics(image)
+        component[].paintEntireComponent(context, false)
+
+        doAssert painted == 1, "the paint handler ran " & $painted & " times"
+        doAssert image.getPixelAt(5.cint, 5.cint).getBlue() == 255,
+                 "what the Nim handler drew did not reach the surface"
+        doAssert image.getPixelAt(15.cint, 15.cint).getAlpha() == 0,
+                 "the handler painted outside the rectangle it asked for"
+
+        cdelete component
+
+    shutdownJuce_GUI()
+
+testPaintHandlerDraws()
