@@ -188,6 +188,11 @@ proc get*[T](this: OptionalScopedPointer[T]): ptr T {.importcpp: "#.get()".}
 proc release*[T](this: var OptionalScopedPointer[T]): ptr T {.importcpp: "#.release()".}
 proc isNil*[T](this: OptionalScopedPointer[T]): bool {.importcpp: "(#.get() == nullptr)".}
 
+# These containers had accessors and no constructor, so each could be named as
+# a parameter type and never built. JUCE gives all three a default one.
+proc makeArray*[T](): Array[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::Array<'*0>()", constructor.}
+proc makeOwnedArray*[T](): OwnedArray[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::OwnedArray<'*0>()", constructor.}
+
 proc size*[T](this: Array[T]): cint {.importcpp: "#.size()".}
 proc isEmpty*[T](this: Array[T]): bool {.importcpp: "#.isEmpty()".}
 proc `[]`*[T](this: Array[T], index: cint): T {.importcpp: "#[#]".}
@@ -246,6 +251,7 @@ iterator items*[T](this: RectangleList[T]): Rectangle[T] =
 type
     SparseSet*[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::SparseSet".} = object
 
+proc makeSparseSet*[T](): SparseSet[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::SparseSet<'*0>()", constructor.}
 proc isEmpty*[T](this: SparseSet[T]): bool {.importcpp: "#.isEmpty()".}
 proc size*[T](this: SparseSet[T]): T {.importcpp: "#.size()".}
 proc `[]`*[T](this: SparseSet[T], index: T): T {.importcpp: "#[#]".}

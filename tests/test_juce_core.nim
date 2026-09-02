@@ -1289,3 +1289,41 @@ proc testMemoryInputStream() =
 
 testStringPairArray()
 testMemoryInputStream()
+
+# The hand-written container generics =========================================
+#
+# Array, SparseSet and HeapBlock are hand-written wrappers, and a generic is
+# only type-checked where it is instantiated. Nothing had called these, which
+# is the state makeBorderSize was in when it turned out to name a constructor
+# JUCE does not have.
+
+proc testArrayHelpers() =
+  var numbers = makeArray[cint]()
+  doAssert numbers.isEmpty(), "a fresh Array was not empty"
+
+  numbers.add(10.cint)
+  numbers.add(20.cint)
+  numbers.add(30.cint)
+  doAssert numbers.size() == 3, "the array holds " & $numbers.size()
+  doAssert numbers.getFirst() == 10, "getFirst gave " & $numbers.getFirst()
+  doAssert numbers.getLast() == 30, "getLast gave " & $numbers.getLast()
+  doAssert numbers.indexOf(20.cint) == 1, "indexOf gave " & $numbers.indexOf(20.cint)
+  doAssert numbers.indexOf(99.cint) == -1, "a missing element was found"
+  doAssert numbers.contains(20.cint), "contains missed a present element"
+
+  numbers.clear()
+  doAssert numbers.isEmpty(), "clear left something behind"
+
+proc testHeapBlock() =
+  var storage = makeHeapBlock[cint](4.csize_t)
+  doAssert not storage.isNil(), "an allocated block reported nil"
+  doAssert storage.get() != nil, "get returned nothing"
+
+  # calloc reallocates and zeroes.
+  storage.calloc(8.csize_t)
+  doAssert not storage.isNil(), "after calloc the block reported nil"
+  doAssert cast[ptr UncheckedArray[cint]](storage.get())[0] == 0,
+           "calloc did not zero the storage"
+
+testArrayHelpers()
+testHeapBlock()
