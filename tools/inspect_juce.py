@@ -412,22 +412,31 @@ def preferred_string_constructor(constructor_types, class_name):
             return candidate
     return None
 
-def preferred_string_operand(overload_types):
-    """Of the string-like single-argument operator overloads, the one to keep.
+def preferred_string_operand(overload_types, class_name):
+    """Of the string-like single-argument overloads of a method, the one to keep.
 
     Nim reaches String, StringRef and constChar from a string literal by three
-    separate converters, so every one of them matches `text += "literal"`
-    equally well and Nim 1.6 refuses the call. String wins: a String value
-    passes straight through and a literal converts, so no caller loses.
+    separate converters, so every one of them matches
+    `text.equalsIgnoreCase("literal")` equally well and Nim 1.6 refuses the
+    call.
 
-    Unlike the constructor rule this does not exempt the class's own type. An
-    operator taking the class is an ordinary overload rather than a copy
-    constructor, and for String it is the one worth keeping.
+    The class's own type wins where it is one of them: dropping it would leave
+    no way to pass a value of the class itself, and there is no converter back.
+    StringRef comparing against a StringRef is the case that matters. Otherwise
+    String wins - a String value passes straight through and a literal
+    converts, so no caller loses.
+
+    Unlike the constructor rule, the class's own type is not excluded here: a
+    method taking the class is an ordinary overload rather than a copy
+    constructor.
     """
     available = {types[0] for types in overload_types
                  if len(types) == 1 and types[0] in string_like_types}
     if len(available) < 2:
         return None
+
+    if class_name in available:
+        return class_name
 
     for candidate in string_like_types:
         if candidate in available:
@@ -1052,23 +1061,24 @@ def run_main(juce_module_name, juce_class_name_to_export):
         class_bound_equality = False
         class_has_to_string = False
 
-        # The same ambiguity the constructors have, one level down. A class that
-        # takes both a String and a StringRef by compound assignment gives Nim
-        # 1.6 two equally good matches for `text += "literal"`, and it refuses
-        # the call. Nim 2 resolves it, so the ambiguity is invisible unless 1.6
-        # is compiled against.
+        # The same ambiguity the constructors have, one level down, and for
+        # every method rather than only the operators. A method taking both a
+        # String and a StringRef gives Nim 1.6 two equally good matches for
+        # `text.equalsIgnoreCase("literal")` and it refuses the call. Nim 2
+        # resolves it, so the ambiguity is invisible unless 1.6 is compiled
+        # against.
         public_methods = [x for x in c.get_children()
                           if x.kind == CursorKind.CXX_METHOD
                           and x.access_specifier == AccessSpecifier.PUBLIC]
         keep_string_operand = {}
-        for operator_spelling in nim_compound_assignments:
+        for method_spelling in {x.spelling for x in public_methods}:
             overload_types = [
                 [remap_type(a.type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap)
                  for a in x.get_arguments()]
-                for x in public_methods if x.spelling == operator_spelling]
-            preferred = preferred_string_operand(overload_types)
+                for x in public_methods if x.spelling == method_spelling]
+            preferred = preferred_string_operand(overload_types, class_name)
             if preferred is not None:
-                keep_string_operand[operator_spelling] = preferred
+                keep_string_operand[method_spelling] = preferred
 
         for m in filter(lambda x: x.kind == CursorKind.CXX_METHOD, c.get_children()):
             if m.access_specifier != AccessSpecifier.PUBLIC:

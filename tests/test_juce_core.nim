@@ -317,6 +317,10 @@ proc testStringLiteralOverloadResolution() =
   var pool = makeStringPool()
   doAssert $pool.getPooledString("x") == "x"
 
+  # StringRef keeps its own overload rather than the String one: there is a
+  # converter from String to StringRef but none the other way, so dropping it
+  # would leave no way to compare two StringRefs.
+  doAssert makeStringRef(greeting) == makeStringRef(greeting)
   doAssert makeStringRef(greeting) == makeString("Hello")
 
 testStringLiteralOverloadResolution()
