@@ -111,11 +111,6 @@ proc toCppString(cppType: CppType): string =
   if cppType.isReference: result &= "&"
 
 
-proc newEmitPragma(s: string): NimNode {.compileTime.} =
-  result = newNimNode(nnkPragma)
-  result.add(newColonExpr(newIdentNode("emit"), newStrLitNode(s)))
-
-
 proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parentNamespace: string = ""): NimNode {.compileTime.} =
   # echo body.astGenRepr
 
