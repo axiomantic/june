@@ -429,6 +429,21 @@ in a module, and is run the same way::
     PYTHONPATH=tools .venv/bin/python tools/generate_subclasses.py --module "$module" > "sources/june/${module}_subclasses.nim"
   done
 
+A struct JUCE declares with no constructor of its own still has C++'s implicit
+default one, and libclang reports no constructor at all. 21 aggregates were
+declared with readable and writable fields and no way to build one --
+``ZipFile::ZipEntry``, ``MouseWheelDetails``,
+``DirectoryContentsList::FileInfo``, ``ThreadPool::Options`` among them. The
+generator emits a default constructor for a non-abstract class that declares
+none and has a public field.
+
+libclang does not report that C++ *deleted* an implicit default because a
+member has none either, which is the case for ``ColourLayer`` (it holds an
+``EdgeTable``) and ``GlyphLayer`` (a variant over it). Only a call tells the
+two apart, so those two are named in the generator with the reason, and
+``check_handwritten_covered.py`` fails unless a test builds every one of the
+constructors that is emitted.
+
 A method returning ``const T*`` is bound as ``ConstPtr[T]``, not ``ptr T``. Nim
 has no const pointer, and C++ does not convert ``const T*`` to ``T*``, so the
 plain ``ptr`` spelling produced 31 procs that could not be called at all --

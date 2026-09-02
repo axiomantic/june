@@ -257,6 +257,7 @@ proc `==`*(this: NetworkServiceDiscovery, other: NetworkServiceDiscovery): bool 
 proc makeNetworkServiceDiscoveryAdvertiser*(serviceTypeUID: String, serviceDescription: String, broadcastPort: cint, connectionPort: cint, minTimeBetweenBroadcasts: RelativeTime): NetworkServiceDiscoveryAdvertiser {.header: juce_events, importcpp: "juce::NetworkServiceDiscovery::Advertiser(@)".}
 proc `==`*(this: NetworkServiceDiscoveryAdvertiser, other: NetworkServiceDiscoveryAdvertiser): bool {.error: "juce::NetworkServiceDiscovery::Advertiser defines no operator==; compare a property instead".}
 
+proc makeNetworkServiceDiscoveryService*(): NetworkServiceDiscoveryService {.header: juce_events, importcpp: "juce::NetworkServiceDiscovery::Service(@)".}  # implicit default constructor
 proc instanceID*(this: NetworkServiceDiscoveryService): String {.header: juce_events, importcpp: "#.instanceID".}
 proc instanceID*(this: var NetworkServiceDiscoveryService): var String {.header: juce_events, importcpp: "#.instanceID".}
 proc `instanceID=`*(this: var NetworkServiceDiscoveryService, value: String) {.header: juce_events, importcpp: "#.instanceID = #".}

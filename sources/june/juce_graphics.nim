@@ -933,6 +933,7 @@ proc colour*(this: var ColourLayer): var CppOptional[Colour] {.header: juce_grap
 proc `colour=`*(this: var ColourLayer, value: CppOptional[Colour]) {.header: juce_graphics, importcpp: "#.colour = #".}
 proc `==`*(this: ColourLayer, other: ColourLayer): bool {.error: "juce::ColourLayer defines no operator==; compare a property instead".}
 
+proc makeImageLayer*(): ImageLayer {.header: juce_graphics, importcpp: "juce::ImageLayer(@)".}  # implicit default constructor
 proc image*(this: ImageLayer): Image {.header: juce_graphics, importcpp: "#.image".}
 proc image*(this: var ImageLayer): var Image {.header: juce_graphics, importcpp: "#.image".}
 proc `image=`*(this: var ImageLayer, value: Image) {.header: juce_graphics, importcpp: "#.image = #".}
@@ -946,6 +947,7 @@ proc `==`*(this: ImageLayer, other: ImageLayer): bool {.error: "juce::ImageLayer
 # proc `layer=`*(this: var GlyphLayer, value: std::variant<ColourLayer, ImageLayer>) {.header: juce_graphics, importcpp: "#.layer = #".}  # a type that cannot be spelled in Nim
 proc `==`*(this: GlyphLayer, other: GlyphLayer): bool {.error: "juce::GlyphLayer defines no operator==; compare a property instead".}
 
+proc makeTypefaceMetrics*(): TypefaceMetrics {.header: juce_graphics, importcpp: "juce::TypefaceMetrics(@)".}  # implicit default constructor
 proc ascent*(this: TypefaceMetrics): cfloat {.header: juce_graphics, importcpp: "#.ascent".}
 proc ascent*(this: var TypefaceMetrics): var cfloat {.header: juce_graphics, importcpp: "#.ascent".}
 proc `ascent=`*(this: var TypefaceMetrics, value: cfloat) {.header: juce_graphics, importcpp: "#.ascent = #".}
