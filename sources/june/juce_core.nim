@@ -197,6 +197,14 @@ proc `==`*(a: GZIPDecompressorInputStreamFormat, b: GZIPDecompressorInputStreamF
 proc `==`*(a: ZipFileOverwriteFiles, b: ZipFileOverwriteFiles): bool {.borrow.}
 proc `==`*(a: ZipFileFollowSymlinks, b: ZipFileFollowSymlinks): bool {.borrow.}
 
+# Bitwise operators for the flag sets among them.
+proc `or`*(a: SystemStatsMachineIdFlags, b: SystemStatsMachineIdFlags): SystemStatsMachineIdFlags {.borrow.}
+proc `and`*(a: SystemStatsMachineIdFlags, b: SystemStatsMachineIdFlags): SystemStatsMachineIdFlags {.borrow.}
+proc `or`*(a: TemporaryFileOptionFlags, b: TemporaryFileOptionFlags): TemporaryFileOptionFlags {.borrow.}
+proc `and`*(a: TemporaryFileOptionFlags, b: TemporaryFileOptionFlags): TemporaryFileOptionFlags {.borrow.}
+proc `or`*(a: ChildProcessStreamFlags, b: ChildProcessStreamFlags): ChildProcessStreamFlags {.borrow.}
+proc `and`*(a: ChildProcessStreamFlags, b: ChildProcessStreamFlags): ChildProcessStreamFlags {.borrow.}
+
 let IncrementRef_no* {.header: juce_core, importcpp: "juce::IncrementRef::no".}: IncrementRef
 let IncrementRef_yes* {.header: juce_core, importcpp: "juce::IncrementRef::yes".}: IncrementRef
 
