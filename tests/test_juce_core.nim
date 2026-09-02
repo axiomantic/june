@@ -263,10 +263,16 @@ proc testThreadPoolJob() =
   var pool = makeThreadPool()
   var ran = 0
 
-  let job: CppFunctionObjectR0[ThreadPoolJobJobStatus] = bindClosure(
-    proc(): ThreadPoolJobJobStatus =
+  # bindEnumClosure, not bindClosure: the closure returns the base scalar so
+  # that no Nim closure type names ThreadPoolJob::JobStatus, which is a
+  # distinct cint. Nim renders one closure struct for that and for
+  # `proc(): cint`, and a program holding both assigns a function pointer of
+  # the wrong type.
+  let job: CppFunctionObjectR0[ThreadPoolJobJobStatus] =
+    bindEnumClosure[ThreadPoolJobJobStatus](
+    proc(): cint =
       ran += 1
-      ThreadPoolJobJobStatus_jobHasFinished)
+      cint(ThreadPoolJobJobStatus_jobHasFinished))
   pool.addJob(job)
 
   # addJob queues the job. removeAllJobs drops one that has not started yet, so
@@ -1527,8 +1533,10 @@ proc testRemainingCoreSubclasses() =
         # Setting a handler is what type-checks and generates the setter. An
         # uncalled one is neither, and the C++ field it assigns to is never
         # touched.
-        job[].setRunJobHandler(proc(): ThreadPoolJobJobStatus =
-            ThreadPoolJobJobStatus_jobHasFinished)
+        # cint rather than the enum: runJob returns ThreadPoolJob::JobStatus,
+        # which is a distinct cint, and the generator marks it basescalar so
+        # the closure never names the distinct. The forwarder casts.
+        job[].setRunJobHandler(proc(): cint = cint(ThreadPoolJobJobStatus_jobHasFinished))
 
         var unitTest = newCustomUnitTest(makeString("name"), makeString("category"))
         doAssert not unitTest.isNil(), "the unit test was not built"
@@ -1594,15 +1602,15 @@ proc testRemainingCoreHandlers() =
         logger[].setLogMessageHandler(proc(message: ptr String) = discard)
         cdelete logger
 
-        # setUseTimeSliceHandler is deliberately not called. Its closure
-        # returns cint, and CustomThreadPoolJob.setRunJobHandler returns
-        # ThreadPoolJob::JobStatus, a distinct cint. Nim emits ONE closure
-        # struct for the two proc types and types its function-pointer field
-        # from whichever it renders first, so the other call site assigns a
-        # pointer of the wrong type. Setting both in one program is what makes
-        # the C++ compiler say so.
+        # Set in the same program as setRunJobHandler on purpose. Both
+        # closures return cint now, so the one closure struct Nim renders for
+        # them is right for both. Before basescalar, runJob's closure named the
+        # distinct enum, Nim typed the shared struct's function-pointer field
+        # from whichever it emitted first, and this call assigned a pointer of
+        # the wrong type.
         var client = newCustomTimeSliceClient()
         doAssert not client.isNil(), "the time slice client was not built"
+        client[].setUseTimeSliceHandler(proc(): cint = -1.cint)
         cdelete client
 
 testRemainingCoreHandlers()

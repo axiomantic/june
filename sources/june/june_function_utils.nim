@@ -137,6 +137,18 @@ template bindClosure*[R](f: proc(): R {.closure.}): CppFunctionObjectR0[R] =
     block:
         let boundClosure: proc(): R {.closure.} = f
         bindInternal(cast[CppFunctionClosureR0[R]](rawProc boundClosure), retainEnv(rawEnv boundClosure))
+# The counterpart to the macro's basescalar marker, for a binding that takes a
+# std::function returning an enum. ThreadPool.addJob is the one JUCE has. The
+# Nim closure returns the base scalar so that it never names the distinct, and
+# june.h casts the value.
+proc bindCastingR0[E](p: pointer, env: pointer): CppFunctionObjectR0[E]
+    {.header: "<june.h>", importcpp: "june::bindCastingR0<'0>((int (*)(void*)) #, #)".}
+
+template bindEnumClosure*[E](f: proc(): cint {.closure.}): CppFunctionObjectR0[E] =
+    block:
+        let boundClosure: proc(): cint {.closure.} = f
+        bindCastingR0[E](cast[pointer](rawProc boundClosure), retainEnv(rawEnv boundClosure))
+
 template bindClosure*[T](f: proc(a: T) {.closure.}): CppFunctionObjectN1[T] =
     block:
         let boundClosure: proc(a: T) {.closure.} = f

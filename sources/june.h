@@ -145,6 +145,33 @@ auto bind(F func, void* env) noexcept(noexcept(function_traits<F>::map(std::decl
 }
 
 /**
+ * Builds a std::function whose result is a scalar-backed enum, from a Nim
+ * closure that returns the base scalar.
+ *
+ * Every bound JUCE enum is a `distinct cint` on the Nim side, and Nim renders
+ * one closure struct for `proc(): cint` and `proc(): SomeEnum`, typing its
+ * function-pointer field from whichever it emits first. A program holding both
+ * kinds then assigns a function pointer of the wrong type. So the Nim closure
+ * returns the base scalar and never names the distinct, and the cast happens
+ * here, on the value rather than on the function pointer.
+ */
+template <class Fn>
+struct function_result;
+
+template <class R, class... Args>
+struct function_result<std::function<R(Args...)>>
+{
+    using type = R;
+};
+
+template <class Fn>
+Fn bindCastingR0(int (*func)(void*), void* env)
+{
+    using R = typename function_result<Fn>::type;
+    return [func, env]() -> R { return static_cast<R>(func(env)); };
+}
+
+/**
  * Builds a std::function whose argument is a const reference.
  *
  * bind() deduces the std::function from the Nim proc's own arguments, so a Nim
