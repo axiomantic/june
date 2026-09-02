@@ -246,9 +246,21 @@ proc `==`*(this: NetworkServiceDiscovery, other: NetworkServiceDiscovery): bool 
 proc makeNetworkServiceDiscoveryAdvertiser*(serviceTypeUID: String, serviceDescription: String, broadcastPort: cint, connectionPort: cint, minTimeBetweenBroadcasts: RelativeTime): NetworkServiceDiscoveryAdvertiser {.header: juce_events, importcpp: "juce::NetworkServiceDiscovery::Advertiser(@)".}
 proc `==`*(this: NetworkServiceDiscoveryAdvertiser, other: NetworkServiceDiscoveryAdvertiser): bool {.error: "juce::NetworkServiceDiscovery::Advertiser defines no operator==; compare a property instead".}
 
+proc instanceID*(this: NetworkServiceDiscoveryService): String {.header: juce_events, importcpp: "#.instanceID".}
+proc `instanceID=`*(this: var NetworkServiceDiscoveryService, value: String) {.header: juce_events, importcpp: "#.instanceID = #".}
+proc description*(this: NetworkServiceDiscoveryService): String {.header: juce_events, importcpp: "#.description".}
+proc `description=`*(this: var NetworkServiceDiscoveryService, value: String) {.header: juce_events, importcpp: "#.description = #".}
+proc address*(this: NetworkServiceDiscoveryService): IPAddress {.header: juce_events, importcpp: "#.address".}
+proc `address=`*(this: var NetworkServiceDiscoveryService, value: IPAddress) {.header: juce_events, importcpp: "#.address = #".}
+proc port*(this: NetworkServiceDiscoveryService): cint {.header: juce_events, importcpp: "#.port".}
+proc `port=`*(this: var NetworkServiceDiscoveryService, value: cint) {.header: juce_events, importcpp: "#.port = #".}
+proc lastSeen*(this: NetworkServiceDiscoveryService): Time {.header: juce_events, importcpp: "#.lastSeen".}
+proc `lastSeen=`*(this: var NetworkServiceDiscoveryService, value: Time) {.header: juce_events, importcpp: "#.lastSeen = #".}
 proc `==`*(this: NetworkServiceDiscoveryService, other: NetworkServiceDiscoveryService): bool {.error: "juce::NetworkServiceDiscovery::Service defines no operator==; compare a property instead".}
 
 proc makeNetworkServiceDiscoveryAvailableServiceList*(serviceTypeUID: String, broadcastPort: cint): NetworkServiceDiscoveryAvailableServiceList {.header: juce_events, importcpp: "juce::NetworkServiceDiscovery::AvailableServiceList(@)".}
+proc onChange*(this: NetworkServiceDiscoveryAvailableServiceList): CppFunctionObjectN0 {.header: juce_events, importcpp: "#.onChange".}
+proc `onChange=`*(this: var NetworkServiceDiscoveryAvailableServiceList, value: CppFunctionObjectN0) {.header: juce_events, importcpp: "#.onChange = #".}
 proc getServices*(this: NetworkServiceDiscoveryAvailableServiceList): CppVector[NetworkServiceDiscoveryService] {.header: juce_events, importcpp: "#.getServices()".}
 proc `==`*(this: NetworkServiceDiscoveryAvailableServiceList, other: NetworkServiceDiscoveryAvailableServiceList): bool {.error: "juce::NetworkServiceDiscovery::AvailableServiceList defines no operator==; compare a property instead".}
 

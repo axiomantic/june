@@ -403,3 +403,34 @@ proc testPopupMenuOptions() =
   shutdownJuce_GUI()
 
 testPopupMenuOptions()
+
+# A public field was not bound at all, so a JUCE struct that is nothing but
+# fields bound to nothing usable. Slider::RotaryParameters is two angles and a
+# flag, and it is what setRotaryParameters takes.
+proc testFieldAccessors() =
+  initialiseJuce_GUI()
+
+  block:
+    # RotaryParameters declares no constructor of its own, so one comes from
+    # the slider that already has a set of them.
+    var slider = makeSlider()
+    var parameters = slider.getRotaryParameters()
+    parameters.startAngleRadians = 1.5'f32
+    parameters.endAngleRadians = 4.5'f32
+    parameters.stopAtEnd = true
+
+    doAssert parameters.startAngleRadians == 1.5'f32,
+             "start came back as " & $parameters.startAngleRadians
+    doAssert parameters.endAngleRadians == 4.5'f32
+    doAssert parameters.stopAtEnd
+
+    # And JUCE reads the same memory back through its own API.
+    slider.setRotaryParameters(parameters)
+    let readBack = slider.getRotaryParameters()
+    doAssert readBack.startAngleRadians == 1.5'f32,
+             "JUCE read back " & $readBack.startAngleRadians
+    doAssert readBack.endAngleRadians == 4.5'f32
+
+  shutdownJuce_GUI()
+
+testFieldAccessors()

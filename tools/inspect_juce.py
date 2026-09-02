@@ -47,6 +47,14 @@ include {juce_module_name}_lifting
 # {(&NTIv2_...)}, and C++ rejects it: JUCE's classes have no such member.
 nim_class_def = """  {class_name}{export} {{.header: {juce_module_name}, importcpp: "{spelling}", inheritable, pure.}} = object{base}"""
 
+# A public field. C++ reaches one by name; Nim reaches it through a getter and a
+# setter, which is also what lets the binding stay an importcpp object with no
+# fields of its own.
+nim_field_getter_def = """{comment}proc {field_name}*(this: {class_name}): {field_type} {{.header: {juce_module_name}, importcpp: "#.{juce_spelling}".}}{reason}"""
+# The setter's backticks already quote the name, so it takes the raw spelling:
+# a field called `end` is `end=`, not ``end`=`.
+nim_field_setter_def = """{comment}proc `{raw_name}=`*(this: var {class_name}, value: {field_type}) {{.header: {juce_module_name}, importcpp: "#.{juce_spelling} = #".}}{reason}"""
+
 # A static method has no receiver, so it takes the class as a typedesc and is
 # called as Time.currentTimeMillis(). That is the spelling juce_events_lifting
 # already used for MessageManager.getInstance.
@@ -1203,6 +1211,45 @@ def run_main(juce_module_name, juce_class_name_to_export):
             emitted_declarations.add(declaration)
             emitted_signatures.add(signature)
             print(declaration)
+
+        # Public fields. A JUCE options or parameters struct is often nothing
+        # but fields - Slider::RotaryParameters is two floats and a bool - so
+        # binding the class without them binds nothing usable.
+        for field in c.get_children():
+            if (field.kind != CursorKind.FIELD_DECL
+                    or field.access_specifier != AccessSpecifier.PUBLIC
+                    or not field.spelling):
+                continue
+
+            field_type = remap_type(field.type, remap_inner_classes, enum_remap,
+                                    class_juce_map, global_nested_remap, unambiguous_nested_remap)
+            field_comment, field_reason = "", ""
+            if ("<" in field_type or "::" in field_type or "(" in field_type
+                    or is_c_array(field_type)
+                    or not type_is_declared(field_type, declared_type_names)):
+                field_comment = "# "
+                field_reason = unbound_type_reason(field_type)
+
+            field_name = remap_identifier(field.spelling)
+            field_signature = (class_name, field_name, ("<field>",), field_type)
+            if field_signature in emitted_signatures:
+                continue
+            emitted_signatures.add(field_signature)
+
+            print(nim_field_getter_def.format(**{
+                "comment": field_comment, "field_name": field_name,
+                "class_name": class_name, "field_type": field_type.replace("var ", ""),
+                "juce_module_name": juce_module_name, "juce_spelling": field.spelling,
+                "reason": f"  # {field_reason}" if field_comment else "" }))
+
+            # No setter for a field C++ will not let anyone assign: a const one,
+            # or a reference, which binds once and cannot be repointed.
+            if not (field.type.is_const_qualified() or "&" in field.type.spelling):
+                print(nim_field_setter_def.format(**{
+                    "comment": field_comment, "raw_name": field.spelling,
+                    "class_name": class_name, "field_type": field_type.replace("var ", ""),
+                    "juce_module_name": juce_module_name, "juce_spelling": field.spelling,
+                    "reason": f"  # {field_reason}" if field_comment else "" }))
 
         class_bound_equality = False
         class_has_to_string = False
