@@ -558,11 +558,8 @@ proc isEmpty*(this: String): bool {.header: juce_core, importcpp: "#.isEmpty()".
 proc isNotEmpty*(this: String): bool {.header: juce_core, importcpp: "#.isNotEmpty()".}
 proc clear*(this: var String) {.header: juce_core, importcpp: "#.clear()".}
 proc equalsIgnoreCase*(this: String, other: String): bool {.header: juce_core, importcpp: "#.equalsIgnoreCase(@)".}
-proc equalsIgnoreCase*(this: String, other: StringRef): bool {.header: juce_core, importcpp: "#.equalsIgnoreCase(@)".}
 proc equalsIgnoreCase*(this: String, other: ptr uint16): bool {.header: juce_core, importcpp: "#.equalsIgnoreCase(@)".}
-proc equalsIgnoreCase*(this: String, other: constChar): bool {.header: juce_core, importcpp: "#.equalsIgnoreCase(@)".}
 proc compare*(this: String, other: String): cint {.header: juce_core, importcpp: "#.compare(@)".}
-proc compare*(this: String, other: constChar): cint {.header: juce_core, importcpp: "#.compare(@)".}
 proc compare*(this: String, other: ptr uint16): cint {.header: juce_core, importcpp: "#.compare(@)".}
 proc compareIgnoreCase*(this: String, other: String): cint {.header: juce_core, importcpp: "#.compareIgnoreCase(@)".}
 proc compareNatural*(this: String, other: StringRef, isCaseSensitive: bool = false): cint {.header: juce_core, importcpp: "#.compareNatural(@)".}
@@ -660,8 +657,6 @@ proc isEmpty*(this: StringRef): bool {.header: juce_core, importcpp: "#.isEmpty(
 proc isNotEmpty*(this: StringRef): bool {.header: juce_core, importcpp: "#.isNotEmpty()".}
 proc length*(this: StringRef): cint {.header: juce_core, importcpp: "#.length()".}
 proc `[]`*(this: StringRef, index: cint): uint16 {.header: juce_core, importcpp: "#.operator[](@)".}
-proc `==`*(this: StringRef, s: String): bool {.header: juce_core, importcpp: "#.operator==(@)".}
-# proc operator!=*(this: StringRef, s: String): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `<`*(this: StringRef, s: String): bool {.header: juce_core, importcpp: "#.operator<(@)".}
 proc `<=`*(this: StringRef, s: String): bool {.header: juce_core, importcpp: "#.operator<=(@)".}
 # proc operator>*(this: StringRef, s: String): bool {.header: juce_core, importcpp: "#.operator>(@)".}  # Nim derives > and >= from < and <=
@@ -765,8 +760,6 @@ proc `==`*(this: NewLine, other: NewLine): bool {.error: "juce::NewLine defines 
 
 proc makeStringPool*(): StringPool {.header: juce_core, importcpp: "juce::StringPool(@)".}
 proc getPooledString*(this: var StringPool, original: String): String {.header: juce_core, importcpp: "#.getPooledString(@)".}
-proc getPooledString*(this: var StringPool, original: constChar): String {.header: juce_core, importcpp: "#.getPooledString(@)".}
-proc getPooledString*(this: var StringPool, original: StringRef): String {.header: juce_core, importcpp: "#.getPooledString(@)".}
 proc getPooledString*(this: var StringPool, start: CharPointer_UTF8, `end`: CharPointer_UTF8): String {.header: juce_core, importcpp: "#.getPooledString(@)".}
 proc garbageCollect*(this: var StringPool) {.header: juce_core, importcpp: "#.garbageCollect()".}
 proc `==`*(this: StringPool, other: StringPool): bool {.error: "juce::StringPool defines no operator==; compare a property instead".}
@@ -961,7 +954,6 @@ proc `juce_var=`*(this: var juce_var, value: cint): var juce_var {.header: juce_
 proc `juce_var=`*(this: var juce_var, value: int64): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `juce_var=`*(this: var juce_var, value: bool): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `juce_var=`*(this: var juce_var, value: float64): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
-proc `juce_var=`*(this: var juce_var, value: constChar): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `juce_var=`*(this: var juce_var, value: ptr uint16): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `juce_var=`*(this: var juce_var, value: String): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `juce_var=`*(this: var juce_var, value: MemoryBlock): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
