@@ -825,6 +825,11 @@ proc testGeneratedSubclassesConstruct() =
         cdelete value
 
     block:
+        let value = newCustomAccessibilityRangedNumericValueInterface()
+        doAssert not value.isNil, "newCustomAccessibilityRangedNumericValueInterface returned nil"
+        cdelete value
+
+    block:
         let value = newCustomAccessibilityTextInterface()
         doAssert not value.isNil, "newCustomAccessibilityTextInterface returned nil"
         cdelete value
@@ -835,6 +840,16 @@ proc testGeneratedSubclassesConstruct() =
         cdelete value
 
     block:
+        let value = newCustomAccessibilityValueInterface()
+        doAssert not value.isNil, "newCustomAccessibilityValueInterface returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomApplicationCommandManagerListener()
+        doAssert not value.isNil, "newCustomApplicationCommandManagerListener returned nil"
+        cdelete value
+
+    block:
         let value = newCustomBorderedComponentBoundsConstrainer()
         doAssert not value.isNil, "newCustomBorderedComponentBoundsConstrainer returned nil"
         cdelete value
@@ -842,6 +857,11 @@ proc testGeneratedSubclassesConstruct() =
     block:
         let value = newCustomDarkModeSettingListener()
         doAssert not value.isNil, "newCustomDarkModeSettingListener returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomDragAndDropTarget()
+        doAssert not value.isNil, "newCustomDragAndDropTarget returned nil"
         cdelete value
 
     block:

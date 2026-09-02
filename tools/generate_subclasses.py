@@ -136,7 +136,7 @@ def qualified_name(cursor):
     return "::".join(reversed(parts))
 
 
-def nim_name(cpp_name, declared, declaration=None):
+def nim_name(cpp_name, declared, declaration=None, aliases=None):
     """The Nim spelling of a bound class, flattening a nested name.
 
     A generic name with no arguments is refused. libclang spells a nested
@@ -156,14 +156,15 @@ def nim_name(cpp_name, declared, declaration=None):
                 return None
             # The bindings join a nested name together - SourceDetails inside
             # DragAndDropTarget becomes DragAndDropTargetSourceDetails - but C++
-            # still spells it with the ::, and the macro writes the Nim name
-            # straight into the generated header. Withhold rather than emit a
-            # header naming a type that does not exist.
-            return None
+            # still spells it with the ::. Record the pairing so the class body
+            # can carry a cppTypeName line for it.
+            if aliases is not None and "::" in candidate:
+                aliases[flattened] = candidate
+            return flattened
     return None
 
 
-def map_type(type_spelling, declared, is_return, declaration=None):
+def map_type(type_spelling, declared, is_return, declaration=None, aliases=None):
     """The macro's spelling for a C++ parameter or return type.
 
     Returns None when the type has no Nim form, which withholds the class.
@@ -186,12 +187,12 @@ def map_type(type_spelling, declared, is_return, declaration=None):
         pointee = bare[:-1].strip()
         if pointee in primitive_map and primitive_map[pointee]:
             return f"ptr {primitive_map[pointee]}"
-        name = nim_name(pointee, declared, declaration)
+        name = nim_name(pointee, declared, declaration, aliases)
         return f"ptr {name}" if name else None
 
     if bare.endswith("&"):
         pointee = bare[:-1].strip()
-        name = nim_name(pointee, declared, declaration)
+        name = nim_name(pointee, declared, declaration, aliases)
         if not name:
             return None
         # A reference reaches the callback as a pointer either way: Nim hands an
@@ -200,9 +201,9 @@ def map_type(type_spelling, declared, is_return, declaration=None):
         return f"constptr[{name}]" if text.startswith("const ") else f"varref[{name}]"
 
     if bare.endswith(">") and "<" in bare:
-        return map_template(bare, declared)
+        return map_template(bare, declared, aliases)
 
-    name = nim_name(bare, declared, declaration)
+    name = nim_name(bare, declared, declaration, aliases)
     if name and is_return:
         return name
     return name
@@ -226,7 +227,7 @@ def split_template_arguments(text):
     return arguments
 
 
-def map_template(bare, declared):
+def map_template(bare, declared, aliases=None):
     """`Point<int>` -> `Point[cint]`, and std::unique_ptr to UniquePtr."""
     head, _, rest = bare.partition("<")
     head = strip_namespace(head).strip()
@@ -241,7 +242,7 @@ def map_template(bare, declared):
 
     mapped = []
     for argument in split_template_arguments(inner):
-        piece = map_type(argument, declared, is_return=False)
+        piece = map_type(argument, declared, is_return=False, aliases=aliases)
         if piece is None or piece == "":
             return None
         mapped.append(piece)
@@ -411,6 +412,7 @@ def render_class(cursor, module, declared):
     if not methods:
         return None, "abstract with no overridable pure virtual"
 
+    aliases = {}
     lines = [f"defineCppClassInternal Custom{name} of {name}:",
              f'    include "{module}/{module}.h"']
     setters = []
@@ -423,7 +425,8 @@ def render_class(cursor, module, declared):
         arguments, handler_args, handler_types = [], [], []
         for index, argument in enumerate(method.get_arguments()):
             mapped = map_type(argument.type.spelling, declared, is_return=False,
-                              declaration=type_declaration(argument.type))
+                              declaration=type_declaration(argument.type),
+                              aliases=aliases)
             if mapped is None:
                 return None, f"{argument.type.spelling} in {method.spelling} has no Nim spelling"
             argument_name = argument.spelling or f"arg{index}"
@@ -435,7 +438,8 @@ def render_class(cursor, module, declared):
             handler_args.append(f"{argument_name}: {handler_types[-1]}")
 
         returns = map_type(method.result_type.spelling, declared, is_return=True,
-                           declaration=type_declaration(method.result_type))
+                           declaration=type_declaration(method.result_type),
+                           aliases=aliases)
         if returns is None:
             return None, f"{method.result_type.spelling} returned by {method.spelling} has no Nim spelling"
 
@@ -451,6 +455,9 @@ def render_class(cursor, module, declared):
             f"this: var Custom{name}, handler: proc({handler}){(': ' + returns) if returns else ''} "
             "{.closure.}) =\n"
             f"    this.{field} = bindClosure(handler)")
+
+    for nim_spelling, cpp_spelling in sorted(aliases.items()):
+        lines.insert(2, f'    cppTypeName {nim_spelling}, "{cpp_spelling}"')
 
     lines.append("")
 

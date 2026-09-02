@@ -22,6 +22,28 @@ proc setGetCurrentValueHandler*(this: var CustomAccessibilityNumericValueInterfa
 proc setSetValueHandler*(this: var CustomAccessibilityNumericValueInterface, handler: proc(newValue: cdouble) {.closure.}) =
     this.onSetValue = bindClosure(handler)
 
+defineCppClassInternal CustomAccessibilityRangedNumericValueInterface of AccessibilityRangedNumericValueInterface:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppTypeName AccessibilityValueInterfaceAccessibleValueRange, "AccessibilityValueInterface::AccessibleValueRange"
+    proc isReadOnly(): bool {.cppconst.} = discard
+    proc getCurrentValue(): cdouble {.cppconst.} = discard
+    proc setValue(newValue: cdouble) = discard
+    proc getRange(): AccessibilityValueInterfaceAccessibleValueRange {.cppconst.} = discard
+
+proc newCustomAccessibilityRangedNumericValueInterface*(): ptr CustomAccessibilityRangedNumericValueInterface {.importcpp: "(new june::CustomAccessibilityRangedNumericValueInterface)".}
+
+proc setIsReadOnlyHandler*(this: var CustomAccessibilityRangedNumericValueInterface, handler: proc(): bool {.closure.}) =
+    this.onIsReadOnly = bindClosure(handler)
+
+proc setGetCurrentValueHandler*(this: var CustomAccessibilityRangedNumericValueInterface, handler: proc(): cdouble {.closure.}) =
+    this.onGetCurrentValue = bindClosure(handler)
+
+proc setSetValueHandler*(this: var CustomAccessibilityRangedNumericValueInterface, handler: proc(newValue: cdouble) {.closure.}) =
+    this.onSetValue = bindClosure(handler)
+
+proc setGetRangeHandler*(this: var CustomAccessibilityRangedNumericValueInterface, handler: proc(): AccessibilityValueInterfaceAccessibleValueRange {.closure.}) =
+    this.onGetRange = bindClosure(handler)
+
 defineCppClassInternal CustomAccessibilityTextInterface of AccessibilityTextInterface:
     include "juce_gui_basics/juce_gui_basics.h"
     proc isDisplayingProtectedText(): bool {.cppconst.} = discard
@@ -83,6 +105,50 @@ proc setGetCurrentValueAsStringHandler*(this: var CustomAccessibilityTextValueIn
 
 proc setSetValueAsStringHandler*(this: var CustomAccessibilityTextValueInterface, handler: proc(newValue: ptr String) {.closure.}) =
     this.onSetValueAsString = bindClosure(handler)
+
+defineCppClassInternal CustomAccessibilityValueInterface of AccessibilityValueInterface:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppTypeName AccessibilityValueInterfaceAccessibleValueRange, "AccessibilityValueInterface::AccessibleValueRange"
+    proc isReadOnly(): bool {.cppconst.} = discard
+    proc getCurrentValue(): cdouble {.cppconst.} = discard
+    proc getCurrentValueAsString(): String {.cppconst.} = discard
+    proc setValue(newValue: cdouble) = discard
+    proc setValueAsString(newValue: constptr[String]) = discard
+    proc getRange(): AccessibilityValueInterfaceAccessibleValueRange {.cppconst.} = discard
+
+proc newCustomAccessibilityValueInterface*(): ptr CustomAccessibilityValueInterface {.importcpp: "(new june::CustomAccessibilityValueInterface)".}
+
+proc setIsReadOnlyHandler*(this: var CustomAccessibilityValueInterface, handler: proc(): bool {.closure.}) =
+    this.onIsReadOnly = bindClosure(handler)
+
+proc setGetCurrentValueHandler*(this: var CustomAccessibilityValueInterface, handler: proc(): cdouble {.closure.}) =
+    this.onGetCurrentValue = bindClosure(handler)
+
+proc setGetCurrentValueAsStringHandler*(this: var CustomAccessibilityValueInterface, handler: proc(): String {.closure.}) =
+    this.onGetCurrentValueAsString = bindClosure(handler)
+
+proc setSetValueHandler*(this: var CustomAccessibilityValueInterface, handler: proc(newValue: cdouble) {.closure.}) =
+    this.onSetValue = bindClosure(handler)
+
+proc setSetValueAsStringHandler*(this: var CustomAccessibilityValueInterface, handler: proc(newValue: ptr String) {.closure.}) =
+    this.onSetValueAsString = bindClosure(handler)
+
+proc setGetRangeHandler*(this: var CustomAccessibilityValueInterface, handler: proc(): AccessibilityValueInterfaceAccessibleValueRange {.closure.}) =
+    this.onGetRange = bindClosure(handler)
+
+defineCppClassInternal CustomApplicationCommandManagerListener of ApplicationCommandManagerListener:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppTypeName ApplicationCommandTargetInvocationInfo, "ApplicationCommandTarget::InvocationInfo"
+    proc applicationCommandInvoked(arg0: constptr[ApplicationCommandTargetInvocationInfo]) = discard
+    proc applicationCommandListChanged() = discard
+
+proc newCustomApplicationCommandManagerListener*(): ptr CustomApplicationCommandManagerListener {.importcpp: "(new june::CustomApplicationCommandManagerListener)".}
+
+proc setApplicationCommandInvokedHandler*(this: var CustomApplicationCommandManagerListener, handler: proc(arg0: ptr ApplicationCommandTargetInvocationInfo) {.closure.}) =
+    this.onApplicationCommandInvoked = bindClosure(handler)
+
+proc setApplicationCommandListChangedHandler*(this: var CustomApplicationCommandManagerListener, handler: proc() {.closure.}) =
+    this.onApplicationCommandListChanged = bindClosure(handler)
 
 defineCppClassInternal CustomBorderedComponentBoundsConstrainer of BorderedComponentBoundsConstrainer:
     include "juce_gui_basics/juce_gui_basics.h"
@@ -160,6 +226,20 @@ proc setScrollToTopHandler*(this: var CustomDirectoryContentsDisplayComponent, h
 
 proc setSetSelectedFileHandler*(this: var CustomDirectoryContentsDisplayComponent, handler: proc(arg0: ptr File) {.closure.}) =
     this.onSetSelectedFile = bindClosure(handler)
+
+defineCppClassInternal CustomDragAndDropTarget of DragAndDropTarget:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppTypeName DragAndDropTargetSourceDetails, "DragAndDropTarget::SourceDetails"
+    proc isInterestedInDragSource(dragSourceDetails: constptr[DragAndDropTargetSourceDetails]): bool = discard
+    proc itemDropped(dragSourceDetails: constptr[DragAndDropTargetSourceDetails]) = discard
+
+proc newCustomDragAndDropTarget*(): ptr CustomDragAndDropTarget {.importcpp: "(new june::CustomDragAndDropTarget)".}
+
+proc setIsInterestedInDragSourceHandler*(this: var CustomDragAndDropTarget, handler: proc(dragSourceDetails: ptr DragAndDropTargetSourceDetails): bool {.closure.}) =
+    this.onIsInterestedInDragSource = bindClosure(handler)
+
+proc setItemDroppedHandler*(this: var CustomDragAndDropTarget, handler: proc(dragSourceDetails: ptr DragAndDropTargetSourceDetails) {.closure.}) =
+    this.onItemDropped = bindClosure(handler)
 
 defineCppClassInternal CustomDrawable of Drawable:
     include "juce_gui_basics/juce_gui_basics.h"
@@ -337,16 +417,12 @@ proc setMightContainSubItemsHandler*(this: var CustomTreeViewItem, handler: proc
 
 # Withheld, with the reason:
 #   AccessibilityCellInterface: const AccessibilityHandler * returned by getTableHandler has no Nim spelling
-#   AccessibilityRangedNumericValueInterface: AccessibleValueRange returned by getRange has no Nim spelling
 #   AccessibilityTableInterface: const AccessibilityHandler * returned by getCellHandler has no Nim spelling
-#   AccessibilityValueInterface: AccessibleValueRange returned by getRange has no Nim spelling
-#   ApplicationCommandManagerListener: const ApplicationCommandTarget::InvocationInfo & in applicationCommandInvoked has no Nim spelling
 #   ApplicationCommandTarget: Array<CommandID> & in getAllCommands has no Nim spelling
 #   BubbleComponent: int & in getContentSize has no Nim spelling
 #   CachedComponentImage: const Rectangle<int> & in invalidate has no Nim spelling
 #   ComponentPeer: a pure virtual is private, so no subclass can implement it
 #   ComponentTraverser: std::vector<Component *> returned by getAllComponents has no Nim spelling
-#   DragAndDropTarget: const SourceDetails & in isInterestedInDragSource has no Nim spelling
 #   DrawableShape: abstract with no overridable pure virtual
 #   MultiDocumentPanel: std::function<void (bool)> in tryToCloseDocumentAsync has no Nim spelling
 #   TextInputTarget: const Range<int> & in setHighlightedRegion has no Nim spelling
