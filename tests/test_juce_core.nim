@@ -1383,3 +1383,31 @@ proc testValueReturningHelpers() =
 
 testSparseSet()
 testValueReturningHelpers()
+
+# The hand-written procs nothing had called ===================================
+#
+# The same reasoning as the generics: an importcpp string only reaches C++ at
+# the call site, so a non-generic binding is unchecked until something calls
+# it. These are the ones a test can safely reach.
+
+proc testUncalledHandWritten() =
+  # CppString has no constructor of its own; JUCE hands one out.
+  let standard = makeString("hello").toStdString()
+  doAssert standard.len() == 5, "the std::string is " & $standard.len() & " long"
+  doAssert not standard.isEmpty(), "a filled std::string reported empty"
+  doAssert $standard.cStr() == "hello", "cStr gave " & $standard.cStr()
+  doAssert $standard == "hello", "the dollar operator gave " & $standard
+
+  # And it round-trips back into a juce::String.
+  doAssert $makeString(standard) == "hello", "the round trip through std::string lost the text"
+
+  # fromUTF8 takes an explicit byte count rather than stopping at a terminator.
+  doAssert $makeStringFromUTF8("abcdef".cstring, 3) == "abc",
+           "makeStringFromUTF8 gave " & $makeStringFromUTF8("abcdef".cstring, 3)
+  doAssert $makeStringFromUTF8("abc".cstring) == "abc",
+           "the default count did not read to the terminator"
+
+  # toRawUTF8 is what $ is built on, called directly here.
+  doAssert makeString("xyz").toRawUTF8() == "xyz", "toRawUTF8 gave " & makeString("xyz").toRawUTF8()
+
+testUncalledHandWritten()
