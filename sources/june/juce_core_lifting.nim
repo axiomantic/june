@@ -62,3 +62,11 @@ iterator attributes*(this: XmlElement): tuple[name: String, value: String] =
 iterator pairs*(this: NamedValueSet): tuple[name: Identifier, value: juce_var] =
     for index in 0 ..< this.size():
         yield (this.getName(index), this.getValueAt(index))
+
+
+# SystemStats::CrashHandlerFunction is a plain C++ function pointer, which the
+# generator cannot spell, so setApplicationCrashHandler is a comment there.
+type CrashHandlerFunction* = proc(platformSpecificData: pointer) {.cdecl.}
+
+proc setApplicationCrashHandler*(this: typedesc[SystemStats], handler: CrashHandlerFunction)
+    {.header: juce_core, importcpp: "juce::SystemStats::setApplicationCrashHandler(@)".}

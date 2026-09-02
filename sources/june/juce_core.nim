@@ -974,7 +974,7 @@ proc hasNeon*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp:
 proc getMemorySizeInMegabytes*(this: typedesc[SystemStats]): cint {.header: juce_core, importcpp: "juce::SystemStats::getMemorySizeInMegabytes()".}
 proc getPageSize*(this: typedesc[SystemStats]): cint {.header: juce_core, importcpp: "juce::SystemStats::getPageSize()".}
 proc getStackBacktrace*(this: typedesc[SystemStats]): String {.header: juce_core, importcpp: "juce::SystemStats::getStackBacktrace()".}
-# proc setApplicationCrashHandler*(this: typedesc[SystemStats], arg1: void ()(pointer)) {.header: juce_core, importcpp: "juce::SystemStats::setApplicationCrashHandler(@)".}  # a type that cannot be spelled in Nim
+# proc setApplicationCrashHandler*(this: typedesc[SystemStats], arg1: void ()(pointer)) {.header: juce_core, importcpp: "juce::SystemStats::setApplicationCrashHandler(@)".}  # excluded deliberately: see skip_class_method
 proc isRunningInAppExtensionSandbox*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::isRunningInAppExtensionSandbox()".}
 proc isAppSandboxEnabled*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::isAppSandboxEnabled()".}
 proc getCpuSpeedInMegaherz*(this: typedesc[SystemStats]): cint {.header: juce_core, importcpp: "juce::SystemStats::getCpuSpeedInMegaherz()".}
