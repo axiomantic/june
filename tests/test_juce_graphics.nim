@@ -635,3 +635,55 @@ proc testRangeSetters() =
              "the Point setters did not take"
 
 testRangeSetters()
+
+# The last of the untested hand-written generics ==============================
+#
+# Instantiating each one is the point: a generic that names C++ which does not
+# exist compiles until something calls it, which is how makeBorderSize and four
+# missing constructors stayed hidden.
+
+proc testRemainingRangeHelpers() =
+    let span = makeRange(10.cint, 20.cint)
+
+    doAssert span.getIntersectionWith(makeRange(15.cint, 30.cint)).getStart() == 15,
+             "getIntersectionWith gave the wrong start"
+    doAssert span.getUnionWith(makeRange(30.cint, 40.cint)).getEnd() == 40,
+             "getUnionWith gave the wrong end"
+    doAssert span.getUnionWith(25.cint).getEnd() == 25,
+             "getUnionWith on a value gave the wrong end"
+
+    # constrainRange pulls a range inside this one.
+    let constrained = span.constrainRange(makeRange(0.cint, 5.cint))
+    doAssert constrained.getStart() >= 10, "constrainRange left it outside"
+
+    var values = [3.cint, 1.cint, 4.cint, 1.cint, 5.cint]
+    let found = Range[cint].findMinAndMax(values[0].addr, 5.cint)
+    doAssert found.getStart() == 1, "findMinAndMax gave min " & $found.getStart()
+    doAssert found.getEnd() == 5, "findMinAndMax gave max " & $found.getEnd()
+
+proc testRemainingRectangleHelpers() =
+    var box = makeRectangle(0.cint, 0.cint, 20.cint, 10.cint)
+
+    let leftSlice = box.removeFromLeft(4.cint)
+    doAssert leftSlice.getWidth() == 4, "the left slice is " & $leftSlice.getWidth()
+    doAssert box.getWidth() == 16, "what is left is " & $box.getWidth()
+
+    let rightSlice = box.removeFromRight(6.cint)
+    doAssert rightSlice.getWidth() == 6, "the right slice is " & $rightSlice.getWidth()
+    doAssert box.getWidth() == 10, "what is left is " & $box.getWidth()
+
+    let rounded = makeRectangle(0.5'f32, 0.5'f32, 9.4'f32, 9.4'f32).toNearestInt()
+    doAssert rounded.getWidth() == 9, "toNearestInt gave width " & $rounded.getWidth()
+
+proc testNormalisableRange() =
+    let normalised = makeNormalisableRange(0.0'f32, 100.0'f32)
+    doAssert normalised.convertTo0to1(50.0'f32) == 0.5'f32,
+             "convertTo0to1 gave " & $normalised.convertTo0to1(50.0'f32)
+    doAssert normalised.convertFrom0to1(0.25'f32) == 25.0'f32,
+             "convertFrom0to1 gave " & $normalised.convertFrom0to1(0.25'f32)
+    doAssert normalised.snapToLegalValue(150.0'f32) == 100.0'f32,
+             "snapToLegalValue gave " & $normalised.snapToLegalValue(150.0'f32)
+
+testRemainingRangeHelpers()
+testRemainingRectangleHelpers()
+testNormalisableRange()
