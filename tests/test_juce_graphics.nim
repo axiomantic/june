@@ -839,3 +839,32 @@ proc testRemainingGraphicsSubclasses() =
         cdelete typeface
 
 testRemainingGraphicsSubclasses()
+
+# CustomDrawable and CustomImageFileFormat ====================================
+#
+# Both are abstract. Setting a handler is what type-checks and generates the
+# setter, and createCopy returns a std::unique_ptr, which had no constructor.
+
+proc testDrawableAndImageFileFormat() =
+    block:
+        var drawable = newCustomDrawable()
+        doAssert not drawable.isNil(), "the drawable was not built"
+        drawable[].setCreateCopyHandler(proc(): UniquePtr[Drawable] =
+            makeUniquePtr[Drawable]())
+        drawable[].setGetOutlineAsPathHandler(proc(): Path = makePath())
+        drawable[].setGetDrawableBoundsHandler(proc(): Rectangle[cfloat] =
+            makeRectangle(0.0'f32, 0.0'f32, 10.0'f32, 10.0'f32))
+        cdelete drawable
+
+        var format = newCustomImageFileFormat()
+        doAssert not format.isNil(), "the image format was not built"
+        format[].setGetFormatNameHandler(proc(): String = makeString("June Test"))
+        format[].setCanUnderstandHandler(proc(input: ptr InputStream): bool = false)
+        format[].setUsesFileExtensionHandler(proc(possibleFile: ptr june.File): bool = false)
+        format[].setDecodeImageHandler(proc(input: ptr InputStream): Image =
+            makeImage(ImagePixelFormat_ARGB, 1.cint, 1.cint, true))
+        format[].setWriteImageToStreamHandler(proc(sourceImage: ptr Image,
+                                                   destStream: ptr OutputStream): bool = false)
+        cdelete format
+
+testDrawableAndImageFileFormat()

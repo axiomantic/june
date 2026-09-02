@@ -1545,3 +1545,29 @@ proc testRemainingCoreSubclasses() =
                  "the element is " & $owned.get()[].getTagName()
 
 testRemainingCoreSubclasses()
+
+# CppVector, CppString and CustomInputSource ==================================
+#
+# Neither std wrapper could be built, so a Nim override of a virtual returning
+# one could not be written at all.
+
+proc testStdWrappersAndInputSource() =
+    block:
+        let empty = makeCppVector[cint]()
+        doAssert empty.size() == 0, "a default vector is not empty"
+
+        let blank = makeCppString()
+        doAssert blank.isEmpty(), "a default string is not empty"
+        let hello = makeCppString("hello")
+        doAssert hello.len() == 5, "the string holds " & $hello.len() & " characters"
+        doAssert $hello == "hello", "the string reads back as " & $hello
+
+        var source = newCustomInputSource()
+        doAssert not source.isNil(), "the input source was not built"
+        source[].setCreateInputStreamHandler(proc(): ptr InputStream = nil)
+        source[].setCreateInputStreamForHandler(
+            proc(relatedItemPath: ptr String): ptr InputStream = nil)
+        source[].setHashCodeHandler(proc(): int64 = 1234'i64)
+        cdelete source
+
+testStdWrappersAndInputSource()
