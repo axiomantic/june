@@ -2556,4 +2556,96 @@ proc testRelativeGeometry() =
 
 
 testRemainingGuiHandlers()
+# DrawableImage and DrawableRectangle =========================================
+#
+# Drawables paint themselves into a Graphics, so the surface says what they did
+# rather than a getter repeating what it was told.
+
+proc testDrawables() =
+    initialiseJuce_GUI()
+
+    block:
+        # A source image that is solid red, so any pixel it paints is
+        # recognisable in the destination.
+        let source = makeImage(ImagePixelFormat_ARGB, 4.cint, 4.cint, true)
+        block:
+            var sourceContext = makeGraphics(source)
+            sourceContext.setColour(makeColour(255'u8, 0'u8, 0'u8, 255'u8))
+            sourceContext.fillAll()
+        doAssert source.getPixelAt(0.cint, 0.cint).getRed() == 255'u8,
+                 "the source image is not red"
+
+        var drawable = makeDrawableImage(source)
+        doAssert drawable.getOpacity() == 1.0'f32,
+                 "a fresh drawable has opacity " & $drawable.getOpacity()
+        doAssert drawable.getImage().getWidth() == 4,
+                 "the drawable holds a " & $drawable.getImage().getWidth() & "px image"
+
+        let target = makeImage(ImagePixelFormat_ARGB, 8.cint, 8.cint, true)
+        var context = makeGraphics(target)
+        drawable.drawAt(context, 0.0'f32, 0.0'f32, 1.0'f32)
+
+        doAssert target.getPixelAt(1.cint, 1.cint).getRed() == 255'u8,
+                 "the drawable painted red " & $target.getPixelAt(1.cint, 1.cint).getRed()
+        doAssert target.getPixelAt(6.cint, 6.cint).getAlpha() == 0'u8,
+                 "the drawable painted outside its 4x4 image"
+
+        # Half opacity has to halve what reaches the surface, which is a
+        # different answer rather than merely a non-empty one.
+        let faded = makeImage(ImagePixelFormat_ARGB, 8.cint, 8.cint, true)
+        var fadedContext = makeGraphics(faded)
+        drawable.drawAt(fadedContext, 0.0'f32, 0.0'f32, 0.5'f32)
+        let fadedAlpha = faded.getPixelAt(1.cint, 1.cint).getAlpha()
+        doAssert fadedAlpha > 0'u8 and fadedAlpha < 255'u8,
+                 "half opacity gave an alpha of " & $fadedAlpha
+
+    block:
+        # All three forms, because the coverage check matches a name and one
+        # call would satisfy it for every overload.
+        let empty = makeParallelogram[cfloat]()
+        doAssert empty.topLeft().getX() == 0.0'f32,
+                 "a default parallelogram starts at " & $empty.topLeft().getX()
+
+        let fromRect = makeParallelogram(makeRectangle(1.0'f32, 2.0'f32,
+                                                       10.0'f32, 4.0'f32))
+        doAssert fromRect.topRight().getX() == 11.0'f32,
+                 "the top right is at " & $fromRect.topRight().getX()
+        doAssert fromRect.bottomLeft().getY() == 6.0'f32,
+                 "the bottom left is at " & $fromRect.bottomLeft().getY()
+
+        let fromPoints = makeParallelogram(makePoint(0.0'f32, 0.0'f32),
+                                           makePoint(4.0'f32, 0.0'f32),
+                                           makePoint(1.0'f32, 3.0'f32))
+        doAssert fromPoints.getWidth() == 4.0'f32,
+                 "the sheared parallelogram is " & $fromPoints.getWidth() & " wide"
+        # The fourth corner is derived rather than stored: topRight plus the
+        # vector from topLeft to bottomLeft.
+        doAssert fromPoints.getBottomRight().getX() == 5.0'f32,
+                 "the bottom right is at x " & $fromPoints.getBottomRight().getX()
+        doAssert fromPoints.getBottomRight().getY() == 3.0'f32,
+                 "the bottom right is at y " & $fromPoints.getBottomRight().getY()
+        doAssert not fromPoints.isEmpty(), "a real parallelogram called itself empty"
+        doAssert empty.isEmpty(), "a default parallelogram is not empty"
+        doAssert fromRect.getHeight() == 4.0'f32,
+                 "the rectangle form is " & $fromRect.getHeight() & " high"
+
+    block:
+        var rectangle = makeDrawableRectangle()
+        rectangle.setRectangle(makeParallelogram(
+            makeRectangle(0.0'f32, 0.0'f32, 6.0'f32, 6.0'f32)))
+        rectangle.setFill(makeFillType(makeColour(0'u8, 0'u8, 255'u8, 255'u8)))
+
+        let target = makeImage(ImagePixelFormat_ARGB, 10.cint, 10.cint, true)
+        var context = makeGraphics(target)
+        rectangle.drawAt(context, 0.0'f32, 0.0'f32, 1.0'f32)
+
+        doAssert target.getPixelAt(2.cint, 2.cint).getBlue() == 255'u8,
+                 "the rectangle painted blue " & $target.getPixelAt(2.cint, 2.cint).getBlue()
+        doAssert target.getPixelAt(9.cint, 9.cint).getAlpha() == 0'u8,
+                 "the rectangle painted outside its own bounds"
+
+    shutdownJuce_GUI()
+
+
 testRelativeGeometry()
+testDrawables()
