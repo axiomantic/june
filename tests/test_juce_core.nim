@@ -402,3 +402,14 @@ proc testFreeFunctionOperators() =
   doAssert findHighestSetBit(0b1000'u32) == 3
 
 testFreeFunctionOperators()
+
+# SystemStats::CrashHandlerFunction is a plain C++ function pointer, so the
+# generator cannot spell it and the binding is hand-written. There is no way to
+# fire a crash from a test, so this checks the handler installs.
+proc onCrash(platformSpecificData: pointer) {.cdecl.} = discard
+
+proc testCrashHandlerBinding() =
+  SystemStats.setApplicationCrashHandler(onCrash)
+  doAssert compiles(SystemStats.setApplicationCrashHandler(onCrash))
+
+testCrashHandlerBinding()

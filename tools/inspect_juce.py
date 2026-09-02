@@ -703,6 +703,8 @@ def skip_class_method(class_name, method_name):
         "RelativeTime": {"getDescription"},
         "Expression": {"getType"},
         "Random": {"nextInt"},
+        # A plain C++ function pointer. juce_core_lifting binds it by hand.
+        "SystemStats": {"setApplicationCrashHandler"},
         "Thread": {"getThreadID"},
         "ThreadPoolJob": {"runJob", "addListener", "removeListener", "addJob"},
         # A plain C++ function pointer, which the generator cannot spell.
