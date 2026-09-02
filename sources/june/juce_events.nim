@@ -35,6 +35,10 @@ type
   NotificationType* {.header: juce_events, importcpp: "juce::NotificationType".} = distinct cint
   InterprocessConnectionNotify* {.header: juce_events, importcpp: "juce::InterprocessConnection::Notify".} = distinct cint
 
+# Comparison for the enums above, taken from their base type.
+proc `==`*(a: NotificationType, b: NotificationType): bool {.borrow.}
+proc `==`*(a: InterprocessConnectionNotify, b: InterprocessConnectionNotify): bool {.borrow.}
+
 let NotificationType_dontSendNotification* {.header: juce_events, importcpp: "juce::dontSendNotification".}: NotificationType
 let NotificationType_sendNotification* {.header: juce_events, importcpp: "juce::sendNotification".}: NotificationType
 let NotificationType_sendNotificationSync* {.header: juce_events, importcpp: "juce::sendNotificationSync".}: NotificationType

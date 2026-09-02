@@ -167,6 +167,29 @@ type
   ZipFileOverwriteFiles* {.header: juce_core, importcpp: "juce::ZipFile::OverwriteFiles".} = distinct cint
   ZipFileFollowSymlinks* {.header: juce_core, importcpp: "juce::ZipFile::FollowSymlinks".} = distinct cint
 
+# Comparison for the enums above, taken from their base type.
+proc `==`*(a: IncrementRef, b: IncrementRef): bool {.borrow.}
+proc `==`*(a: SystemStatsOperatingSystemType, b: SystemStatsOperatingSystemType): bool {.borrow.}
+proc `==`*(a: SystemStatsMachineIdFlags, b: SystemStatsMachineIdFlags): bool {.borrow.}
+proc `==`*(a: JSONSpacing, b: JSONSpacing): bool {.borrow.}
+proc `==`*(a: JSONEncoding, b: JSONEncoding): bool {.borrow.}
+proc `==`*(a: FileTypesOfFileToFind, b: FileTypesOfFileToFind): bool {.borrow.}
+proc `==`*(a: FileFollowSymlinks, b: FileFollowSymlinks): bool {.borrow.}
+proc `==`*(a: FileSpecialLocationType, b: FileSpecialLocationType): bool {.borrow.}
+proc `==`*(a: MemoryMappedFileAccessMode, b: MemoryMappedFileAccessMode): bool {.borrow.}
+proc `==`*(a: TemporaryFileOptionFlags, b: TemporaryFileOptionFlags): bool {.borrow.}
+proc `==`*(a: ExpressionType, b: ExpressionType): bool {.borrow.}
+proc `==`*(a: RuntimePermissionsPermissionID, b: RuntimePermissionsPermissionID): bool {.borrow.}
+proc `==`*(a: ChildProcessStreamFlags, b: ChildProcessStreamFlags): bool {.borrow.}
+proc `==`*(a: ProcessProcessPriority, b: ProcessProcessPriority): bool {.borrow.}
+proc `==`*(a: ThreadPriority, b: ThreadPriority): bool {.borrow.}
+proc `==`*(a: ThreadPoolJobJobStatus, b: ThreadPoolJobJobStatus): bool {.borrow.}
+proc `==`*(a: URLParameterHandling, b: URLParameterHandling): bool {.borrow.}
+proc `==`*(a: GZIPCompressorOutputStreamWindowBitsValues, b: GZIPCompressorOutputStreamWindowBitsValues): bool {.borrow.}
+proc `==`*(a: GZIPDecompressorInputStreamFormat, b: GZIPDecompressorInputStreamFormat): bool {.borrow.}
+proc `==`*(a: ZipFileOverwriteFiles, b: ZipFileOverwriteFiles): bool {.borrow.}
+proc `==`*(a: ZipFileFollowSymlinks, b: ZipFileFollowSymlinks): bool {.borrow.}
+
 let IncrementRef_no* {.header: juce_core, importcpp: "juce::IncrementRef::no".}: IncrementRef
 let IncrementRef_yes* {.header: juce_core, importcpp: "juce::IncrementRef::yes".}: IncrementRef
 

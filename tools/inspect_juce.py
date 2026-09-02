@@ -989,6 +989,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
     # the header, and there is no ordering of separate type sections that
     # satisfies every such pair.
     all_class_decls = []
+    emitted_enum_names = []
     for c in module_classes:
         if juce_class_name_to_export is not None and c.spelling != juce_class_name_to_export:
             continue
@@ -1024,6 +1025,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
 
     for enum_name, enum_cursor, owner in module_enums:
         qualified = f"juce::{owner}::{enum_cursor.spelling}" if owner else f"juce::{enum_cursor.spelling}"
+        emitted_enum_names.append(enum_name)
         all_class_decls.append(nim_enum_def.format(**{
             "enum_name": enum_name,
             "spelling": qualified,
@@ -1045,6 +1047,17 @@ def run_main(juce_module_name, juce_class_name_to_export):
 
     if all_class_decls:
         print(nim_type_def.format(**{ "classes": "\n".join(all_class_decls) }))
+
+    if emitted_enum_names:
+        # An enum is a distinct cint, so it has none of cint's operators unless
+        # they are given to it. Without this, comparing two enum values needs a
+        # cast on both sides, which is what every caller would end up writing.
+        # `borrow` takes the base type's == rather than binding a C++ one,
+        # because the values are already the C++ enumerators.
+        print("# Comparison for the enums above, taken from their base type.")
+        for enum_name in emitted_enum_names:
+            print(f"proc `==`*(a: {enum_name}, b: {enum_name}): bool {{.borrow.}}")
+        print()
 
     # Enumerators are prefixed with their type. C++ scopes them by enum or by
     # class; Nim would put every one of them in the same namespace, where names
