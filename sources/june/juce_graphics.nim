@@ -1266,6 +1266,9 @@ proc `==`*(this: GlowEffect, other: GlowEffect): bool {.error: "juce::GlowEffect
 
 proc `==`*(this: ImagePixelDataNativeExtensions, other: ImagePixelDataNativeExtensions): bool {.error: "juce::ImagePixelDataNativeExtensions defines no operator==; compare a property instead".}
 
+proc maskPixelComponents*(x: uint32): uint32 {.header: juce_graphics, importcpp: "juce::maskPixelComponents(@)".}
+proc clampPixelComponents*(x: uint32): uint32 {.header: juce_graphics, importcpp: "juce::clampPixelComponents(@)".}
+
 
 
 include juce_graphics_lifting

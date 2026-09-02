@@ -4937,6 +4937,11 @@ proc `==`*(this: ScopedDPIAwarenessDisabler, other: ScopedDPIAwarenessDisabler):
 
 proc `==`*(this: AccessibilityNativeHandle, other: AccessibilityNativeHandle): bool {.error: "juce::AccessibilityNativeHandle defines no operator==; compare a property instead".}
 
+proc createSnapshotOfNativeWindow*(nativeWindowHandle: pointer): Image {.header: juce_gui_basics, importcpp: "juce::createSnapshotOfNativeWindow(@)".}
+# proc operator""_px*(px: long double): GridPx {.header: juce_gui_basics, importcpp: "juce::operator""_px(@)".}  # an operator with no Nim spelling
+# proc operator""_px*(px: uint64): GridPx {.header: juce_gui_basics, importcpp: "juce::operator""_px(@)".}  # an operator with no Nim spelling
+# proc operator""_fr*(fr: uint64): GridFr {.header: juce_gui_basics, importcpp: "juce::operator""_fr(@)".}  # an operator with no Nim spelling
+
 
 
 include juce_gui_basics_lifting

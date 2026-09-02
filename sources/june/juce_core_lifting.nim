@@ -15,11 +15,11 @@ proc toRawUTF8*(this: String): string =
 
 proc `$`*(text: String): string = text.toRawUTF8
 
-# JUCE declares these as free functions, and the generator only sees members, so
-# they arrive as the no-equality guard rather than as operators.
-proc `==`*(this: String, other: String): bool {.header: juce_core, importcpp: "# == #".}
+# JUCE has no operator< taking two Strings: StringRef declares one taking a
+# String, and there is a free one taking a String and a StringRef. Comparing
+# two Strings reaches both through the same converter, so Nim calls it
+# ambiguous. This one is an exact match and outranks both.
 proc `<`*(this: String, other: String): bool {.header: juce_core, importcpp: "# < #".}
-proc `==`*(this: juce_var, other: juce_var): bool {.header: juce_core, importcpp: "# == #".}
 
 converter toJuceString*(text: string): String = makeString(text)
 # No implicit String -> string. With toJuceString going the other way, any

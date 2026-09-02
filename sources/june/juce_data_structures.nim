@@ -225,6 +225,8 @@ proc saveIfNeeded*(this: var ApplicationProperties): bool {.header: juce_data_st
 proc closeFiles*(this: var ApplicationProperties) {.header: juce_data_structures, importcpp: "#.closeFiles()".}
 proc `==`*(this: ApplicationProperties, other: ApplicationProperties): bool {.error: "juce::ApplicationProperties defines no operator==; compare a property instead".}
 
+proc `shl`*(arg1: var OutputStream, arg2: Value): var OutputStream {.header: juce_data_structures, importcpp: "juce::operator<<(@)".}
+
 
 
 include juce_data_structures_lifting
