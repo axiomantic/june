@@ -83,20 +83,36 @@ type
   AttributedStringWordWrap* {.header: juce_graphics, importcpp: "juce::AttributedString::WordWrap".} = distinct cint
   AttributedStringReadingDirection* {.header: juce_graphics, importcpp: "juce::AttributedString::ReadingDirection".} = distinct cint
 
-# Comparison for the enums above, taken from their base type.
+# Comparison for the enums above, taken from their base type,
+# and $ so a value can appear in a message. $ prints the number
+# rather than the name: the binding holds the C++ enumerator and
+# there is no table of names on this side to look one up in.
 proc `==`*(a: TypefaceMetricsKind, b: TypefaceMetricsKind): bool {.borrow.}
+proc `$`*(value: TypefaceMetricsKind): string {.borrow.}
 proc `==`*(a: JustificationFlags, b: JustificationFlags): bool {.borrow.}
+proc `$`*(value: JustificationFlags): string {.borrow.}
 proc `==`*(a: PathIteratorPathElementType, b: PathIteratorPathElementType): bool {.borrow.}
+proc `$`*(value: PathIteratorPathElementType): string {.borrow.}
 proc `==`*(a: PathStrokeTypeJointStyle, b: PathStrokeTypeJointStyle): bool {.borrow.}
+proc `$`*(value: PathStrokeTypeJointStyle): string {.borrow.}
 proc `==`*(a: PathStrokeTypeEndCapStyle, b: PathStrokeTypeEndCapStyle): bool {.borrow.}
+proc `$`*(value: PathStrokeTypeEndCapStyle): string {.borrow.}
 proc `==`*(a: RectanglePlacementFlags, b: RectanglePlacementFlags): bool {.borrow.}
+proc `$`*(value: RectanglePlacementFlags): string {.borrow.}
 proc `==`*(a: GraphicsResamplingQuality, b: GraphicsResamplingQuality): bool {.borrow.}
+proc `$`*(value: GraphicsResamplingQuality): string {.borrow.}
 proc `==`*(a: ImagePixelFormat, b: ImagePixelFormat): bool {.borrow.}
+proc `$`*(value: ImagePixelFormat): string {.borrow.}
 proc `==`*(a: ImageBitmapDataReadWriteMode, b: ImageBitmapDataReadWriteMode): bool {.borrow.}
+proc `$`*(value: ImageBitmapDataReadWriteMode): string {.borrow.}
 proc `==`*(a: TypefaceColourGlyphFormat, b: TypefaceColourGlyphFormat): bool {.borrow.}
+proc `$`*(value: TypefaceColourGlyphFormat): string {.borrow.}
 proc `==`*(a: FontFontStyleFlags, b: FontFontStyleFlags): bool {.borrow.}
+proc `$`*(value: FontFontStyleFlags): string {.borrow.}
 proc `==`*(a: AttributedStringWordWrap, b: AttributedStringWordWrap): bool {.borrow.}
+proc `$`*(value: AttributedStringWordWrap): string {.borrow.}
 proc `==`*(a: AttributedStringReadingDirection, b: AttributedStringReadingDirection): bool {.borrow.}
+proc `$`*(value: AttributedStringReadingDirection): string {.borrow.}
 
 # Bitwise operators for the flag sets among them.
 proc `or`*(a: JustificationFlags, b: JustificationFlags): JustificationFlags {.borrow.}

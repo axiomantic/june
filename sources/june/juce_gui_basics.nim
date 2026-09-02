@@ -362,99 +362,194 @@ type
   GridAlignContent* {.header: juce_gui_basics, importcpp: "juce::Grid::AlignContent".} = distinct cint
   GridAutoFlow* {.header: juce_gui_basics, importcpp: "juce::Grid::AutoFlow".} = distinct cint
 
-# Comparison for the enums above, taken from their base type.
+# Comparison for the enums above, taken from their base type,
+# and $ so a value can appear in a message. $ prints the number
+# rather than the name: the binding holds the C++ enumerator and
+# there is no table of names on this side to look one up in.
 proc `==`*(a: AccessibilityActionType, b: AccessibilityActionType): bool {.borrow.}
+proc `$`*(value: AccessibilityActionType): string {.borrow.}
 proc `==`*(a: AccessibilityEvent, b: AccessibilityEvent): bool {.borrow.}
+proc `$`*(value: AccessibilityEvent): string {.borrow.}
 proc `==`*(a: AccessibilityRole, b: AccessibilityRole): bool {.borrow.}
+proc `$`*(value: AccessibilityRole): string {.borrow.}
 proc `==`*(a: MessageBoxIconType, b: MessageBoxIconType): bool {.borrow.}
+proc `$`*(value: MessageBoxIconType): string {.borrow.}
 proc `==`*(a: MouseCursorStandardCursorType, b: MouseCursorStandardCursorType): bool {.borrow.}
+proc `$`*(value: MouseCursorStandardCursorType): string {.borrow.}
 proc `==`*(a: ModifierKeysFlags, b: ModifierKeysFlags): bool {.borrow.}
+proc `$`*(value: ModifierKeysFlags): string {.borrow.}
 proc `==`*(a: MouseInputSourceInputSourceType, b: MouseInputSourceInputSourceType): bool {.borrow.}
+proc `$`*(value: MouseInputSourceInputSourceType): string {.borrow.}
 proc `==`*(a: FocusTraverserSkipDisabledComponents, b: FocusTraverserSkipDisabledComponents): bool {.borrow.}
+proc `$`*(value: FocusTraverserSkipDisabledComponents): string {.borrow.}
 proc `==`*(a: ComponentWindowControlKind, b: ComponentWindowControlKind): bool {.borrow.}
+proc `$`*(value: ComponentWindowControlKind): string {.borrow.}
 proc `==`*(a: ComponentFocusContainerType, b: ComponentFocusContainerType): bool {.borrow.}
+proc `$`*(value: ComponentFocusContainerType): string {.borrow.}
 proc `==`*(a: ComponentFocusChangeType, b: ComponentFocusChangeType): bool {.borrow.}
+proc `$`*(value: ComponentFocusChangeType): string {.borrow.}
 proc `==`*(a: ComponentFocusChangeDirection, b: ComponentFocusChangeDirection): bool {.borrow.}
+proc `$`*(value: ComponentFocusChangeDirection): string {.borrow.}
 proc `==`*(a: DesktopDisplayOrientation, b: DesktopDisplayOrientation): bool {.borrow.}
+proc `$`*(value: DesktopDisplayOrientation): string {.borrow.}
 proc `==`*(a: CaretComponentColourIds, b: CaretComponentColourIds): bool {.borrow.}
+proc `$`*(value: CaretComponentColourIds): string {.borrow.}
 proc `==`*(a: TextInputTargetVirtualKeyboardType, b: TextInputTargetVirtualKeyboardType): bool {.borrow.}
+proc `$`*(value: TextInputTargetVirtualKeyboardType): string {.borrow.}
 proc `==`*(a: ApplicationCommandInfoCommandFlags, b: ApplicationCommandInfoCommandFlags): bool {.borrow.}
+proc `$`*(value: ApplicationCommandInfoCommandFlags): string {.borrow.}
 proc `==`*(a: ApplicationCommandTargetInvocationInfoInvocationMethod, b: ApplicationCommandTargetInvocationInfoInvocationMethod): bool {.borrow.}
+proc `$`*(value: ApplicationCommandTargetInvocationInfoInvocationMethod): string {.borrow.}
 proc `==`*(a: ButtonConnectedEdgeFlags, b: ButtonConnectedEdgeFlags): bool {.borrow.}
+proc `$`*(value: ButtonConnectedEdgeFlags): string {.borrow.}
 proc `==`*(a: ButtonButtonState, b: ButtonButtonState): bool {.borrow.}
+proc `$`*(value: ButtonButtonState): string {.borrow.}
 proc `==`*(a: DrawableButtonButtonStyle, b: DrawableButtonButtonStyle): bool {.borrow.}
+proc `$`*(value: DrawableButtonButtonStyle): string {.borrow.}
 proc `==`*(a: DrawableButtonColourIds, b: DrawableButtonColourIds): bool {.borrow.}
+proc `$`*(value: DrawableButtonColourIds): string {.borrow.}
 proc `==`*(a: HyperlinkButtonColourIds, b: HyperlinkButtonColourIds): bool {.borrow.}
+proc `$`*(value: HyperlinkButtonColourIds): string {.borrow.}
 proc `==`*(a: TextButtonColourIds, b: TextButtonColourIds): bool {.borrow.}
+proc `$`*(value: TextButtonColourIds): string {.borrow.}
 proc `==`*(a: ToggleButtonColourIds, b: ToggleButtonColourIds): bool {.borrow.}
+proc `$`*(value: ToggleButtonColourIds): string {.borrow.}
 proc `==`*(a: GroupComponentColourIds, b: GroupComponentColourIds): bool {.borrow.}
+proc `$`*(value: GroupComponentColourIds): string {.borrow.}
 proc `==`*(a: ResizableBorderComponentZoneZones, b: ResizableBorderComponentZoneZones): bool {.borrow.}
+proc `$`*(value: ResizableBorderComponentZoneZones): string {.borrow.}
 proc `==`*(a: ResizableEdgeComponentEdge, b: ResizableEdgeComponentEdge): bool {.borrow.}
+proc `$`*(value: ResizableEdgeComponentEdge): string {.borrow.}
 proc `==`*(a: ScrollBarColourIds, b: ScrollBarColourIds): bool {.borrow.}
+proc `$`*(value: ScrollBarColourIds): string {.borrow.}
 proc `==`*(a: TabBarButtonExtraComponentPlacement, b: TabBarButtonExtraComponentPlacement): bool {.borrow.}
+proc `$`*(value: TabBarButtonExtraComponentPlacement): string {.borrow.}
 proc `==`*(a: TabbedButtonBarOrientation, b: TabbedButtonBarOrientation): bool {.borrow.}
+proc `$`*(value: TabbedButtonBarOrientation): string {.borrow.}
 proc `==`*(a: TabbedButtonBarColourIds, b: TabbedButtonBarColourIds): bool {.borrow.}
+proc `$`*(value: TabbedButtonBarColourIds): string {.borrow.}
 proc `==`*(a: TabbedComponentColourIds, b: TabbedComponentColourIds): bool {.borrow.}
+proc `$`*(value: TabbedComponentColourIds): string {.borrow.}
 proc `==`*(a: AccessibilityHandlerAnnouncementPriority, b: AccessibilityHandlerAnnouncementPriority): bool {.borrow.}
+proc `$`*(value: AccessibilityHandlerAnnouncementPriority): string {.borrow.}
 proc `==`*(a: ViewportScrollOnDragMode, b: ViewportScrollOnDragMode): bool {.borrow.}
+proc `$`*(value: ViewportScrollOnDragMode): string {.borrow.}
 proc `==`*(a: PopupMenuColourIds, b: PopupMenuColourIds): bool {.borrow.}
+proc `$`*(value: PopupMenuColourIds): string {.borrow.}
 proc `==`*(a: PopupMenuOptionsPopupDirection, b: PopupMenuOptionsPopupDirection): bool {.borrow.}
+proc `$`*(value: PopupMenuOptionsPopupDirection): string {.borrow.}
 proc `==`*(a: RelativeCoordinateStandardStringsType, b: RelativeCoordinateStandardStringsType): bool {.borrow.}
+proc `$`*(value: RelativeCoordinateStandardStringsType): string {.borrow.}
 proc `==`*(a: RelativePointPathElementType, b: RelativePointPathElementType): bool {.borrow.}
+proc `$`*(value: RelativePointPathElementType): string {.borrow.}
 proc `==`*(a: TextEditorColourIds, b: TextEditorColourIds): bool {.borrow.}
+proc `$`*(value: TextEditorColourIds): string {.borrow.}
 proc `==`*(a: LabelColourIds, b: LabelColourIds): bool {.borrow.}
+proc `$`*(value: LabelColourIds): string {.borrow.}
 proc `==`*(a: ComboBoxColourIds, b: ComboBoxColourIds): bool {.borrow.}
+proc `$`*(value: ComboBoxColourIds): string {.borrow.}
 proc `==`*(a: ListBoxColourIds, b: ListBoxColourIds): bool {.borrow.}
+proc `$`*(value: ListBoxColourIds): string {.borrow.}
 proc `==`*(a: ProgressBarStyle, b: ProgressBarStyle): bool {.borrow.}
+proc `$`*(value: ProgressBarStyle): string {.borrow.}
 proc `==`*(a: ProgressBarColourIds, b: ProgressBarColourIds): bool {.borrow.}
+proc `$`*(value: ProgressBarColourIds): string {.borrow.}
 proc `==`*(a: SliderSliderStyle, b: SliderSliderStyle): bool {.borrow.}
+proc `$`*(value: SliderSliderStyle): string {.borrow.}
 proc `==`*(a: SliderTextEntryBoxPosition, b: SliderTextEntryBoxPosition): bool {.borrow.}
+proc `$`*(value: SliderTextEntryBoxPosition): string {.borrow.}
 proc `==`*(a: SliderDragMode, b: SliderDragMode): bool {.borrow.}
+proc `$`*(value: SliderDragMode): string {.borrow.}
 proc `==`*(a: SliderIncDecButtonMode, b: SliderIncDecButtonMode): bool {.borrow.}
+proc `$`*(value: SliderIncDecButtonMode): string {.borrow.}
 proc `==`*(a: SliderColourIds, b: SliderColourIds): bool {.borrow.}
+proc `$`*(value: SliderColourIds): string {.borrow.}
 proc `==`*(a: TableHeaderComponentColumnPropertyFlags, b: TableHeaderComponentColumnPropertyFlags): bool {.borrow.}
+proc `$`*(value: TableHeaderComponentColumnPropertyFlags): string {.borrow.}
 proc `==`*(a: TableHeaderComponentColourIds, b: TableHeaderComponentColourIds): bool {.borrow.}
+proc `$`*(value: TableHeaderComponentColourIds): string {.borrow.}
 proc `==`*(a: ToolbarToolbarItemStyle, b: ToolbarToolbarItemStyle): bool {.borrow.}
+proc `$`*(value: ToolbarToolbarItemStyle): string {.borrow.}
 proc `==`*(a: ToolbarCustomisationFlags, b: ToolbarCustomisationFlags): bool {.borrow.}
+proc `$`*(value: ToolbarCustomisationFlags): string {.borrow.}
 proc `==`*(a: ToolbarColourIds, b: ToolbarColourIds): bool {.borrow.}
+proc `$`*(value: ToolbarColourIds): string {.borrow.}
 proc `==`*(a: ToolbarItemComponentToolbarEditingMode, b: ToolbarItemComponentToolbarEditingMode): bool {.borrow.}
+proc `$`*(value: ToolbarItemComponentToolbarEditingMode): string {.borrow.}
 proc `==`*(a: ToolbarItemFactorySpecialItemIds, b: ToolbarItemFactorySpecialItemIds): bool {.borrow.}
+proc `$`*(value: ToolbarItemFactorySpecialItemIds): string {.borrow.}
 proc `==`*(a: TreeViewItemOpenness, b: TreeViewItemOpenness): bool {.borrow.}
+proc `$`*(value: TreeViewItemOpenness): string {.borrow.}
 proc `==`*(a: TreeViewColourIds, b: TreeViewColourIds): bool {.borrow.}
+proc `$`*(value: TreeViewColourIds): string {.borrow.}
 proc `==`*(a: AlertWindowColourIds, b: AlertWindowColourIds): bool {.borrow.}
+proc `$`*(value: AlertWindowColourIds): string {.borrow.}
 proc `==`*(a: ComponentPeerStyleFlags, b: ComponentPeerStyleFlags): bool {.borrow.}
+proc `$`*(value: ComponentPeerStyleFlags): string {.borrow.}
 proc `==`*(a: ComponentPeerStyle, b: ComponentPeerStyle): bool {.borrow.}
+proc `$`*(value: ComponentPeerStyle): string {.borrow.}
 proc `==`*(a: ResizableWindowColourIds, b: ResizableWindowColourIds): bool {.borrow.}
+proc `$`*(value: ResizableWindowColourIds): string {.borrow.}
 proc `==`*(a: DocumentWindowTitleBarButtons, b: DocumentWindowTitleBarButtons): bool {.borrow.}
+proc `$`*(value: DocumentWindowTitleBarButtons): string {.borrow.}
 proc `==`*(a: DocumentWindowColourIds, b: DocumentWindowColourIds): bool {.borrow.}
+proc `$`*(value: DocumentWindowColourIds): string {.borrow.}
 proc `==`*(a: TooltipWindowColourIds, b: TooltipWindowColourIds): bool {.borrow.}
+proc `$`*(value: TooltipWindowColourIds): string {.borrow.}
 proc `==`*(a: MultiDocumentPanelLayoutMode, b: MultiDocumentPanelLayoutMode): bool {.borrow.}
+proc `$`*(value: MultiDocumentPanelLayoutMode): string {.borrow.}
 proc `==`*(a: SidePanelColourIds, b: SidePanelColourIds): bool {.borrow.}
+proc `$`*(value: SidePanelColourIds): string {.borrow.}
 proc `==`*(a: DirectoryContentsDisplayComponentColourIds, b: DirectoryContentsDisplayComponentColourIds): bool {.borrow.}
+proc `$`*(value: DirectoryContentsDisplayComponentColourIds): string {.borrow.}
 proc `==`*(a: FileBrowserComponentFileChooserFlags, b: FileBrowserComponentFileChooserFlags): bool {.borrow.}
+proc `$`*(value: FileBrowserComponentFileChooserFlags): string {.borrow.}
 proc `==`*(a: FileBrowserComponentColourIds, b: FileBrowserComponentColourIds): bool {.borrow.}
+proc `$`*(value: FileBrowserComponentColourIds): string {.borrow.}
 proc `==`*(a: FileChooserDialogBoxColourIds, b: FileChooserDialogBoxColourIds): bool {.borrow.}
+proc `$`*(value: FileChooserDialogBoxColourIds): string {.borrow.}
 proc `==`*(a: FileSearchPathListComponentColourIds, b: FileSearchPathListComponentColourIds): bool {.borrow.}
+proc `$`*(value: FileSearchPathListComponentColourIds): string {.borrow.}
 proc `==`*(a: PropertyComponentColourIds, b: PropertyComponentColourIds): bool {.borrow.}
+proc `$`*(value: PropertyComponentColourIds): string {.borrow.}
 proc `==`*(a: BooleanPropertyComponentColourIds, b: BooleanPropertyComponentColourIds): bool {.borrow.}
+proc `$`*(value: BooleanPropertyComponentColourIds): string {.borrow.}
 proc `==`*(a: TextPropertyComponentColourIds, b: TextPropertyComponentColourIds): bool {.borrow.}
+proc `$`*(value: TextPropertyComponentColourIds): string {.borrow.}
 proc `==`*(a: BubbleComponentBubblePlacement, b: BubbleComponentBubblePlacement): bool {.borrow.}
+proc `$`*(value: BubbleComponentBubblePlacement): string {.borrow.}
 proc `==`*(a: BubbleComponentColourIds, b: BubbleComponentColourIds): bool {.borrow.}
+proc `$`*(value: BubbleComponentColourIds): string {.borrow.}
 proc `==`*(a: LookAndFeel_V4ColourSchemeUIColour, b: LookAndFeel_V4ColourSchemeUIColour): bool {.borrow.}
+proc `$`*(value: LookAndFeel_V4ColourSchemeUIColour): string {.borrow.}
 proc `==`*(a: FlexItemAlignSelf, b: FlexItemAlignSelf): bool {.borrow.}
+proc `$`*(value: FlexItemAlignSelf): string {.borrow.}
 proc `==`*(a: FlexBoxDirection, b: FlexBoxDirection): bool {.borrow.}
+proc `$`*(value: FlexBoxDirection): string {.borrow.}
 proc `==`*(a: FlexBoxWrap, b: FlexBoxWrap): bool {.borrow.}
+proc `$`*(value: FlexBoxWrap): string {.borrow.}
 proc `==`*(a: FlexBoxAlignContent, b: FlexBoxAlignContent): bool {.borrow.}
+proc `$`*(value: FlexBoxAlignContent): string {.borrow.}
 proc `==`*(a: FlexBoxAlignItems, b: FlexBoxAlignItems): bool {.borrow.}
+proc `$`*(value: FlexBoxAlignItems): string {.borrow.}
 proc `==`*(a: FlexBoxJustifyContent, b: FlexBoxJustifyContent): bool {.borrow.}
+proc `$`*(value: FlexBoxJustifyContent): string {.borrow.}
 proc `==`*(a: GridItemKeyword, b: GridItemKeyword): bool {.borrow.}
+proc `$`*(value: GridItemKeyword): string {.borrow.}
 proc `==`*(a: GridItemJustifySelf, b: GridItemJustifySelf): bool {.borrow.}
+proc `$`*(value: GridItemJustifySelf): string {.borrow.}
 proc `==`*(a: GridItemAlignSelf, b: GridItemAlignSelf): bool {.borrow.}
+proc `$`*(value: GridItemAlignSelf): string {.borrow.}
 proc `==`*(a: GridJustifyItems, b: GridJustifyItems): bool {.borrow.}
+proc `$`*(value: GridJustifyItems): string {.borrow.}
 proc `==`*(a: GridAlignItems, b: GridAlignItems): bool {.borrow.}
+proc `$`*(value: GridAlignItems): string {.borrow.}
 proc `==`*(a: GridJustifyContent, b: GridJustifyContent): bool {.borrow.}
+proc `$`*(value: GridJustifyContent): string {.borrow.}
 proc `==`*(a: GridAlignContent, b: GridAlignContent): bool {.borrow.}
+proc `$`*(value: GridAlignContent): string {.borrow.}
 proc `==`*(a: GridAutoFlow, b: GridAutoFlow): bool {.borrow.}
+proc `$`*(value: GridAutoFlow): string {.borrow.}
 
 # Bitwise operators for the flag sets among them.
 proc `or`*(a: ModifierKeysFlags, b: ModifierKeysFlags): ModifierKeysFlags {.borrow.}
