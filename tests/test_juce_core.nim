@@ -1190,3 +1190,16 @@ proc testOverloadedFreeFunctions() =
            "findHighestSetBit gave " & $findHighestSetBit(0b1000'u32)
 
 testOverloadedFreeFunctions()
+
+# String from each character-pointer form ======================================
+#
+# Every one of these constructors carries a cast now. They all have to produce
+# the same string from the same text.
+
+proc testStringConstructors() =
+  let plain = makeString("abc")
+  doAssert $makeString(plain.getCharPointer()) == "abc", "from a UTF-8 pointer"
+  doAssert $makeString(makeStringRef(plain)) == "abc", "from a StringRef"
+  doAssert $makeString(toConstChar("abc")) == "abc", "from a const char pointer"
+
+testStringConstructors()

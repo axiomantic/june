@@ -343,3 +343,24 @@ proc testColourGradient() =
 
 testFillType()
 testColourGradient()
+
+# The casted constructors =====================================================
+#
+# Several constructors now cast their argument to the type the overload
+# declares, because without it g++ could not choose between them. A cast that
+# named the wrong type would convert quietly, so these check the value that
+# comes out rather than that the call compiles.
+
+proc testCastedConstructors() =
+    # Colour from a packed ARGB word: 0xFF804020 is opaque, red 0x80.
+    let packed = makeColour(0xFF804020'u32)
+    doAssert packed.getAlpha() == 255, "alpha is " & $packed.getAlpha()
+    doAssert packed.getRed() == 0x80, "red is " & $packed.getRed()
+    doAssert packed.getGreen() == 0x40, "green is " & $packed.getGreen()
+    doAssert packed.getBlue() == 0x20, "blue is " & $packed.getBlue()
+
+    # FontOptions from a height: the float has to survive as a float.
+    doAssert makeFontOptions(18.5'f32).getHeight() == 18.5'f32,
+             "the height came back as " & $makeFontOptions(18.5'f32).getHeight()
+
+testCastedConstructors()
