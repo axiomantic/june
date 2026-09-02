@@ -277,6 +277,7 @@ type
   CaretComponentColourIds* {.header: juce_gui_basics, importcpp: "juce::CaretComponent::ColourIds".} = distinct cint
   TextInputTargetVirtualKeyboardType* {.header: juce_gui_basics, importcpp: "juce::TextInputTarget::VirtualKeyboardType".} = distinct cint
   ApplicationCommandInfoCommandFlags* {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandInfo::CommandFlags".} = distinct cint
+  ApplicationCommandTargetInvocationInfoInvocationMethod* {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandTarget::InvocationInfo::InvocationMethod".} = distinct cint
   ButtonConnectedEdgeFlags* {.header: juce_gui_basics, importcpp: "juce::Button::ConnectedEdgeFlags".} = distinct cint
   ButtonButtonState* {.header: juce_gui_basics, importcpp: "juce::Button::ButtonState".} = distinct cint
   DrawableButtonButtonStyle* {.header: juce_gui_basics, importcpp: "juce::DrawableButton::ButtonStyle".} = distinct cint
@@ -285,6 +286,7 @@ type
   TextButtonColourIds* {.header: juce_gui_basics, importcpp: "juce::TextButton::ColourIds".} = distinct cint
   ToggleButtonColourIds* {.header: juce_gui_basics, importcpp: "juce::ToggleButton::ColourIds".} = distinct cint
   GroupComponentColourIds* {.header: juce_gui_basics, importcpp: "juce::GroupComponent::ColourIds".} = distinct cint
+  ResizableBorderComponentZoneZones* {.header: juce_gui_basics, importcpp: "juce::ResizableBorderComponent::Zone::Zones".} = distinct cint
   ResizableEdgeComponentEdge* {.header: juce_gui_basics, importcpp: "juce::ResizableEdgeComponent::Edge".} = distinct cint
   ScrollBarColourIds* {.header: juce_gui_basics, importcpp: "juce::ScrollBar::ColourIds".} = distinct cint
   TabBarButtonExtraComponentPlacement* {.header: juce_gui_basics, importcpp: "juce::TabBarButton::ExtraComponentPlacement".} = distinct cint
@@ -294,6 +296,8 @@ type
   AccessibilityHandlerAnnouncementPriority* {.header: juce_gui_basics, importcpp: "juce::AccessibilityHandler::AnnouncementPriority".} = distinct cint
   ViewportScrollOnDragMode* {.header: juce_gui_basics, importcpp: "juce::Viewport::ScrollOnDragMode".} = distinct cint
   PopupMenuColourIds* {.header: juce_gui_basics, importcpp: "juce::PopupMenu::ColourIds".} = distinct cint
+  PopupMenuOptionsPopupDirection* {.header: juce_gui_basics, importcpp: "juce::PopupMenu::Options::PopupDirection".} = distinct cint
+  RelativeCoordinateStandardStringsType* {.header: juce_gui_basics, importcpp: "juce::RelativeCoordinate::StandardStrings::Type".} = distinct cint
   RelativePointPathElementType* {.header: juce_gui_basics, importcpp: "juce::RelativePointPath::ElementType".} = distinct cint
   TextEditorColourIds* {.header: juce_gui_basics, importcpp: "juce::TextEditor::ColourIds".} = distinct cint
   LabelColourIds* {.header: juce_gui_basics, importcpp: "juce::Label::ColourIds".} = distinct cint
@@ -334,6 +338,7 @@ type
   TextPropertyComponentColourIds* {.header: juce_gui_basics, importcpp: "juce::TextPropertyComponent::ColourIds".} = distinct cint
   BubbleComponentBubblePlacement* {.header: juce_gui_basics, importcpp: "juce::BubbleComponent::BubblePlacement".} = distinct cint
   BubbleComponentColourIds* {.header: juce_gui_basics, importcpp: "juce::BubbleComponent::ColourIds".} = distinct cint
+  LookAndFeel_V4ColourSchemeUIColour* {.header: juce_gui_basics, importcpp: "juce::LookAndFeel_V4::ColourScheme::UIColour".} = distinct cint
   FlexItemAlignSelf* {.header: juce_gui_basics, importcpp: "juce::FlexItem::AlignSelf".} = distinct cint
   FlexBoxDirection* {.header: juce_gui_basics, importcpp: "juce::FlexBox::Direction".} = distinct cint
   FlexBoxWrap* {.header: juce_gui_basics, importcpp: "juce::FlexBox::Wrap".} = distinct cint
@@ -491,6 +496,11 @@ let ApplicationCommandInfoCommandFlags_hiddenFromKeyEditor* {.header: juce_gui_b
 let ApplicationCommandInfoCommandFlags_readOnlyInKeyEditor* {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandInfo::readOnlyInKeyEditor".}: ApplicationCommandInfoCommandFlags
 let ApplicationCommandInfoCommandFlags_dontTriggerVisualFeedback* {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandInfo::dontTriggerVisualFeedback".}: ApplicationCommandInfoCommandFlags
 
+let ApplicationCommandTargetInvocationInfoInvocationMethod_direct* {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandTarget::InvocationInfo::direct".}: ApplicationCommandTargetInvocationInfoInvocationMethod
+let ApplicationCommandTargetInvocationInfoInvocationMethod_fromKeyPress* {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandTarget::InvocationInfo::fromKeyPress".}: ApplicationCommandTargetInvocationInfoInvocationMethod
+let ApplicationCommandTargetInvocationInfoInvocationMethod_fromMenu* {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandTarget::InvocationInfo::fromMenu".}: ApplicationCommandTargetInvocationInfoInvocationMethod
+let ApplicationCommandTargetInvocationInfoInvocationMethod_fromButton* {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandTarget::InvocationInfo::fromButton".}: ApplicationCommandTargetInvocationInfoInvocationMethod
+
 let ButtonConnectedEdgeFlags_ConnectedOnLeft* {.header: juce_gui_basics, importcpp: "juce::Button::ConnectedOnLeft".}: ButtonConnectedEdgeFlags
 let ButtonConnectedEdgeFlags_ConnectedOnRight* {.header: juce_gui_basics, importcpp: "juce::Button::ConnectedOnRight".}: ButtonConnectedEdgeFlags
 let ButtonConnectedEdgeFlags_ConnectedOnTop* {.header: juce_gui_basics, importcpp: "juce::Button::ConnectedOnTop".}: ButtonConnectedEdgeFlags
@@ -525,6 +535,12 @@ let ToggleButtonColourIds_tickDisabledColourId* {.header: juce_gui_basics, impor
 
 let GroupComponentColourIds_outlineColourId* {.header: juce_gui_basics, importcpp: "juce::GroupComponent::outlineColourId".}: GroupComponentColourIds
 let GroupComponentColourIds_textColourId* {.header: juce_gui_basics, importcpp: "juce::GroupComponent::textColourId".}: GroupComponentColourIds
+
+let ResizableBorderComponentZoneZones_centre* {.header: juce_gui_basics, importcpp: "juce::ResizableBorderComponent::Zone::centre".}: ResizableBorderComponentZoneZones
+let ResizableBorderComponentZoneZones_left* {.header: juce_gui_basics, importcpp: "juce::ResizableBorderComponent::Zone::left".}: ResizableBorderComponentZoneZones
+let ResizableBorderComponentZoneZones_top* {.header: juce_gui_basics, importcpp: "juce::ResizableBorderComponent::Zone::top".}: ResizableBorderComponentZoneZones
+let ResizableBorderComponentZoneZones_right* {.header: juce_gui_basics, importcpp: "juce::ResizableBorderComponent::Zone::right".}: ResizableBorderComponentZoneZones
+let ResizableBorderComponentZoneZones_bottom* {.header: juce_gui_basics, importcpp: "juce::ResizableBorderComponent::Zone::bottom".}: ResizableBorderComponentZoneZones
 
 let ResizableEdgeComponentEdge_leftEdge* {.header: juce_gui_basics, importcpp: "juce::ResizableEdgeComponent::leftEdge".}: ResizableEdgeComponentEdge
 let ResizableEdgeComponentEdge_rightEdge* {.header: juce_gui_basics, importcpp: "juce::ResizableEdgeComponent::rightEdge".}: ResizableEdgeComponentEdge
@@ -564,6 +580,20 @@ let PopupMenuColourIds_textColourId* {.header: juce_gui_basics, importcpp: "juce
 let PopupMenuColourIds_headerTextColourId* {.header: juce_gui_basics, importcpp: "juce::PopupMenu::headerTextColourId".}: PopupMenuColourIds
 let PopupMenuColourIds_highlightedBackgroundColourId* {.header: juce_gui_basics, importcpp: "juce::PopupMenu::highlightedBackgroundColourId".}: PopupMenuColourIds
 let PopupMenuColourIds_highlightedTextColourId* {.header: juce_gui_basics, importcpp: "juce::PopupMenu::highlightedTextColourId".}: PopupMenuColourIds
+
+let PopupMenuOptionsPopupDirection_upwards* {.header: juce_gui_basics, importcpp: "juce::PopupMenu::Options::PopupDirection::upwards".}: PopupMenuOptionsPopupDirection
+let PopupMenuOptionsPopupDirection_downwards* {.header: juce_gui_basics, importcpp: "juce::PopupMenu::Options::PopupDirection::downwards".}: PopupMenuOptionsPopupDirection
+
+let RelativeCoordinateStandardStringsType_left* {.header: juce_gui_basics, importcpp: "juce::RelativeCoordinate::StandardStrings::left".}: RelativeCoordinateStandardStringsType
+let RelativeCoordinateStandardStringsType_right* {.header: juce_gui_basics, importcpp: "juce::RelativeCoordinate::StandardStrings::right".}: RelativeCoordinateStandardStringsType
+let RelativeCoordinateStandardStringsType_top* {.header: juce_gui_basics, importcpp: "juce::RelativeCoordinate::StandardStrings::top".}: RelativeCoordinateStandardStringsType
+let RelativeCoordinateStandardStringsType_bottom* {.header: juce_gui_basics, importcpp: "juce::RelativeCoordinate::StandardStrings::bottom".}: RelativeCoordinateStandardStringsType
+let RelativeCoordinateStandardStringsType_x* {.header: juce_gui_basics, importcpp: "juce::RelativeCoordinate::StandardStrings::x".}: RelativeCoordinateStandardStringsType
+let RelativeCoordinateStandardStringsType_y* {.header: juce_gui_basics, importcpp: "juce::RelativeCoordinate::StandardStrings::y".}: RelativeCoordinateStandardStringsType
+let RelativeCoordinateStandardStringsType_width* {.header: juce_gui_basics, importcpp: "juce::RelativeCoordinate::StandardStrings::width".}: RelativeCoordinateStandardStringsType
+let RelativeCoordinateStandardStringsType_height* {.header: juce_gui_basics, importcpp: "juce::RelativeCoordinate::StandardStrings::height".}: RelativeCoordinateStandardStringsType
+let RelativeCoordinateStandardStringsType_parent* {.header: juce_gui_basics, importcpp: "juce::RelativeCoordinate::StandardStrings::parent".}: RelativeCoordinateStandardStringsType
+let RelativeCoordinateStandardStringsType_unknown* {.header: juce_gui_basics, importcpp: "juce::RelativeCoordinate::StandardStrings::unknown".}: RelativeCoordinateStandardStringsType
 
 let RelativePointPathElementType_nullElement* {.header: juce_gui_basics, importcpp: "juce::RelativePointPath::nullElement".}: RelativePointPathElementType
 let RelativePointPathElementType_startSubPathElement* {.header: juce_gui_basics, importcpp: "juce::RelativePointPath::startSubPathElement".}: RelativePointPathElementType
@@ -783,6 +813,17 @@ let BubbleComponentBubblePlacement_right* {.header: juce_gui_basics, importcpp: 
 
 let BubbleComponentColourIds_backgroundColourId* {.header: juce_gui_basics, importcpp: "juce::BubbleComponent::backgroundColourId".}: BubbleComponentColourIds
 let BubbleComponentColourIds_outlineColourId* {.header: juce_gui_basics, importcpp: "juce::BubbleComponent::outlineColourId".}: BubbleComponentColourIds
+
+let LookAndFeel_V4ColourSchemeUIColour_windowBackground* {.header: juce_gui_basics, importcpp: "juce::LookAndFeel_V4::ColourScheme::windowBackground".}: LookAndFeel_V4ColourSchemeUIColour
+let LookAndFeel_V4ColourSchemeUIColour_widgetBackground* {.header: juce_gui_basics, importcpp: "juce::LookAndFeel_V4::ColourScheme::widgetBackground".}: LookAndFeel_V4ColourSchemeUIColour
+let LookAndFeel_V4ColourSchemeUIColour_menuBackground* {.header: juce_gui_basics, importcpp: "juce::LookAndFeel_V4::ColourScheme::menuBackground".}: LookAndFeel_V4ColourSchemeUIColour
+let LookAndFeel_V4ColourSchemeUIColour_outline* {.header: juce_gui_basics, importcpp: "juce::LookAndFeel_V4::ColourScheme::outline".}: LookAndFeel_V4ColourSchemeUIColour
+let LookAndFeel_V4ColourSchemeUIColour_defaultText* {.header: juce_gui_basics, importcpp: "juce::LookAndFeel_V4::ColourScheme::defaultText".}: LookAndFeel_V4ColourSchemeUIColour
+let LookAndFeel_V4ColourSchemeUIColour_defaultFill* {.header: juce_gui_basics, importcpp: "juce::LookAndFeel_V4::ColourScheme::defaultFill".}: LookAndFeel_V4ColourSchemeUIColour
+let LookAndFeel_V4ColourSchemeUIColour_highlightedText* {.header: juce_gui_basics, importcpp: "juce::LookAndFeel_V4::ColourScheme::highlightedText".}: LookAndFeel_V4ColourSchemeUIColour
+let LookAndFeel_V4ColourSchemeUIColour_highlightedFill* {.header: juce_gui_basics, importcpp: "juce::LookAndFeel_V4::ColourScheme::highlightedFill".}: LookAndFeel_V4ColourSchemeUIColour
+let LookAndFeel_V4ColourSchemeUIColour_menuText* {.header: juce_gui_basics, importcpp: "juce::LookAndFeel_V4::ColourScheme::menuText".}: LookAndFeel_V4ColourSchemeUIColour
+let LookAndFeel_V4ColourSchemeUIColour_numColours* {.header: juce_gui_basics, importcpp: "juce::LookAndFeel_V4::ColourScheme::numColours".}: LookAndFeel_V4ColourSchemeUIColour
 
 let FlexItemAlignSelf_autoAlign* {.header: juce_gui_basics, importcpp: "juce::FlexItem::AlignSelf::autoAlign".}: FlexItemAlignSelf
 let FlexItemAlignSelf_flexStart* {.header: juce_gui_basics, importcpp: "juce::FlexItem::AlignSelf::flexStart".}: FlexItemAlignSelf

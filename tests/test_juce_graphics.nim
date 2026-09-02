@@ -133,3 +133,17 @@ proc testColourGradientLookupTable() =
   doAssert table[0.cint].getBlue() == 0'u8
 
 testColourGradientLookupTable()
+
+# Enums nested two levels deep. The generator walked only one, so
+# Image::BitmapData::ReadWriteMode had no Nim spelling and the proc taking it
+# was a comment. Binding an enumerator emits its C++ name, so a wrong spelling
+# is a compile error rather than a wrong value.
+proc testDoublyNestedEnums() =
+  doAssert ImageBitmapDataReadWriteMode_readOnly.cint !=
+           ImageBitmapDataReadWriteMode_writeOnly.cint
+  doAssert ImageBitmapDataReadWriteMode_readWrite.cint !=
+           ImageBitmapDataReadWriteMode_readOnly.cint
+  doAssert PathIteratorPathElementType_lineTo.cint !=
+           PathIteratorPathElementType_closePath.cint
+
+testDoublyNestedEnums()

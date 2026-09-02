@@ -819,14 +819,24 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 if node.spelling not in seen_enum_names:
                     seen_enum_names.add(node.spelling)
                     module_enums.append((node.spelling, node, None))
+    # Two levels: an enum can sit inside a nested class, and
+    # Image::BitmapData::ReadWriteMode is one. Walking only the top level left
+    # it with no Nim spelling, which commented out the proc taking it.
     for c in module_classes:
-        for node in c.get_children():
-            if (node.kind == CursorKind.ENUM_DECL and node.access_specifier == AccessSpecifier.PUBLIC
-                    and not is_anonymous_enum(node)):
-                nested_name = f"{remap_class_name(c.spelling)}{node.spelling}"
-                if nested_name not in seen_enum_names:
-                    seen_enum_names.add(nested_name)
-                    module_enums.append((nested_name, node, c.spelling))
+        scopes = [(c.spelling, c)]
+        for ic in c.get_children():
+            if (ic.kind in (CursorKind.CLASS_DECL, CursorKind.STRUCT_DECL)
+                    and ic.access_specifier == AccessSpecifier.PUBLIC and ic.spelling):
+                scopes.append((f"{c.spelling}::{ic.spelling}", ic))
+
+        for owner_spelling, owner_cursor in scopes:
+            for node in owner_cursor.get_children():
+                if (node.kind == CursorKind.ENUM_DECL and node.access_specifier == AccessSpecifier.PUBLIC
+                        and not is_anonymous_enum(node)):
+                    nested_name = "".join(remap_class_name(part) for part in owner_spelling.split("::")) + node.spelling
+                    if nested_name not in seen_enum_names:
+                        seen_enum_names.add(nested_name)
+                        module_enums.append((nested_name, node, owner_spelling))
 
     # An opaque class, declared but never defined in this translation unit, is
     # still worth binding as a type by whichever module declares it.
@@ -918,7 +928,11 @@ def run_main(juce_module_name, juce_class_name_to_export):
             "juce_module_name": juce_module_name }))
         declared_type_names.add(enum_name)
         enum_remap[qualified] = enum_name
-        if not owner:
+        if owner:
+            # libclang prints a nested name as it was written, so the parameter
+            # arrives as Image::BitmapData::ReadWriteMode without the namespace.
+            enum_remap[f"{owner}::{enum_cursor.spelling}"] = enum_name
+        else:
             enum_remap[enum_cursor.spelling] = enum_name
 
     if all_class_decls:
