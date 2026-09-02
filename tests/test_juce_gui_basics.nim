@@ -1300,3 +1300,24 @@ proc testListBoxPaintHandler() =
     shutdownJuce_GUI()
 
 testListBoxPaintHandler()
+
+# The command line getters ====================================================
+#
+# Static in JUCE and now static here. They used to take a JUCEApplicationBase
+# receiver they never used, so reaching a function that needs no instance
+# required having one.
+
+proc testCommandLineGetters() =
+    initialiseJuce_GUI()
+
+    block:
+        # No application has been started, so both are empty rather than wrong.
+        doAssert $JUCEApplication.getCommandLineParameters() == "",
+                 "the command line is " & $JUCEApplication.getCommandLineParameters()
+        doAssert JUCEApplication.getCommandLineParameterArray().size() == 0,
+                 "the argument array holds " &
+                 $JUCEApplication.getCommandLineParameterArray().size()
+
+    shutdownJuce_GUI()
+
+testCommandLineGetters()
