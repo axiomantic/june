@@ -1322,3 +1322,65 @@ proc testCommandLineGetters() =
 
 testCommandLineGetters()
 
+
+# AccessibleState =============================================================
+#
+# A flag set built by chaining. Each with* returns a copy with one more flag
+# set, so the test checks a flag it did not ask for is still clear - a builder
+# that turned everything on would pass any check of the flag it just set.
+
+proc testAccessibleState() =
+    let plain = makeAccessibleState()
+    doAssert not plain.isCheckable(), "a fresh state was already checkable"
+    doAssert not plain.isFocused(), "a fresh state was already focused"
+
+    let checkable = plain.withCheckable()
+    doAssert checkable.isCheckable(), "withCheckable did not set the flag"
+    doAssert not checkable.isChecked(), "withCheckable also set checked"
+    doAssert not checkable.isFocused(), "withCheckable also set focused"
+    doAssert not plain.isCheckable(), "withCheckable changed the state it came from"
+
+    # Chaining accumulates rather than replacing.
+    let both = plain.withCheckable().withFocused()
+    doAssert both.isCheckable() and both.isFocused(), "chaining lost a flag"
+    doAssert not both.isChecked(), "chaining set a flag nobody asked for"
+
+# TabbedComponent =============================================================
+#
+# The tab strip with content panels behind it. Its depth and orientation are
+# plain settings; the tabs themselves own the components they are given.
+
+proc testTabbedComponent() =
+    initialiseJuce_GUI()
+
+    block:
+        var tabs = makeTabbedComponent(TabbedButtonBarOrientation_TabsAtTop)
+        doAssert tabs.getNumTabs() == 0, "a fresh component holds " & $tabs.getNumTabs()
+
+        tabs.setTabBarDepth(24.cint)
+        doAssert tabs.getTabBarDepth() == 24, "the depth is " & $tabs.getTabBarDepth()
+
+        let grey = makeColour(128'u8, 128'u8, 128'u8, 255'u8)
+        tabs.addTab(makeString("One"), grey, newCustomComponent(), true, -1.cint)
+        tabs.addTab(makeString("Two"), grey, newCustomComponent(), true, -1.cint)
+        doAssert tabs.getNumTabs() == 2, "the component holds " & $tabs.getNumTabs() & " tabs"
+        doAssert tabs.getCurrentTabIndex() == 0,
+                 "the current tab is " & $tabs.getCurrentTabIndex()
+
+        # The orientation enum is a distinct cint with no == of its own, so the
+        # comparison goes through the underlying value.
+        tabs.setOrientation(TabbedButtonBarOrientation_TabsAtBottom)
+        doAssert tabs.getOrientation().cint ==
+                 TabbedButtonBarOrientation_TabsAtBottom.cint,
+                 "setOrientation did not take"
+        doAssert tabs.getOrientation().cint !=
+                 TabbedButtonBarOrientation_TabsAtTop.cint,
+                 "the orientation is still the one it was built with"
+
+        tabs.clearTabs()
+        doAssert tabs.getNumTabs() == 0, "clearTabs left " & $tabs.getNumTabs()
+
+    shutdownJuce_GUI()
+
+testAccessibleState()
+testTabbedComponent()
