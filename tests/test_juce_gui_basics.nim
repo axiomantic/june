@@ -1620,4 +1620,67 @@ proc testLookAndFeelV1Draws() =
 
     shutdownJuce_GUI()
 
+# ComponentBoundsConstrainer ==================================================
+#
+# checkBounds writes the constrained rectangle back through its first argument.
+# That parameter is a Rectangle<int>& in JUCE and was bound as an immutable
+# Rectangle[cint], so the signature said the call could not change it while
+# JUCE wrote through it anyway. It is a var now, and this is what holds it so.
+
+proc testComponentBoundsConstrainer() =
+    initialiseJuce_GUI()
+
+    block:
+        var limiter = makeComponentBoundsConstrainer()
+        limiter.setSizeLimits(50.cint, 40.cint, 200.cint, 150.cint)
+
+        doAssert limiter.getMinimumWidth() == 50, "the minimum width did not stick"
+        doAssert limiter.getMinimumHeight() == 40, "the minimum height did not stick"
+        doAssert limiter.getMaximumWidth() == 200, "the maximum width did not stick"
+        doAssert limiter.getMaximumHeight() == 150, "the maximum height did not stick"
+
+        let previous = makeRectangle(0.cint, 0.cint, 10.cint, 10.cint)
+        let screen = makeRectangle(0.cint, 0.cint, 1000.cint, 1000.cint)
+
+        # Too small in both directions, so both minima have to apply.
+        var tooSmall = makeRectangle(0.cint, 0.cint, 10.cint, 10.cint)
+        limiter.checkBounds(tooSmall, previous, screen,
+                            false, false, true, true)
+        doAssert tooSmall.getWidth() == 50,
+                 "checkBounds left the width at " & $tooSmall.getWidth()
+        doAssert tooSmall.getHeight() == 40,
+                 "checkBounds left the height at " & $tooSmall.getHeight()
+
+        # Too large in both directions, so both maxima have to apply.
+        var tooLarge = makeRectangle(0.cint, 0.cint, 900.cint, 900.cint)
+        limiter.checkBounds(tooLarge, previous, screen,
+                            false, false, true, true)
+        doAssert tooLarge.getWidth() == 200,
+                 "checkBounds left the width at " & $tooLarge.getWidth()
+        doAssert tooLarge.getHeight() == 150,
+                 "checkBounds left the height at " & $tooLarge.getHeight()
+
+        limiter.setMinimumOnscreenAmounts(1.cint, 2.cint, 3.cint, 4.cint)
+        doAssert limiter.getMinimumWhenOffTheTop() == 1, "the top amount did not stick"
+        doAssert limiter.getMinimumWhenOffTheLeft() == 2, "the left amount did not stick"
+        doAssert limiter.getMinimumWhenOffTheBottom() == 3, "the bottom amount did not stick"
+        doAssert limiter.getMinimumWhenOffTheRight() == 4, "the right amount did not stick"
+
+        limiter.setFixedAspectRatio(2.0)
+        doAssert limiter.getFixedAspectRatio() == 2.0, "the aspect ratio did not stick"
+
+        # setBoundsForComponent goes through the same limits and moves a real
+        # component, which is the path a resizable window takes.
+        var target = newCustomComponent()
+        limiter.setBoundsForComponent(cast[ptr Component](target),
+                                      makeRectangle(0.cint, 0.cint, 5.cint, 5.cint),
+                                      false, false, true, true)
+        doAssert target[].getWidth() >= 50,
+                 "the component kept a width of " & $target[].getWidth()
+        cdelete target
+
+    shutdownJuce_GUI()
+
+
 testLookAndFeelV1Draws()
+testComponentBoundsConstrainer()

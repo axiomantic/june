@@ -155,7 +155,12 @@ def remap_type(t, *args):
         prefix = "ptr "
     elif t.kind in (TypeKind.LVALUEREFERENCE, TypeKind.RVALUEREFERENCE):
         target = t.get_pointee()
-        prefix = "" if target.is_const_qualified() else "var "
+        # Only an lvalue reference becomes var. An rvalue reference has no
+        # distinct Nim spelling and is bound as the plain type, for the reason
+        # the & handling further down states; giving it a var here would
+        # contradict that path for class templates alone.
+        prefix = ("var " if t.kind == TypeKind.LVALUEREFERENCE
+                  and not target.is_const_qualified() else "")
 
     declaration = target.get_declaration()
 
@@ -215,7 +220,12 @@ def remap_type(t, *args):
         # valid Nim, which is exactly the signal the emit site checks in order
         # to comment the proc out.
         if mapped is not None:
-            return f"ptr {mapped}" if is_pointer else mapped
+            # prefix, not is_pointer alone. It carries the var for a non-const
+            # reference as well as the ptr, and returning only the ptr dropped
+            # the var from every reference to a class template: checkBounds
+            # took its out parameter as an immutable Rectangle[cint] while JUCE
+            # wrote through it.
+            return f"{prefix}{mapped}"
         return result
 
     result = remap_table.get(result, result)
@@ -1610,7 +1620,13 @@ def run_main(juce_module_name, juce_class_name_to_export):
             # const-ness, the const and non-const overloads of a getter do, and
             # dropping the const one makes it uncallable on a `let`.
             receiver = f"typedesc[{class_name}]" if is_static_method else args[0]
-            signature = (receiver, method_name, tuple(argument_types), return_type)
+            # The return type is normalised, because JUCE declares a pair of
+            # ref-qualified overloads for the same method - Item& setTicked(..)&
+            # and Item&& setTicked(..)&& - that differ by nothing else. Nim
+            # cannot pick between two procs that differ only in return type, so
+            # the pair has to collapse to one rather than both being emitted.
+            signature = (receiver, method_name, tuple(argument_types),
+                         return_type.replace(": var ", ": ", 1))
             if declaration in emitted_declarations or signature in emitted_signatures:
                 continue
             emitted_declarations.add(declaration)

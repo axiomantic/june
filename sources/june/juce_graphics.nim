@@ -285,7 +285,7 @@ proc intersectsLine*(this: Path, line: Line[cfloat], tolerance: cfloat): bool {.
 proc getClippedLine*(this: Path, line: Line[cfloat], keepSectionOutsidePath: bool): Line[cfloat] {.header: juce_graphics, importcpp: "#.getClippedLine(@)".}
 proc getLength*(this: Path, transform: AffineTransform, tolerance: cfloat): cfloat {.header: juce_graphics, importcpp: "#.getLength(@)".}
 proc getPointAlongPath*(this: Path, distanceFromStart: cfloat, transform: AffineTransform, tolerance: cfloat): Point[cfloat] {.header: juce_graphics, importcpp: "#.getPointAlongPath(@)".}
-proc getNearestPoint*(this: Path, targetPoint: Point[cfloat], pointOnPath: Point[cfloat], transform: AffineTransform, tolerance: cfloat): cfloat {.header: juce_graphics, importcpp: "#.getNearestPoint(@)".}
+proc getNearestPoint*(this: Path, targetPoint: Point[cfloat], pointOnPath: var Point[cfloat], transform: AffineTransform, tolerance: cfloat): cfloat {.header: juce_graphics, importcpp: "#.getNearestPoint(@)".}
 proc clear*(this: var Path) {.header: juce_graphics, importcpp: "#.clear()".}
 proc startNewSubPath*(this: var Path, startX: cfloat, startY: cfloat) {.header: juce_graphics, importcpp: "#.startNewSubPath(@)".}
 proc startNewSubPath*(this: var Path, start: Point[cfloat]) {.header: juce_graphics, importcpp: "#.startNewSubPath(@)".}
@@ -508,7 +508,7 @@ proc getColourPosition*(this: ColourGradient, index: cint): float64 {.header: ju
 proc getColour*(this: ColourGradient, index: cint): Colour {.header: juce_graphics, importcpp: "#.getColour(@)".}
 proc setColour*(this: var ColourGradient, index: cint, newColour: Colour) {.header: juce_graphics, importcpp: "#.setColour(@)".}
 proc getColourAtPosition*(this: ColourGradient, position: float64): Colour {.header: juce_graphics, importcpp: "#.getColourAtPosition(@)".}
-proc createLookupTable*(this: ColourGradient, transform: AffineTransform, resultLookupTable: HeapBlock[PixelARGB]): cint {.header: juce_graphics, importcpp: "#.createLookupTable(@)".}
+proc createLookupTable*(this: ColourGradient, transform: AffineTransform, resultLookupTable: var HeapBlock[PixelARGB]): cint {.header: juce_graphics, importcpp: "#.createLookupTable(@)".}
 proc createLookupTable*(this: ColourGradient, resultLookupTable: ptr PixelARGB, numEntries: cint) {.header: juce_graphics, importcpp: "#.createLookupTable(@)".}
 proc isOpaque*(this: ColourGradient): bool {.header: juce_graphics, importcpp: "#.isOpaque()".}
 proc isInvisible*(this: ColourGradient): bool {.header: juce_graphics, importcpp: "#.isInvisible()".}
@@ -759,7 +759,7 @@ proc multiplyAllAlphas*(this: var Image, amountToMultiplyBy: cfloat) {.header: j
 proc desaturate*(this: var Image) {.header: juce_graphics, importcpp: "#.desaturate()".}
 proc setBackupEnabled*(this: var Image, arg1: bool): bool {.header: juce_graphics, importcpp: "#.setBackupEnabled(@)".}
 proc moveImageSection*(this: var Image, destX: cint, destY: cint, sourceX: cint, sourceY: cint, width: cint, height: cint) {.header: juce_graphics, importcpp: "#.moveImageSection(@)".}
-proc createSolidAreaMask*(this: Image, result: RectangleList[cint], alphaThreshold: cfloat) {.header: juce_graphics, importcpp: "#.createSolidAreaMask(@)".}
+proc createSolidAreaMask*(this: Image, result: var RectangleList[cint], alphaThreshold: cfloat) {.header: juce_graphics, importcpp: "#.createSolidAreaMask(@)".}
 proc getProperties*(this: Image): ptr NamedValueSet {.header: juce_graphics, importcpp: "#.getProperties()".}
 proc createLowLevelContext*(this: Image): UniquePtr[LowLevelGraphicsContext] {.header: juce_graphics, importcpp: "#.createLowLevelContext()".}
 proc getReferenceCount*(this: Image): cint {.header: juce_graphics, importcpp: "#.getReferenceCount()".}
@@ -1079,7 +1079,7 @@ proc setDescentOverride*(this: var Font, arg1: CppOptional[cfloat]) {.header: ju
 proc setSizeAndStyle*(this: var Font, newHeight: cfloat, newStyleFlags: cint, newHorizontalScale: cfloat, newKerningAmount: cfloat) {.header: juce_graphics, importcpp: "#.setSizeAndStyle(@)".}
 proc setSizeAndStyle*(this: var Font, newHeight: cfloat, newStyle: String, newHorizontalScale: cfloat, newKerningAmount: cfloat) {.header: juce_graphics, importcpp: "#.setSizeAndStyle(@)".}
 proc getTypefacePtr*(this: Font): ReferenceCountedObjectPtr[Typeface] {.header: juce_graphics, importcpp: "#.getTypefacePtr()".}
-proc findFonts*(this: typedesc[Font], results: Array[Font]) {.header: juce_graphics, importcpp: "juce::Font::findFonts(@)".}
+proc findFonts*(this: typedesc[Font], results: var Array[Font]) {.header: juce_graphics, importcpp: "juce::Font::findFonts(@)".}
 proc findAllTypefaceNames*(this: typedesc[Font]): StringArray {.header: juce_graphics, importcpp: "juce::Font::findAllTypefaceNames()".}
 proc findAllTypefaceStyles*(this: typedesc[Font], family: String): StringArray {.header: juce_graphics, importcpp: "juce::Font::findAllTypefaceStyles(@)".}
 proc findSuitableFontForText*(this: Font, text: String, language: String): Font {.header: juce_graphics, importcpp: "#.findSuitableFontForText(@)".}
@@ -1130,7 +1130,6 @@ proc colour*(this: AttributedStringAttribute): Colour {.header: juce_graphics, i
 proc colour*(this: var AttributedStringAttribute): var Colour {.header: juce_graphics, importcpp: "#.colour".}
 proc `colour=`*(this: var AttributedStringAttribute, value: Colour) {.header: juce_graphics, importcpp: "#.colour = #".}
 proc `AttributedStringAttribute=`*(this: var AttributedStringAttribute, arg1: AttributedStringAttribute): var AttributedStringAttribute {.header: juce_graphics, importcpp: "#.operator=(@)".}
-proc `AttributedStringAttribute=`*(this: var AttributedStringAttribute, arg1: var AttributedStringAttribute): var AttributedStringAttribute {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc `==`*(this: AttributedStringAttribute, other: AttributedStringAttribute): bool {.error: "juce::AttributedString::Attribute defines no operator==; compare a property instead".}
 
 proc makePositionedGlyph*(): PositionedGlyph {.header: juce_graphics, importcpp: "juce::PositionedGlyph(@)".}
@@ -1254,7 +1253,6 @@ proc leading*(this: TextLayoutLine): cfloat {.header: juce_graphics, importcpp: 
 proc leading*(this: var TextLayoutLine): var cfloat {.header: juce_graphics, importcpp: "#.leading".}
 proc `leading=`*(this: var TextLayoutLine, value: cfloat) {.header: juce_graphics, importcpp: "#.leading = #".}
 proc `TextLayoutLine=`*(this: var TextLayoutLine, arg1: TextLayoutLine): var TextLayoutLine {.header: juce_graphics, importcpp: "#.operator=(@)".}
-proc `TextLayoutLine=`*(this: var TextLayoutLine, arg1: var TextLayoutLine): var TextLayoutLine {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc getLineBoundsX*(this: TextLayoutLine): Range[cfloat] {.header: juce_graphics, importcpp: "#.getLineBoundsX()".}
 proc getLineBoundsY*(this: TextLayoutLine): Range[cfloat] {.header: juce_graphics, importcpp: "#.getLineBoundsY()".}
 proc getLineBounds*(this: TextLayoutLine): Rectangle[cfloat] {.header: juce_graphics, importcpp: "#.getLineBounds()".}

@@ -1821,7 +1821,6 @@ proc `dpi=`*(this: var DisplaysDisplay, value: float64) {.header: juce_gui_basic
 proc verticalFrequencyHz*(this: DisplaysDisplay): CppOptional[cdouble] {.header: juce_gui_basics, importcpp: "#.verticalFrequencyHz".}
 proc verticalFrequencyHz*(this: var DisplaysDisplay): var CppOptional[cdouble] {.header: juce_gui_basics, importcpp: "#.verticalFrequencyHz".}
 proc `verticalFrequencyHz=`*(this: var DisplaysDisplay, value: CppOptional[cdouble]) {.header: juce_gui_basics, importcpp: "#.verticalFrequencyHz = #".}
-proc `DisplaysDisplay=`*(this: var DisplaysDisplay, arg1: var DisplaysDisplay): var DisplaysDisplay {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
 proc `DisplaysDisplay=`*(this: var DisplaysDisplay, arg1: DisplaysDisplay): var DisplaysDisplay {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
 proc `==`*(this: DisplaysDisplay, other: DisplaysDisplay): bool {.error: "juce::Displays::Display defines no operator==; compare a property instead".}
 
@@ -1844,7 +1843,7 @@ proc getMinimumWhenOffTheBottom*(this: ComponentBoundsConstrainer): cint {.heade
 proc getMinimumWhenOffTheRight*(this: ComponentBoundsConstrainer): cint {.header: juce_gui_basics, importcpp: "#.getMinimumWhenOffTheRight()".}
 proc setFixedAspectRatio*(this: var ComponentBoundsConstrainer, widthOverHeight: float64) {.header: juce_gui_basics, importcpp: "#.setFixedAspectRatio(@)".}
 proc getFixedAspectRatio*(this: ComponentBoundsConstrainer): float64 {.header: juce_gui_basics, importcpp: "#.getFixedAspectRatio()".}
-proc checkBounds*(this: var ComponentBoundsConstrainer, bounds: Rectangle[cint], previousBounds: Rectangle[cint], limits: Rectangle[cint], isStretchingTop: bool, isStretchingLeft: bool, isStretchingBottom: bool, isStretchingRight: bool) {.header: juce_gui_basics, importcpp: "#.checkBounds(@)".}
+proc checkBounds*(this: var ComponentBoundsConstrainer, bounds: var Rectangle[cint], previousBounds: Rectangle[cint], limits: Rectangle[cint], isStretchingTop: bool, isStretchingLeft: bool, isStretchingBottom: bool, isStretchingRight: bool) {.header: juce_gui_basics, importcpp: "#.checkBounds(@)".}
 proc resizeStart*(this: var ComponentBoundsConstrainer) {.header: juce_gui_basics, importcpp: "#.resizeStart()".}
 proc resizeEnd*(this: var ComponentBoundsConstrainer) {.header: juce_gui_basics, importcpp: "#.resizeEnd()".}
 proc setBoundsForComponent*(this: var ComponentBoundsConstrainer, component: ptr Component, bounds: Rectangle[cint], isStretchingTop: bool, isStretchingLeft: bool, isStretchingBottom: bool, isStretchingRight: bool) {.header: juce_gui_basics, importcpp: "#.setBoundsForComponent(@)".}
@@ -1855,7 +1854,7 @@ proc `==`*(this: ComponentBoundsConstrainer, other: ComponentBoundsConstrainer):
 # proc makeBorderedComponentBoundsConstrainer*(): BorderedComponentBoundsConstrainer {.header: juce_gui_basics, importcpp: "juce::BorderedComponentBoundsConstrainer(@)".}  # BorderedComponentBoundsConstrainer is abstract; build a CustomBorderedComponentBoundsConstrainer instead
 proc getWrappedConstrainer*(this: BorderedComponentBoundsConstrainer): ptr ComponentBoundsConstrainer {.header: juce_gui_basics, importcpp: "#.getWrappedConstrainer()".}
 proc getAdditionalBorder*(this: BorderedComponentBoundsConstrainer): BorderSize[cint] {.header: juce_gui_basics, importcpp: "#.getAdditionalBorder()".}
-proc checkBounds*(this: var BorderedComponentBoundsConstrainer, bounds: Rectangle[cint], previousBounds: Rectangle[cint], limits: Rectangle[cint], isStretchingTop: bool, isStretchingLeft: bool, isStretchingBottom: bool, isStretchingRight: bool) {.header: juce_gui_basics, importcpp: "#.checkBounds(@)".}
+proc checkBounds*(this: var BorderedComponentBoundsConstrainer, bounds: var Rectangle[cint], previousBounds: Rectangle[cint], limits: Rectangle[cint], isStretchingTop: bool, isStretchingLeft: bool, isStretchingBottom: bool, isStretchingRight: bool) {.header: juce_gui_basics, importcpp: "#.checkBounds(@)".}
 proc `BorderedComponentBoundsConstrainer=`*(this: var BorderedComponentBoundsConstrainer, arg1: BorderedComponentBoundsConstrainer): var BorderedComponentBoundsConstrainer {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
 proc `==`*(this: BorderedComponentBoundsConstrainer, other: BorderedComponentBoundsConstrainer): bool {.error: "juce::BorderedComponentBoundsConstrainer defines no operator==; compare a property instead".}
 
@@ -1990,7 +1989,7 @@ proc `==`*(this: ApplicationCommandInfo, other: ApplicationCommandInfo): bool {.
 
 # proc makeApplicationCommandTarget*(): ApplicationCommandTarget {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandTarget(@)".}  # ApplicationCommandTarget is abstract; build a CustomApplicationCommandTarget instead
 proc getNextCommandTarget*(this: var ApplicationCommandTarget): ptr ApplicationCommandTarget {.header: juce_gui_basics, importcpp: "#.getNextCommandTarget()".}
-proc getAllCommands*(this: var ApplicationCommandTarget, commands: Array[cint]) {.header: juce_gui_basics, importcpp: "#.getAllCommands(@)".}
+proc getAllCommands*(this: var ApplicationCommandTarget, commands: var Array[cint]) {.header: juce_gui_basics, importcpp: "#.getAllCommands(@)".}
 proc getCommandInfo*(this: var ApplicationCommandTarget, commandID: cint, result: var ApplicationCommandInfo) {.header: juce_gui_basics, importcpp: "#.getCommandInfo(@)".}
 proc perform*(this: var ApplicationCommandTarget, info: ApplicationCommandTargetInvocationInfo): bool {.header: juce_gui_basics, importcpp: "#.perform(@)".}
 proc invoke*(this: var ApplicationCommandTarget, invocationInfo: ApplicationCommandTargetInvocationInfo, asynchronously: bool): bool {.header: juce_gui_basics, importcpp: "#.invoke(@)".}
@@ -2426,7 +2425,7 @@ proc `==`*(this: TabbedButtonBar, other: TabbedButtonBar): bool {.error: "juce::
 proc getTabButtonSpaceAroundImage*(this: var TabbedButtonBarLookAndFeelMethods): cint {.header: juce_gui_basics, importcpp: "#.getTabButtonSpaceAroundImage()".}
 proc getTabButtonOverlap*(this: var TabbedButtonBarLookAndFeelMethods, tabDepth: cint): cint {.header: juce_gui_basics, importcpp: "#.getTabButtonOverlap(@)".}
 proc getTabButtonBestWidth*(this: var TabbedButtonBarLookAndFeelMethods, arg1: var TabBarButton, tabDepth: cint): cint {.header: juce_gui_basics, importcpp: "#.getTabButtonBestWidth(@)".}
-proc getTabButtonExtraComponentBounds*(this: var TabbedButtonBarLookAndFeelMethods, arg1: TabBarButton, textArea: Rectangle[cint], extraComp: var Component): Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.getTabButtonExtraComponentBounds(@)".}
+proc getTabButtonExtraComponentBounds*(this: var TabbedButtonBarLookAndFeelMethods, arg1: TabBarButton, textArea: var Rectangle[cint], extraComp: var Component): Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.getTabButtonExtraComponentBounds(@)".}
 proc drawTabButton*(this: var TabbedButtonBarLookAndFeelMethods, arg1: var TabBarButton, arg2: var Graphics, isMouseOver: bool, isMouseDown: bool) {.header: juce_gui_basics, importcpp: "#.drawTabButton(@)".}
 proc getTabButtonFont*(this: var TabbedButtonBarLookAndFeelMethods, arg1: var TabBarButton, height: cfloat): Font {.header: juce_gui_basics, importcpp: "#.getTabButtonFont(@)".}
 proc drawTabButtonText*(this: var TabbedButtonBarLookAndFeelMethods, arg1: var TabBarButton, arg2: var Graphics, isMouseOver: bool, isMouseDown: bool) {.header: juce_gui_basics, importcpp: "#.drawTabButtonText(@)".}
@@ -2788,7 +2787,6 @@ proc shouldBreakAfter*(this: PopupMenuItem): bool {.header: juce_gui_basics, imp
 proc shouldBreakAfter*(this: var PopupMenuItem): var bool {.header: juce_gui_basics, importcpp: "#.shouldBreakAfter".}
 proc `shouldBreakAfter=`*(this: var PopupMenuItem, value: bool) {.header: juce_gui_basics, importcpp: "#.shouldBreakAfter = #".}
 proc `PopupMenuItem=`*(this: var PopupMenuItem, arg1: PopupMenuItem): var PopupMenuItem {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
-proc `PopupMenuItem=`*(this: var PopupMenuItem, arg1: var PopupMenuItem): var PopupMenuItem {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
 proc setTicked*(this: var PopupMenuItem, shouldBeTicked: bool = true): var PopupMenuItem {.header: juce_gui_basics, importcpp: "#.setTicked(@)".}
 proc setEnabled*(this: var PopupMenuItem, shouldBeEnabled: bool): var PopupMenuItem {.header: juce_gui_basics, importcpp: "#.setEnabled(@)".}
 proc setAction*(this: var PopupMenuItem, action: CppFunctionObjectN0): var PopupMenuItem {.header: juce_gui_basics, importcpp: "#.setAction(@)".}
@@ -3920,8 +3918,8 @@ proc createAccessibilityHandler*(this: var ToolbarItemComponent): UniquePtr[Acce
 proc `==`*(this: ToolbarItemComponent, other: ToolbarItemComponent): bool {.error: "juce::ToolbarItemComponent defines no operator==; compare a property instead".}
 
 # proc makeToolbarItemFactory*(): ToolbarItemFactory {.header: juce_gui_basics, importcpp: "juce::ToolbarItemFactory(@)".}  # ToolbarItemFactory is abstract; build a CustomToolbarItemFactory instead
-proc getAllToolbarItemIds*(this: var ToolbarItemFactory, ids: Array[cint]) {.header: juce_gui_basics, importcpp: "#.getAllToolbarItemIds(@)".}
-proc getDefaultItemSet*(this: var ToolbarItemFactory, ids: Array[cint]) {.header: juce_gui_basics, importcpp: "#.getDefaultItemSet(@)".}
+proc getAllToolbarItemIds*(this: var ToolbarItemFactory, ids: var Array[cint]) {.header: juce_gui_basics, importcpp: "#.getAllToolbarItemIds(@)".}
+proc getDefaultItemSet*(this: var ToolbarItemFactory, ids: var Array[cint]) {.header: juce_gui_basics, importcpp: "#.getDefaultItemSet(@)".}
 proc createItem*(this: var ToolbarItemFactory, itemId: cint): ptr ToolbarItemComponent {.header: juce_gui_basics, importcpp: "#.createItem(@)".}
 proc `==`*(this: ToolbarItemFactory, other: ToolbarItemFactory): bool {.error: "juce::ToolbarItemFactory defines no operator==; compare a property instead".}
 
@@ -4816,7 +4814,7 @@ proc resumed*(this: var JUCEApplicationImpl) {.header: juce_gui_basics, importcp
 proc unhandledException*(this: var JUCEApplicationImpl, e: ptr CppException, sourceFilename: String, lineNumber: cint) {.header: juce_gui_basics, importcpp: "#.unhandledException(@)".}
 proc getNextCommandTarget*(this: var JUCEApplicationImpl): ptr ApplicationCommandTarget {.header: juce_gui_basics, importcpp: "#.getNextCommandTarget()".}
 proc getCommandInfo*(this: var JUCEApplicationImpl, arg1: cint, arg2: var ApplicationCommandInfo) {.header: juce_gui_basics, importcpp: "#.getCommandInfo(@)".}
-proc getAllCommands*(this: var JUCEApplicationImpl, arg1: Array[cint]) {.header: juce_gui_basics, importcpp: "#.getAllCommands(@)".}
+proc getAllCommands*(this: var JUCEApplicationImpl, arg1: var Array[cint]) {.header: juce_gui_basics, importcpp: "#.getAllCommands(@)".}
 proc perform*(this: var JUCEApplicationImpl, arg1: ApplicationCommandTargetInvocationInfo): bool {.header: juce_gui_basics, importcpp: "#.perform(@)".}
 proc `==`*(this: JUCEApplicationImpl, other: JUCEApplicationImpl): bool {.error: "juce::JUCEApplication defines no operator==; compare a property instead".}
 
@@ -4976,7 +4974,7 @@ proc drawGroupComponentOutline*(this: var LookAndFeel_V2, arg1: var Graphics, w:
 proc getTabButtonSpaceAroundImage*(this: var LookAndFeel_V2): cint {.header: juce_gui_basics, importcpp: "#.getTabButtonSpaceAroundImage()".}
 proc getTabButtonOverlap*(this: var LookAndFeel_V2, tabDepth: cint): cint {.header: juce_gui_basics, importcpp: "#.getTabButtonOverlap(@)".}
 proc getTabButtonBestWidth*(this: var LookAndFeel_V2, arg1: var TabBarButton, tabDepth: cint): cint {.header: juce_gui_basics, importcpp: "#.getTabButtonBestWidth(@)".}
-proc getTabButtonExtraComponentBounds*(this: var LookAndFeel_V2, arg1: TabBarButton, textArea: Rectangle[cint], extraComp: var Component): Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.getTabButtonExtraComponentBounds(@)".}
+proc getTabButtonExtraComponentBounds*(this: var LookAndFeel_V2, arg1: TabBarButton, textArea: var Rectangle[cint], extraComp: var Component): Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.getTabButtonExtraComponentBounds(@)".}
 proc drawTabButton*(this: var LookAndFeel_V2, arg1: var TabBarButton, arg2: var Graphics, isMouseOver: bool, isMouseDown: bool) {.header: juce_gui_basics, importcpp: "#.drawTabButton(@)".}
 proc getTabButtonFont*(this: var LookAndFeel_V2, arg1: var TabBarButton, height: cfloat): Font {.header: juce_gui_basics, importcpp: "#.getTabButtonFont(@)".}
 proc drawTabButtonText*(this: var LookAndFeel_V2, arg1: var TabBarButton, arg2: var Graphics, isMouseOver: bool, isMouseDown: bool) {.header: juce_gui_basics, importcpp: "#.drawTabButtonText(@)".}
