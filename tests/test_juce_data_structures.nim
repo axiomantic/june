@@ -213,6 +213,8 @@ proc testRemainingDataStructuresSubclasses() =
         var tree = makeValueTree(makeIdentifier(makeString("root")))
         var synchroniser = newCustomValueTreeSynchroniser(tree)
         doAssert not synchroniser.isNil(), "the synchroniser was not built"
+        synchroniser[].setStateChangedHandler(proc(encodedChange: pointer,
+                                                   encodedChangeSize: csize_t) = discard)
         cdelete synchroniser
 
 testRemainingDataStructuresSubclasses()
