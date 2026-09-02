@@ -2648,4 +2648,61 @@ proc testDrawables() =
 
 
 testRelativeGeometry()
+# Span, WeakReference and OptionalScopedPointer ===============================
+#
+# Three types that were declared and could not be built, each of which a
+# binding takes as a parameter, so each of those bindings was unreachable.
+
+proc testUnbuildableParameterTypes() =
+    initialiseJuce_GUI()
+
+    block:
+        var values = [1'u16, 2'u16, 3'u16]
+        let span = makeSpan(addr values[0], 3.csize_t)
+        doAssert span.size() == 3.csize_t, "the span holds " & $span.size().int
+        doAssert makeSpan[uint16]().size() == 0.csize_t,
+                 "an empty span is not empty"
+
+    block:
+        # A WeakReference goes nil when its target dies, which is the whole
+        # reason JUCE has the type.
+        var owner = newCustomComponent()
+        let weak = makeWeakReference(cast[ptr Component](owner))
+        doAssert not weak.isNil(), "the reference is nil while its target lives"
+        doAssert weak.get() == cast[ptr Component](owner),
+                 "the reference points somewhere else"
+
+        var details = makeDragAndDropTargetSourceDetails(
+            makejuce_var(1.cint), nil, makePoint(0.cint, 0.cint))
+        details.sourceComponent = weak
+        doAssert not details.sourceComponent().isNil(),
+                 "the details dropped the source component"
+
+        cdelete owner
+        doAssert weak.isNil(), "the reference outlived its target"
+
+    block:
+        # A move-only field. The setter moves rather than copies, so the
+        # UniquePtr handed in is empty afterwards, exactly as in C++.
+        var item = makePopupMenuItem(makeString("parent"))
+        var submenu = makeUniquePtr[PopupMenu](cnew(makePopupMenu()))
+        doAssert not submenu.isNil(), "the submenu was not built"
+        item.subMenu = submenu
+        doAssert submenu.isNil(), "the setter copied instead of moving"
+
+    block:
+        # takeOwnership false, so the component is deleted here rather than by
+        # the wrapper.
+        var content = newCustomComponent()
+        var options = makeDialogWindowLaunchOptions()
+        options.content = makeOptionalScopedPointer(
+            cast[ptr Component](content), false)
+        doAssert not options.content().isNil(),
+                 "the launch options dropped the content"
+        cdelete content
+
+    shutdownJuce_GUI()
+
+
 testDrawables()
+testUnbuildableParameterTypes()
