@@ -112,6 +112,15 @@ def remap_type(t, *args):
         # distinct C++ overloads collapse onto the same emitted signature:
         # var(int) and var(int64) both became juce::var(NI), which g++ rejects
         # as ambiguous. C++ float is likewise 32 bits, not Nim's 64.
+        # Keyed on the CANONICAL spelling, because that is what libclang
+        # reports by the time this is consulted. An entry naming an alias -
+        # juce_wchar, CommandID, CharPointer_UTF32::CharType - never fires,
+        # and one of those hid a real bug: juce_wchar was mapped to uint32
+        # here, correctly and uselessly, while the canonical wchar_t was
+        # mapped to uint16 and truncated every character above U+FFFF. A
+        # sentinel pass over this table found twenty-seven entries that no
+        # binding ever reached; they are gone, so an unmapped type now fails
+        # loudly as an unbindable one rather than resolving to a wrong width.
         "int": "cint",
         "float": "cfloat",
         "short": "int16",
@@ -125,45 +134,18 @@ def remap_type(t, *args):
         # wchar_t where wchar_t is 16-bit, which is Windows, and there it uses
         # int16 instead.
         "wchar_t": "uint32",
-        "juce::int8": "int8",
-        "juce::int16": "int16",
-        "juce::int32": "int32",
-        "juce::int64": "int64",
-        "juce::uint8": "uint8",
-        "juce::uint16": "uint16",
-        "juce::uint32": "uint32",
-        "juce::uint64": "uint64",
         # wchar_t is 32-bit on the platforms this binding supports, and JUCE
         # defines juce_wchar as wchar_t there.
-        "juce::juce_wchar": "uint32",
-        "juce_wchar": "uint32",
-        "CommandID": "int",
-        "juce::CommandID": "int",
-        "juce::String::CharPointerType": "ptr char",
-        "juce::CharPointer_ASCII::CharType": "char",
-        "juce::CharPointer_UTF8::CharType": "char",
-        "juce::CharPointer_UTF16::CharType": "int16",
-        "juce::CharPointer_UTF32::CharType": "uint16",
-        "String::CharPointerType": "CharPointer_UTF8",
-        "CharPointer_ASCII::CharType": "char",
-        "CharPointer_UTF8::CharType": "char",
-        "CharPointer_UTF16::CharType": "int16",
-        "CharPointer_UTF32::CharType": "uint16",
-        "size_t": "csize_t",
         "unsigned int": "uint32",
         "unsigned char": "uint8",
         "unsigned short": "uint16",
         "unsigned long": "uint64",
         "long long": "int64",
         "unsigned long long": "uint64",
-        "juce::var": "juce_var",
         "std::string": "CppString",
         "std::exception": "CppException",
         "std::type_index": "CppTypeIndex",
-        "std::byte": "CppByte",
-        "var": "juce_var",
-        "var::NativeFunctionArgs": "juce_varNativeFunctionArgs",
-        "NamedValueSet::NamedValue": "NamedValueSetNamedValue"
+        "var": "juce_var"
     }
 
     # A nested type is spelled bare, and the same bare name can belong to
