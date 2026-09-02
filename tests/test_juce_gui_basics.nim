@@ -2228,4 +2228,48 @@ proc testMenuBarModel() =
 
 
 testTableListBox()
+# The remaining generated subclasses ==========================================
+#
+# A subclass whose constructor nothing calls is never compiled: the C++ class
+# is written into a header that the Nim type carries, and Nim includes that
+# header only where the type itself is used. Discarding the returned pointer
+# does not do it, which is how these went unnoticed.
+#
+# CustomThreadWithProgressWindow is not here. It is a top-level window, and
+# building one on the headless Linux container segfaults, the same as
+# AlertWindow.
+
+proc testRemainingGuiSubclasses() =
+    initialiseJuce_GUI()
+
+    block:
+        var buttonProperty = newCustomButtonPropertyComponent(makeString("prop"), true)
+        doAssert not buttonProperty.isNil(), "the button property was not built"
+        cdelete buttonProperty
+
+        var property = newCustomPropertyComponent(makeString("prop"), 20.cint)
+        doAssert not property.isNil(), "the property was not built"
+        cdelete property
+
+        var watched = newCustomComponent()
+        var watcher = newCustomComponentMovementWatcher(cast[ptr Component](watched))
+        doAssert not watcher.isNil(), "the movement watcher was not built"
+        cdelete watcher
+
+        var positioner = newCustomRelativeCoordinatePositionerBase(
+            cast[ptr Component](watched)[])
+        doAssert not positioner.isNil(), "the positioner was not built"
+        cdelete positioner
+        cdelete watched
+
+        var scanner = makeTimeSliceThread(makeString("subclass-scan"))
+        var listing = makeDirectoryContentsList(nil, scanner)
+        var display = newCustomDirectoryContentsDisplayComponent(listing)
+        doAssert not display.isNil(), "the contents display was not built"
+        cdelete display
+
+    shutdownJuce_GUI()
+
+
 testMenuBarModel()
+testRemainingGuiSubclasses()

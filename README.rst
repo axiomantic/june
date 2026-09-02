@@ -497,10 +497,29 @@ JUCE calls the handler through the virtual, so ``stream.writeText(...)`` -
 which is JUCE's own code - reaches it. The suite asserts that.
 
 The test suite constructs every generated subclass, which is the check that
-matters. The generated C++ has a template forwarding constructor, so a class
-whose base has no default constructor compiles cleanly until something calls
-it, and a subclass that leaves an inherited pure virtual unimplemented is still
-abstract - neither shows up at build time.
+matters, and ``check_handwritten_covered.py`` fails if one is not built. The
+generated C++ has a template forwarding constructor, so a class whose base has
+no default constructor compiles cleanly until something calls it, and a
+subclass that leaves an inherited pure virtual unimplemented is still abstract
+- neither shows up at build time.
+
+That claim used to be prose, and it was false: 13 of the subclasses were never
+built. Two were broken. ``CustomImagePixelData::clone`` was typed against
+``DynamicObject::Ptr`` rather than ``ImagePixelData::Ptr``, because the
+generator resolved a bare ``Ptr`` through a table keyed on the alias and JUCE
+names dozens of things ``Ptr``. ``CustomComponentMovementWatcher`` overrode one
+of three pure virtuals and was still abstract, because the walk that collects
+them keyed on the method name, and ``ComponentListener`` declares a non-pure
+``componentMovedOrResized`` with different parameters.
+
+Building a subclass means using what the constructor returns. Discarding the
+pointer does not compile the class: the C++ lives in a header the Nim type
+carries, and Nim includes it only where the type itself is used.
+
+``CustomJUCEApplicationBase`` and ``CustomThreadWithProgressWindow`` are named
+in the checker with the reason a test cannot build them - the first trips
+JUCE's single-application assertion, and the second is a top-level window that
+segfaults on a headless Linux container.
 
 The generator aborts on a parse error rather than emitting a binding for a type
 it did not resolve. An unresolved type does not stop libclang, it degrades to
