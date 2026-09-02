@@ -1515,11 +1515,6 @@ def run_main(juce_module_name, juce_class_name_to_export):
 
         print()
 
-    # The same string-overload rule the methods have, across the free
-    # functions. JUCE declares operator< for String, StringRef and constChar in
-    # every combination, and a Nim string literal reaches each of them, so a
-    # comparison of two Strings matched several equally well.
-    module_functions = [f for f in all_functions if declared_in_this_module(f) and f.spelling]
     # Free functions in the juce namespace. These were collected and then
     # discarded, so countNumberOfBits, findHighestSetBit and the rest had no
     # binding at all.
