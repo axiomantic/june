@@ -681,19 +681,12 @@ def skip_class_method(class_name, method_name):
     # membership test, so a method whose name is a prefix of another is skipped
     # by accident.
     skip_table = {
-        "ConsoleApplication": {"findAndRunCommand"},
+        # Returns AbstractFifo::ScopedRead / ScopedWrite, neither of which is
+        # bound as a type, so the binding would name something that does not
+        # exist on the Nim side.
         "AbstractFifo": {"read", "write"},
-        "String": {"quoted"},
-        "StringArray": {"appendNumbersToDuplicates"},
-        "DynamicObject": {"clone"},
-        "MemoryMappedFile": {"getRange"},
-        "RelativeTime": {"getDescription"},
-        "Expression": {"getType"},
-        "Random": {"nextInt"},
         # A plain C++ function pointer. juce_core_lifting binds it by hand.
         "SystemStats": {"setApplicationCrashHandler"},
-        "Thread": {"getThreadID"},
-        "ThreadPoolJob": {"runJob", "addListener", "removeListener", "addJob"},
         # A plain C++ function pointer, which the generator cannot spell.
         # juce_events_lifting binds it by hand.
         "MessageManager": {"callFunctionOnMessageThread"},
@@ -701,7 +694,8 @@ def skip_class_method(class_name, method_name):
         # SliderListener<Slider>. juce_gui_basics_lifting binds the type
         # through the alias and these two along with it.
         "Slider": {"addListener", "removeListener"},
-        "URL": {"downloadToFile", "createInputStream"},
+        # Return an Iterator over a private traits type, which has no name
+        # outside the class. juce_core_lifting has the equivalent iterators.
         "XmlElement": {"getChildIterator", "getChildWithTagNameIterator"},
     }
 

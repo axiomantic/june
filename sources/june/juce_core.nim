@@ -693,7 +693,7 @@ proc initialSectionContainingOnly*(this: String, permittedCharacters: StringRef)
 proc initialSectionNotContaining*(this: String, charactersToStopAt: StringRef): String {.header: juce_core, importcpp: "#.initialSectionNotContaining(@)".}
 proc isQuotedString*(this: String): bool {.header: juce_core, importcpp: "#.isQuotedString()".}
 proc unquoted*(this: String): String {.header: juce_core, importcpp: "#.unquoted()".}
-# proc quoted*(this: String, quoteCharacter: uint16): String {.header: juce_core, importcpp: "#.quoted(@)".}  # excluded deliberately: see skip_class_method
+proc quoted*(this: String, quoteCharacter: uint16): String {.header: juce_core, importcpp: "#.quoted(@)".}
 proc repeatedString*(this: typedesc[String], stringToRepeat: StringRef, numberOfTimesToRepeat: cint): String {.header: juce_core, importcpp: "juce::String::repeatedString(@)".}
 proc paddedLeft*(this: String, padCharacter: uint16, minimumLength: cint): String {.header: juce_core, importcpp: "#.paddedLeft(@)".}
 proc paddedRight*(this: String, padCharacter: uint16, minimumLength: cint): String {.header: juce_core, importcpp: "#.paddedRight(@)".}
@@ -933,7 +933,7 @@ proc removeDuplicates*(this: var StringArray, ignoreCase: bool) {.header: juce_c
 proc removeEmptyStrings*(this: var StringArray, removeWhitespaceStrings: bool = true) {.header: juce_core, importcpp: "#.removeEmptyStrings(@)".}
 proc move*(this: var StringArray, currentIndex: cint, newIndex: cint) {.header: juce_core, importcpp: "#.move(@)".}
 proc trim*(this: var StringArray) {.header: juce_core, importcpp: "#.trim()".}
-# proc appendNumbersToDuplicates*(this: var StringArray, ignoreCaseWhenComparing: bool, appendNumberToFirstInstance: bool, preNumberString: CharPointer_UTF8, postNumberString: CharPointer_UTF8) {.header: juce_core, importcpp: "#.appendNumbersToDuplicates(@)".}  # excluded deliberately: see skip_class_method
+proc appendNumbersToDuplicates*(this: var StringArray, ignoreCaseWhenComparing: bool, appendNumberToFirstInstance: bool, preNumberString: CharPointer_UTF8, postNumberString: CharPointer_UTF8) {.header: juce_core, importcpp: "#.appendNumbersToDuplicates(@)".}
 proc joinIntoString*(this: StringArray, separatorString: StringRef, startIndex: cint = 0, numberOfElements: cint = -1): String {.header: juce_core, importcpp: "#.joinIntoString(@)".}
 proc sort*(this: var StringArray, ignoreCase: bool) {.header: juce_core, importcpp: "#.sort(@)".}
 proc sortNatural*(this: var StringArray) {.header: juce_core, importcpp: "#.sortNatural()".}
@@ -1144,8 +1144,8 @@ proc printCommandList*(this: ConsoleApplication, arg1: ArgumentList) {.header: j
 proc printCommandDetails*(this: ConsoleApplication, arg1: ArgumentList, arg2: ConsoleApplicationCommand) {.header: juce_core, importcpp: "#.printCommandDetails(@)".}
 proc fail*(this: typedesc[ConsoleApplication], errorMessage: String, returnCode: cint = 1) {.header: juce_core, importcpp: "juce::ConsoleApplication::fail(@)".}
 proc invokeCatchingFailures*(this: typedesc[ConsoleApplication], functionToCall: CppFunctionObjectR0[cint]): cint {.header: juce_core, importcpp: "juce::ConsoleApplication::invokeCatchingFailures(@)".}
-# proc findAndRunCommand*(this: ConsoleApplication, arg1: ArgumentList, optionMustBeFirstArg: bool = false): cint {.header: juce_core, importcpp: "#.findAndRunCommand(@)".}  # excluded deliberately: see skip_class_method
-# proc findAndRunCommand*(this: ConsoleApplication, argc: cint, argv: ptr char[]): cint {.header: juce_core, importcpp: "#.findAndRunCommand(@)".}  # excluded deliberately: see skip_class_method
+proc findAndRunCommand*(this: ConsoleApplication, arg1: ArgumentList, optionMustBeFirstArg: bool = false): cint {.header: juce_core, importcpp: "#.findAndRunCommand(@)".}
+# proc findAndRunCommand*(this: ConsoleApplication, argc: cint, argv: ptr char[]): cint {.header: juce_core, importcpp: "#.findAndRunCommand(@)".}  # a C array parameter; every one of these has an overload taking a String or a value instead
 proc findCommand*(this: ConsoleApplication, arg1: ArgumentList, optionMustBeFirstArg: bool): ptr ConsoleApplicationCommand {.header: juce_core, importcpp: "#.findCommand(@)".}
 proc getCommands*(this: ConsoleApplication): CppVector[ConsoleApplicationCommand] {.header: juce_core, importcpp: "#.getCommands()".}
 proc `==`*(this: ConsoleApplication, other: ConsoleApplication): bool {.error: "juce::ConsoleApplication defines no operator==; compare a property instead".}
@@ -1325,7 +1325,7 @@ proc clear*(this: var DynamicObject) {.header: juce_core, importcpp: "#.clear()"
 proc getProperties*(this: var DynamicObject): var NamedValueSet {.header: juce_core, importcpp: "#.getProperties()".}
 proc getProperties*(this: DynamicObject): NamedValueSet {.header: juce_core, importcpp: "#.getProperties()".}
 proc cloneAllProperties*(this: var DynamicObject) {.header: juce_core, importcpp: "#.cloneAllProperties()".}
-# proc clone*(this: DynamicObject): UniquePtr[DynamicObject] {.header: juce_core, importcpp: "#.clone()".}  # excluded deliberately: see skip_class_method
+proc clone*(this: DynamicObject): UniquePtr[DynamicObject] {.header: juce_core, importcpp: "#.clone()".}
 proc writeAsJSON*(this: var DynamicObject, arg1: var OutputStream, arg2: JSONFormatOptions) {.header: juce_core, importcpp: "#.writeAsJSON(@)".}
 proc equals*(this: DynamicObject, other: DynamicObject): bool {.header: juce_core, importcpp: "#.equals(@)".}
 proc `==`*(this: DynamicObject, other: DynamicObject): bool {.header: juce_core, importcpp: "#.operator==(@)".}
@@ -1357,7 +1357,7 @@ proc inMinutes*(this: RelativeTime): float64 {.header: juce_core, importcpp: "#.
 proc inHours*(this: RelativeTime): float64 {.header: juce_core, importcpp: "#.inHours()".}
 proc inDays*(this: RelativeTime): float64 {.header: juce_core, importcpp: "#.inDays()".}
 proc inWeeks*(this: RelativeTime): float64 {.header: juce_core, importcpp: "#.inWeeks()".}
-# proc getDescription*(this: RelativeTime, returnValueForZeroTime: String): String {.header: juce_core, importcpp: "#.getDescription(@)".}  # excluded deliberately: see skip_class_method
+proc getDescription*(this: RelativeTime, returnValueForZeroTime: String): String {.header: juce_core, importcpp: "#.getDescription(@)".}
 proc getApproximateDescription*(this: RelativeTime): String {.header: juce_core, importcpp: "#.getApproximateDescription()".}
 proc `+=`*(this: var RelativeTime, timeToAdd: RelativeTime) {.header: juce_core, importcpp: "#.operator+=(@)".}
 proc `-=`*(this: var RelativeTime, timeToSubtract: RelativeTime) {.header: juce_core, importcpp: "#.operator-=(@)".}
@@ -1695,7 +1695,7 @@ proc makeMemoryMappedFile*(file: File, mode: MemoryMappedFileAccessMode, exclusi
 proc makeMemoryMappedFile*(file: File, fileRange: Range[int64], mode: MemoryMappedFileAccessMode, exclusive: bool): MemoryMappedFile {.header: juce_core, importcpp: "juce::MemoryMappedFile(@)".}
 proc getData*(this: MemoryMappedFile): pointer {.header: juce_core, importcpp: "#.getData()".}
 proc getSize*(this: MemoryMappedFile): uint64 {.header: juce_core, importcpp: "#.getSize()".}
-# proc getRange*(this: MemoryMappedFile): Range[int64] {.header: juce_core, importcpp: "#.getRange()".}  # excluded deliberately: see skip_class_method
+proc getRange*(this: MemoryMappedFile): Range[int64] {.header: juce_core, importcpp: "#.getRange()".}
 proc `==`*(this: MemoryMappedFile, other: MemoryMappedFile): bool {.error: "juce::MemoryMappedFile defines no operator==; compare a property instead".}
 
 proc makeTemporaryFile*(): TemporaryFile {.header: juce_core, importcpp: "juce::TemporaryFile(@)".}
@@ -1854,7 +1854,7 @@ proc withRenamedSymbol*(this: Expression, oldSymbol: ExpressionSymbol, newName: 
 proc referencesSymbol*(this: Expression, symbol: ExpressionSymbol, scope: ExpressionScope): bool {.header: juce_core, importcpp: "#.referencesSymbol(@)".}
 proc usesAnySymbols*(this: Expression): bool {.header: juce_core, importcpp: "#.usesAnySymbols()".}
 proc findReferencedSymbols*(this: Expression, results: Array[ExpressionSymbol], scope: ExpressionScope) {.header: juce_core, importcpp: "#.findReferencedSymbols(@)".}
-# proc getType*(this: Expression): ExpressionType {.header: juce_core, importcpp: "#.getType()".}  # excluded deliberately: see skip_class_method
+proc getType*(this: Expression): ExpressionType {.header: juce_core, importcpp: "#.getType()".}
 proc getSymbolOrFunction*(this: Expression): String {.header: juce_core, importcpp: "#.getSymbolOrFunction()".}
 proc getNumInputs*(this: Expression): cint {.header: juce_core, importcpp: "#.getNumInputs()".}
 proc getInput*(this: Expression, index: cint): Expression {.header: juce_core, importcpp: "#.getInput(@)".}
@@ -1882,9 +1882,9 @@ proc `==`*(this: ExpressionSymbol, arg1: ExpressionSymbol): bool {.header: juce_
 
 proc makeRandom*(seedValue: int64): Random {.header: juce_core, importcpp: "juce::Random(@)".}
 proc makeRandom*(): Random {.header: juce_core, importcpp: "juce::Random(@)".}
-# proc nextInt*(this: var Random): cint {.header: juce_core, importcpp: "#.nextInt()".}  # excluded deliberately: see skip_class_method
-# proc nextInt*(this: var Random, maxValue: cint): cint {.header: juce_core, importcpp: "#.nextInt(@)".}  # excluded deliberately: see skip_class_method
-# proc nextInt*(this: var Random, range: Range[cint]): cint {.header: juce_core, importcpp: "#.nextInt(@)".}  # excluded deliberately: see skip_class_method
+proc nextInt*(this: var Random): cint {.header: juce_core, importcpp: "#.nextInt()".}
+proc nextInt*(this: var Random, maxValue: cint): cint {.header: juce_core, importcpp: "#.nextInt(@)".}
+proc nextInt*(this: var Random, range: Range[cint]): cint {.header: juce_core, importcpp: "#.nextInt(@)".}
 proc nextInt64*(this: var Random): int64 {.header: juce_core, importcpp: "#.nextInt64()".}
 proc nextFloat*(this: var Random): cfloat {.header: juce_core, importcpp: "#.nextFloat()".}
 proc nextDouble*(this: var Random): float64 {.header: juce_core, importcpp: "#.nextDouble()".}
@@ -2014,12 +2014,12 @@ proc `==`*(this: HighResolutionTimer, other: HighResolutionTimer): bool {.error:
 proc makeThreadPoolJob*(name: String): ThreadPoolJob {.header: juce_core, importcpp: "juce::ThreadPoolJob(@)".}
 proc getJobName*(this: ThreadPoolJob): String {.header: juce_core, importcpp: "#.getJobName()".}
 proc setJobName*(this: var ThreadPoolJob, newName: String) {.header: juce_core, importcpp: "#.setJobName(@)".}
-# proc runJob*(this: var ThreadPoolJob): ThreadPoolJobJobStatus {.header: juce_core, importcpp: "#.runJob()".}  # excluded deliberately: see skip_class_method
+proc runJob*(this: var ThreadPoolJob): ThreadPoolJobJobStatus {.header: juce_core, importcpp: "#.runJob()".}
 proc isRunning*(this: ThreadPoolJob): bool {.header: juce_core, importcpp: "#.isRunning()".}
 proc shouldExit*(this: ThreadPoolJob): bool {.header: juce_core, importcpp: "#.shouldExit()".}
 proc signalJobShouldExit*(this: var ThreadPoolJob) {.header: juce_core, importcpp: "#.signalJobShouldExit()".}
-# proc addListener*(this: var ThreadPoolJob, arg1: ptr ThreadListener) {.header: juce_core, importcpp: "#.addListener(@)".}  # excluded deliberately: see skip_class_method
-# proc removeListener*(this: var ThreadPoolJob, arg1: ptr ThreadListener) {.header: juce_core, importcpp: "#.removeListener(@)".}  # excluded deliberately: see skip_class_method
+proc addListener*(this: var ThreadPoolJob, arg1: ptr ThreadListener) {.header: juce_core, importcpp: "#.addListener(@)".}
+proc removeListener*(this: var ThreadPoolJob, arg1: ptr ThreadListener) {.header: juce_core, importcpp: "#.removeListener(@)".}
 proc getCurrentThreadPoolJob*(this: typedesc[ThreadPoolJob]): ptr ThreadPoolJob {.header: juce_core, importcpp: "juce::ThreadPoolJob::getCurrentThreadPoolJob()".}
 proc `==`*(this: ThreadPoolJob, other: ThreadPoolJob): bool {.error: "juce::ThreadPoolJob defines no operator==; compare a property instead".}
 
@@ -2240,17 +2240,17 @@ proc getPostDataAsMemoryBlock*(this: URL): MemoryBlock {.header: juce_core, impo
 proc launchInDefaultBrowser*(this: URL): bool {.header: juce_core, importcpp: "#.launchInDefaultBrowser()".}
 proc isProbablyAWebsiteURL*(this: typedesc[URL], possibleURL: String): bool {.header: juce_core, importcpp: "juce::URL::isProbablyAWebsiteURL(@)".}
 proc isProbablyAnEmailAddress*(this: typedesc[URL], possibleEmailAddress: String): bool {.header: juce_core, importcpp: "juce::URL::isProbablyAnEmailAddress(@)".}
-# proc createInputStream*(this: URL, options: URLInputStreamOptions): UniquePtr[InputStream] {.header: juce_core, importcpp: "#.createInputStream(@)".}  # excluded deliberately: see skip_class_method
+proc createInputStream*(this: URL, options: URLInputStreamOptions): UniquePtr[InputStream] {.header: juce_core, importcpp: "#.createInputStream(@)".}
 proc createOutputStream*(this: URL): UniquePtr[OutputStream] {.header: juce_core, importcpp: "#.createOutputStream()".}
-# proc downloadToFile*(this: var URL, targetLocation: File, extraHeaders: String, listener: ptr URLDownloadTaskListener = nil, usePostCommand: bool = false): UniquePtr[URLDownloadTask] {.header: juce_core, importcpp: "#.downloadToFile(@)".}  # excluded deliberately: see skip_class_method
-# proc downloadToFile*(this: var URL, targetLocation: File, options: URLDownloadTaskOptions): UniquePtr[URLDownloadTask] {.header: juce_core, importcpp: "#.downloadToFile(@)".}  # excluded deliberately: see skip_class_method
+proc downloadToFile*(this: var URL, targetLocation: File, extraHeaders: String, listener: ptr URLDownloadTaskListener = nil, usePostCommand: bool = false): UniquePtr[URLDownloadTask] {.header: juce_core, importcpp: "#.downloadToFile(@)".}
+proc downloadToFile*(this: var URL, targetLocation: File, options: URLDownloadTaskOptions): UniquePtr[URLDownloadTask] {.header: juce_core, importcpp: "#.downloadToFile(@)".}
 proc readEntireBinaryStream*(this: URL, destData: var MemoryBlock, usePostCommand: bool = false): bool {.header: juce_core, importcpp: "#.readEntireBinaryStream(@)".}
 proc readEntireTextStream*(this: URL, usePostCommand: bool = false): String {.header: juce_core, importcpp: "#.readEntireTextStream(@)".}
 proc readEntireXmlStream*(this: URL, usePostCommand: bool = false): UniquePtr[XmlElement] {.header: juce_core, importcpp: "#.readEntireXmlStream(@)".}
 proc addEscapeChars*(this: typedesc[URL], stringToAddEscapeCharsTo: String, isParameter: bool, roundBracketsAreLegal: bool = true): String {.header: juce_core, importcpp: "juce::URL::addEscapeChars(@)".}
 proc removeEscapeChars*(this: typedesc[URL], stringToRemoveEscapeCharsFrom: String): String {.header: juce_core, importcpp: "juce::URL::removeEscapeChars(@)".}
 proc createWithoutParsing*(this: typedesc[URL], url: String): URL {.header: juce_core, importcpp: "juce::URL::createWithoutParsing(@)".}
-# proc createInputStream*(this: URL, doPostLikeRequest: bool, progressCallback: ptr bool (pointer, int, int) = nil, progressCallbackContext: pointer = nil, extraHeaders: String, connectionTimeOutMs: cint = 0, responseHeaders: ptr StringPairArray = nil, statusCode: ptr cint = nil, numRedirectsToFollow: cint = 5, httpRequestCmd: String): UniquePtr[InputStream] {.header: juce_core, importcpp: "#.createInputStream(@)".}  # excluded deliberately: see skip_class_method
+# proc createInputStream*(this: URL, doPostLikeRequest: bool, progressCallback: ptr bool (pointer, int, int) = nil, progressCallbackContext: pointer = nil, extraHeaders: String, connectionTimeOutMs: cint = 0, responseHeaders: ptr StringPairArray = nil, statusCode: ptr cint = nil, numRedirectsToFollow: cint = 5, httpRequestCmd: String): UniquePtr[InputStream] {.header: juce_core, importcpp: "#.createInputStream(@)".}  # a type that cannot be spelled in Nim
 
 proc makeURLInputStreamOptions*(parameterHandling: URLParameterHandling): URLInputStreamOptions {.header: juce_core, importcpp: "juce::URL::InputStreamOptions(@)".}
 proc withProgressCallback*(this: URLInputStreamOptions, progressCallback: CppFunctionObjectR2[bool, cint, cint]): URLInputStreamOptions {.header: juce_core, importcpp: "#.withProgressCallback(@)".}
