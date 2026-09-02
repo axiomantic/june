@@ -111,11 +111,11 @@ proc setRunHandler*(this: var CustomThread, handler: proc() {.closure.}) =
 defineCppClassInternal CustomThreadPoolJob of ThreadPoolJob:
     include "juce_core/juce_core.h"
     cppTypeName ThreadPoolJobJobStatus, "ThreadPoolJob::JobStatus"
-    proc runJob(): ThreadPoolJobJobStatus = discard
+    proc runJob(): basescalar[ThreadPoolJobJobStatus] = discard
 
 proc newCustomThreadPoolJob*(name: String): ptr CustomThreadPoolJob {.importcpp: "(new june::CustomThreadPoolJob(@))".}
 
-proc setRunJobHandler*(this: var CustomThreadPoolJob, handler: proc(): ThreadPoolJobJobStatus {.closure.}) =
+proc setRunJobHandler*(this: var CustomThreadPoolJob, handler: proc(): cint {.closure.}) =
     this.onRunJob = bindClosure(handler)
 
 defineCppClassInternal CustomTimeSliceClient of TimeSliceClient:

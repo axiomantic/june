@@ -14,7 +14,7 @@ import subprocess
 import sys
 
 import clang.cindex
-from clang.cindex import AccessSpecifier, CursorKind
+from clang.cindex import AccessSpecifier, CursorKind, TypeKind
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from inspect_juce import use_system_libclang
@@ -527,6 +527,9 @@ def handler_type(mapped):
             return "ptr " + mapped[len(marker):-1]
     if mapped.startswith("constval["):
         return mapped[len("constval["):-1]
+    if mapped.startswith("basescalar["):
+        # The callback returns the base scalar, never the distinct enum.
+        return "cint"
     if mapped.startswith("constrawptr["):
         inner = mapped[len("constrawptr["):-1]
         return inner if inner == "pointer" else f"ptr {inner}"
@@ -617,6 +620,15 @@ def render_class(cursor, module, declared):
                            aliases=aliases)
         if returns is None:
             return None, f"{method.result_type.spelling} returned by {method.spelling} has no Nim spelling"
+
+        # Every bound JUCE enum is a `distinct cint`, and Nim renders one
+        # closure struct for `proc(): cint` and `proc(): SomeEnum`, typing its
+        # function-pointer field from whichever it emits first. A program that
+        # sets one handler of each kind then assigns a pointer of the wrong
+        # type. basescalar keeps the distinct out of the closure: the callback
+        # returns the base scalar and the forwarder casts.
+        if returns and method.result_type.get_canonical().kind == TypeKind.ENUM:
+            returns = f"basescalar[{returns}]"
 
         signature = ", ".join(arguments)
         suffix = f": {returns}" if returns else ""

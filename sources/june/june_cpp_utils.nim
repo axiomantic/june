@@ -16,6 +16,10 @@ type
     isPointer: bool
     isReference: bool
     passAsPointer: bool
+    # Set only by basescalar, where the std::function's return type and the
+    # override's differ. Empty means the two are the same.
+    valueCpp: string
+    castReturn: bool
 
 
 # The C++ side of a parameter is spelled with the Nim identifier, which is only
@@ -171,6 +175,22 @@ proc makeCppType(node: NimNode, aliases: seq[(string, string)] = @[]): CppType {
       result.isPointer = true
       result.passAsPointer = true
 
+    elif ($realNode[0] == "basescalar"):
+      # A return type Nim spells as a distinct scalar - every bound JUCE enum is
+      # a `distinct cint`. Nim renders one closure struct for `proc(): cint` and
+      # `proc(): SomeEnum` and types its function-pointer field from whichever
+      # it emits first, so a program that sets one handler of each kind assigns
+      # a pointer of the wrong type and C++ rejects it.
+      #
+      # So the callback returns the base scalar and never names the distinct:
+      # the std::function is over `int`, the override keeps the enum to match
+      # the virtual, and the forwarder casts the value it got back. The cast is
+      # on a value rather than on a function pointer, which is defined.
+      result.nim = newIdentNode("cint")
+      result.valueCpp = "int"
+      result.cpp = cppTypeSpelling(realNode[1], aliases)
+      result.castReturn = true
+
     elif ($realNode[0] == "varref"):
       # A mutable reference. Overriding a virtual whose parameter is not const
       # needs one: Component::paint takes a Graphics&, and declaring the
@@ -221,7 +241,7 @@ proc toCppString(cppType: CppType): string =
 # it is rejected by one side or the other. The override itself keeps the const
 # reference, because that has to match the virtual it is overriding.
 proc toCppValueString(cppType: CppType): string =
-  result = cppType.cpp
+  result = (if cppType.valueCpp.len > 0: cppType.valueCpp else: cppType.cpp)
   if cppType.isPointer: result &= "*"
 
 
@@ -377,7 +397,10 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
       if isConstMethod: cppFuncSignature &= ") const override { if ("
       else: cppFuncSignature &= ") override { if ("
       cppFuncSignature &= funcPointerName & ") "
-      if hasReturnValue: cppFuncSignature &= "return "
+      if hasReturnValue:
+        cppFuncSignature &= "return "
+        if returnValue.castReturn:
+          cppFuncSignature &= "(" & returnValue.cpp & ") "
       cppFuncSignature &= funcPointerName & "(" & cppFuncPointerCallArgs & "); "
       if hasReturnValue: cppFuncSignature &= " else return {}; "
       cppFuncSignature &= "}"
