@@ -327,3 +327,21 @@ proc testStringLiteralOverloadResolution() =
   doAssert makeStringRef(greeting) == makeString("Hello")
 
 testStringLiteralOverloadResolution()
+
+# The equality guards. A JUCE class with no operator== gets a `==` that is a
+# compile error naming the type, because Nim would otherwise compare the
+# importcpp object structurally -- and those declare no fields, so every two
+# values compared equal. Three hundred of them are generated and none of it is
+# observable at run time, so this is the only thing that would notice the
+# generator ceasing to emit them.
+proc testEqualityGuards() =
+  var first = makeFileSearchPath()
+  var second = makeFileSearchPath()
+  doAssert not compiles(first == second)
+
+  # A class JUCE does give an operator== still compares.
+  doAssert makeString("x") == makeString("x")
+  doAssert makeRange(0.cint, 10.cint) == makeRange(0.cint, 10.cint)
+  doAssert not (makeRange(0.cint, 10.cint) == makeRange(5.cint, 20.cint))
+
+testEqualityGuards()
