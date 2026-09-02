@@ -274,14 +274,6 @@ def map_type(type_spelling, declared, is_return, declaration=None, aliases=None)
             return f"constval[{name}]"
         return name
 
-    # A typedef names something the bindings do know: Typeface::Ptr stands for
-    # ReferenceCountedObjectPtr<Typeface>, and CommandID for int.
-    if declaration is not None and declaration.kind in (
-            CursorKind.TYPEDEF_DECL, CursorKind.TYPE_ALIAS_DECL):
-        underlying = declaration.underlying_typedef_type
-        if underlying is not None and underlying.spelling != type_spelling:
-            return map_type(underlying.spelling, declared, is_return,
-                            type_declaration(underlying), aliases)
     return None
 
 
@@ -477,22 +469,20 @@ def pure_virtuals(cursor):
                 continue
             if not member.is_virtual_method():
                 continue
+            key = signature(member)
             if member.is_pure_virtual_method():
                 if member.access_specifier == AccessSpecifier.PRIVATE:
                     private = True
-                elif (signature(member) not in seen
-                        and signature(member) not in implemented):
-                    seen.add(signature(member))
+                elif key not in seen and key not in implemented:
+                    seen.add(key)
                     result.append(member)
             else:
                 # A base's pure virtual that this class already implements.
                 # By signature: a non-pure method that merely shares a name
                 # overrides nothing, and treating it as an implementation drops
                 # a pure virtual that really does need one.
-                implemented.add(signature(member))
+                implemented.add(key)
 
-    # The class itself first, so its own implementations mask the base's pure
-    # virtuals rather than the other way round.
     walk(cursor)
     return [m for m in result if signature(m) not in implemented], private
 
