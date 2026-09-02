@@ -1564,8 +1564,8 @@ proc `==`*(this: DragAndDropTarget, other: DragAndDropTarget): bool {.error: "ju
 proc makeDragAndDropTargetSourceDetails*(description: juce_var, sourceComponent: ptr Component, localPosition: Point[cint]): DragAndDropTargetSourceDetails {.header: juce_gui_basics, importcpp: "juce::DragAndDropTarget::SourceDetails(@)".}
 proc description*(this: DragAndDropTargetSourceDetails): juce_var {.header: juce_gui_basics, importcpp: "#.description".}
 proc `description=`*(this: var DragAndDropTargetSourceDetails, value: juce_var) {.header: juce_gui_basics, importcpp: "#.description = #".}
-# proc sourceComponent*(this: DragAndDropTargetSourceDetails): WeakReference<Component> {.header: juce_gui_basics, importcpp: "#.sourceComponent".}  # a type that cannot be spelled in Nim
-# proc `sourceComponent=`*(this: var DragAndDropTargetSourceDetails, value: WeakReference<Component>) {.header: juce_gui_basics, importcpp: "#.sourceComponent = #".}  # a type that cannot be spelled in Nim
+proc sourceComponent*(this: DragAndDropTargetSourceDetails): WeakReference[Component] {.header: juce_gui_basics, importcpp: "#.sourceComponent".}
+proc `sourceComponent=`*(this: var DragAndDropTargetSourceDetails, value: WeakReference[Component]) {.header: juce_gui_basics, importcpp: "#.sourceComponent = #".}
 proc localPosition*(this: DragAndDropTargetSourceDetails): Point[cint] {.header: juce_gui_basics, importcpp: "#.localPosition".}
 proc `localPosition=`*(this: var DragAndDropTargetSourceDetails, value: Point[cint]) {.header: juce_gui_basics, importcpp: "#.localPosition = #".}
 proc `==`*(this: DragAndDropTargetSourceDetails, other: DragAndDropTargetSourceDetails): bool {.error: "juce::DragAndDropTarget::SourceDetails defines no operator==; compare a property instead".}
@@ -3963,8 +3963,8 @@ proc dialogTitle*(this: DialogWindowLaunchOptions): String {.header: juce_gui_ba
 proc `dialogTitle=`*(this: var DialogWindowLaunchOptions, value: String) {.header: juce_gui_basics, importcpp: "#.dialogTitle = #".}
 proc dialogBackgroundColour*(this: DialogWindowLaunchOptions): Colour {.header: juce_gui_basics, importcpp: "#.dialogBackgroundColour".}
 proc `dialogBackgroundColour=`*(this: var DialogWindowLaunchOptions, value: Colour) {.header: juce_gui_basics, importcpp: "#.dialogBackgroundColour = #".}
-# proc content*(this: DialogWindowLaunchOptions): OptionalScopedPointer<Component> {.header: juce_gui_basics, importcpp: "#.content".}  # a type that cannot be spelled in Nim
-# proc `content=`*(this: var DialogWindowLaunchOptions, value: OptionalScopedPointer<Component>) {.header: juce_gui_basics, importcpp: "#.content = #".}  # a type that cannot be spelled in Nim
+proc content*(this: DialogWindowLaunchOptions): OptionalScopedPointer[Component] {.header: juce_gui_basics, importcpp: "#.content".}
+proc `content=`*(this: var DialogWindowLaunchOptions, value: OptionalScopedPointer[Component]) {.header: juce_gui_basics, importcpp: "#.content = #".}
 proc componentToCentreAround*(this: DialogWindowLaunchOptions): ptr Component {.header: juce_gui_basics, importcpp: "#.componentToCentreAround".}
 proc `componentToCentreAround=`*(this: var DialogWindowLaunchOptions, value: ptr Component) {.header: juce_gui_basics, importcpp: "#.componentToCentreAround = #".}
 proc escapeKeyTriggersCloseButton*(this: DialogWindowLaunchOptions): bool {.header: juce_gui_basics, importcpp: "#.escapeKeyTriggersCloseButton".}
