@@ -89,7 +89,17 @@ nim_field_getter_def = """{comment}proc {field_name}*(this: {class_name}): {fiel
 # a field called `end` is `end=`, not ``end`=`.
 nim_field_var_getter_def = """{comment}proc {field_name}*(this: var {class_name}): var {field_type} {{.header: {juce_module_name}, importcpp: "#.{juce_spelling}".}}{reason}"""
 
-nim_field_setter_def = """{comment}proc `{raw_name}=`*(this: var {class_name}, value: {field_type}) {{.header: {juce_module_name}, importcpp: "#.{juce_spelling} = #".}}{reason}"""
+nim_field_setter_def = """{comment}proc `{raw_name}=`*(this: var {class_name}, value: {field_type}) {{.header: {juce_module_name}, importcpp: "#.{juce_spelling} = {value_expression}".}}{reason}"""
+
+# Wrappers that cannot be copy-assigned, so a setter for a field of one has to
+# move. Nine field setters assigned one by copy and every call was rejected:
+# PopupMenu::Item::subMenu and image, FillType::gradient,
+# DialogWindowLaunchOptions::content and the accessibility interfaces.
+#
+# A named set rather than asking libclang whether the copy assignment is
+# deleted: for these it is deleted implicitly, because of a member, and that is
+# not reported as a deleted method.
+move_only_wrappers = ("UniquePtr[", "OptionalScopedPointer[")
 
 # A static method has no receiver, so it takes the class as a typedesc and is
 # called as Time.currentTimeMillis(). That is the spelling juce_events_lifting
@@ -1496,6 +1506,9 @@ def run_main(juce_module_name, juce_class_name_to_export):
             # or a reference, which binds once and cannot be repointed.
             if not (field.type.is_const_qualified() or "&" in field.type.spelling):
                 print(nim_field_setter_def.format(**{
+                    "value_expression": ("std::move(#)"
+                                         if field_type.startswith(move_only_wrappers)
+                                         else "#"),
                     "comment": field_comment, "raw_name": field.spelling,
                     "class_name": class_name, "field_type": field_type.replace("var ", ""),
                     "juce_module_name": juce_module_name, "juce_spelling": field.spelling,

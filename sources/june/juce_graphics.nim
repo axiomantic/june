@@ -799,7 +799,7 @@ proc height*(this: var ImageBitmapData): var cint {.header: juce_graphics, impor
 proc `height=`*(this: var ImageBitmapData, value: cint) {.header: juce_graphics, importcpp: "#.height = #".}
 proc dataReleaser*(this: ImageBitmapData): UniquePtr[ImageBitmapDataBitmapDataReleaser] {.header: juce_graphics, importcpp: "#.dataReleaser".}
 proc dataReleaser*(this: var ImageBitmapData): var UniquePtr[ImageBitmapDataBitmapDataReleaser] {.header: juce_graphics, importcpp: "#.dataReleaser".}
-proc `dataReleaser=`*(this: var ImageBitmapData, value: UniquePtr[ImageBitmapDataBitmapDataReleaser]) {.header: juce_graphics, importcpp: "#.dataReleaser = #".}
+proc `dataReleaser=`*(this: var ImageBitmapData, value: UniquePtr[ImageBitmapDataBitmapDataReleaser]) {.header: juce_graphics, importcpp: "#.dataReleaser = std::move(#)".}
 proc getLinePointer*(this: ImageBitmapData, y: cint): ptr uint8 {.header: juce_graphics, importcpp: "#.getLinePointer(@)".}
 proc getPixelPointer*(this: ImageBitmapData, x: cint, y: cint): ptr uint8 {.header: juce_graphics, importcpp: "#.getPixelPointer(@)".}
 proc getPixelColour*(this: ImageBitmapData, x: cint, y: cint): Colour {.header: juce_graphics, importcpp: "#.getPixelColour(@)".}
@@ -876,7 +876,7 @@ proc colour*(this: var FillType): var Colour {.header: juce_graphics, importcpp:
 proc `colour=`*(this: var FillType, value: Colour) {.header: juce_graphics, importcpp: "#.colour = #".}
 proc gradient*(this: FillType): UniquePtr[ColourGradient] {.header: juce_graphics, importcpp: "#.gradient".}
 proc gradient*(this: var FillType): var UniquePtr[ColourGradient] {.header: juce_graphics, importcpp: "#.gradient".}
-proc `gradient=`*(this: var FillType, value: UniquePtr[ColourGradient]) {.header: juce_graphics, importcpp: "#.gradient = #".}
+proc `gradient=`*(this: var FillType, value: UniquePtr[ColourGradient]) {.header: juce_graphics, importcpp: "#.gradient = std::move(#)".}
 proc image*(this: FillType): Image {.header: juce_graphics, importcpp: "#.image".}
 proc image*(this: var FillType): var Image {.header: juce_graphics, importcpp: "#.image".}
 proc `image=`*(this: var FillType, value: Image) {.header: juce_graphics, importcpp: "#.image = #".}

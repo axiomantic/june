@@ -445,6 +445,19 @@ two apart, so those two are named in the generator with the reason, and
 ``check_handwritten_covered.py`` fails unless a test builds every one of the
 constructors that is emitted.
 
+A field whose type cannot be copy-assigned is set with ``std::move``. Nine
+setters assigned one by copy and every call was rejected --
+``PopupMenu::Item``'s ``subMenu`` and ``image``, ``FillType::gradient``,
+``DialogWindowLaunchOptions::content`` and the accessibility interfaces. The
+wrapper is empty afterwards, exactly as in C++, and the suite asserts that. The
+move-only wrappers are named in ``tools/inspect_juce.py``: for these the copy
+assignment is deleted implicitly, because of a member, and libclang does not
+report that as a deleted method.
+
+``Span``, ``WeakReference``, ``OptionalScopedPointer`` and ``Parallelogram``
+had no constructor, and each is taken as a parameter by a binding, so those
+bindings could not be called at all.
+
 Three methods are withheld because JUCE declares them and defines them nowhere:
 ``RelativeCoordinate::references`` and ``createTree`` on ``RelativePointPath``'s
 ``QuadraticTo`` and ``CubicTo``. Nothing in the headers says so -- the binding
