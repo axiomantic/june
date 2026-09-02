@@ -1367,3 +1367,4 @@ proc testCommandLineGetters() =
     shutdownJuce_GUI()
 
 testCommandLineGetters()
+
