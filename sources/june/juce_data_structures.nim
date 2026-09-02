@@ -70,6 +70,16 @@ proc addListener*(this: var Value, listener: ptr ValueListener) {.header: juce_d
 proc removeListener*(this: var Value, listener: ptr ValueListener) {.header: juce_data_structures, importcpp: "#.removeListener(@)".}
 proc getValueSource*(this: var Value): var ValueValueSource {.header: juce_data_structures, importcpp: "#.getValueSource()".}
 
+proc makeValueListener*(): ValueListener {.header: juce_data_structures, importcpp: "juce::Value::Listener(@)".}
+proc valueChanged*(this: var ValueListener, value: var Value) {.header: juce_data_structures, importcpp: "#.valueChanged(@)".}
+proc `==`*(this: ValueListener, other: ValueListener): bool {.error: "juce::Value::Listener defines no operator==; compare a property instead".}
+
+proc makeValueValueSource*(): ValueValueSource {.header: juce_data_structures, importcpp: "juce::Value::ValueSource(@)".}
+proc getValue*(this: ValueValueSource): juce_var {.header: juce_data_structures, importcpp: "#.getValue()".}
+proc setValue*(this: var ValueValueSource, newValue: juce_var) {.header: juce_data_structures, importcpp: "#.setValue(@)".}
+proc sendChangeMessage*(this: var ValueValueSource, dispatchSynchronously: bool) {.header: juce_data_structures, importcpp: "#.sendChangeMessage(@)".}
+proc `==`*(this: ValueValueSource, other: ValueValueSource): bool {.error: "juce::Value::ValueSource defines no operator==; compare a property instead".}
+
 proc makeValueTree*(): ValueTree {.header: juce_data_structures, importcpp: "juce::ValueTree(@)".}
 proc makeValueTree*(`type`: Identifier): ValueTree {.header: juce_data_structures, importcpp: "juce::ValueTree(@)".}
 # proc makeValueTree*(`type`: Identifier, properties: std::initializer_list<NamedValueSet::NamedValue>, subTrees: std::initializer_list<ValueTree>): ValueTree {.header: juce_data_structures, importcpp: "juce::ValueTree(@)".}  # a std::initializer_list parameter, which Nim cannot spell; build the value with the incremental API instead
@@ -121,6 +131,20 @@ proc setPropertyExcludingListener*(this: var ValueTree, listenerToExclude: ptr V
 proc sendPropertyChangeMessage*(this: var ValueTree, property: Identifier) {.header: juce_data_structures, importcpp: "#.sendPropertyChangeMessage(@)".}
 proc getReferenceCount*(this: ValueTree): cint {.header: juce_data_structures, importcpp: "#.getReferenceCount()".}
 
+proc makeValueTreeIterator*(arg1: ValueTree, isEnd: bool): ValueTreeIterator {.header: juce_data_structures, importcpp: "juce::ValueTree::Iterator(@)".}
+proc `inc`*(this: var ValueTreeIterator): var ValueTreeIterator {.header: juce_data_structures, importcpp: "#.operator++()".}
+proc `==`*(this: ValueTreeIterator, arg1: ValueTreeIterator): bool {.header: juce_data_structures, importcpp: "#.operator==(@)".}
+# proc operator!=*(this: ValueTreeIterator, arg1: ValueTreeIterator): bool {.header: juce_data_structures, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
+proc `*`*(this: ValueTreeIterator): ValueTree {.header: juce_data_structures, importcpp: "#.operator*()".}
+
+proc valueTreePropertyChanged*(this: var ValueTreeListener, treeWhosePropertyHasChanged: var ValueTree, property: Identifier) {.header: juce_data_structures, importcpp: "#.valueTreePropertyChanged(@)".}
+proc valueTreeChildAdded*(this: var ValueTreeListener, parentTree: var ValueTree, childWhichHasBeenAdded: var ValueTree) {.header: juce_data_structures, importcpp: "#.valueTreeChildAdded(@)".}
+proc valueTreeChildRemoved*(this: var ValueTreeListener, parentTree: var ValueTree, childWhichHasBeenRemoved: var ValueTree, indexFromWhichChildWasRemoved: cint) {.header: juce_data_structures, importcpp: "#.valueTreeChildRemoved(@)".}
+proc valueTreeChildOrderChanged*(this: var ValueTreeListener, parentTreeWhoseChildrenHaveMoved: var ValueTree, oldIndex: cint, newIndex: cint) {.header: juce_data_structures, importcpp: "#.valueTreeChildOrderChanged(@)".}
+proc valueTreeParentChanged*(this: var ValueTreeListener, treeWhoseParentHasChanged: var ValueTree) {.header: juce_data_structures, importcpp: "#.valueTreeParentChanged(@)".}
+proc valueTreeRedirected*(this: var ValueTreeListener, treeWhichHasBeenChanged: var ValueTree) {.header: juce_data_structures, importcpp: "#.valueTreeRedirected(@)".}
+proc `==`*(this: ValueTreeListener, other: ValueTreeListener): bool {.error: "juce::ValueTree::Listener defines no operator==; compare a property instead".}
+
 proc makeValueTreeSynchroniser*(tree: ValueTree): ValueTreeSynchroniser {.header: juce_data_structures, importcpp: "juce::ValueTreeSynchroniser(@)".}
 proc stateChanged*(this: var ValueTreeSynchroniser, encodedChange: constPointer, encodedChangeSize: uint64) {.header: juce_data_structures, importcpp: "#.stateChanged(@)".}
 proc sendFullSyncCallback*(this: var ValueTreeSynchroniser) {.header: juce_data_structures, importcpp: "#.sendFullSyncCallback()".}
@@ -159,6 +183,10 @@ proc setNeedsToBeSaved*(this: var PropertiesFile, needsToBeSaved: bool) {.header
 proc reload*(this: var PropertiesFile): bool {.header: juce_data_structures, importcpp: "#.reload()".}
 proc getFile*(this: PropertiesFile): File {.header: juce_data_structures, importcpp: "#.getFile()".}
 proc `==`*(this: PropertiesFile, other: PropertiesFile): bool {.error: "juce::PropertiesFile defines no operator==; compare a property instead".}
+
+proc makePropertiesFileOptions*(): PropertiesFileOptions {.header: juce_data_structures, importcpp: "juce::PropertiesFile::Options(@)".}
+proc getDefaultFile*(this: PropertiesFileOptions): File {.header: juce_data_structures, importcpp: "#.getDefaultFile()".}
+proc `==`*(this: PropertiesFileOptions, other: PropertiesFileOptions): bool {.error: "juce::PropertiesFile::Options defines no operator==; compare a property instead".}
 
 proc makeApplicationProperties*(): ApplicationProperties {.header: juce_data_structures, importcpp: "juce::ApplicationProperties(@)".}
 proc setStorageParameters*(this: var ApplicationProperties, options: PropertiesFileOptions) {.header: juce_data_structures, importcpp: "#.setStorageParameters(@)".}

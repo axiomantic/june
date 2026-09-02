@@ -260,6 +260,10 @@ proc writePathToStream*(this: Path, destination: var OutputStream) {.header: juc
 proc toString*(this: Path): String {.header: juce_graphics, importcpp: "#.toString()".}
 proc restoreFromString*(this: var Path, stringVersion: StringRef) {.header: juce_graphics, importcpp: "#.restoreFromString(@)".}
 
+proc makePathIterator*(path: Path): PathIterator {.header: juce_graphics, importcpp: "juce::Path::Iterator(@)".}
+proc next*(this: var PathIterator): bool {.header: juce_graphics, importcpp: "#.next()".}
+proc `==`*(this: PathIterator, other: PathIterator): bool {.error: "juce::Path::Iterator defines no operator==; compare a property instead".}
+
 proc makePixelARGB*(): PixelARGB {.header: juce_graphics, importcpp: "juce::PixelARGB(@)".}
 proc makePixelARGB*(a: uint8, r: uint8, g: uint8, b: uint8): PixelARGB {.header: juce_graphics, importcpp: "juce::PixelARGB(@)".}
 proc getNativeARGB*(this: PixelARGB): uint32 {.header: juce_graphics, importcpp: "#.getNativeARGB()".}
@@ -579,6 +583,9 @@ proc isVectorDevice*(this: Graphics): bool {.header: juce_graphics, importcpp: "
 proc getInternalContext*(this: Graphics): var LowLevelGraphicsContext {.header: juce_graphics, importcpp: "#.getInternalContext()".}
 proc `==`*(this: Graphics, other: Graphics): bool {.error: "juce::Graphics defines no operator==; compare a property instead".}
 
+proc makeGraphicsScopedSaveState*(arg1: var Graphics): GraphicsScopedSaveState {.header: juce_graphics, importcpp: "juce::Graphics::ScopedSaveState(@)".}
+proc `==`*(this: GraphicsScopedSaveState, other: GraphicsScopedSaveState): bool {.error: "juce::Graphics::ScopedSaveState defines no operator==; compare a property instead".}
+
 proc makeImage*(): Image {.header: juce_graphics, importcpp: "juce::Image(@)".}
 proc makeImage*(format: ImagePixelFormat, imageWidth: cint, imageHeight: cint, clearImage: bool): Image {.header: juce_graphics, importcpp: "juce::Image(@)".}
 proc makeImage*(format: ImagePixelFormat, imageWidth: cint, imageHeight: cint, clearImage: bool, `type`: ImageType): Image {.header: juce_graphics, importcpp: "juce::Image(@)".}
@@ -615,6 +622,18 @@ proc createLowLevelContext*(this: Image): UniquePtr[LowLevelGraphicsContext] {.h
 proc getReferenceCount*(this: Image): cint {.header: juce_graphics, importcpp: "#.getReferenceCount()".}
 proc getPixelData*(this: Image): ReferenceCountedObjectPtr[ImagePixelData] {.header: juce_graphics, importcpp: "#.getPixelData()".}
 
+proc makeImageBitmapData*(image: var Image, x: cint, y: cint, w: cint, h: cint, mode: ImageBitmapDataReadWriteMode): ImageBitmapData {.header: juce_graphics, importcpp: "juce::Image::BitmapData(@)".}
+proc makeImageBitmapData*(image: Image, arg2: Rectangle[cint], mode: ImageBitmapDataReadWriteMode): ImageBitmapData {.header: juce_graphics, importcpp: "juce::Image::BitmapData(@)".}
+proc makeImageBitmapData*(image: Image, x: cint, y: cint, w: cint, h: cint): ImageBitmapData {.header: juce_graphics, importcpp: "juce::Image::BitmapData(@)".}
+proc makeImageBitmapData*(image: Image, mode: ImageBitmapDataReadWriteMode): ImageBitmapData {.header: juce_graphics, importcpp: "juce::Image::BitmapData(@)".}
+proc getLinePointer*(this: ImageBitmapData, y: cint): ptr uint8 {.header: juce_graphics, importcpp: "#.getLinePointer(@)".}
+proc getPixelPointer*(this: ImageBitmapData, x: cint, y: cint): ptr uint8 {.header: juce_graphics, importcpp: "#.getPixelPointer(@)".}
+proc getPixelColour*(this: ImageBitmapData, x: cint, y: cint): Colour {.header: juce_graphics, importcpp: "#.getPixelColour(@)".}
+proc setPixelColour*(this: ImageBitmapData, x: cint, y: cint, colour: Colour) {.header: juce_graphics, importcpp: "#.setPixelColour(@)".}
+proc getBounds*(this: ImageBitmapData): Rectangle[cint] {.header: juce_graphics, importcpp: "#.getBounds()".}
+proc convertFrom*(this: var ImageBitmapData, src: ImageBitmapData): bool {.header: juce_graphics, importcpp: "#.convertFrom(@)".}
+proc `==`*(this: ImageBitmapData, other: ImageBitmapData): bool {.error: "juce::Image::BitmapData defines no operator==; compare a property instead".}
+
 proc setBackupEnabled*(this: var ImagePixelDataBackupExtensions, arg1: bool) {.header: juce_graphics, importcpp: "#.setBackupEnabled(@)".}
 proc isBackupEnabled*(this: ImagePixelDataBackupExtensions): bool {.header: juce_graphics, importcpp: "#.isBackupEnabled()".}
 proc backupNow*(this: var ImagePixelDataBackupExtensions): bool {.header: juce_graphics, importcpp: "#.backupNow()".}
@@ -642,6 +661,10 @@ proc desaturate*(this: var ImagePixelData) {.header: juce_graphics, importcpp: "
 proc sendDataChangeMessage*(this: var ImagePixelData) {.header: juce_graphics, importcpp: "#.sendDataChangeMessage()".}
 proc getNativeExtensions*(this: var ImagePixelData): ImagePixelDataNativeExtensions {.header: juce_graphics, importcpp: "#.getNativeExtensions()".}
 proc `==`*(this: ImagePixelData, other: ImagePixelData): bool {.error: "juce::ImagePixelData defines no operator==; compare a property instead".}
+
+proc imageDataChanged*(this: var ImagePixelDataListener, arg1: ptr ImagePixelData) {.header: juce_graphics, importcpp: "#.imageDataChanged(@)".}
+proc imageDataBeingDeleted*(this: var ImagePixelDataListener, arg1: ptr ImagePixelData) {.header: juce_graphics, importcpp: "#.imageDataBeingDeleted(@)".}
+proc `==`*(this: ImagePixelDataListener, other: ImagePixelDataListener): bool {.error: "juce::ImagePixelData::Listener defines no operator==; compare a property instead".}
 
 proc makeImageType*(): ImageType {.header: juce_graphics, importcpp: "juce::ImageType(@)".}
 proc create*(this: ImageType, arg1: ImagePixelFormat, width: cint, height: cint, shouldClearImage: bool): ReferenceCountedObjectPtr[ImagePixelData] {.header: juce_graphics, importcpp: "#.create(@)".}
@@ -716,6 +739,8 @@ proc createSystemFallback*(this: Typeface, text: String, language: String): Refe
 proc getSupportedFeatures*(this: Typeface): CppVector[FontFeatureTag] {.header: juce_graphics, importcpp: "#.getSupportedFeatures()".}
 proc getNativeDetails*(this: Typeface): ptr TypefaceNative {.header: juce_graphics, importcpp: "#.getNativeDetails()".}
 proc `==`*(this: Typeface, other: Typeface): bool {.error: "juce::Typeface defines no operator==; compare a property instead".}
+
+proc `==`*(this: TypefaceNative, other: TypefaceNative): bool {.error: "juce::Typeface::Native defines no operator==; compare a property instead".}
 
 proc makeFontOptions*(): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions(@)".}
 proc makeFontOptions*(fontHeight: cfloat): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions(@)".}
@@ -824,6 +849,8 @@ proc toString*(this: Font): String {.header: juce_graphics, importcpp: "#.toStri
 proc getNativeDetails*(this: Font): FontNative {.header: juce_graphics, importcpp: "#.getNativeDetails()".}
 proc getHeightToPointsFactor*(this: Font): cfloat {.header: juce_graphics, importcpp: "#.getHeightToPointsFactor()".}
 
+proc `==`*(this: FontNative, other: FontNative): bool {.error: "juce::Font::Native defines no operator==; compare a property instead".}
+
 proc makeAttributedString*(): AttributedString {.header: juce_graphics, importcpp: "juce::AttributedString(@)".}
 proc makeAttributedString*(newString: String): AttributedString {.header: juce_graphics, importcpp: "juce::AttributedString(@)".}
 proc `AttributedString=`*(this: var AttributedString, arg1: AttributedString): var AttributedString {.header: juce_graphics, importcpp: "#.operator=(@)".}
@@ -851,6 +878,12 @@ proc setColour*(this: var AttributedString, colour: Colour) {.header: juce_graph
 proc setFont*(this: var AttributedString, range: Range[cint], font: Font) {.header: juce_graphics, importcpp: "#.setFont(@)".}
 proc setFont*(this: var AttributedString, font: Font) {.header: juce_graphics, importcpp: "#.setFont(@)".}
 proc `==`*(this: AttributedString, other: AttributedString): bool {.error: "juce::AttributedString defines no operator==; compare a property instead".}
+
+proc makeAttributedStringAttribute*(): AttributedStringAttribute {.header: juce_graphics, importcpp: "juce::AttributedString::Attribute(@)".}
+proc makeAttributedStringAttribute*(range: Range[cint], font: Font, colour: Colour): AttributedStringAttribute {.header: juce_graphics, importcpp: "juce::AttributedString::Attribute(@)".}
+proc `AttributedStringAttribute=`*(this: var AttributedStringAttribute, arg1: AttributedStringAttribute): var AttributedStringAttribute {.header: juce_graphics, importcpp: "#.operator=(@)".}
+proc `AttributedStringAttribute=`*(this: var AttributedStringAttribute, arg1: var AttributedStringAttribute): var AttributedStringAttribute {.header: juce_graphics, importcpp: "#.operator=(@)".}
+proc `==`*(this: AttributedStringAttribute, other: AttributedStringAttribute): bool {.error: "juce::AttributedString::Attribute defines no operator==; compare a property instead".}
 
 proc makePositionedGlyph*(): PositionedGlyph {.header: juce_graphics, importcpp: "juce::PositionedGlyph(@)".}
 proc makePositionedGlyph*(font: Font, character: uint16, glyphNumber: cint, anchorX: cfloat, baselineY: cfloat, width: cfloat, isWhitespace: bool): PositionedGlyph {.header: juce_graphics, importcpp: "juce::PositionedGlyph(@)".}
@@ -915,6 +948,24 @@ proc ensureStorageAllocated*(this: var TextLayout, numLinesNeeded: cint) {.heade
 # proc cend*(this: TextLayout): _iterator {.header: juce_graphics, importcpp: "#.cend()".}  # a C++ iterator; loop with the Nim iterator instead
 proc recalculateSize*(this: var TextLayout) {.header: juce_graphics, importcpp: "#.recalculateSize()".}
 proc `==`*(this: TextLayout, other: TextLayout): bool {.error: "juce::TextLayout defines no operator==; compare a property instead".}
+
+proc makeTextLayoutGlyph*(glyphCode: cint, anchor: Point[cfloat], width: cfloat): TextLayoutGlyph {.header: juce_graphics, importcpp: "juce::TextLayout::Glyph(@)".}
+proc `==`*(this: TextLayoutGlyph, other: TextLayoutGlyph): bool {.error: "juce::TextLayout::Glyph defines no operator==; compare a property instead".}
+
+proc makeTextLayoutRun*(): TextLayoutRun {.header: juce_graphics, importcpp: "juce::TextLayout::Run(@)".}
+proc makeTextLayoutRun*(stringRange: Range[cint], numGlyphsToPreallocate: cint): TextLayoutRun {.header: juce_graphics, importcpp: "juce::TextLayout::Run(@)".}
+proc getRunBoundsX*(this: TextLayoutRun): Range[cfloat] {.header: juce_graphics, importcpp: "#.getRunBoundsX()".}
+proc `==`*(this: TextLayoutRun, other: TextLayoutRun): bool {.error: "juce::TextLayout::Run defines no operator==; compare a property instead".}
+
+proc makeTextLayoutLine*(): TextLayoutLine {.header: juce_graphics, importcpp: "juce::TextLayout::Line(@)".}
+proc makeTextLayoutLine*(stringRange: Range[cint], lineOrigin: Point[cfloat], ascent: cfloat, descent: cfloat, leading: cfloat, numRunsToPreallocate: cint): TextLayoutLine {.header: juce_graphics, importcpp: "juce::TextLayout::Line(@)".}
+proc `TextLayoutLine=`*(this: var TextLayoutLine, arg1: TextLayoutLine): var TextLayoutLine {.header: juce_graphics, importcpp: "#.operator=(@)".}
+proc `TextLayoutLine=`*(this: var TextLayoutLine, arg1: var TextLayoutLine): var TextLayoutLine {.header: juce_graphics, importcpp: "#.operator=(@)".}
+proc getLineBoundsX*(this: TextLayoutLine): Range[cfloat] {.header: juce_graphics, importcpp: "#.getLineBoundsX()".}
+proc getLineBoundsY*(this: TextLayoutLine): Range[cfloat] {.header: juce_graphics, importcpp: "#.getLineBoundsY()".}
+proc getLineBounds*(this: TextLayoutLine): Rectangle[cfloat] {.header: juce_graphics, importcpp: "#.getLineBounds()".}
+proc swap*(this: var TextLayoutLine, other: var TextLayoutLine) {.header: juce_graphics, importcpp: "#.swap(@)".}
+proc `==`*(this: TextLayoutLine, other: TextLayoutLine): bool {.error: "juce::TextLayout::Line defines no operator==; compare a property instead".}
 
 proc isVectorDevice*(this: LowLevelGraphicsContext): bool {.header: juce_graphics, importcpp: "#.isVectorDevice()".}
 proc setOrigin*(this: var LowLevelGraphicsContext, arg1: Point[cint]) {.header: juce_graphics, importcpp: "#.setOrigin(@)".}

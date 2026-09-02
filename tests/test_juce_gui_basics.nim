@@ -352,3 +352,30 @@ proc testSliderListener() =
   shutdownJuce_GUI()
 
 testSliderListener()
+
+# LookAndFeel_V4's colour scheme is a nested class, so it had a type and no
+# way to read or change anything on it. Theming a JUCE application is what it
+# is for.
+proc testColourSchemeMethods() =
+  initialiseJuce_GUI()
+
+  block:
+    var lookAndFeel = makeLookAndFeel_V4()
+    var scheme = lookAndFeel.getCurrentColourScheme()
+
+    scheme.setUIColour(LookAndFeel_V4ColourSchemeUIColour_windowBackground,
+                       makeColour(12'u8, 34'u8, 56'u8, 255'u8))
+    let readBack = scheme.getUIColour(LookAndFeel_V4ColourSchemeUIColour_windowBackground)
+
+    doAssert readBack.getRed() == 12'u8, "red came back as " & $readBack.getRed()
+    doAssert readBack.getGreen() == 34'u8
+    doAssert readBack.getBlue() == 56'u8
+
+    # A different colour is untouched by the one just set.
+    let other = scheme.getUIColour(LookAndFeel_V4ColourSchemeUIColour_defaultText)
+    doAssert not (other.getRed() == 12'u8 and other.getGreen() == 34'u8 and
+                  other.getBlue() == 56'u8), "setUIColour changed the wrong entry"
+
+  shutdownJuce_GUI()
+
+testColourSchemeMethods()
