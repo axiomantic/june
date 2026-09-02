@@ -528,6 +528,7 @@ proc makeString*(text: CharPointer_UTF32, maxChars: uint64): String {.header: ju
 proc makeString*(start: CharPointer_UTF32, `end`: CharPointer_UTF32): String {.header: juce_core, importcpp: "juce::String(@)".}
 proc makeString*(text: CharPointer_ASCII): String {.header: juce_core, importcpp: "juce::String(@)".}
 proc makeString*(arg1: CppString): String {.header: juce_core, importcpp: "juce::String(@)".}
+# proc makeString*(arg1: StringRef): String {.header: juce_core, importcpp: "juce::String(@)".}  # redundant with the constChar overload, which a string also reaches
 proc makeString*(decimalInteger: cint): String {.header: juce_core, importcpp: "juce::String(@)".}
 proc makeString*(decimalInteger: uint32): String {.header: juce_core, importcpp: "juce::String(@)".}
 proc makeString*(decimalInteger: int16): String {.header: juce_core, importcpp: "juce::String(@)".}
@@ -545,7 +546,9 @@ proc hash*(this: String): uint64 {.header: juce_core, importcpp: "#.hash()".}
 proc length*(this: String): cint {.header: juce_core, importcpp: "#.length()".}
 proc `String=`*(this: var String, other: String): var String {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `+=`*(this: var String, stringToAppend: String) {.header: juce_core, importcpp: "#.operator+=(@)".}
+# proc `+=`*(this: var String, textToAppend: constChar) {.header: juce_core, importcpp: "#.operator+=(@)".}  # redundant with the String overload, which a string also reaches
 proc `+=`*(this: var String, textToAppend: ptr uint16) {.header: juce_core, importcpp: "#.operator+=(@)".}
+# proc `+=`*(this: var String, textToAppend: StringRef) {.header: juce_core, importcpp: "#.operator+=(@)".}  # redundant with the String overload, which a string also reaches
 proc `+=`*(this: var String, numberToAppend: cint) {.header: juce_core, importcpp: "#.operator+=(@)".}
 proc `+=`*(this: var String, numberToAppend: int64) {.header: juce_core, importcpp: "#.operator+=(@)".}
 proc `+=`*(this: var String, numberToAppend: uint64) {.header: juce_core, importcpp: "#.operator+=(@)".}
@@ -558,8 +561,11 @@ proc isEmpty*(this: String): bool {.header: juce_core, importcpp: "#.isEmpty()".
 proc isNotEmpty*(this: String): bool {.header: juce_core, importcpp: "#.isNotEmpty()".}
 proc clear*(this: var String) {.header: juce_core, importcpp: "#.clear()".}
 proc equalsIgnoreCase*(this: String, other: String): bool {.header: juce_core, importcpp: "#.equalsIgnoreCase(@)".}
+# proc equalsIgnoreCase*(this: String, other: StringRef): bool {.header: juce_core, importcpp: "#.equalsIgnoreCase(@)".}  # redundant with the String overload, which a string also reaches
 proc equalsIgnoreCase*(this: String, other: ptr uint16): bool {.header: juce_core, importcpp: "#.equalsIgnoreCase(@)".}
+# proc equalsIgnoreCase*(this: String, other: constChar): bool {.header: juce_core, importcpp: "#.equalsIgnoreCase(@)".}  # redundant with the String overload, which a string also reaches
 proc compare*(this: String, other: String): cint {.header: juce_core, importcpp: "#.compare(@)".}
+# proc compare*(this: String, other: constChar): cint {.header: juce_core, importcpp: "#.compare(@)".}  # redundant with the String overload, which a string also reaches
 proc compare*(this: String, other: ptr uint16): cint {.header: juce_core, importcpp: "#.compare(@)".}
 proc compareIgnoreCase*(this: String, other: String): cint {.header: juce_core, importcpp: "#.compareIgnoreCase(@)".}
 proc compareNatural*(this: String, other: StringRef, isCaseSensitive: bool = false): cint {.header: juce_core, importcpp: "#.compareNatural(@)".}
@@ -657,6 +663,8 @@ proc isEmpty*(this: StringRef): bool {.header: juce_core, importcpp: "#.isEmpty(
 proc isNotEmpty*(this: StringRef): bool {.header: juce_core, importcpp: "#.isNotEmpty()".}
 proc length*(this: StringRef): cint {.header: juce_core, importcpp: "#.length()".}
 proc `[]`*(this: StringRef, index: cint): uint16 {.header: juce_core, importcpp: "#.operator[](@)".}
+# proc `==`*(this: StringRef, s: String): bool {.header: juce_core, importcpp: "#.operator==(@)".}  # redundant with the StringRef overload, which a string also reaches
+# proc operator!=*(this: StringRef, s: String): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `<`*(this: StringRef, s: String): bool {.header: juce_core, importcpp: "#.operator<(@)".}
 proc `<=`*(this: StringRef, s: String): bool {.header: juce_core, importcpp: "#.operator<=(@)".}
 # proc operator>*(this: StringRef, s: String): bool {.header: juce_core, importcpp: "#.operator>(@)".}  # Nim derives > and >= from < and <=
@@ -760,11 +768,14 @@ proc `==`*(this: NewLine, other: NewLine): bool {.error: "juce::NewLine defines 
 
 proc makeStringPool*(): StringPool {.header: juce_core, importcpp: "juce::StringPool(@)".}
 proc getPooledString*(this: var StringPool, original: String): String {.header: juce_core, importcpp: "#.getPooledString(@)".}
+# proc getPooledString*(this: var StringPool, original: constChar): String {.header: juce_core, importcpp: "#.getPooledString(@)".}  # redundant with the String overload, which a string also reaches
+# proc getPooledString*(this: var StringPool, original: StringRef): String {.header: juce_core, importcpp: "#.getPooledString(@)".}  # redundant with the String overload, which a string also reaches
 proc getPooledString*(this: var StringPool, start: CharPointer_UTF8, `end`: CharPointer_UTF8): String {.header: juce_core, importcpp: "#.getPooledString(@)".}
 proc garbageCollect*(this: var StringPool) {.header: juce_core, importcpp: "#.garbageCollect()".}
 proc `==`*(this: StringPool, other: StringPool): bool {.error: "juce::StringPool defines no operator==; compare a property instead".}
 
 proc makeIdentifier*(): Identifier {.header: juce_core, importcpp: "juce::Identifier(@)".}
+# proc makeIdentifier*(name: constChar): Identifier {.header: juce_core, importcpp: "juce::Identifier(@)".}  # redundant with the String overload, which a string also reaches
 proc makeIdentifier*(name: String): Identifier {.header: juce_core, importcpp: "juce::Identifier(@)".}
 proc makeIdentifier*(nameStart: CharPointer_UTF8, nameEnd: CharPointer_UTF8): Identifier {.header: juce_core, importcpp: "juce::Identifier(@)".}
 proc `Identifier=`*(this: var Identifier, other: Identifier): var Identifier {.header: juce_core, importcpp: "#.operator=(@)".}
@@ -787,6 +798,7 @@ proc makeStringArray*(firstValue: String): StringArray {.header: juce_core, impo
 proc makeStringArray*(arg1: Array[String]): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
 proc makeStringArray*(strings: ptr String, numberOfStrings: cint): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
 proc makeStringArray*(strings: constChar, numberOfStrings: cint): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
+# proc makeStringArray*(strings: constChar): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}  # redundant with the String overload, which a string also reaches
 proc makeStringArray*(strings: ptr uint16): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
 proc makeStringArray*(strings: ptr uint16, numberOfStrings: cint): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
 proc `StringArray=`*(this: var StringArray, arg1: StringArray): var StringArray {.header: juce_core, importcpp: "#.operator=(@)".}
@@ -941,6 +953,7 @@ proc makejuce_var*(value: cint): juce_var {.header: juce_core, importcpp: "juce:
 proc makejuce_var*(value: int64): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
 proc makejuce_var*(value: bool): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
 proc makejuce_var*(value: float64): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
+# proc makejuce_var*(value: constChar): juce_var {.header: juce_core, importcpp: "juce::var(@)".}  # redundant with the String overload, which a string also reaches
 proc makejuce_var*(value: ptr uint16): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
 proc makejuce_var*(value: String): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
 proc makejuce_var*(value: Array[juce_var]): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
@@ -954,6 +967,7 @@ proc `juce_var=`*(this: var juce_var, value: cint): var juce_var {.header: juce_
 proc `juce_var=`*(this: var juce_var, value: int64): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `juce_var=`*(this: var juce_var, value: bool): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `juce_var=`*(this: var juce_var, value: float64): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
+# proc `juce_var=`*(this: var juce_var, value: constChar): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}  # redundant with the String overload, which a string also reaches
 proc `juce_var=`*(this: var juce_var, value: ptr uint16): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `juce_var=`*(this: var juce_var, value: String): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `juce_var=`*(this: var juce_var, value: MemoryBlock): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
@@ -1889,7 +1903,9 @@ proc `==`*(this: XmlAttribute, other: XmlAttribute): bool {.header: juce_core, i
 # proc operator!=*(this: XmlAttribute, other: XmlAttribute): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 
 proc makeXmlElement*(tagName: String): XmlElement {.header: juce_core, importcpp: "juce::XmlElement(@)".}
+# proc makeXmlElement*(tagName: constChar): XmlElement {.header: juce_core, importcpp: "juce::XmlElement(@)".}  # redundant with the String overload, which a string also reaches
 proc makeXmlElement*(tagName: Identifier): XmlElement {.header: juce_core, importcpp: "juce::XmlElement(@)".}
+# proc makeXmlElement*(tagName: StringRef): XmlElement {.header: juce_core, importcpp: "juce::XmlElement(@)".}  # redundant with the String overload, which a string also reaches
 proc makeXmlElement*(tagNameBegin: CharPointer_UTF8, tagNameEnd: CharPointer_UTF8): XmlElement {.header: juce_core, importcpp: "juce::XmlElement(@)".}
 proc `XmlElement=`*(this: var XmlElement, arg1: XmlElement): var XmlElement {.header: juce_core, importcpp: "#.operator=(@)".}
 proc isEquivalentTo*(this: XmlElement, other: ptr XmlElement, ignoreOrderOfAttributes: bool): bool {.header: juce_core, importcpp: "#.isEquivalentTo(@)".}
