@@ -2750,4 +2750,57 @@ proc testTabReordering() =
     shutdownJuce_GUI()
 
 testUnbuildableParameterTypes()
+# CallOutBox ==================================================================
+#
+# Given a parent it is an ordinary child component rather than a window of its
+# own, so it can be built and painted with no display. It sizes itself around
+# the content it was given, which is the part worth asserting.
+
+proc testCallOutBox() =
+    initialiseJuce_GUI()
+
+    block:
+        var parent = newCustomComponent()
+        parent[].setBounds(makeRectangle(0.cint, 0.cint, 300.cint, 300.cint))
+
+        var content = newCustomComponent()
+        content[].setSize(80.cint, 40.cint)
+
+        var painted = 0
+        content[].setPaintHandler(proc(g: ptr Graphics) =
+            painted += 1
+            g[].setColour(makeColour(0'u8, 255'u8, 0'u8, 255'u8))
+            g[].fillAll())
+
+        var box = makeCallOutBox(cast[ptr Component](content)[],
+                                 makeRectangle(100.cint, 100.cint, 10.cint, 10.cint),
+                                 cast[ptr Component](parent))
+
+        # The box has to be bigger than its content, because it draws a border
+        # and an arrow around it.
+        doAssert box.getWidth() > 80,
+                 "the box is " & $box.getWidth() & " wide around 80px of content"
+        doAssert box.getHeight() > 40,
+                 "the box is " & $box.getHeight() & " high around 40px of content"
+        doAssert box.getBorderSize() > 0,
+                 "the border is " & $box.getBorderSize()
+
+        box.setArrowSize(0.0'f32)
+        doAssert box.getWidth() >= 80,
+                 "with no arrow the box is " & $box.getWidth() & " wide"
+
+        # Painting the box paints the content through it.
+        let image = makeImage(ImagePixelFormat_ARGB,
+                              box.getWidth(), box.getHeight(), true)
+        var context = makeGraphics(image)
+        box.paintEntireComponent(context, false)
+        doAssert painted > 0, "the content was never asked to paint"
+
+        cdelete content
+        cdelete parent
+
+    shutdownJuce_GUI()
+
+
 testTabReordering()
+testCallOutBox()
