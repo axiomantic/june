@@ -131,6 +131,63 @@ def check_subclasses():
     return not (uncalled or stale)
 
 
+handler_setter = re.compile(r'proc (set\w+Handler)\*\(')
+
+# A handler setter no test can call. The reason has to be why a test cannot.
+uncallable_handlers = {
+    name: ("is on CustomJUCEApplicationBase, and building one trips JUCE's "
+           "assertion that the process has a single application instance")
+    for name in (
+        "setGetApplicationNameHandler", "setGetApplicationVersionHandler",
+        "setMoreThanOneInstanceAllowedHandler", "setInitialiseHandler",
+        "setShutdownHandler", "setAnotherInstanceStartedHandler",
+        "setSystemRequestedQuitHandler", "setSuspendedHandler",
+        "setResumedHandler", "setUnhandledExceptionHandler")
+}
+
+
+def check_handlers():
+    """Every generated handler setter is called by a test.
+
+    A setter nothing calls is neither type-checked in its body nor generated,
+    and the C++ field it assigns to is never written. Calling them is what
+    caught CustomImagePixelData::clone being typed against the wrong class's
+    Ptr, and what showed that UniquePtr, ReferenceCountedObjectPtr, CppVector
+    and CppString had no constructor, so no override returning one could be
+    written at all.
+    """
+    emitted = set()
+    for path in (glob.glob("sources/june/*_subclasses.nim")
+                 + glob.glob("sources/june/*_lifting.nim")):
+        emitted.update(handler_setter.findall(open(path).read()))
+
+    used = ""
+    for pattern in ("tests/test_juce_*.nim", "examples/*.nim"):
+        for path in glob.glob(pattern):
+            used += open(path).read()
+
+    uncalled = sorted(name for name in emitted
+                      if name not in uncallable_handlers
+                      and not re.search(r"\b" + name + r"\b", used))
+    stale = sorted(name for name in uncallable_handlers if name not in emitted)
+
+    if uncalled:
+        print("These handler setters are never called, so nothing type-checks "
+              "or generates them:", file=sys.stderr)
+        for name in uncalled:
+            print(f"  {name}", file=sys.stderr)
+    if stale:
+        print("These are listed as uncallable handlers but no longer exist:",
+              file=sys.stderr)
+        for name in stale:
+            print(f"  {name}", file=sys.stderr)
+
+    if not (uncalled or stale):
+        print(f"all {len(emitted) - len(uncallable_handlers)} handler setters "
+              f"are called ({len(uncallable_handlers)} listed as uncallable)")
+    return not (uncalled or stale)
+
+
 def check_implicit_defaults():
     """Every aggregate given an implicit default constructor is built by a test.
 
@@ -288,12 +345,14 @@ def main():
     iterators_ok = check_iterator_promises()
     defaults_ok = check_implicit_defaults()
     subclasses_ok = check_subclasses()
+    handlers_ok = check_handlers()
 
     if (uncovered or stale
             or not licences_ok
             or not iterators_ok
             or not defaults_ok
-            or not subclasses_ok):
+            or not subclasses_ok
+            or not handlers_ok):
         sys.exit(1)
 
     print(f"all {len(declared)} hand-written binding names are called "
