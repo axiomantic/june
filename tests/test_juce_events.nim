@@ -39,6 +39,17 @@ proc testCustomTimer() =
     doAssert timer[].getTimerInterval() == 10
     timer[].stopTimer()
     doAssert not timer[].isTimerRunning()
+
+    # Nothing dispatches here, so the callback cannot have run: a Timer is
+    # driven by the MessageManager's loop, which a test has no business
+    # starting. `ticks` is asserted rather than left unread, because a counter
+    # that is written and never checked reads as verification that is not
+    # happening. What the assignment above does verify is that JUCE accepted
+    # the std::function the Nim closure was bound into.
+    doAssert ticks == 0,
+             "the timer callback ran with no dispatch loop, " &
+             "which means this test no longer says what it claims"
+
     cdelete timer
 
   shutdownJuce_GUI()
