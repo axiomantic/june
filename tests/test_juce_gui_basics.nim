@@ -1140,3 +1140,42 @@ proc testPopupMenuItem() =
 testTableHeaderColumns()
 testGridItemProperties()
 testPopupMenuItem()
+
+# TabbedButtonBar =============================================================
+#
+# The tab strip's model: a list of named tabs and which one is current. None of
+# it needs the bar on screen, though it does need the GUI subsystem for the
+# buttons it builds per tab.
+
+proc testTabbedButtonBar() =
+    initialiseJuce_GUI()
+
+    block:
+        var bar = makeTabbedButtonBar(TabbedButtonBarOrientation_TabsAtTop)
+        doAssert not bar.isVertical(), "tabs at the top reported vertical"
+        doAssert bar.getNumTabs() == 0, "a fresh bar holds " & $bar.getNumTabs() & " tabs"
+
+        let grey = makeColour(128'u8, 128'u8, 128'u8, 255'u8)
+        bar.addTab(makeString("First"), grey, 0.cint)
+        bar.addTab(makeString("Second"), grey, 1.cint)
+        doAssert bar.getNumTabs() == 2, "the bar holds " & $bar.getNumTabs() & " tabs"
+        doAssert bar.getTabNames().size() == 2, "getTabNames returned the wrong count"
+
+        bar.setTabName(0.cint, makeString("Renamed"))
+        doAssert $bar.getTabNames()[0.cint] == "Renamed",
+                 "the first tab is " & $bar.getTabNames()[0.cint]
+
+        bar.setCurrentTabIndex(1.cint, false)
+        doAssert bar.getCurrentTabIndex() == 1,
+                 "the current tab is " & $bar.getCurrentTabIndex()
+
+        # An orientation change flips what isVertical reports.
+        bar.setOrientation(TabbedButtonBarOrientation_TabsAtLeft)
+        doAssert bar.isVertical(), "tabs at the left did not report vertical"
+
+        bar.clearTabs()
+        doAssert bar.getNumTabs() == 0, "clearTabs left " & $bar.getNumTabs()
+
+    shutdownJuce_GUI()
+
+testTabbedButtonBar()
