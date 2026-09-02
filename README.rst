@@ -419,6 +419,21 @@ Both generators read the platform's headers, and JUCE hides some classes behind
 and CI checks them there. A ``generated files are current`` job regenerates and
 diffs, which is what stops a generator change from landing without its output.
 
+Hand-written bindings -- the ``*_lifting.nim`` files, ``june_juce_types``,
+``june_stl``, ``june_common`` and ``june_function_utils`` -- get no such check
+from the generator, and an ``importcpp`` string only reaches the C++ compiler
+at the call site. A binding nothing calls is never compiled at all, which is
+how a ``BorderSize`` constructor JUCE does not declare, four container types
+with no constructor, and three ``Range`` setters that mutated a ``let`` binding
+all sat in the tree. ``tools/check_handwritten_covered.py`` fails if an export
+is never named by a test or an example::
+
+  python3 tools/check_handwritten_covered.py
+
+A binding a test genuinely cannot call -- one that builds the process's single
+``JUCEApplication``, say -- goes in that script's ``uncallable`` table with the
+reason, and the script fails if a listed name stops existing.
+
 A class it cannot express is listed at the end of the file with the reason, in
 the same style as an unbound proc. Count what is left with::
 
