@@ -2865,4 +2865,74 @@ proc testFileBrowserComponent() =
 
 
 testCallOutBox()
+# DrawableButton ==============================================================
+#
+# A button whose faces are Drawables. setImages takes ownership, so the
+# drawables are handed over with cnew rather than built on the stack, and the
+# button reports back which face is current for the state it is in.
+
+proc testDrawableButton() =
+    initialiseJuce_GUI()
+
+    block:
+        # Built on the heap and configured through the pointer, because
+        # setImages takes ownership and cnew's importcpp pattern needs a
+        # constructor call as its argument rather than a name.
+        let normalHeap = cnew(makeDrawableRectangle())
+        normalHeap[].setRectangle(makeParallelogram(
+            makeRectangle(0.0'f32, 0.0'f32, 20.0'f32, 20.0'f32)))
+        normalHeap[].setFill(makeFillType(makeColour(255'u8, 0'u8, 0'u8, 255'u8)))
+
+        let overHeap = cnew(makeDrawableRectangle())
+        overHeap[].setRectangle(makeParallelogram(
+            makeRectangle(0.0'f32, 0.0'f32, 20.0'f32, 20.0'f32)))
+        overHeap[].setFill(makeFillType(makeColour(0'u8, 255'u8, 0'u8, 255'u8)))
+
+        var button = makeDrawableButton(makeString("face"),
+                                        DrawableButtonButtonStyle_ImageFitted)
+        doAssert button.getStyle() == DrawableButtonButtonStyle_ImageFitted,
+                 "the button lost the style it was built with"
+        doAssert button.getNormalImage() == nil,
+                 "a fresh button already has a normal image"
+
+        button.setImages(cast[ptr Drawable](normalHeap),
+                         cast[ptr Drawable](overHeap))
+        doAssert button.getNormalImage() != nil, "the normal image did not stick"
+        doAssert button.getOverImage() != nil, "the over image did not stick"
+        # The faces fall back rather than being nil: JUCE's getDownImage
+        # returns the over image when no down image was set, and getOverImage
+        # returns the normal one.
+        doAssert button.getDownImage() == button.getOverImage(),
+                 "the down face did not fall back to the over face"
+
+        # Not hovered, so the current face is the normal one.
+        doAssert button.getCurrentImage() == button.getNormalImage(),
+                 "the current face is not the normal one"
+
+        button.setEdgeIndent(4.cint)
+        doAssert button.getEdgeIndent() == 4,
+                 "the edge indent is " & $button.getEdgeIndent()
+
+        button.setButtonStyle(DrawableButtonButtonStyle_ImageAboveTextLabel)
+        doAssert button.getStyle() == DrawableButtonButtonStyle_ImageAboveTextLabel,
+                 "the style did not change"
+
+        # Painting it reaches the drawable it was given: red is the normal face.
+        button.setBounds(makeRectangle(0.cint, 0.cint, 40.cint, 40.cint))
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var context = makeGraphics(image)
+        button.paintEntireComponent(context, false)
+
+        var reds = 0
+        for x in 0 ..< 40:
+            for y in 0 ..< 40:
+                if image.getPixelAt(x.cint, y.cint).getRed() == 255'u8 and
+                   image.getPixelAt(x.cint, y.cint).getGreen() == 0'u8:
+                    reds += 1
+        doAssert reds > 0, "the button never painted its normal face"
+
+    shutdownJuce_GUI()
+
+
 testFileBrowserComponent()
+testDrawableButton()
