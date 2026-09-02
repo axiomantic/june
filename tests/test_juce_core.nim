@@ -227,7 +227,10 @@ proc testStlContainers() =
 
   var pairs = makeStringPairArray(true)
   pairs.addMap(headers)
-  doAssert $pairs.getValue(makeString("accept"), makeString("")) == "text/plain"
+  # The key parameter is a StringRef and the literal reaches it by converter,
+  # which is the reason the generator keeps both of StringRef's own
+  # constructors rather than choosing one.
+  doAssert $pairs.getValue("accept", makeString("")) == "text/plain"
 
   var fifo = makeSingleThreadedAbstractFifo(8.cint)
   let ranges = fifo.write(3.cint)
