@@ -47,6 +47,8 @@ include {juce_module_name}_lifting
 # {(&NTIv2_...)}, and C++ rejects it: JUCE's classes have no such member.
 nim_class_def = """  {class_name}{export} {{.header: {juce_module_name}, importcpp: "{spelling}", inheritable, pure.}} = object{base}"""
 
+nim_template_def = """{comment}proc {function_name}*[{generics}]({function_args}){function_return} {{.header: {juce_module_name}, importcpp: "juce::{juce_spelling}(@)".}}{reason}"""
+
 nim_function_def = """{comment}proc {function_name}*({function_args}){function_return} {{.header: {juce_module_name}, importcpp: "juce::{juce_spelling}({juce_args})".}}{reason}"""
 
 # Free functions the _lifting files already bind, which would otherwise be
@@ -883,6 +885,16 @@ def run_main(juce_module_name, juce_class_name_to_export):
         all_functions += [node for node in filter(
             lambda x: x.kind == CursorKind.FUNCTION_DECL, entry.get_children())]
 
+    # And the function templates. A C++ template parameter becomes a Nim
+    # generic one and the C++ compiler deduces it from the call, which is what
+    # makes jlimit and jmax reachable. nimterop leaves C++ templates to
+    # hand-written overrides and hcparse calls its own handling a graceful
+    # fallback, so the ones that do not map cleanly stay comments here too.
+    all_function_templates = []
+    for entry in juce_namespace:
+        all_function_templates += [node for node in filter(
+            lambda x: x.kind == CursorKind.FUNCTION_TEMPLATE, entry.get_children())]
+
     # A class whose operator== is a free function rather than a member still
     # has equality, and emitting the no-equality guard for it would collide
     # with the operator the free-function pass binds. juce::String is the case
@@ -1614,7 +1626,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
     free_preferred = {}
     for function in module_functions:
         key = (function.spelling, len(list(function.get_arguments())))
-        types = [remap_type(a.type, remap_inner_classes, enum_remap, class_juce_map,
+        types = [remap_type(a.type, {}, enum_remap, class_juce_map,
                             global_nested_remap, unambiguous_nested_remap)
                  for a in function.get_arguments()]
         free_preferred.setdefault(key, []).append(types)
@@ -1659,14 +1671,16 @@ def run_main(juce_module_name, juce_class_name_to_export):
 
         function_args, function_types = [], []
         for count, arg in enumerate(function.get_arguments()):
-            argument_type = remap_type(arg.type, remap_inner_classes, enum_remap,
-                                       class_juce_map, global_nested_remap, unambiguous_nested_remap)
+            # No per-class table here: the loop that built one has ended, so
+            # it holds whichever class happened to be last.
+            argument_type = remap_type(arg.type, {}, enum_remap, class_juce_map,
+                                       global_nested_remap, unambiguous_nested_remap)
             function_args.append(f"{remap_argument_name(arg.spelling, count)}: {argument_type}")
             function_types.append(argument_type)
 
         function_return = ""
         if function.result_type.spelling != "void":
-            function_return = f": {remap_type(function.result_type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap, unambiguous_nested_remap)}"
+            function_return = f": {remap_type(function.result_type, {}, enum_remap, class_juce_map, global_nested_remap, unambiguous_nested_remap)}"
 
         rendered = ", ".join(function_types) + function_return
         if ("<" in rendered or "::" in rendered or "(" in rendered
@@ -1699,6 +1713,90 @@ def run_main(juce_module_name, juce_class_name_to_export):
             "juce_module_name": juce_module_name,
             "juce_spelling": function.spelling,
             "juce_args": "@" if function_args else "",
+            "reason": f"  # {reason}" if comment and reason else "" }))
+
+    print()
+
+    # Function templates. Each C++ type parameter becomes a Nim generic one and
+    # the C++ compiler deduces it from the call site, so jlimit(0, 10, x) works
+    # for any type JUCE accepts.
+    for template_function in all_function_templates:
+        if not declared_in_this_module(template_function) or not template_function.spelling:
+            continue
+
+        # A deduction guide is not callable; libclang names one
+        # "<deduction guide for X>".
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", template_function.spelling):
+            continue
+
+        parameters = list(template_function.get_children())
+        type_parameters = [p.spelling for p in parameters
+                           if p.kind == CursorKind.TEMPLATE_TYPE_PARAMETER and p.spelling]
+        # A non-type parameter has no Nim generic to become, and a pack has no
+        # fixed arity, so neither maps.
+        if any(p.kind == CursorKind.TEMPLATE_NON_TYPE_PARAMETER for p in parameters):
+            continue
+        if not type_parameters:
+            continue
+
+        template_scope = declared_type_names | set(type_parameters)
+        # The template's own parameter names win over every rename, and they
+        # have to short-circuit rather than sit in a table: JUCE has an
+        # Expression::Type, so an earlier table rewrote a parameter called Type
+        # to ExpressionType, after which an identity entry keyed on Type could
+        # no longer match it.
+        def remap_template_type(cursor_type):
+            bare = cursor_type.spelling.replace("const", "").replace("&", "").strip()
+            if bare in type_parameters:
+                return remap_identifier(bare)
+            if bare.endswith("*") and bare[:-1].strip() in type_parameters:
+                return f"ptr {remap_identifier(bare[:-1].strip())}"
+            return remap_type(cursor_type, {}, enum_remap, class_juce_map,
+                              global_nested_remap, unambiguous_nested_remap)
+
+        # get_arguments() is empty for a FUNCTION_TEMPLATE; its parameters are
+        # PARM_DECL children alongside the template parameters themselves.
+        template_args, template_types = [], []
+        for count, arg in enumerate(p for p in parameters if p.kind == CursorKind.PARM_DECL):
+            argument_type = remap_template_type(arg.type)
+            template_args.append(f"{remap_argument_name(arg.spelling, count)}: {argument_type}")
+            template_types.append(argument_type)
+
+        if not template_args:
+            continue
+
+        template_return = ""
+        if template_function.result_type.spelling != "void":
+            template_return = f": {remap_template_type(template_function.result_type)}"
+
+        rendered = ", ".join(template_types) + template_return
+        comment, reason = "", ""
+        if ("<" in rendered or "::" in rendered or "(" in rendered
+                or "..." in rendered
+                or is_c_array(rendered)
+                or not type_is_declared(rendered, template_scope)):
+            comment = "# "
+            reason = unbound_type_reason(rendered)
+
+        # Every type parameter has to appear in the arguments, or Nim has no
+        # way to infer it and C++ no way to deduce it.
+        if not comment and any(parameter not in rendered for parameter in type_parameters):
+            comment = "# "
+            reason = "a template parameter that appears only in the return type, which nothing can deduce"
+
+        signature = ("<template>", template_function.spelling, tuple(template_types), template_return)
+        if signature in emitted_signatures:
+            continue
+        emitted_signatures.add(signature)
+
+        print(nim_template_def.format(**{
+            "comment": comment,
+            "function_name": remap_identifier(template_function.spelling),
+            "generics": ", ".join(remap_identifier(p) for p in type_parameters),
+            "function_args": ", ".join(template_args),
+            "function_return": template_return,
+            "juce_module_name": juce_module_name,
+            "juce_spelling": template_function.spelling,
             "reason": f"  # {reason}" if comment and reason else "" }))
 
     print()

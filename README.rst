@@ -287,6 +287,12 @@ Hand-written additions live in the ``*_lifting.nim`` files and in
 - Public fields, as a getter and a setter, so ``parameters.startAngleRadians``
   reads and ``parameters.startAngleRadians = x`` writes. A field C++ will not
   let anyone assign -- a const one, or a reference -- gets only the getter.
+- Function templates, as Nim generics: ``jlimit``, ``jmax``, ``jmin``,
+  ``jmap``, ``degreesToRadians`` and the rest of JUCE's maths helpers. The C++
+  compiler deduces the template argument from the call. A deduction guide, a
+  non-type parameter and a parameter pack have no Nim generic to become, so
+  those stay comments -- which is the same fallback nimterop and hcparse make,
+  neither of them binding C++ templates automatically.
 - Conversion operators, as an explicit ``to<Type>`` rather than a Nim
   converter: ``someVar.toInt()``, ``someVar.toFloat64()``,
   ``someResult.toBool()``. An implicit converter would compete with every other

@@ -433,3 +433,27 @@ proc testConversionOperators() =
   doAssert not Result.fail(makeString("no")).toBool()
 
 testConversionOperators()
+
+# A C++ function template becomes a Nim generic and the C++ compiler deduces
+# the argument from the call. These are JUCE's own maths helpers, which had no
+# binding because a FUNCTION_TEMPLATE is not a FUNCTION_DECL.
+proc testFunctionTemplates() =
+  doAssert jlimit(0.cint, 10.cint, 42.cint) == 10, "jlimit gave " & $jlimit(0.cint, 10.cint, 42.cint)
+  doAssert jlimit(0.cint, 10.cint, -5.cint) == 0
+  doAssert jlimit(0.0'f32, 1.0'f32, 0.5'f32) == 0.5'f32
+
+  doAssert jmax(3.cint, 7.cint) == 7
+  doAssert jmin(3.cint, 7.cint) == 3
+  doAssert jmax(1.cint, 9.cint, 4.cint) == 9
+
+  # jmap rescales from one range onto another.
+  doAssert jmap(0.5'f64, 0.0'f64, 1.0'f64, 0.0'f64, 100.0'f64) == 50.0'f64
+
+  doAssert degreesToRadians(180.0'f64) > 3.14'f64
+  doAssert degreesToRadians(180.0'f64) < 3.15'f64
+  doAssert radiansToDegrees(degreesToRadians(90.0'f64)) > 89.9'f64
+
+  doAssert exactlyEqual(1.0'f64, 1.0'f64)
+  doAssert not exactlyEqual(1.0'f64, 1.5'f64)
+
+testFunctionTemplates()

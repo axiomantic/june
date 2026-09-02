@@ -1283,6 +1283,7 @@ proc clampPixelComponents*(x: uint32): uint32 {.header: juce_graphics, importcpp
 
 
 
+
 include juce_graphics_lifting
 
 proc `$`*(this: Path): string = $this.toString()
