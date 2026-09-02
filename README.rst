@@ -350,12 +350,15 @@ A proc that is not bound is emitted as a comment rather than omitted, with the
 reason on the same line, so what is missing stays visible in the generated file
 and says why. Most of them are not gaps: an ``operator!=``, ``operator>`` or
 ``operator>=`` is commented because Nim derives it, a ``begin`` or ``end``
-because the Nim iterator replaces it, a C array or
-``std::initializer_list`` parameter because the same
-class takes a String, a value or the incremental API instead, and others
-because the generator excludes them on purpose. Only the ones marked as a type
-that cannot be spelled in Nim are missing capability, and each of those is a
-C++ shape with no Nim equivalent: a class template used as a value
+because the Nim iterator replaces it, a C array or ``std::initializer_list``
+parameter because the same class takes a String, a value or the incremental API
+instead, and a handful the generator excludes on purpose, each saying why.
+
+Two reasons do mark a real gap. A ``fixed-size C array member`` is one:
+``IPAddress::address`` and ``RelativePointPath``'s control points are only
+reachable as the array they are, and unlike a C array *parameter* there is no
+overload to go through. The other is a type that cannot be spelled in Nim, each
+of which is a C++ shape with no Nim equivalent: a class template used as a value
 (``ListenerList<Listener>``, ``SingletonHolder<T>``, ``Tolerance<T>``), a
 ``std::variant`` or ``std::string_view``, a function template whose return type
 is ``auto``, a platform handle such as ``__CFString``, and

@@ -498,14 +498,23 @@ def is_c_array(rendered):
     a number and are never empty, so the two cannot be confused."""
     return re.search(r"\[\s*\d*\s*\]", rendered) is not None
 
-def unbound_type_reason(rendered):
+def unbound_type_reason(rendered, member=False):
     """Why a rendered signature could not be bound.
 
     Two of these are not missing capability. A C array parameter always comes
     with an overload taking a String or a value, and an initializer_list always
     comes with the incremental API - add, set, appendChild - that the tests use.
+
+    `member` says the type is a field or a static variable rather than a
+    parameter. It matters for a C array: a parameter has an overload to reach
+    the same call through, and a field has nothing - IPAddress::address and
+    RelativePointPath's control points are only reachable as the array they
+    are, so saying an overload exists would be false.
     """
     if is_c_array(rendered):
+        if member:
+            return ("a fixed-size C array member, which Nim cannot spell and "
+                    "which no other accessor exposes")
         return ("a C array parameter; every one of these has an overload "
                 "taking a String or a value instead")
     if "initializer_list" in rendered:
@@ -1264,7 +1273,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
                     or is_c_array(var_type)
                     or not type_is_declared(var_type, declared_type_names)):
                 var_comment = "# "
-                var_reason = unbound_type_reason(var_type)
+                var_reason = unbound_type_reason(var_type, member=True)
 
             var_name = remap_identifier(static_var.spelling)
             var_signature = (f"this: typedesc[{class_name}]", var_name, (), f": {var_type}")
@@ -1294,7 +1303,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
                     or is_c_array(field_type)
                     or not type_is_declared(field_type, declared_type_names)):
                 field_comment = "# "
-                field_reason = unbound_type_reason(field_type)
+                field_reason = unbound_type_reason(field_type, member=True)
 
             field_name = remap_identifier(field.spelling)
             # Also keyed the way a method is: a class with a field and a
