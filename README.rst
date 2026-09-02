@@ -333,7 +333,8 @@ Hand-written additions live in the ``*_lifting.nim`` files and in
 - Subclasses whose virtual methods call into Nim: ``CustomComponent``,
   ``CustomButton``, ``CustomTimer``, ``CustomAsyncUpdater``,
   ``CustomActionListener``, ``CustomChangeListener``, ``CustomSlider``,
-  ``CustomLabel``, ``CustomLookAndFeel`` and ``CustomSliderListener``, plus the
+  ``CustomLabel``, ``CustomLookAndFeel``, ``CustomSliderListener`` and
+  ``CustomListBoxModel``, plus the
   ``JUCEApplication`` and ``DocumentWindow`` that were already there. Most of those JUCE classes have a
   pure virtual, so they could not be instantiated without a subclass at all.
 
@@ -495,9 +496,9 @@ closure::
 
 JUCE calls the handler through the virtual, so ``stream.writeText(...)`` -
 which is JUCE's own code - reaches it. The suite asserts that for this one and
-for the other subclasses it drives, not for every setter: a little over a third
-of the setters are called by a test today. Setting a handler is what
-type-checks and generates the setter, so the rest are unexercised.
+for the other subclasses it drives, not for every setter: about two thirds of
+the setters are called by a test today. Setting a handler is what type-checks
+and generates the setter, so the rest are unexercised.
 
 The test suite constructs every generated subclass, which is the check that
 matters, and ``check_handwritten_covered.py`` fails if one is not built. The

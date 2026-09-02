@@ -58,6 +58,16 @@ proc isNil*[T](this: UniquePtr[T]): bool {.importcpp: "(# == nullptr)".}
 
 # `'0` is the return type, so the pattern names std::optional<T> once rather
 # than wrapping the already-optional return type in another one.
+# Neither could be built, so a Nim override of a virtual returning one could
+# not be written: ComponentTraverser::getAllComponents returns a
+# std::vector<Component*>.
+proc makeCppVector*[T](): CppVector[T]
+    {.importcpp: "std::vector<'*0>()", header: "<vector>", constructor.}
+proc makeCppString*(): CppString
+    {.importcpp: "std::string()", header: "<string>", constructor.}
+proc makeCppString*(text: cstring): CppString
+    {.importcpp: "std::string(@)", header: "<string>", constructor.}
+
 proc makeCppOptional*[T](value: T): CppOptional[T] {.importcpp: "'0(@)", header: "<optional>".}
 proc makeCppOptionalEmpty*[T](): CppOptional[T] {.importcpp: "'0()", header: "<optional>".}
 
