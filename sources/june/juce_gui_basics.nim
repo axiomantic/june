@@ -1955,7 +1955,7 @@ proc grabFocus*(this: var AccessibilityHandler) {.header: juce_gui_basics, impor
 proc giveAwayFocus*(this: AccessibilityHandler) {.header: juce_gui_basics, importcpp: "#.giveAwayFocus()".}
 proc notifyAccessibilityEvent*(this: AccessibilityHandler, event: AccessibilityEvent) {.header: juce_gui_basics, importcpp: "#.notifyAccessibilityEvent(@)".}
 proc getNativeImplementation*(this: AccessibilityHandler): ptr AccessibilityNativeHandle {.header: juce_gui_basics, importcpp: "#.getNativeImplementation()".}
-# proc getTypeIndex*(this: AccessibilityHandler): std::type_index {.header: juce_gui_basics, importcpp: "#.getTypeIndex()".}  # a type that cannot be spelled in Nim
+proc getTypeIndex*(this: AccessibilityHandler): CppTypeIndex {.header: juce_gui_basics, importcpp: "#.getTypeIndex()".}
 proc `==`*(this: AccessibilityHandler, other: AccessibilityHandler): bool {.error: "juce::AccessibilityHandler defines no operator==; compare a property instead".}
 
 proc createCopy*(this: Drawable): UniquePtr[Drawable] {.header: juce_gui_basics, importcpp: "#.createCopy()".}

@@ -15,6 +15,17 @@ proc getInstance*(this: typedesc[MessageManager]): ptr MessageManager {.header: 
 # already is. Returns false when the message manager has gone.
 proc callAsync*(this: typedesc[MessageManager], callback: CppFunctionObjectN0): bool {.header: juce_events, importcpp: "juce::MessageManager::callAsync(@)".}
 
+# The synchronous counterpart. callAsync queues and returns; this one blocks
+# until the callback has run on the message thread and hands back what it
+# returned. JUCE takes a plain function pointer rather than a std::function,
+# which is a C++ function type the generator cannot spell, so it is written
+# here instead.
+type MessageCallbackFunction* = proc(userData: pointer): pointer {.cdecl.}
+
+proc callFunctionOnMessageThread*(this: var MessageManager, callback: MessageCallbackFunction,
+                                  userData: pointer): pointer
+    {.header: juce_events, importcpp: "#.callFunctionOnMessageThread(@)".}
+
 # Timer =======================================================================
 #
 # timerCallback is pure virtual, so a Timer cannot be instantiated at all

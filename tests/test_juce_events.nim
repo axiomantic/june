@@ -105,3 +105,24 @@ proc testUnhandledExceptionBinding() =
   doAssert compiles(proc(e: CppException): constChar = e.what())
 
 testUnhandledExceptionBinding()
+
+# The synchronous message-thread call. JUCE takes a plain function pointer here
+# rather than a std::function, so the binding is hand-written; this is what
+# checks the pointer round-trips and the callback actually runs.
+proc onMessageThread(userData: pointer): pointer {.cdecl.} =
+  cast[ptr cint](userData)[] = 7.cint
+  userData
+
+proc testCallFunctionOnMessageThread() =
+  initialiseJuce_GUI()
+
+  var value = 0.cint
+  let manager = MessageManager.getInstance()
+  let returned = manager[].callFunctionOnMessageThread(onMessageThread, addr value)
+
+  doAssert value == 7, "the callback did not run; value is " & $value
+  doAssert returned == addr value, "the callback's return value did not come back"
+
+  shutdownJuce_GUI()
+
+testCallFunctionOnMessageThread()

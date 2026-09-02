@@ -300,3 +300,13 @@ proc testLookAndFeel() =
   shutdownJuce_GUI()
 
 testLookAndFeel()
+
+# std::type_index, which AccessibilityHandler hands out. One cannot be built
+# without a handler, so this checks the type is nameable and its operations are
+# callable rather than comparing two real ones.
+proc testTypeIndexBinding() =
+  doAssert compiles(proc(handler: AccessibilityHandler): CppTypeIndex = handler.getTypeIndex())
+  doAssert compiles(proc(a, b: CppTypeIndex): bool = a == b)
+  doAssert compiles(proc(a: CppTypeIndex): constChar = a.name())
+
+testTypeIndexBinding()

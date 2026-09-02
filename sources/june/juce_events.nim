@@ -46,7 +46,7 @@ let InterprocessConnectionNotify_yes* {.header: juce_events, importcpp: "juce::I
 proc runDispatchLoop*(this: var MessageManager) {.header: juce_events, importcpp: "#.runDispatchLoop()".}
 proc stopDispatchLoop*(this: var MessageManager) {.header: juce_events, importcpp: "#.stopDispatchLoop()".}
 proc hasStopMessageBeenSent*(this: MessageManager): bool {.header: juce_events, importcpp: "#.hasStopMessageBeenSent()".}
-# proc callFunctionOnMessageThread*(this: var MessageManager, callback: ptr MessageCallbackFunction, userData: pointer): pointer {.header: juce_events, importcpp: "#.callFunctionOnMessageThread(@)".}  # a type that cannot be spelled in Nim
+# proc callFunctionOnMessageThread*(this: var MessageManager, callback: ptr MessageCallbackFunction, userData: pointer): pointer {.header: juce_events, importcpp: "#.callFunctionOnMessageThread(@)".}  # excluded deliberately: see skip_class_method
 proc isThisTheMessageThread*(this: MessageManager): bool {.header: juce_events, importcpp: "#.isThisTheMessageThread()".}
 proc setCurrentThreadAsMessageThread*(this: var MessageManager) {.header: juce_events, importcpp: "#.setCurrentThreadAsMessageThread()".}
 proc getCurrentMessageThread*(this: MessageManager): pointer {.header: juce_events, importcpp: "#.getCurrentMessageThread()".}
