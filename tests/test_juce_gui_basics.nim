@@ -1381,3 +1381,54 @@ proc testTabbedComponent() =
 
 testAccessibleState()
 testTabbedComponent()
+
+# AlertWindow and SidePanel ===================================================
+#
+# Two windows built without being shown. The buttons and the content are data
+# until something displays them, which is what makes them checkable here.
+
+proc testAlertWindow() =
+    initialiseJuce_GUI()
+
+    block:
+        var alert = makeAlertWindow(makeString("Title"), makeString("Message"),
+                                    MessageBoxIconType_WarningIcon, nil)
+        doAssert alert.getAlertType() == MessageBoxIconType_WarningIcon,
+                 "the icon type did not stick"
+        doAssert alert.getNumButtons() == 0, "a fresh window has " & $alert.getNumButtons() & " buttons"
+
+        alert.addButton(makeString("OK"), 1.cint, makeKeyPress(), makeKeyPress())
+        alert.addButton(makeString("Cancel"), 0.cint, makeKeyPress(), makeKeyPress())
+        doAssert alert.getNumButtons() == 2, "the window has " & $alert.getNumButtons() & " buttons"
+
+        # The buttons are reachable by index and by name, and they agree.
+        doAssert alert.getButton(0.cint) != nil, "the first button is missing"
+        doAssert alert.getButton(makeString("OK")) == alert.getButton(0.cint),
+                 "the button found by name is not the one at index 0"
+        doAssert alert.getButton(makeString("Nonexistent")) == nil,
+                 "a button that was never added was found"
+
+        alert.setMessage(makeString("Changed"))
+
+    shutdownJuce_GUI()
+
+proc testSidePanel() =
+    initialiseJuce_GUI()
+
+    block:
+        var panel = makeSidePanel(makeStringRef(makeString("Panel")), 120.cint, true, nil, false)
+        doAssert not panel.isPanelShowing(), "a fresh panel was already showing"
+        doAssert panel.getContent() == nil, "a fresh panel had content"
+
+        var content = newCustomComponent()
+        panel.setContent(content, true)
+        doAssert panel.getContent() == cast[ptr Component](content),
+                 "the panel is holding different content"
+
+        # The panel takes ownership, so nothing is deleted here.
+        panel.setContent(nil, true)
+
+    shutdownJuce_GUI()
+
+testAlertWindow()
+testSidePanel()
