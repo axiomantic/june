@@ -868,3 +868,32 @@ proc testDrawableAndImageFileFormat() =
         cdelete format
 
 testDrawableAndImageFileFormat()
+
+# The last of the graphics subclass handlers ==================================
+
+proc testRemainingGraphicsHandlers() =
+    block:
+        var effect = newCustomImageEffectFilter()
+        effect[].setApplyEffectHandler(proc(sourceImage: ptr Image,
+                                            destContext: ptr Graphics,
+                                            scaleFactor: cfloat,
+                                            alpha: cfloat) = discard)
+        cdelete effect
+
+        var backup = newCustomImagePixelDataBackupExtensions()
+        backup[].setSetBackupEnabledHandler(proc(arg0: bool) = discard)
+        backup[].setIsBackupEnabledHandler(proc(): bool = false)
+        backup[].setBackupNowHandler(proc(): bool = true)
+        backup[].setNeedsBackupHandler(proc(): bool = false)
+        backup[].setCanBackupHandler(proc(): bool = true)
+        cdelete backup
+
+        var imageType = newCustomImageType()
+        imageType[].setCreateHandler(proc(arg0: ImagePixelFormat, width: cint,
+                                          height: cint, shouldClearImage: bool):
+                                         ReferenceCountedObjectPtr[ImagePixelData] =
+            makeReferenceCountedObjectPtr[ImagePixelData]())
+        imageType[].setGetTypeIDHandler(proc(): cint = 0.cint)
+        cdelete imageType
+
+testRemainingGraphicsHandlers()
