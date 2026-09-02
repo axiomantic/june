@@ -457,70 +457,6 @@ wrapped_by_lifting = {
 # collide with the operator the _lifting file binds.
 equality_bound_by_lifting = {"String", "juce_var"}
 
-# Types a Nim string reaches through a converter. A class with more than one
-# single-argument constructor among these is ambiguous at every literal call:
-# makeIdentifier("x") matches both the constChar and the String overload. Nim 2
-# picks one, Nim 1.6 refuses.
-string_like_types = ("String", "constChar", "StringRef")
-
-def preferred_string_constructor(constructor_types, class_name):
-    """Of the string-like single-argument constructors, the one to keep.
-
-    String wins: a Nim string converts to it, and a String value passes
-    straight through, so keeping it costs no caller anything.
-    """
-    # The class's own type is its copy constructor, which is dropped anyway.
-    available = {types[0] for types in constructor_types
-                 if len(types) == 1 and types[0] in string_like_types
-                 and types[0] != class_name}
-    if len(available) < 2:
-        return None
-
-    # StringRef keeps both. Its String overload is safe and the converter needs
-    # it, its constChar overload is the one that must not go through a temporary,
-    # and the ambiguity only affects makeStringRef("literal") - which nobody
-    # writes, because a string reaches a StringRef parameter by converter.
-    if class_name == "StringRef":
-        return None
-
-    # Otherwise String wins: a Nim string converts to it and a String value
-    # passes straight through, so no caller loses.
-    for candidate in string_like_types:
-        if candidate in available:
-            return candidate
-    return None
-
-def preferred_string_operand(overload_types, class_name):
-    """Of the string-like single-argument overloads of a method, the one to keep.
-
-    Nim reaches String, StringRef and constChar from a string literal by three
-    separate converters, so every one of them matches
-    `text.equalsIgnoreCase("literal")` equally well and Nim 1.6 refuses the
-    call.
-
-    The class's own type wins where it is one of them: dropping it would leave
-    no way to pass a value of the class itself, and there is no converter back.
-    StringRef comparing against a StringRef is the case that matters. Otherwise
-    String wins - a String value passes straight through and a literal
-    converts, so no caller loses.
-
-    Unlike the constructor rule, the class's own type is not excluded here: a
-    method taking the class is an ordinary overload rather than a copy
-    constructor.
-    """
-    available = {types[0] for types in overload_types
-                 if len(types) == 1 and types[0] in string_like_types}
-    if len(available) < 2:
-        return None
-
-    if class_name in available:
-        return class_name
-
-    for candidate in string_like_types:
-        if candidate in available:
-            return candidate
-    return None
-
 def remap_wrapped_method_name(class_name, method_name):
     return wrapped_by_lifting.get((class_name, method_name), method_name)
 
@@ -1233,13 +1169,6 @@ def run_main(juce_module_name, juce_class_name_to_export):
                                if x.kind == CursorKind.CONSTRUCTOR
                                and x.access_specifier == AccessSpecifier.PUBLIC]
 
-        def constructor_arg_types(ctor):
-            return [remap_type(a.type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap, unambiguous_nested_remap)
-                    for a in ctor.get_arguments()]
-
-        keep_string_constructor = preferred_string_constructor(
-            [constructor_arg_types(x) for x in public_constructors], class_name)
-
         for ctor in public_constructors:
             ctor_args, ctor_types, ctor_comment = [], [], ""
             for count, arg in enumerate(ctor.get_arguments()):
@@ -1247,14 +1176,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 ctor_args.append(f"{remap_argument_name(arg.spelling, count)}: {argument_type}")
                 ctor_types.append(argument_type)
 
-            if (keep_string_constructor is not None and len(ctor_types) == 1
-                    and ctor_types[0] in string_like_types
-                    and ctor_types[0] != class_name
-                    and ctor_types[0] != keep_string_constructor):
-                ctor_comment = "# "
-                ctor_reason = f"redundant with the {keep_string_constructor} overload, which a string also reaches"
-            else:
-                ctor_reason = ""
+            ctor_reason = ""
 
             # A copy or move constructor would just shadow the plain one.
             if len(ctor_types) == 1 and ctor_types[0].replace("var ", "").replace("lent ", "") == class_name:
@@ -1412,25 +1334,6 @@ def run_main(juce_module_name, juce_class_name_to_export):
         class_bound_equality = False
         class_has_to_string = False
 
-        # The same ambiguity the constructors have, one level down, and for
-        # every method rather than only the operators. A method taking both a
-        # String and a StringRef gives Nim 1.6 two equally good matches for
-        # `text.equalsIgnoreCase("literal")` and it refuses the call. Nim 2
-        # resolves it, so the ambiguity is invisible unless 1.6 is compiled
-        # against.
-        public_methods = [x for x in c.get_children()
-                          if x.kind == CursorKind.CXX_METHOD
-                          and x.access_specifier == AccessSpecifier.PUBLIC]
-        keep_string_operand = {}
-        for method_spelling in {x.spelling for x in public_methods}:
-            overload_types = [
-                [remap_type(a.type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap, unambiguous_nested_remap)
-                 for a in x.get_arguments()]
-                for x in public_methods if x.spelling == method_spelling]
-            preferred = preferred_string_operand(overload_types, class_name)
-            if preferred is not None:
-                keep_string_operand[method_spelling] = preferred
-
         for m in filter(lambda x: x.kind == CursorKind.CXX_METHOD, c.get_children()):
             if m.access_specifier != AccessSpecifier.PUBLIC:
                 continue
@@ -1515,16 +1418,6 @@ def run_main(juce_module_name, juce_class_name_to_export):
             # value is not either: reading "ignoreCase: bool = false" as a type
             # made "false" look like an undeclared name and commented out every
             # proc that had one.
-            preferred_operand = keep_string_operand.get(m.spelling)
-            if (preferred_operand is not None and len(argument_types) == 1
-                    and argument_types[0] in string_like_types
-                    and argument_types[0] != preferred_operand):
-                # Emitted as a comment rather than dropped, so that a binding
-                # withheld to keep a call unambiguous is as visible as one
-                # withheld because its type has no Nim spelling.
-                comment = "# "
-                reason = f"redundant with the {preferred_operand} overload, which a string also reaches"
-
             method_spelling = m.spelling
             method_name = remap_method_name(remap_wrapped_method_name(class_name, m.spelling))
             if method_name.startswith("operator"):
@@ -1627,27 +1520,6 @@ def run_main(juce_module_name, juce_class_name_to_export):
     # every combination, and a Nim string literal reaches each of them, so a
     # comparison of two Strings matched several equally well.
     module_functions = [f for f in all_functions if declared_in_this_module(f) and f.spelling]
-    free_preferred = {}
-    for function in module_functions:
-        key = (function.spelling, len(list(function.get_arguments())))
-        types = [remap_type(a.type, {}, enum_remap, class_juce_map,
-                            global_nested_remap, unambiguous_nested_remap)
-                 for a in function.get_arguments()]
-        free_preferred.setdefault(key, []).append(types)
-    free_keep = {}
-    for key, overloads in free_preferred.items():
-        if len(overloads) < 2:
-            continue
-        for position in range(key[1]):
-            candidates = {types[position] for types in overloads
-                          if types[position] in string_like_types}
-            if len(candidates) < 2:
-                continue
-            for preferred in string_like_types:
-                if preferred in candidates:
-                    free_keep[(key, position)] = preferred
-                    break
-
     # Free functions in the juce namespace. These were collected and then
     # discarded, so countNumberOfBits, findHighestSetBit and the rest had no
     # binding at all.
@@ -1692,17 +1564,6 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 or not type_is_declared(rendered, declared_type_names)):
             comment = "# "
             reason = reason or unbound_type_reason(rendered)
-
-        overload_key = (function.spelling, len(function_types))
-        withheld = next(
-            (position for position in range(len(function_types))
-             if free_keep.get((overload_key, position), function_types[position])
-                != function_types[position]
-             and function_types[position] in string_like_types), None)
-        if withheld is not None:
-            comment = "# "
-            reason = (f"redundant with the {free_keep[(overload_key, withheld)]} overload, "
-                      "which a string also reaches")
 
         signature = ("<free>", function_name, tuple(function_types), function_return)
         if signature in emitted_signatures:
