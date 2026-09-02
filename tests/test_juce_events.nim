@@ -137,3 +137,16 @@ proc testCallFunctionOnMessageThread() =
   shutdownJuce_GUI()
 
 testCallFunctionOnMessageThread()
+
+# NetworkServiceDiscovery::Service ============================================
+#
+# A plain struct with no constructor of its own, so nothing could build one.
+
+proc testServiceAggregate() =
+    block:
+        var service = makeNetworkServiceDiscoveryService()
+        service.instanceID = makeString("june-test")
+        doAssert $service.instanceID() == "june-test",
+                 "the service holds " & $service.instanceID()
+
+testServiceAggregate()

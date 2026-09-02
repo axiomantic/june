@@ -792,3 +792,20 @@ proc testTextLayout() =
         doAssert painted > 0, "drawing the layout left the image empty"
 
 testTextLayout()
+
+# Aggregates with an implicit default constructor =============================
+
+proc testGraphicsAggregates() =
+    block:
+        var metrics = makeTypefaceMetrics()
+        metrics.ascent = 0.75'f32
+        doAssert metrics.ascent() == 0.75'f32,
+                 "the metrics hold " & $metrics.ascent()
+
+        # ImageLayer carries only fields whose types are not simple enough to
+        # write here, so building it is the check. ColourLayer and GlyphLayer
+        # get no constructor at all: an EdgeTable member leaves the first with
+        # no default, and the variant in the second inherits that.
+        discard makeImageLayer()
+
+testGraphicsAggregates()

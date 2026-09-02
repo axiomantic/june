@@ -1271,6 +1271,7 @@ proc setDoubleClickTimeout*(this: typedesc[MouseEvent], timeOutMilliseconds: cin
 proc getDoubleClickTimeout*(this: typedesc[MouseEvent]): cint {.header: juce_gui_basics, importcpp: "juce::MouseEvent::getDoubleClickTimeout()".}
 proc `==`*(this: MouseEvent, other: MouseEvent): bool {.error: "juce::MouseEvent defines no operator==; compare a property instead".}
 
+proc makeMouseWheelDetails*(): MouseWheelDetails {.header: juce_gui_basics, importcpp: "juce::MouseWheelDetails(@)".}  # implicit default constructor
 proc deltaX*(this: MouseWheelDetails): cfloat {.header: juce_gui_basics, importcpp: "#.deltaX".}
 proc deltaX*(this: var MouseWheelDetails): var cfloat {.header: juce_gui_basics, importcpp: "#.deltaX".}
 proc `deltaX=`*(this: var MouseWheelDetails, value: cfloat) {.header: juce_gui_basics, importcpp: "#.deltaX = #".}
@@ -1288,6 +1289,7 @@ proc isInertial*(this: var MouseWheelDetails): var bool {.header: juce_gui_basic
 proc `isInertial=`*(this: var MouseWheelDetails, value: bool) {.header: juce_gui_basics, importcpp: "#.isInertial = #".}
 proc `==`*(this: MouseWheelDetails, other: MouseWheelDetails): bool {.error: "juce::MouseWheelDetails defines no operator==; compare a property instead".}
 
+proc makePenDetails*(): PenDetails {.header: juce_gui_basics, importcpp: "juce::PenDetails(@)".}  # implicit default constructor
 proc rotation*(this: PenDetails): cfloat {.header: juce_gui_basics, importcpp: "#.rotation".}
 proc rotation*(this: var PenDetails): var cfloat {.header: juce_gui_basics, importcpp: "#.rotation".}
 proc `rotation=`*(this: var PenDetails, value: cfloat) {.header: juce_gui_basics, importcpp: "#.rotation = #".}
@@ -1432,6 +1434,7 @@ proc `==`*(this: ModalComponentManagerKey, other: ModalComponentManagerKey): boo
 
 proc `==`*(this: ModalCallbackFunction, other: ModalCallbackFunction): bool {.error: "juce::ModalCallbackFunction defines no operator==; compare a property instead".}
 
+proc makeComponentPaintDiagnostics*(): ComponentPaintDiagnostics {.header: juce_gui_basics, importcpp: "juce::ComponentPaintDiagnostics(@)".}  # implicit default constructor
 proc totalPaintDuration*(this: ComponentPaintDiagnostics): TimedDiagnostic {.header: juce_gui_basics, importcpp: "#.totalPaintDuration".}
 proc totalPaintDuration*(this: var ComponentPaintDiagnostics): var TimedDiagnostic {.header: juce_gui_basics, importcpp: "#.totalPaintDuration".}
 proc `totalPaintDuration=`*(this: var ComponentPaintDiagnostics, value: TimedDiagnostic) {.header: juce_gui_basics, importcpp: "#.totalPaintDuration = #".}
@@ -2488,6 +2491,7 @@ proc getColumnSpan*(this: AccessibilityTableInterface, arg1: AccessibilityHandle
 proc showCell*(this: AccessibilityTableInterface, arg1: AccessibilityHandler) {.header: juce_gui_basics, importcpp: "#.showCell(@)".}
 proc `==`*(this: AccessibilityTableInterface, other: AccessibilityTableInterface): bool {.error: "juce::AccessibilityTableInterface defines no operator==; compare a property instead".}
 
+proc makeAccessibilityTableInterfaceSpan*(): AccessibilityTableInterfaceSpan {.header: juce_gui_basics, importcpp: "juce::AccessibilityTableInterface::Span(@)".}  # implicit default constructor
 proc begin*(this: AccessibilityTableInterfaceSpan): cint {.header: juce_gui_basics, importcpp: "#.begin".}
 proc begin*(this: var AccessibilityTableInterfaceSpan): var cint {.header: juce_gui_basics, importcpp: "#.begin".}
 proc `begin=`*(this: var AccessibilityTableInterfaceSpan, value: cint) {.header: juce_gui_basics, importcpp: "#.begin = #".}
@@ -2525,6 +2529,7 @@ proc getMaximumValue*(this: AccessibilityValueInterfaceAccessibleValueRange): fl
 proc getInterval*(this: AccessibilityValueInterfaceAccessibleValueRange): float64 {.header: juce_gui_basics, importcpp: "#.getInterval()".}
 proc `==`*(this: AccessibilityValueInterfaceAccessibleValueRange, other: AccessibilityValueInterfaceAccessibleValueRange): bool {.error: "juce::AccessibilityValueInterface::AccessibleValueRange defines no operator==; compare a property instead".}
 
+proc makeAccessibilityValueInterfaceAccessibleValueRangeMinAndMax*(): AccessibilityValueInterfaceAccessibleValueRangeMinAndMax {.header: juce_gui_basics, importcpp: "juce::AccessibilityValueInterface::AccessibleValueRange::MinAndMax(@)".}  # implicit default constructor
 proc min*(this: AccessibilityValueInterfaceAccessibleValueRangeMinAndMax): float64 {.header: juce_gui_basics, importcpp: "#.min".}
 proc min*(this: var AccessibilityValueInterfaceAccessibleValueRangeMinAndMax): var float64 {.header: juce_gui_basics, importcpp: "#.min".}
 proc `min=`*(this: var AccessibilityValueInterfaceAccessibleValueRangeMinAndMax, value: float64) {.header: juce_gui_basics, importcpp: "#.min = #".}
@@ -3725,6 +3730,7 @@ proc setMinAndMaxValues*(this: var Slider, arg1: float64, arg2: float64, arg3: b
 proc setMinAndMaxValues*(this: var Slider, arg1: float64, arg2: float64, arg3: bool) {.header: juce_gui_basics, importcpp: "#.setMinAndMaxValues(@)".}
 proc `==`*(this: Slider, other: Slider): bool {.error: "juce::Slider defines no operator==; compare a property instead".}
 
+proc makeSliderRotaryParameters*(): SliderRotaryParameters {.header: juce_gui_basics, importcpp: "juce::Slider::RotaryParameters(@)".}  # implicit default constructor
 proc startAngleRadians*(this: SliderRotaryParameters): cfloat {.header: juce_gui_basics, importcpp: "#.startAngleRadians".}
 proc startAngleRadians*(this: var SliderRotaryParameters): var cfloat {.header: juce_gui_basics, importcpp: "#.startAngleRadians".}
 proc `startAngleRadians=`*(this: var SliderRotaryParameters, value: cfloat) {.header: juce_gui_basics, importcpp: "#.startAngleRadians = #".}
@@ -3736,6 +3742,7 @@ proc stopAtEnd*(this: var SliderRotaryParameters): var bool {.header: juce_gui_b
 proc `stopAtEnd=`*(this: var SliderRotaryParameters, value: bool) {.header: juce_gui_basics, importcpp: "#.stopAtEnd = #".}
 proc `==`*(this: SliderRotaryParameters, other: SliderRotaryParameters): bool {.error: "juce::Slider::RotaryParameters defines no operator==; compare a property instead".}
 
+proc makeSliderSliderLayout*(): SliderSliderLayout {.header: juce_gui_basics, importcpp: "juce::Slider::SliderLayout(@)".}  # implicit default constructor
 proc sliderBounds*(this: SliderSliderLayout): Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.sliderBounds".}
 proc sliderBounds*(this: var SliderSliderLayout): var Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.sliderBounds".}
 proc `sliderBounds=`*(this: var SliderSliderLayout, value: Rectangle[cint]) {.header: juce_gui_basics, importcpp: "#.sliderBounds = #".}
@@ -4275,6 +4282,7 @@ proc `*`*(this: ComponentPeerOptionalBorderSize): BorderSize[cint] {.header: juc
 # proc operator->*(this: ComponentPeerOptionalBorderSize): ConstPtr[BorderSize[cint]] {.header: juce_gui_basics, importcpp: "#.operator->()".}  # an operator with no Nim spelling
 proc `==`*(this: ComponentPeerOptionalBorderSize, other: ComponentPeerOptionalBorderSize): bool {.error: "juce::ComponentPeer::OptionalBorderSize defines no operator==; compare a property instead".}
 
+proc makeComponentPeerDragInfo*(): ComponentPeerDragInfo {.header: juce_gui_basics, importcpp: "juce::ComponentPeer::DragInfo(@)".}  # implicit default constructor
 proc files*(this: ComponentPeerDragInfo): StringArray {.header: juce_gui_basics, importcpp: "#.files".}
 proc files*(this: var ComponentPeerDragInfo): var StringArray {.header: juce_gui_basics, importcpp: "#.files".}
 proc `files=`*(this: var ComponentPeerDragInfo, value: StringArray) {.header: juce_gui_basics, importcpp: "#.files = #".}
@@ -4537,6 +4545,7 @@ proc contains*(this: DirectoryContentsList, arg1: File): bool {.header: juce_gui
 proc getTimeSliceThread*(this: DirectoryContentsList): var TimeSliceThread {.header: juce_gui_basics, importcpp: "#.getTimeSliceThread()".}
 proc `==`*(this: DirectoryContentsList, other: DirectoryContentsList): bool {.error: "juce::DirectoryContentsList defines no operator==; compare a property instead".}
 
+proc makeDirectoryContentsListFileInfo*(): DirectoryContentsListFileInfo {.header: juce_gui_basics, importcpp: "juce::DirectoryContentsList::FileInfo(@)".}  # implicit default constructor
 proc filename*(this: DirectoryContentsListFileInfo): String {.header: juce_gui_basics, importcpp: "#.filename".}
 proc filename*(this: var DirectoryContentsListFileInfo): var String {.header: juce_gui_basics, importcpp: "#.filename".}
 proc `filename=`*(this: var DirectoryContentsListFileInfo, value: String) {.header: juce_gui_basics, importcpp: "#.filename = #".}
@@ -5330,6 +5339,7 @@ proc getName*(this: GridItemProperty): String {.header: juce_gui_basics, importc
 proc getNumber*(this: GridItemProperty): cint {.header: juce_gui_basics, importcpp: "#.getNumber()".}
 proc `==`*(this: GridItemProperty, other: GridItemProperty): bool {.error: "juce::GridItem::Property defines no operator==; compare a property instead".}
 
+proc makeGridItemStartAndEndProperty*(): GridItemStartAndEndProperty {.header: juce_gui_basics, importcpp: "juce::GridItem::StartAndEndProperty(@)".}  # implicit default constructor
 proc start*(this: GridItemStartAndEndProperty): GridItemProperty {.header: juce_gui_basics, importcpp: "#.start".}
 proc start*(this: var GridItemStartAndEndProperty): var GridItemProperty {.header: juce_gui_basics, importcpp: "#.start".}
 proc `start=`*(this: var GridItemStartAndEndProperty, value: GridItemProperty) {.header: juce_gui_basics, importcpp: "#.start = #".}

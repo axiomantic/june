@@ -1077,6 +1077,7 @@ proc `changes=`*(this: var TextDiff, value: Array[TextDiffChange]) {.header: juc
 proc appliedTo*(this: TextDiff, text: String): String {.header: juce_core, importcpp: "#.appliedTo(@)".}
 proc `==`*(this: TextDiff, other: TextDiff): bool {.error: "juce::TextDiff defines no operator==; compare a property instead".}
 
+proc makeTextDiffChange*(): TextDiffChange {.header: juce_core, importcpp: "juce::TextDiff::Change(@)".}  # implicit default constructor
 proc insertedText*(this: TextDiffChange): String {.header: juce_core, importcpp: "#.insertedText".}
 proc insertedText*(this: var TextDiffChange): var String {.header: juce_core, importcpp: "#.insertedText".}
 proc `insertedText=`*(this: var TextDiffChange, value: String) {.header: juce_core, importcpp: "#.insertedText = #".}
@@ -1176,6 +1177,7 @@ proc getExistingFolderForOption*(this: ArgumentList, option: StringRef): File {.
 proc getExistingFolderForOptionAndRemove*(this: var ArgumentList, option: StringRef): File {.header: juce_core, importcpp: "#.getExistingFolderForOptionAndRemove(@)".}
 proc `==`*(this: ArgumentList, other: ArgumentList): bool {.error: "juce::ArgumentList defines no operator==; compare a property instead".}
 
+proc makeArgumentListArgument*(): ArgumentListArgument {.header: juce_core, importcpp: "juce::ArgumentList::Argument(@)".}  # implicit default constructor
 proc text*(this: ArgumentListArgument): String {.header: juce_core, importcpp: "#.text".}
 proc text*(this: var ArgumentListArgument): var String {.header: juce_core, importcpp: "#.text".}
 proc `text=`*(this: var ArgumentListArgument, value: String) {.header: juce_core, importcpp: "#.text = #".}
@@ -1205,6 +1207,7 @@ proc findCommand*(this: ConsoleApplication, arg1: ArgumentList, optionMustBeFirs
 proc getCommands*(this: ConsoleApplication): CppVector[ConsoleApplicationCommand] {.header: juce_core, importcpp: "#.getCommands()".}
 proc `==`*(this: ConsoleApplication, other: ConsoleApplication): bool {.error: "juce::ConsoleApplication defines no operator==; compare a property instead".}
 
+proc makeConsoleApplicationCommand*(): ConsoleApplicationCommand {.header: juce_core, importcpp: "juce::ConsoleApplication::Command(@)".}  # implicit default constructor
 proc commandOption*(this: ConsoleApplicationCommand): String {.header: juce_core, importcpp: "#.commandOption".}
 proc commandOption*(this: var ConsoleApplicationCommand): var String {.header: juce_core, importcpp: "#.commandOption".}
 proc `commandOption=`*(this: var ConsoleApplicationCommand, value: String) {.header: juce_core, importcpp: "#.commandOption = #".}
@@ -1310,6 +1313,7 @@ proc numArguments*(this: var juce_varNativeFunctionArgs): var cint {.header: juc
 proc `numArguments=`*(this: var juce_varNativeFunctionArgs, value: cint) {.header: juce_core, importcpp: "#.numArguments = #".}
 proc `==`*(this: juce_varNativeFunctionArgs, other: juce_varNativeFunctionArgs): bool {.error: "juce::var::NativeFunctionArgs defines no operator==; compare a property instead".}
 
+proc makeNamedValue*(): NamedValue {.header: juce_core, importcpp: "juce::NamedValue(@)".}  # implicit default constructor
 proc name*(this: NamedValue): Identifier {.header: juce_core, importcpp: "#.name".}
 proc name*(this: var NamedValue): var Identifier {.header: juce_core, importcpp: "#.name".}
 proc `name=`*(this: var NamedValue, value: Identifier) {.header: juce_core, importcpp: "#.name = #".}
@@ -2078,6 +2082,7 @@ proc removeListener*(this: var ThreadPoolJob, arg1: ptr ThreadListener) {.header
 proc getCurrentThreadPoolJob*(this: typedesc[ThreadPoolJob]): ptr ThreadPoolJob {.header: juce_core, importcpp: "juce::ThreadPoolJob::getCurrentThreadPoolJob()".}
 proc `==`*(this: ThreadPoolJob, other: ThreadPoolJob): bool {.error: "juce::ThreadPoolJob defines no operator==; compare a property instead".}
 
+proc makeThreadPoolOptions*(): ThreadPoolOptions {.header: juce_core, importcpp: "juce::ThreadPoolOptions(@)".}  # implicit default constructor
 proc threadName*(this: ThreadPoolOptions): String {.header: juce_core, importcpp: "#.threadName".}
 proc threadName*(this: var ThreadPoolOptions): var String {.header: juce_core, importcpp: "#.threadName".}
 proc `threadName=`*(this: var ThreadPoolOptions, value: String) {.header: juce_core, importcpp: "#.threadName = #".}
@@ -2331,6 +2336,7 @@ proc finished*(this: var URLDownloadTaskListener, task: ptr URLDownloadTask, suc
 proc progress*(this: var URLDownloadTaskListener, task: ptr URLDownloadTask, bytesDownloaded: int64, totalLength: int64) {.header: juce_core, importcpp: "#.progress(@)".}
 proc `==`*(this: URLDownloadTaskListener, other: URLDownloadTaskListener): bool {.error: "juce::URL::DownloadTaskListener defines no operator==; compare a property instead".}
 
+proc makeURLDownloadTaskOptions*(): URLDownloadTaskOptions {.header: juce_core, importcpp: "juce::URL::DownloadTaskOptions(@)".}  # implicit default constructor
 proc extraHeaders*(this: URLDownloadTaskOptions): String {.header: juce_core, importcpp: "#.extraHeaders".}
 proc extraHeaders*(this: var URLDownloadTaskOptions): var String {.header: juce_core, importcpp: "#.extraHeaders".}
 proc `extraHeaders=`*(this: var URLDownloadTaskOptions, value: String) {.header: juce_core, importcpp: "#.extraHeaders = #".}
@@ -2482,6 +2488,7 @@ proc parse*(this: typedesc[XmlDocument], file: File): UniquePtr[XmlElement] {.he
 proc parse*(this: typedesc[XmlDocument], xmlData: String): UniquePtr[XmlElement] {.header: juce_core, importcpp: "juce::XmlDocument::parse(@)".}
 proc `==`*(this: XmlDocument, other: XmlDocument): bool {.error: "juce::XmlDocument defines no operator==; compare a property instead".}
 
+proc makeXmlAttribute*(): XmlAttribute {.header: juce_core, importcpp: "juce::XmlAttribute(@)".}  # implicit default constructor
 proc name*(this: XmlAttribute): Identifier {.header: juce_core, importcpp: "#.name".}
 proc name*(this: var XmlAttribute): var Identifier {.header: juce_core, importcpp: "#.name".}
 proc `name=`*(this: var XmlAttribute, value: Identifier) {.header: juce_core, importcpp: "#.name = #".}
@@ -2618,6 +2625,7 @@ proc uncompressEntry*(this: var ZipFile, index: cint, targetDirectory: File, sho
 proc uncompressEntry*(this: var ZipFile, index: cint, targetDirectory: File, overwriteFiles: ZipFileOverwriteFiles, followSymlinks: ZipFileFollowSymlinks): Result {.header: juce_core, importcpp: "#.uncompressEntry(@)".}
 proc `==`*(this: ZipFile, other: ZipFile): bool {.error: "juce::ZipFile defines no operator==; compare a property instead".}
 
+proc makeZipFileZipEntry*(): ZipFileZipEntry {.header: juce_core, importcpp: "juce::ZipFile::ZipEntry(@)".}  # implicit default constructor
 proc filename*(this: ZipFileZipEntry): String {.header: juce_core, importcpp: "#.filename".}
 proc filename*(this: var ZipFileZipEntry): var String {.header: juce_core, importcpp: "#.filename".}
 proc `filename=`*(this: var ZipFileZipEntry, value: String) {.header: juce_core, importcpp: "#.filename = #".}

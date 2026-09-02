@@ -1460,3 +1460,53 @@ proc testEnumEquality() =
            "two different formats printed the same"
 
 testEnumEquality()
+
+# Aggregates with an implicit default constructor ==============================
+#
+# JUCE declares these as plain structs with no constructor of their own, so
+# libclang reports none and the generator emitted none: the type was declared,
+# its fields had getters and setters, and there was no way to build one. Each
+# is built here and a field is written and read back, which is what compiles
+# the constructor - an importcpp string only reaches the C++ compiler at a
+# call site.
+
+proc testImplicitDefaultConstructors() =
+    block:
+        var change = makeTextDiffChange()
+        change.insertedText = makeString("inserted")
+        doAssert $change.insertedText() == "inserted",
+                 "the change holds " & $change.insertedText()
+
+        var argument = makeArgumentListArgument()
+        argument.text = makeString("--verbose")
+        doAssert $argument.text() == "--verbose", "the argument holds " & $argument.text()
+
+        var command = makeConsoleApplicationCommand()
+        command.commandOption = makeString("--help")
+        doAssert $command.commandOption() == "--help",
+                 "the command holds " & $command.commandOption()
+
+        var poolOptions = makeThreadPoolOptions()
+        poolOptions.threadName = makeString("workers")
+        doAssert $poolOptions.threadName() == "workers",
+                 "the options hold " & $poolOptions.threadName()
+
+        var download = makeURLDownloadTaskOptions()
+        download.extraHeaders = makeString("X-Test: 1")
+        doAssert $download.extraHeaders() == "X-Test: 1",
+                 "the options hold " & $download.extraHeaders()
+
+        var attribute = makeXmlAttribute()
+        attribute.value = makeString("42")
+        doAssert $attribute.value() == "42", "the attribute holds " & $attribute.value()
+
+        var entry = makeZipFileZipEntry()
+        entry.filename = makeString("inside.txt")
+        doAssert $entry.filename() == "inside.txt", "the entry holds " & $entry.filename()
+
+        # NamedValue has no field of a type simple enough to write here, so
+        # building it is the whole check: without a constructor it could not
+        # be built at all.
+        discard makeNamedValue()
+
+testImplicitDefaultConstructors()
