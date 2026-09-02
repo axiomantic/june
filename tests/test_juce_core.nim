@@ -974,9 +974,16 @@ proc testCharacterFunctions() =
   doAssert not CharacterFunctions.isUpperCase(uint32('a')), "isUpperCase on a"
   doAssert CharacterFunctions.isLowerCase(uint32('a')), "isLowerCase on a"
 
-  # isDigit and isWhitespace are left out on purpose: JUCE declares each twice,
-  # once taking char and once taking juce_wchar, and an argument from Nim
-  # converts to both, so C++ cannot pick. Neither overload is callable.
+  # isDigit and isWhitespace are each declared twice by JUCE, once for char and
+  # once for juce_wchar. An argument from Nim converts to both, so the call was
+  # ambiguous in C++ and neither overload could be used; the binding casts to
+  # the type its own overload declares, which picks one.
+  doAssert CharacterFunctions.isDigit(uint32('7')), "isDigit on 7"
+  doAssert not CharacterFunctions.isDigit(uint32('x')), "isDigit on x"
+  doAssert CharacterFunctions.isWhitespace(uint32(' ')), "isWhitespace on space"
+  doAssert not CharacterFunctions.isWhitespace(uint32('x')), "isWhitespace on x"
+  doAssert CharacterFunctions.isDigit('7'), "isDigit on the char overload"
+  doAssert not CharacterFunctions.isDigit('x'), "isDigit on the char overload with x"
 
   # A character with no case is unchanged by either conversion.
   doAssert CharacterFunctions.toUpperCase(uint32('5')) == uint32('5'), "toUpperCase on a digit"
@@ -1004,3 +1011,25 @@ proc testWideCharacters() =
            "getAndAdvance gave " & $uint32(cursor.getAndAdvance())
 
 testWideCharacters()
+
+# Overloads that differ only by a scalar =======================================
+#
+# JUCE declares several methods once per numeric type. An argument from Nim
+# converts to all of them, so C++ could not pick and none of the overloads was
+# callable. The binding casts each argument to the type its own overload
+# declares, which resolves it.
+
+proc testScalarOverloads() =
+  # RelativeTime::milliseconds is declared for int and for int64.
+  doAssert RelativeTime.milliseconds(1500.cint).inSeconds() == 1.5,
+           "the int overload gave " & $RelativeTime.milliseconds(1500.cint).inSeconds()
+  doAssert RelativeTime.milliseconds(2000.int64).inSeconds() == 2.0,
+           "the int64 overload gave " & $RelativeTime.milliseconds(2000.int64).inSeconds()
+
+  # CharacterFunctions declares each test for char and for juce_wchar.
+  doAssert CharacterFunctions.isLetter(uint32('q')), "isLetter on the wide overload"
+  doAssert CharacterFunctions.isLetter('q'), "isLetter on the char overload"
+  doAssert CharacterFunctions.isLetterOrDigit(uint32('7')), "isLetterOrDigit"
+  doAssert CharacterFunctions.isPrintable(uint32('x')), "isPrintable"
+
+testScalarOverloads()
