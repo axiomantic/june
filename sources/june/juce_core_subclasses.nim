@@ -94,6 +94,16 @@ proc newCustomThread*(threadName: String, threadStackSize: csize_t): ptr CustomT
 proc setRunHandler*(this: var CustomThread, handler: proc() {.closure.}) =
     this.onRun = bindClosure(handler)
 
+defineCppClassInternal CustomThreadPoolJob of ThreadPoolJob:
+    include "juce_core/juce_core.h"
+    cppTypeName ThreadPoolJobJobStatus, "ThreadPoolJob::JobStatus"
+    proc runJob(): ThreadPoolJobJobStatus = discard
+
+proc newCustomThreadPoolJob*(name: String): ptr CustomThreadPoolJob {.importcpp: "(new june::CustomThreadPoolJob(@))".}
+
+proc setRunJobHandler*(this: var CustomThreadPoolJob, handler: proc(): ThreadPoolJobJobStatus {.closure.}) =
+    this.onRunJob = bindClosure(handler)
+
 defineCppClassInternal CustomTimeSliceClient of TimeSliceClient:
     include "juce_core/juce_core.h"
     proc useTimeSlice(): cint = discard
@@ -114,4 +124,3 @@ proc setRunTestHandler*(this: var CustomUnitTest, handler: proc() {.closure.}) =
 
 # Withheld, with the reason:
 #   OutputStream: const void * in write has no Nim spelling
-#   ThreadPoolJob: JobStatus returned by runJob has no Nim spelling

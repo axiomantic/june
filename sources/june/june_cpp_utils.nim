@@ -75,27 +75,40 @@ const cppTemplateNames = {
 }
 
 
+# The C++ spelling of a bound Nim type, where the two differ. A nested class is
+# named in Nim by its parts joined together - DragAndDropTargetSourceDetails -
+# while C++ still spells it DragAndDropTarget::SourceDetails, and writing the
+# Nim name into the generated header names a type that does not exist. A
+# `cppTypeName Nim, "Cpp::Name"` line in the class body supplies the pairing.
+proc cppAliasName(name: string, aliases: seq[(string, string)]): string {.compiletime.} =
+  for (nimName, cppName) in aliases:
+    if name == nimName: return cppName
+  result = ""
+
+
 proc cppTemplateName(name: string): string {.compiletime.} =
   for (nimName, cppName) in cppTemplateNames:
     if name == nimName: return cppName
   result = cppPrimitiveName(name)
 
 
-proc cppTypeSpelling(node: NimNode): string {.compiletime.} =
+proc cppTypeSpelling(node: NimNode, aliases: seq[(string, string)]): string {.compiletime.} =
   case node.kind:
   of nnkBracketExpr:
     result = cppTemplateName($node[0]) & "<"
     for index in 1 ..< node.len:
       if index > 1: result &= ", "
-      result &= cppTypeSpelling(node[index])
+      result &= cppTypeSpelling(node[index], aliases)
     result &= ">"
   of nnkPtrTy:
-    result = cppTypeSpelling(node[0]) & "*"
+    result = cppTypeSpelling(node[0], aliases) & "*"
   else:
-    result = cppPrimitiveName($node)
+    result = cppAliasName($node, aliases)
+    if result.len == 0:
+      result = cppPrimitiveName($node)
 
 
-proc makeCppType(node: NimNode): CppType {.compiletime.} =
+proc makeCppType(node: NimNode, aliases: seq[(string, string)] = @[]): CppType {.compiletime.} =
   result = CppType(node: node, nim: newEmptyNode(), ident: "", cpp: "", isConst: false, isPointer: false, isReference: false, passAsPointer: false)
 
   var realNode = node
@@ -107,7 +120,7 @@ proc makeCppType(node: NimNode): CppType {.compiletime.} =
   of nnkBracketExpr:
     if ($realNode[0] == "constval"):
       result.nim = realNode[1]
-      result.cpp = cppTypeSpelling(realNode[1])
+      result.cpp = cppTypeSpelling(realNode[1], aliases)
       result.isConst = true
     elif ($realNode[0] == "constref"):
       # Only for a type Nim passes by value. Nim's calling convention hands an
@@ -123,7 +136,7 @@ proc makeCppType(node: NimNode): CppType {.compiletime.} =
               referencedName & " by pointer, so the callback signature would " &
               "not match. Use constptr[" & referencedName & "] instead."
       result.nim = realNode[1]
-      result.cpp = cppTypeSpelling(realNode[1])
+      result.cpp = cppTypeSpelling(realNode[1], aliases)
       result.isConst = true
       result.isReference = true
     elif ($realNode[0] == "constptr"):
@@ -132,7 +145,7 @@ proc makeCppType(node: NimNode): CppType {.compiletime.} =
       # by value: juce::MouseEvent cannot be assigned, so the conversion from
       # std::function<void(MouseEvent)> has no viable operator=.
       result.nim = realNode[1]
-      result.cpp = cppTypeSpelling(realNode[1])
+      result.cpp = cppTypeSpelling(realNode[1], aliases)
       result.isConst = true
       result.isReference = true
       result.passAsPointer = true
@@ -142,7 +155,7 @@ proc makeCppType(node: NimNode): CppType {.compiletime.} =
       # override with a const Graphics& does not match it, so the compiler
       # reports a non-virtual member function marked override.
       result.nim = realNode[1]
-      result.cpp = cppTypeSpelling(realNode[1])
+      result.cpp = cppTypeSpelling(realNode[1], aliases)
       result.isReference = true
       result.passAsPointer = true
     else:
@@ -150,13 +163,13 @@ proc makeCppType(node: NimNode): CppType {.compiletime.} =
       # Nim spells the instantiation directly, so the node itself is the member
       # type and only the C++ side needs rendering.
       result.nim = realNode
-      result.cpp = cppTypeSpelling(realNode)
+      result.cpp = cppTypeSpelling(realNode, aliases)
 
   of nnkPtrTy:
     # A pointer parameter, such as ChangeListener's ChangeBroadcaster*. Passed
     # through as a pointer on both sides, so nothing needs taking an address of.
     result.nim = realNode
-    result.cpp = $realNode[0]
+    result.cpp = cppTypeSpelling(realNode[0], aliases)
     result.isPointer = true
 
   of nnkEmpty:
@@ -164,8 +177,10 @@ proc makeCppType(node: NimNode): CppType {.compiletime.} =
     result.cpp = "void"
 
   else:
+    # A plain name: a bound class, or a primitive. Either may be spelled
+    # differently in C++, so it goes through the same renderer as the rest.
     result.nim = node
-    result.cpp = cppPrimitiveName($node)
+    result.cpp = cppTypeSpelling(realNode, aliases)
 
 
 proc toCppString(cppType: CppType): string =
@@ -217,6 +232,15 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
        node[1].kind == nnkStrLit:
       cppParentSpelling = $node[1]
 
+  # `cppTypeName Nim, "Cpp::Name"` pairs a flattened Nim name with the spelling
+  # C++ knows it by.
+  var typeAliases: seq[(string, string)] = @[]
+  for node in body.children:
+    if node.kind in {nnkCall, nnkCommand} and node.len == 3 and
+       node[0].kind == nnkIdent and $node[0] == "cppTypeName" and
+       node[2].kind == nnkStrLit:
+      typeAliases.add(($node[1], $node[2]))
+
   # Nim codegen list of functions
   var nimObjectBodyDecl = nnkRecList.newTree()
 
@@ -246,7 +270,7 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
       var funcPointerName = "on" & capitalizeAscii($node.name)
       let formalParams = node[3]
 
-      var returnValue = makeCppType(formalParams[0])
+      var returnValue = makeCppType(formalParams[0], typeAliases)
       let hasReturnValue = returnValue.cpp != "void"
 
       # Nim codegen function parameters
@@ -270,7 +294,7 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
       for param in formalParams:
         inc(index); if index == 1: continue
 
-        var argType = makeCppType(param[1])
+        var argType = makeCppType(param[1], typeAliases)
 
         # A mutable reference is handed to the callback as a pointer. The
         # std::function would otherwise have to take the reference by value,
