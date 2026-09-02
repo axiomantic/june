@@ -364,3 +364,27 @@ proc testCastedConstructors() =
              "the height came back as " & $makeFontOptions(18.5'f32).getHeight()
 
 testCastedConstructors()
+
+# PixelRGB ====================================================================
+#
+# The packed pixel. Its multiplyAlpha is declared for int and for float, which
+# is one of the overload sets that gained a cast, so this exercises that too.
+
+proc testPixelRGB() =
+    var pixel = makePixelRGB()
+    pixel.setARGB(255'u8, 0x80'u8, 0x40'u8, 0x20'u8)
+
+    doAssert pixel.getRed() == 0x80, "red is " & $pixel.getRed()
+    doAssert pixel.getGreen() == 0x40, "green is " & $pixel.getGreen()
+    doAssert pixel.getBlue() == 0x20, "blue is " & $pixel.getBlue()
+    # PixelRGB carries no alpha channel: it is opaque by construction.
+    doAssert pixel.getAlpha() == 255, "alpha is " & $pixel.getAlpha()
+
+    # Both multiplyAlpha overloads are callable and leave an opaque pixel
+    # opaque, since there is no alpha to scale.
+    pixel.multiplyAlpha(128.cint)
+    doAssert pixel.getAlpha() == 255, "the int overload changed alpha"
+    pixel.multiplyAlpha(0.5'f32)
+    doAssert pixel.getAlpha() == 255, "the float overload changed alpha"
+
+testPixelRGB()

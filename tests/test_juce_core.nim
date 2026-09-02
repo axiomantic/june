@@ -1203,3 +1203,36 @@ proc testStringConstructors() =
   doAssert $makeString(toConstChar("abc")) == "abc", "from a const char pointer"
 
 testStringConstructors()
+
+# IPAddress ===================================================================
+#
+# Built from four octets or from text, and read back as text. Its `address`
+# field is a fixed-size C array, which is one of the bindings that genuinely
+# cannot be spelled in Nim, so the text form is the way in and out.
+
+proc testIPAddress() =
+  let local = makeIPAddress(127'u8, 0'u8, 0'u8, 1'u8)
+  doAssert $local.toString() == "127.0.0.1", "toString gave " & $local.toString()
+  doAssert not local.isNull(), "a real address reported null"
+
+  let parsed = makeIPAddress(makeString("127.0.0.1"))
+  doAssert parsed == local, "the parsed address differs from the built one"
+
+  doAssert makeIPAddress().isNull(), "a default address was not null"
+
+# Expression ==================================================================
+#
+# JUCE's little arithmetic parser. evaluate returns a double, so this is also a
+# check that the numeric path survives the binding.
+
+proc testExpression() =
+  var parseError = makeString("")
+  let sum = makeExpression(makeString("2 + 3 * 4"), parseError)
+  doAssert $parseError == "", "the parser reported " & $parseError
+  doAssert sum.evaluate() == 14.0, "2 + 3 * 4 evaluated to " & $sum.evaluate()
+
+  let constant = makeExpression(2.5)
+  doAssert constant.evaluate() == 2.5, "a constant evaluated to " & $constant.evaluate()
+
+testIPAddress()
+testExpression()
