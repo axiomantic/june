@@ -1059,6 +1059,19 @@ def run_main(juce_module_name, juce_class_name_to_export):
             print(f"proc `==`*(a: {enum_name}, b: {enum_name}): bool {{.borrow.}}")
         print()
 
+        # JUCE spells a flag set as a nested enum called Flags, which this
+        # flattens to a name ending in Flags. Those are the ones meant to be
+        # combined, and a distinct cint has no bitwise operators either, so
+        # every caller would otherwise cast both sides to cint and back.
+        flag_enums = [name for name in emitted_enum_names if name.endswith("Flags")]
+        if flag_enums:
+            print("# Bitwise operators for the flag sets among them.")
+            for enum_name in flag_enums:
+                for operator in ("or", "and"):
+                    print(f"proc `{operator}`*(a: {enum_name}, b: {enum_name}): "
+                          f"{enum_name} {{.borrow.}}")
+            print()
+
     # Enumerators are prefixed with their type. C++ scopes them by enum or by
     # class; Nim would put every one of them in the same namespace, where names
     # as generic as "plain" or "none" collide immediately.
