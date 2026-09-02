@@ -379,3 +379,27 @@ proc testColourSchemeMethods() =
   shutdownJuce_GUI()
 
 testColourSchemeMethods()
+
+# PopupMenu::Options is a fluent builder, and a nested class: each with* method
+# returns a fresh Options by value. It is the case that would catch a nested
+# binding whose receiver or return type went to the wrong class.
+proc testPopupMenuOptions() =
+  initialiseJuce_GUI()
+
+  let options = makePopupMenuOptions()
+    .withMinimumWidth(220.cint)
+    .withMaximumNumColumns(3.cint)
+    .withTargetScreenArea(makeRectangle(10.cint, 20.cint, 30.cint, 40.cint))
+
+  doAssert options.getMinimumWidth() == 220, "width came back as " & $options.getMinimumWidth()
+  doAssert options.getTargetScreenArea().getX() == 10
+  doAssert options.getTargetScreenArea().getHeight() == 40
+
+  # Each step returns a new value rather than mutating in place.
+  let narrower = options.withMinimumWidth(100.cint)
+  doAssert options.getMinimumWidth() == 220, "the builder mutated the original"
+  doAssert narrower.getMinimumWidth() == 100
+
+  shutdownJuce_GUI()
+
+testPopupMenuOptions()
