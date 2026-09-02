@@ -287,6 +287,11 @@ Hand-written additions live in the ``*_lifting.nim`` files and in
 - Public fields, as a getter and a setter, so ``parameters.startAngleRadians``
   reads and ``parameters.startAngleRadians = x`` writes. A field C++ will not
   let anyone assign -- a const one, or a reference -- gets only the getter.
+- Conversion operators, as an explicit ``to<Type>`` rather than a Nim
+  converter: ``someVar.toInt()``, ``someVar.toFloat64()``,
+  ``someResult.toBool()``. An implicit converter would compete with every other
+  overload. A method of the same name wins, so ``var``'s own ``toString``
+  stays.
 - Static member variables, the same way, so ``AffineTransform.identity()`` and
   ``AlertWindow.WarningIcon()`` are reachable. They take call parentheses
   because Nim needs a call-shaped ``importcpp`` pattern.

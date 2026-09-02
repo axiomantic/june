@@ -47,6 +47,24 @@ nim_function_def = """{comment}proc {function_name}*({function_args}){function_r
 # emitted a second time under the same name.
 free_functions_bound_by_lifting = {"initialiseJuce_GUI", "shutdownJuce_GUI"}
 
+# A conversion operator. Bound as an explicit to<Type> rather than a Nim
+# converter: an implicit one competes with every other overload and makes calls
+# ambiguous, which is the failure this binding has hit repeatedly with strings.
+# static_cast names the target, so it picks the operator without relying on how
+# the class spells it.
+nim_conversion_def = """{comment}proc to{target}*(this: {class_name}): {nim_type} {{.header: {juce_module_name}, importcpp: "static_cast<{cpp_type}>(#)".}}{reason}"""
+
+
+def conversion_target_name(nim_type):
+    """The to<Type> suffix for a conversion operator's result."""
+    bare = nim_type.replace("ptr ", "").replace("var ", "").strip()
+    # cint reads better as toInt than as toCint, and the c-prefixed names are
+    # the only ones where the Nim spelling is not the natural word.
+    if bare.startswith("c") and bare[1:] in ("int", "uint", "float", "double", "char", "short", "long"):
+        bare = bare[1:]
+    return bare[:1].upper() + bare[1:]
+
+
 # A static member variable. Not a call, so the pattern names it without
 # parentheses; it takes the class as a typedesc like a static method, which is
 # what makes AffineTransform.identity read the way it does in C++.
@@ -1249,6 +1267,49 @@ def run_main(juce_module_name, juce_class_name_to_export):
             emitted_signatures.add(signature)
             print(declaration)
 
+        # Conversion operators. juce::var has no other way out: without these
+        # a var could be turned into a String and nothing else, so reading the
+        # int or the double back was not possible.
+        for conversion in c.get_children():
+            if (conversion.kind != CursorKind.CONVERSION_FUNCTION
+                    or conversion.access_specifier != AccessSpecifier.PUBLIC):
+                continue
+
+            nim_type = remap_type(conversion.result_type, remap_inner_classes, enum_remap,
+                                  class_juce_map, global_nested_remap, unambiguous_nested_remap)
+            conversion_comment, conversion_reason = "", ""
+            if ("<" in nim_type or "::" in nim_type or "(" in nim_type
+                    or is_c_array(nim_type)
+                    or not type_is_declared(nim_type, declared_type_names)):
+                conversion_comment = "# "
+                conversion_reason = unbound_type_reason(nim_type)
+
+            target = conversion_target_name(nim_type)
+
+            # A method of the same name wins. juce::var has both a toString
+            # method and an operator String, and they are not the same thing:
+            # emitting the conversion first made `$` use static_cast and print
+            # the wrong text.
+            if any(other.kind == CursorKind.CXX_METHOD
+                   and other.access_specifier == AccessSpecifier.PUBLIC
+                   and other.spelling == f"to{target}"
+                   for other in c.get_children()):
+                continue
+
+            # Keyed the way a method is, because that is what it competes
+            # with: juce::var has both a toString method and an operator String.
+            conversion_signature = (f"this: {class_name}", f"to{target}", (), f": {nim_type}")
+            if conversion_signature in emitted_signatures:
+                continue
+            emitted_signatures.add(conversion_signature)
+
+            print(nim_conversion_def.format(**{
+                "comment": conversion_comment, "target": target, "class_name": class_name,
+                "nim_type": nim_type.replace("var ", ""),
+                "cpp_type": conversion.result_type.get_canonical().spelling,
+                "juce_module_name": juce_module_name,
+                "reason": f"  # {conversion_reason}" if conversion_comment else "" }))
+
         # Static member variables. AffineTransform::identity, AlertWindow's
         # icon types and FlexItem::autoValue are constants an application
         # reaches for, and a static member is a VAR_DECL rather than a
@@ -1269,7 +1330,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 var_reason = unbound_type_reason(var_type)
 
             var_name = remap_identifier(static_var.spelling)
-            var_signature = (f"typedesc[{class_name}]", var_name, (), var_type)
+            var_signature = (f"this: typedesc[{class_name}]", var_name, (), f": {var_type}")
             if var_signature in emitted_signatures:
                 continue
             emitted_signatures.add(var_signature)
@@ -1299,7 +1360,9 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 field_reason = unbound_type_reason(field_type)
 
             field_name = remap_identifier(field.spelling)
-            field_signature = (class_name, field_name, ("<field>",), field_type)
+            # Also keyed the way a method is: a class with a field and a
+            # method of the same name would otherwise emit both.
+            field_signature = (f"this: {class_name}", field_name, (), f": {field_type}")
             if field_signature in emitted_signatures:
                 continue
             emitted_signatures.add(field_signature)
