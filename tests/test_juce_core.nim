@@ -1117,3 +1117,35 @@ proc testUTF16Buffer() =
   doAssert cursor.getAndAdvance() == uint32('i'), "the second character"
 
 testUTF16Buffer()
+
+# NamedValueSet ===============================================================
+#
+# The property bag behind ValueTree and DynamicObject. Its iterator is already
+# covered; these are the direct accessors.
+
+proc testNamedValueSet() =
+  var properties = makeNamedValueSet()
+  doAssert properties.isEmpty(), "a fresh set was not empty"
+  doAssert properties.size() == 0, "a fresh set holds " & $properties.size()
+
+  let name = makeIdentifier("width")
+  doAssert properties.set(name, makejuce_var(640.cint)), "set reported no change"
+  doAssert properties.contains(name), "the name did not stick"
+  doAssert properties.size() == 1, "the set holds " & $properties.size()
+  doAssert not properties.isEmpty(), "a filled set reported empty"
+
+  # Setting the same name to the same value reports no change.
+  doAssert not properties.set(name, makejuce_var(640.cint)),
+           "setting the same value reported a change"
+  doAssert properties.set(name, makejuce_var(800.cint)),
+           "setting a different value reported no change"
+
+  # A missing name falls back to what the caller passed.
+  let missing = makeIdentifier("height")
+  doAssert properties.getWithDefault(missing, makejuce_var(480.cint)).toString() ==
+           makejuce_var(480.cint).toString(), "the default was ignored"
+
+  doAssert properties.remove(name), "remove reported nothing removed"
+  doAssert properties.isEmpty(), "remove left the set non-empty"
+
+testNamedValueSet()
