@@ -74,3 +74,17 @@ proc setApplicationCrashHandler*(this: typedesc[SystemStats], handler: CrashHand
 # Subclasses for the abstract classes of this module. Generated; see
 # tools/generate_subclasses.py.
 include juce_core_subclasses
+
+# String and MemoryBlock both expose a C++ iterator, which has no Nim spelling,
+# and neither had a Nim one to loop with instead.
+
+iterator items*(this: String): uint16 =
+    for index in 0 ..< this.length():
+        yield this[index]
+
+iterator items*(this: MemoryBlock): uint8 =
+    # getData is the only access to the bytes: MemoryBlock has no indexed
+    # accessor of its own.
+    let data = cast[ptr UncheckedArray[uint8]](this.getData())
+    for index in 0 ..< this.getSize().int:
+        yield data[index]
