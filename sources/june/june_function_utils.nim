@@ -33,6 +33,7 @@ type
     CppFunctionObjectR8*[R, T1, T2, T3, T4, T5, T6, T7, T8] {.importcpp: "std::function<'0('1, '2, '3, '4, '5, '6, '7, '8)>", header: "<functional>".} = object
     CppFunctionObjectN9*[T1, T2, T3, T4, T5, T6, T7, T8, T9] {.importcpp: "std::function<void('0, '1, '2, '3, '4, '5, '6, '7, '8)>", header: "<functional>".} = object
     CppFunctionObjectR9*[R, T1, T2, T3, T4, T5, T6, T7, T8, T9] {.importcpp: "std::function<'0('1, '2, '3, '4, '5, '6, '7, '8, '9)>", header: "<functional>".} = object
+    CppFunctionObjectN10*[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10] {.importcpp: "std::function<void('0, '1, '2, '3, '4, '5, '6, '7, '8, '9)>", header: "<functional>".} = object
 
 type
     CppFunctionClosureN0 = proc (env: pointer) {.nimcall.}
@@ -56,6 +57,7 @@ type
     CppFunctionClosureR8[R, T1, T2, T3, T4, T5, T6, T7, T8] = proc (a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, env: pointer): R {.nimcall.}
     CppFunctionClosureN9[T1, T2, T3, T4, T5, T6, T7, T8, T9] = proc (a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9, env: pointer) {.nimcall.}
     CppFunctionClosureR9[R, T1, T2, T3, T4, T5, T6, T7, T8, T9] = proc (a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9, env: pointer): R {.nimcall.}
+    CppFunctionClosureN10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10] = proc (a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9, a10: T10, env: pointer) {.nimcall.}
 
 macro CppFunctionObject*(types: varargs[untyped]): untyped =
     if len(types) > 0:
@@ -94,6 +96,7 @@ proc bindInternal[T1, T2, T3, T4, T5, T6, T7, T8](p: CppFunctionClosureN8[T1, T2
 proc bindInternal[R, T1, T2, T3, T4, T5, T6, T7, T8](p: CppFunctionClosureR8[R, T1, T2, T3, T4, T5, T6, T7, T8], env: pointer): CppFunctionObjectR8[R, T1, T2, T3, T4, T5, T6, T7, T8] {.header: "<june.h>", importcpp: "june::bind(@)".}
 proc bindInternal[T1, T2, T3, T4, T5, T6, T7, T8, T9](p: CppFunctionClosureN9[T1, T2, T3, T4, T5, T6, T7, T8, T9], env: pointer): CppFunctionObjectN9[T1, T2, T3, T4, T5, T6, T7, T8, T9] {.header: "<june.h>", importcpp: "june::bind(@)".}
 proc bindInternal[R, T1, T2, T3, T4, T5, T6, T7, T8, T9](p: CppFunctionClosureR9[R, T1, T2, T3, T4, T5, T6, T7, T8, T9], env: pointer): CppFunctionObjectR9[R, T1, T2, T3, T4, T5, T6, T7, T8, T9] {.header: "<june.h>", importcpp: "june::bind(@)".}
+proc bindInternal[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10](p: CppFunctionClosureN10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10], env: pointer): CppFunctionObjectN10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10] {.header: "<june.h>", importcpp: "june::bind(@)".}
 
 
 # A bound closure's environment is retained for the life of the program.
@@ -229,6 +232,10 @@ template bindClosure*[R, T1, T2, T3, T4, T5, T6, T7, T8, T9](f: proc(a1: T1, a2:
     block:
         let boundClosure: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9): R {.closure.} = f
         bindInternal(cast[CppFunctionClosureR9[R, T1, T2, T3, T4, T5, T6, T7, T8, T9]](rawProc boundClosure), retainEnv(rawEnv boundClosure))
+template bindClosure*[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10](f: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9, a10: T10) {.closure.}): CppFunctionObjectN10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10] =
+    block:
+        let boundClosure: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9, a10: T10) {.closure.} = f
+        bindInternal(cast[CppFunctionClosureN10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]](rawProc boundClosure), retainEnv(rawEnv boundClosure))
 
 proc `()`*(f: var CppFunctionObjectN0) {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc `()`*[R](f: var CppFunctionObjectR0[R]): R {.importcpp: "std::invoke(@)", header: "<functional>".}
@@ -250,6 +257,7 @@ proc `()`*[T1, T2, T3, T4, T5, T6, T7, T8](f: var CppFunctionObjectN8[T1, T2, T3
 proc `()`*[R, T1, T2, T3, T4, T5, T6, T7, T8](f: var CppFunctionObjectR8[R, T1, T2, T3, T4, T5, T6, T7, T8], a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8): R {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc `()`*[T1, T2, T3, T4, T5, T6, T7, T8, T9](f: var CppFunctionObjectN9[T1, T2, T3, T4, T5, T6, T7, T8, T9], a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9) {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc `()`*[R, T1, T2, T3, T4, T5, T6, T7, T8, T9](f: var CppFunctionObjectR9[R, T1, T2, T3, T4, T5, T6, T7, T8, T9], a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9): R {.importcpp: "std::invoke(@)", header: "<functional>".}
+proc `()`*[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10](f: var CppFunctionObjectN10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10], a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9, a10: T10) {.importcpp: "std::invoke(@)", header: "<functional>".}
 
 proc invoke*(f: var CppFunctionObjectN0) {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc invoke*[R](f: var CppFunctionObjectR0[R]): R {.importcpp: "std::invoke(@)", header: "<functional>".}
@@ -271,3 +279,4 @@ proc invoke*[T1, T2, T3, T4, T5, T6, T7, T8](f: var CppFunctionObjectN8[T1, T2, 
 proc invoke*[R, T1, T2, T3, T4, T5, T6, T7, T8](f: var CppFunctionObjectR8[R, T1, T2, T3, T4, T5, T6, T7, T8], a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8): R {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc invoke*[T1, T2, T3, T4, T5, T6, T7, T8, T9](f: var CppFunctionObjectN9[T1, T2, T3, T4, T5, T6, T7, T8, T9], a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9) {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc invoke*[R, T1, T2, T3, T4, T5, T6, T7, T8, T9](f: var CppFunctionObjectR9[R, T1, T2, T3, T4, T5, T6, T7, T8, T9], a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9): R {.importcpp: "std::invoke(@)", header: "<functional>".}
+proc invoke*[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10](f: var CppFunctionObjectN10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10], a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9, a10: T10) {.importcpp: "std::invoke(@)", header: "<functional>".}

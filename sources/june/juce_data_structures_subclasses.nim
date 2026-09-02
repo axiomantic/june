@@ -18,6 +18,16 @@ proc setPerformHandler*(this: var CustomUndoableAction, handler: proc(): bool {.
 proc setUndoHandler*(this: var CustomUndoableAction, handler: proc(): bool {.closure.}) =
     this.onUndo = bindClosure(handler)
 
+defineCppClassInternal CustomValueListener of ValueListener:
+    include "juce_data_structures/juce_data_structures.h"
+    cppParent "juce::Value::Listener"
+    proc valueChanged(value: varref[Value]) = discard
+
+proc newCustomValueListener*(): ptr CustomValueListener {.importcpp: "(new june::CustomValueListener)".}
+
+proc setValueChangedHandler*(this: var CustomValueListener, handler: proc(value: ptr Value) {.closure.}) =
+    this.onValueChanged = bindClosure(handler)
+
 defineCppClassInternal CustomValueTreeSynchroniser of ValueTreeSynchroniser:
     include "juce_data_structures/juce_data_structures.h"
     proc stateChanged(encodedChange: constrawptr[pointer], encodedChangeSize: csize_t) = discard
@@ -27,3 +37,5 @@ proc newCustomValueTreeSynchroniser*(tree: ValueTree): ptr CustomValueTreeSynchr
 proc setStateChangedHandler*(this: var CustomValueTreeSynchroniser, handler: proc(encodedChange: pointer, encodedChangeSize: csize_t) {.closure.}) =
     this.onStateChanged = bindClosure(handler)
 
+# Withheld, with the reason:
+#   ValueValueSource: var returned by getValue has no Nim spelling
