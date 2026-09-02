@@ -482,7 +482,9 @@ proc testXmlRoundTrip() =
   # And it parses back to the same values.
   var document = makeXmlDocument(makeString(serialised))
   let parsed = document.getDocumentElement()
-  doAssert not parsed.isNil(), "the document did not parse"
+  # get() rather than isNil(): Nim emits one C++ function for a generic over an
+  # importcpp type and reuses it across instantiations, which g++ rejects.
+  doAssert parsed.get() != nil, "the document did not parse"
   doAssert parsed.get()[].hasTagName("settings")
   doAssert parsed.get()[].getIntAttribute("version", 0.cint) == 2
 

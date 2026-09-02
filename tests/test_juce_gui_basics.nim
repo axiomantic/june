@@ -518,3 +518,47 @@ proc testComboBox() =
   shutdownJuce_GUI()
 
 testComboBox()
+
+# FlexBox lays items out by computation, so it needs no window and every number
+# is checkable. It also exercises the field accessors, which had no binding at
+# all before: FlexItem is a struct whose API is its fields.
+proc testFlexBoxLayout() =
+  initialiseJuce_GUI()
+
+  block:
+    var box = makeFlexBox()
+
+    # JUCE's FlexItem(w, h) records the size in currentBounds and the minimums
+    # and leaves width and height as notAssigned, which is -1. Asserting that
+    # rather than what the constructor looks like it does.
+    var first = makeFlexItem(30.0'f32, 20.0'f32)
+    doAssert first.width == -1.0'f32, "width was " & $first.width
+    doAssert first.minWidth == 30.0'f32, "minWidth was " & $first.minWidth
+    doAssert first.currentBounds.getWidth() == 30.0'f32
+
+    # The layout uses width, so set it.
+    first.width = 30.0'f32
+    first.height = 20.0'f32
+    var second = makeFlexItem(50.0'f32, 20.0'f32)
+    second.width = 50.0'f32
+    second.height = 20.0'f32
+
+    # items is reached through the var getter, so this appends to the field
+    # rather than to a copy of it.
+    box.items.add(first)
+    box.items.add(second)
+    doAssert box.items.size() == 2, "the box holds " & $box.items.size() & " items"
+
+    box.performLayout(makeRectangle(0.0'f32, 0.0'f32, 100.0'f32, 20.0'f32))
+
+    # Laid out along a row, the second item starts where the first ends.
+    let firstBounds = box.items[0.cint].currentBounds
+    let secondBounds = box.items[1.cint].currentBounds
+    doAssert firstBounds.getX() == 0.0'f32, "first x is " & $firstBounds.getX()
+    doAssert firstBounds.getWidth() == 30.0'f32, "first width is " & $firstBounds.getWidth()
+    doAssert secondBounds.getX() == 30.0'f32, "second x is " & $secondBounds.getX()
+    doAssert secondBounds.getWidth() == 50.0'f32
+
+  shutdownJuce_GUI()
+
+testFlexBoxLayout()
