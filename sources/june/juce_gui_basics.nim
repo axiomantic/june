@@ -5129,8 +5129,8 @@ proc `end=`*(this: var GridItemStartAndEndProperty, value: GridItemProperty) {.h
 proc `==`*(this: GridItemStartAndEndProperty, other: GridItemStartAndEndProperty): bool {.error: "juce::GridItem::StartAndEndProperty defines no operator==; compare a property instead".}
 
 proc makeGridItemMargin*(): GridItemMargin {.header: juce_gui_basics, importcpp: "juce::GridItem::Margin(@)".}
-proc makeGridItemMargin*(size: cint): GridItemMargin {.header: juce_gui_basics, importcpp: "juce::GridItem::Margin(@)".}
-proc makeGridItemMargin*(size: cfloat): GridItemMargin {.header: juce_gui_basics, importcpp: "juce::GridItem::Margin(@)".}
+proc makeGridItemMargin*(size: cint): GridItemMargin {.header: juce_gui_basics, importcpp: "juce::GridItem::Margin((int) @)".}
+proc makeGridItemMargin*(size: cfloat): GridItemMargin {.header: juce_gui_basics, importcpp: "juce::GridItem::Margin((float) @)".}
 proc makeGridItemMargin*(top: cfloat, right: cfloat, bottom: cfloat, left: cfloat): GridItemMargin {.header: juce_gui_basics, importcpp: "juce::GridItem::Margin(@)".}
 proc left*(this: GridItemMargin): cfloat {.header: juce_gui_basics, importcpp: "#.left".}
 proc left*(this: var GridItemMargin): var cfloat {.header: juce_gui_basics, importcpp: "#.left".}
@@ -5192,17 +5192,17 @@ proc getNumberOfColumns*(this: Grid): cint {.header: juce_gui_basics, importcpp:
 proc getNumberOfRows*(this: Grid): cint {.header: juce_gui_basics, importcpp: "#.getNumberOfRows()".}
 proc `==`*(this: Grid, other: Grid): bool {.error: "juce::Grid defines no operator==; compare a property instead".}
 
-proc makeGridPx*(p: cfloat): GridPx {.header: juce_gui_basics, importcpp: "juce::Grid::Px(@)".}
-proc makeGridPx*(p: cint): GridPx {.header: juce_gui_basics, importcpp: "juce::Grid::Px(@)".}
-# proc makeGridPx*(p: long double): GridPx {.header: juce_gui_basics, importcpp: "juce::Grid::Px(@)".}  # a long double parameter, which Nim has no type for; the other overloads take a float or an int
-proc makeGridPx*(p: uint64): GridPx {.header: juce_gui_basics, importcpp: "juce::Grid::Px(@)".}
+proc makeGridPx*(p: cfloat): GridPx {.header: juce_gui_basics, importcpp: "juce::Grid::Px((float) @)".}
+proc makeGridPx*(p: cint): GridPx {.header: juce_gui_basics, importcpp: "juce::Grid::Px((int) @)".}
+# proc makeGridPx*(p: long double): GridPx {.header: juce_gui_basics, importcpp: "juce::Grid::Px((long double) @)".}  # a long double parameter, which Nim has no type for; the other overloads take a float or an int
+proc makeGridPx*(p: uint64): GridPx {.header: juce_gui_basics, importcpp: "juce::Grid::Px((unsigned long long) @)".}
 # proc pixels*(this: GridPx): long double {.header: juce_gui_basics, importcpp: "#.pixels".}  # a long double parameter, which Nim has no type for; the other overloads take a float or an int
 # proc pixels*(this: var GridPx): var long double {.header: juce_gui_basics, importcpp: "#.pixels".}  # a long double parameter, which Nim has no type for; the other overloads take a float or an int
 # proc `pixels=`*(this: var GridPx, value: long double) {.header: juce_gui_basics, importcpp: "#.pixels = #".}  # a long double parameter, which Nim has no type for; the other overloads take a float or an int
 proc `==`*(this: GridPx, other: GridPx): bool {.error: "juce::Grid::Px defines no operator==; compare a property instead".}
 
-proc makeGridFr*(f: cint): GridFr {.header: juce_gui_basics, importcpp: "juce::Grid::Fr(@)".}
-proc makeGridFr*(p: uint64): GridFr {.header: juce_gui_basics, importcpp: "juce::Grid::Fr(@)".}
+proc makeGridFr*(f: cint): GridFr {.header: juce_gui_basics, importcpp: "juce::Grid::Fr((int) @)".}
+proc makeGridFr*(p: uint64): GridFr {.header: juce_gui_basics, importcpp: "juce::Grid::Fr((unsigned long long) @)".}
 proc fraction*(this: GridFr): uint64 {.header: juce_gui_basics, importcpp: "#.fraction".}
 proc fraction*(this: var GridFr): var uint64 {.header: juce_gui_basics, importcpp: "#.fraction".}
 proc `fraction=`*(this: var GridFr, value: uint64) {.header: juce_gui_basics, importcpp: "#.fraction = #".}

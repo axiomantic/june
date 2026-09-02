@@ -1149,3 +1149,27 @@ proc testNamedValueSet() =
   doAssert properties.isEmpty(), "remove left the set non-empty"
 
 testNamedValueSet()
+
+# var's conversion operators ==================================================
+#
+# These are bound as static_cast, which narrows silently where C++ would. The
+# 64-bit path is the one worth pinning: a var holding a value wider than 32
+# bits has to survive toInt64 whole, and the truncation in toInt has to be the
+# one C++ performs rather than one the binding introduced.
+
+proc testVarConversions() =
+  let wide = 0x1_0000_0001'i64
+  let value = makejuce_var(wide)
+
+  doAssert value.toInt64() == wide, "toInt64 gave " & $value.toInt64()
+  doAssert value.toInt() == 1,
+           "toInt gave " & $value.toInt() & "; C++ keeps the low 32 bits"
+  doAssert value.toFloat64() == 4294967297.0, "toFloat64 gave " & $value.toFloat64()
+
+  let fraction = makejuce_var(0.1'f64)
+  doAssert fraction.toFloat64() == 0.1, "toFloat64 gave " & $fraction.toFloat64()
+
+  doAssert not makejuce_var(0.cint).toBool(), "zero converted to true"
+  doAssert makejuce_var(1.cint).toBool(), "one converted to false"
+
+testVarConversions()

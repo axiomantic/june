@@ -96,7 +96,7 @@ nim_method_def = """{comment}proc {method_name}*({method_args}){method_return} {
 # `ValueTree vt(Identifier("x"))`, which C++ reads as a function declaration -
 # the most vexing parse - and every later use fails with "not a structure or
 # union". Without it the pattern is used and the call is an expression.
-nim_constructor_def = """{comment}proc make{class_name}*({method_args}): {class_name} {{.header: {juce_module_name}, importcpp: "{spelling}(@)".}}{reason}"""
+nim_constructor_def = """{comment}proc make{class_name}*({method_args}): {class_name} {{.header: {juce_module_name}, importcpp: "{spelling}({juce_args})".}}{reason}"""
 
 #==================================================================================================
 
@@ -704,8 +704,12 @@ def scalar_overloaded_names(methods):
             continue
         for position in range(len(overloads[0])):
             seen = {types[position] for types in overloads}
-            if len(seen) > 1 and all(t.replace("const ", "").strip() in convertible_scalars
-                                     for t in seen):
+            # Two are enough. juce::var is declared for int, int64, bool and
+            # double alongside const char* and const String&, and the scalars
+            # are ambiguous among themselves whatever else is in the set.
+            scalars = [t for t in seen
+                       if t.replace("const ", "").strip() in convertible_scalars]
+            if len(scalars) > 1:
                 ambiguous.add(name)
     return ambiguous
 
@@ -1205,12 +1209,27 @@ def run_main(juce_module_name, juce_class_name_to_export):
                                if x.kind == CursorKind.CONSTRUCTOR
                                and x.access_specifier == AccessSpecifier.PUBLIC]
 
+        # juce::var declares one constructor per numeric type, and Nim's int64
+        # is not long long on every platform, so g++ could not pick between
+        # var(int), var(int64) and var(double) while clang could. The cast that
+        # fixes an overloaded method fixes an overloaded constructor too.
+        scalar_overloaded_ctors = scalar_overloaded_names(public_constructors)
+
         for ctor in public_constructors:
             ctor_args, ctor_types, ctor_comment = [], [], ""
+            ctor_cpp_types = []
             for count, arg in enumerate(ctor.get_arguments()):
                 argument_type = remap_type(arg.type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap, unambiguous_nested_remap)
                 ctor_args.append(f"{remap_argument_name(arg.spelling, count)}: {argument_type}")
                 ctor_types.append(argument_type)
+                ctor_cpp_types.append(arg.type.get_canonical().spelling)
+
+            # A constructor has no receiver, so `@` is the whole argument list
+            # and only a single-argument one can be cast as a unit.
+            if len(ctor_cpp_types) == 1 and ctor.spelling in scalar_overloaded_ctors:
+                ctor_juce_args = f"({ctor_cpp_types[0]}) @"
+            else:
+                ctor_juce_args = "@"
 
             ctor_reason = ""
 
@@ -1230,6 +1249,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 "method_args": ", ".join(ctor_args),
                 "juce_module_name": juce_module_name,
                 "spelling": qualified_name,
+                "juce_args": ctor_juce_args,
                 "reason": (f"  # {ctor_reason}" if ctor_reason
                            else f"  # {unbound_type_reason(rendered)}" if ctor_comment
                            else "") })
