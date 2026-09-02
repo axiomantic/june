@@ -1034,3 +1034,37 @@ proc testTreeViewItem() =
     shutdownJuce_GUI()
 
 testTreeViewItem()
+
+# ScrollBar ===================================================================
+#
+# The scrolling model on its own: a range limit, a visible range inside it, and
+# the clamping between them. None of it needs the bar on screen.
+
+proc testScrollBar() =
+    initialiseJuce_GUI()
+
+    block:
+        var bar = makeScrollBar(true)
+        doAssert bar.isVertical(), "a vertical bar reported horizontal"
+
+        bar.setRangeLimits(0.0, 100.0, NotificationType_dontSendNotification)
+        doAssert bar.getMinimumRangeLimit() == 0.0, "minimum is " & $bar.getMinimumRangeLimit()
+        doAssert bar.getMaximumRangeLimit() == 100.0, "maximum is " & $bar.getMaximumRangeLimit()
+
+        bar.setCurrentRange(10.0, 20.0, NotificationType_dontSendNotification)
+        doAssert bar.getCurrentRangeStart() == 10.0, "start is " & $bar.getCurrentRangeStart()
+        doAssert bar.getCurrentRangeSize() == 20.0, "size is " & $bar.getCurrentRangeSize()
+
+        # Moving the start keeps the size and stays inside the limits.
+        bar.setCurrentRangeStart(50.0, NotificationType_dontSendNotification)
+        doAssert bar.getCurrentRangeStart() == 50.0, "start is " & $bar.getCurrentRangeStart()
+        doAssert bar.getCurrentRangeSize() == 20.0, "size changed to " & $bar.getCurrentRangeSize()
+
+        # Past the end, JUCE clamps so the visible range still fits.
+        bar.setCurrentRangeStart(1000.0, NotificationType_dontSendNotification)
+        doAssert bar.getCurrentRangeStart() == 80.0,
+                 "clamped start is " & $bar.getCurrentRangeStart()
+
+    shutdownJuce_GUI()
+
+testScrollBar()
