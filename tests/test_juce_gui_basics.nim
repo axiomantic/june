@@ -3006,4 +3006,347 @@ proc testTreeView() =
 
 
 testDrawableButton()
+# ComponentBuilder ============================================================
+#
+# Builds a component tree from a ValueTree. The type handler is abstract, so
+# this needs CustomComponentBuilderTypeHandler - one of the nested abstract
+# classes the subclass generator used to skip.
+
+proc testComponentBuilder() =
+    initialiseJuce_GUI()
+
+    block:
+        var builder = makeComponentBuilder()
+        doAssert builder.getNumHandlers() == 0,
+                 "a fresh builder holds " & $builder.getNumHandlers() & " handlers"
+
+        # registerStandardComponentTypes is an empty function in JUCE 8.0.15,
+        # so it is called for what it is rather than for an effect.
+        builder.registerStandardComponentTypes()
+        doAssert builder.getNumHandlers() == 0,
+                 "the standard types registered " & $builder.getNumHandlers() &
+                 " handlers, where JUCE 8.0.15 registers none"
+
+        let handled = makeIdentifier(makeString("Widget"))
+        var handler = newCustomComponentBuilderTypeHandler(handled)
+        var built = 0
+        handler[].setAddNewComponentFromStateHandler(
+            proc(state: ptr ValueTree, parent: ptr Component): ptr Component =
+                built += 1
+                nil)
+        handler[].setUpdateComponentFromStateHandler(
+            proc(component: ptr Component, state: ptr ValueTree) = discard)
+
+        builder.registerTypeHandler(cast[ptr ComponentBuilderTypeHandler](handler))
+        doAssert builder.getNumHandlers() == 1,
+                 "after registering one the builder holds " &
+                 $builder.getNumHandlers()
+        doAssert builder.getHandler(0.cint) ==
+                 cast[ptr ComponentBuilderTypeHandler](handler),
+                 "the builder reports another handler"
+        doAssert $builder.getHandler(0.cint)[].`type`().toString() == "Widget",
+                 "the handler answers for " &
+                 $builder.getHandler(0.cint)[].`type`().toString()
+
+        # A handler answers for the type it was registered under, and for
+        # nothing else.
+        doAssert builder.getHandlerForState(makeValueTree(handled)) ==
+                 cast[ptr ComponentBuilderTypeHandler](handler),
+                 "the builder found no handler for the type it registered"
+        doAssert builder.getHandlerForState(
+                     makeValueTree(makeIdentifier(makeString("Other")))) == nil,
+                 "the builder found a handler for a type nobody registered"
+
+        # The state a builder was given comes back unchanged.
+        var tree = makeValueTree(makeIdentifier(makeString("Holder")))
+        discard tree.setProperty(makeIdentifier(makeString("id")),
+                                 makejuce_var(makeString("root")), nil)
+        var stateful = makeComponentBuilder(tree)
+        doAssert stateful.state().getType() == tree.getType(),
+                 "the builder holds a state of type " &
+                 $stateful.state().getType().toString()
+        doAssert $stateful.state().getProperty(
+                     makeIdentifier(makeString("id"))).toString() == "root",
+                 "the state lost its property"
+
+    shutdownJuce_GUI()
+
 testTreeView()
+testComponentBuilder()
+
+# The nested abstract classes =================================================
+#
+# The subclass generator keyed an abstract class on its own spelling, which
+# never matched a declared Nim name for a nested one, so every Listener,
+# LookAndFeelMethods and other nested interface was skipped with no withheld
+# entry. Building each compiles the C++ class, and setting each handler is what
+# type-checks and generates the setter.
+
+proc testNestedSubclassesGuiBasics() =
+    initialiseJuce_GUI()
+    block:
+        var positionerOwner = newCustomComponent()
+        var customAlertWindowLookAndFeelMethods = newCustomAlertWindowLookAndFeelMethods()
+        doAssert not customAlertWindowLookAndFeelMethods.isNil(), "newCustomAlertWindowLookAndFeelMethods built nothing"
+        customAlertWindowLookAndFeelMethods[].setCreateAlertWindowHandler(proc(title: ptr String, message: ptr String, button1: ptr String, button2: ptr String, button3: ptr String, iconType: MessageBoxIconType, numButtons: cint, associatedComponent: ptr Component): ptr AlertWindow = nil)
+        customAlertWindowLookAndFeelMethods[].setDrawAlertBoxHandler(proc(arg0: ptr Graphics, arg1: ptr AlertWindow, textArea: ptr Rectangle[cint], arg3: ptr TextLayout) = discard)
+        customAlertWindowLookAndFeelMethods[].setGetAlertBoxWindowFlagsHandler(proc(): cint = 0.cint)
+        customAlertWindowLookAndFeelMethods[].setGetWidthsForTextButtonsHandler(proc(arg0: ptr AlertWindow, arg1: ptr Array[ptr TextButton]): Array[cint] = makeArray[cint]())
+        customAlertWindowLookAndFeelMethods[].setGetAlertWindowButtonHeightHandler(proc(): cint = 0.cint)
+        customAlertWindowLookAndFeelMethods[].setGetAlertWindowTitleFontHandler(proc(): Font = makeFont(makeFontOptions()))
+        customAlertWindowLookAndFeelMethods[].setGetAlertWindowMessageFontHandler(proc(): Font = makeFont(makeFontOptions()))
+        customAlertWindowLookAndFeelMethods[].setGetAlertWindowFontHandler(proc(): Font = makeFont(makeFontOptions()))
+        cdelete customAlertWindowLookAndFeelMethods
+        var customBubbleComponentLookAndFeelMethods = newCustomBubbleComponentLookAndFeelMethods()
+        doAssert not customBubbleComponentLookAndFeelMethods.isNil(), "newCustomBubbleComponentLookAndFeelMethods built nothing"
+        customBubbleComponentLookAndFeelMethods[].setDrawBubbleHandler(proc(g: ptr Graphics, bubbleComponent: ptr BubbleComponent, positionOfTip: ptr Point[cfloat], body: ptr Rectangle[cfloat]) = discard)
+        customBubbleComponentLookAndFeelMethods[].setSetComponentEffectForBubbleComponentHandler(proc(bubbleComponent: ptr BubbleComponent) = discard)
+        cdelete customBubbleComponentLookAndFeelMethods
+        var customButtonListener = newCustomButtonListener()
+        doAssert not customButtonListener.isNil(), "newCustomButtonListener built nothing"
+        customButtonListener[].setButtonClickedHandler(proc(arg0: ptr Button) = discard)
+        cdelete customButtonListener
+        var customButtonLookAndFeelMethods = newCustomButtonLookAndFeelMethods()
+        doAssert not customButtonLookAndFeelMethods.isNil(), "newCustomButtonLookAndFeelMethods built nothing"
+        customButtonLookAndFeelMethods[].setDrawButtonBackgroundHandler(proc(arg0: ptr Graphics, arg1: ptr Button, backgroundColour: ptr Colour, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) = discard)
+        customButtonLookAndFeelMethods[].setGetTextButtonFontHandler(proc(arg0: ptr TextButton, buttonHeight: cint): Font = makeFont(makeFontOptions()))
+        customButtonLookAndFeelMethods[].setGetTextButtonWidthToFitTextHandler(proc(arg0: ptr TextButton, buttonHeight: cint): cint = 0.cint)
+        customButtonLookAndFeelMethods[].setDrawButtonTextHandler(proc(arg0: ptr Graphics, arg1: ptr TextButton, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) = discard)
+        customButtonLookAndFeelMethods[].setDrawToggleButtonHandler(proc(arg0: ptr Graphics, arg1: ptr ToggleButton, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) = discard)
+        customButtonLookAndFeelMethods[].setChangeToggleButtonWidthToFitTextHandler(proc(arg0: ptr ToggleButton) = discard)
+        customButtonLookAndFeelMethods[].setDrawTickBoxHandler(proc(arg0: ptr Graphics, arg1: ptr Component, x: cfloat, y: cfloat, w: cfloat, h: cfloat, ticked: bool, isEnabled: bool, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) = discard)
+        customButtonLookAndFeelMethods[].setDrawDrawableButtonHandler(proc(arg0: ptr Graphics, arg1: ptr DrawableButton, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) = discard)
+        cdelete customButtonLookAndFeelMethods
+        var customCallOutBoxLookAndFeelMethods = newCustomCallOutBoxLookAndFeelMethods()
+        doAssert not customCallOutBoxLookAndFeelMethods.isNil(), "newCustomCallOutBoxLookAndFeelMethods built nothing"
+        customCallOutBoxLookAndFeelMethods[].setDrawCallOutBoxBackgroundHandler(proc(arg0: ptr CallOutBox, arg1: ptr Graphics, arg2: ptr Path, arg3: ptr Image) = discard)
+        customCallOutBoxLookAndFeelMethods[].setGetCallOutBoxBorderSizeHandler(proc(arg0: ptr CallOutBox): cint = 0.cint)
+        customCallOutBoxLookAndFeelMethods[].setGetCallOutBoxCornerSizeHandler(proc(arg0: ptr CallOutBox): cfloat = 0.0'f32)
+        cdelete customCallOutBoxLookAndFeelMethods
+        var customComboBoxListener = newCustomComboBoxListener()
+        doAssert not customComboBoxListener.isNil(), "newCustomComboBoxListener built nothing"
+        customComboBoxListener[].setComboBoxChangedHandler(proc(comboBoxThatHasChanged: ptr ComboBox) = discard)
+        cdelete customComboBoxListener
+        var customComboBoxLookAndFeelMethods = newCustomComboBoxLookAndFeelMethods()
+        doAssert not customComboBoxLookAndFeelMethods.isNil(), "newCustomComboBoxLookAndFeelMethods built nothing"
+        customComboBoxLookAndFeelMethods[].setDrawComboBoxHandler(proc(arg0: ptr Graphics, width: cint, height: cint, isButtonDown: bool, buttonX: cint, buttonY: cint, buttonW: cint, buttonH: cint, arg8: ptr ComboBox) = discard)
+        customComboBoxLookAndFeelMethods[].setGetComboBoxFontHandler(proc(arg0: ptr ComboBox): Font = makeFont(makeFontOptions()))
+        customComboBoxLookAndFeelMethods[].setCreateComboBoxTextBoxHandler(proc(arg0: ptr ComboBox): ptr Label = nil)
+        customComboBoxLookAndFeelMethods[].setPositionComboBoxTextHandler(proc(arg0: ptr ComboBox, labelToPosition: ptr Label) = discard)
+        customComboBoxLookAndFeelMethods[].setGetOptionsForComboBoxPopupMenuHandler(proc(arg0: ptr ComboBox, arg1: ptr Label): PopupMenuOptions = makePopupMenuOptions())
+        customComboBoxLookAndFeelMethods[].setDrawComboBoxTextWhenNothingSelectedHandler(proc(arg0: ptr Graphics, arg1: ptr ComboBox, arg2: ptr Label) = discard)
+        cdelete customComboBoxLookAndFeelMethods
+        var customComponentPeerScaleFactorListener = newCustomComponentPeerScaleFactorListener()
+        doAssert not customComponentPeerScaleFactorListener.isNil(), "newCustomComponentPeerScaleFactorListener built nothing"
+        customComponentPeerScaleFactorListener[].setNativeScaleFactorChangedHandler(proc(newScaleFactor: cdouble) = discard)
+        cdelete customComponentPeerScaleFactorListener
+        var customComponentPeerVBlankListener = newCustomComponentPeerVBlankListener()
+        doAssert not customComponentPeerVBlankListener.isNil(), "newCustomComponentPeerVBlankListener built nothing"
+        customComponentPeerVBlankListener[].setOnVBlankHandler(proc(timestampSec: cdouble) = discard)
+        cdelete customComponentPeerVBlankListener
+        var customComponentPositioner = newCustomComponentPositioner(cast[ptr Component](positionerOwner)[])
+        doAssert not customComponentPositioner.isNil(), "newCustomComponentPositioner built nothing"
+        customComponentPositioner[].setApplyNewBoundsHandler(proc(newBounds: ptr Rectangle[cint]) = discard)
+        cdelete customComponentPositioner
+        var customConcertinaPanelLookAndFeelMethods = newCustomConcertinaPanelLookAndFeelMethods()
+        doAssert not customConcertinaPanelLookAndFeelMethods.isNil(), "newCustomConcertinaPanelLookAndFeelMethods built nothing"
+        customConcertinaPanelLookAndFeelMethods[].setDrawConcertinaPanelHeaderHandler(proc(arg0: ptr Graphics, area: ptr Rectangle[cint], isMouseOver: bool, isMouseDown: bool, arg4: ptr ConcertinaPanel, arg5: ptr Component) = discard)
+        cdelete customConcertinaPanelLookAndFeelMethods
+        var customExtraLookAndFeelBaseClassesAudioDeviceSelectorComponentMethods = newCustomExtraLookAndFeelBaseClassesAudioDeviceSelectorComponentMethods()
+        doAssert not customExtraLookAndFeelBaseClassesAudioDeviceSelectorComponentMethods.isNil(), "newCustomExtraLookAndFeelBaseClassesAudioDeviceSelectorComponentMethods built nothing"
+        customExtraLookAndFeelBaseClassesAudioDeviceSelectorComponentMethods[].setDrawLevelMeterHandler(proc(arg0: ptr Graphics, width: cint, height: cint, level: cfloat) = discard)
+        cdelete customExtraLookAndFeelBaseClassesAudioDeviceSelectorComponentMethods
+        var customExtraLookAndFeelBaseClassesKeyMappingEditorComponentMethods = newCustomExtraLookAndFeelBaseClassesKeyMappingEditorComponentMethods()
+        doAssert not customExtraLookAndFeelBaseClassesKeyMappingEditorComponentMethods.isNil(), "newCustomExtraLookAndFeelBaseClassesKeyMappingEditorComponentMethods built nothing"
+        customExtraLookAndFeelBaseClassesKeyMappingEditorComponentMethods[].setDrawKeymapChangeButtonHandler(proc(arg0: ptr Graphics, width: cint, height: cint, arg3: ptr Button, keyDescription: ptr String) = discard)
+        cdelete customExtraLookAndFeelBaseClassesKeyMappingEditorComponentMethods
+        var customExtraLookAndFeelBaseClassesLassoComponentMethods = newCustomExtraLookAndFeelBaseClassesLassoComponentMethods()
+        doAssert not customExtraLookAndFeelBaseClassesLassoComponentMethods.isNil(), "newCustomExtraLookAndFeelBaseClassesLassoComponentMethods built nothing"
+        customExtraLookAndFeelBaseClassesLassoComponentMethods[].setDrawLassoHandler(proc(arg0: ptr Graphics, lassoComp: ptr Component) = discard)
+        cdelete customExtraLookAndFeelBaseClassesLassoComponentMethods
+        var customFilenameComponentLookAndFeelMethods = newCustomFilenameComponentLookAndFeelMethods()
+        doAssert not customFilenameComponentLookAndFeelMethods.isNil(), "newCustomFilenameComponentLookAndFeelMethods built nothing"
+        customFilenameComponentLookAndFeelMethods[].setCreateFilenameComponentBrowseButtonHandler(proc(text: ptr String): ptr Button = nil)
+        customFilenameComponentLookAndFeelMethods[].setLayoutFilenameComponentHandler(proc(arg0: ptr FilenameComponent, filenameBox: ptr ComboBox, browseButton: ptr Button) = discard)
+        cdelete customFilenameComponentLookAndFeelMethods
+        var customFocusOutlineOutlineWindowProperties = newCustomFocusOutlineOutlineWindowProperties()
+        doAssert not customFocusOutlineOutlineWindowProperties.isNil(), "newCustomFocusOutlineOutlineWindowProperties built nothing"
+        customFocusOutlineOutlineWindowProperties[].setGetOutlineBoundsHandler(proc(focusedComponent: ptr Component): Rectangle[cint] = makeRectangle(0.cint, 0.cint, 0.cint, 0.cint))
+        customFocusOutlineOutlineWindowProperties[].setDrawOutlineHandler(proc(arg0: ptr Graphics, width: cint, height: cint) = discard)
+        cdelete customFocusOutlineOutlineWindowProperties
+        var customGroupComponentLookAndFeelMethods = newCustomGroupComponentLookAndFeelMethods()
+        doAssert not customGroupComponentLookAndFeelMethods.isNil(), "newCustomGroupComponentLookAndFeelMethods built nothing"
+        customGroupComponentLookAndFeelMethods[].setDrawGroupComponentOutlineHandler(proc(arg0: ptr Graphics, w: cint, h: cint, text: ptr String, arg4: ptr Justification, arg5: ptr GroupComponent) = discard)
+        cdelete customGroupComponentLookAndFeelMethods
+        var customImageButtonLookAndFeelMethods = newCustomImageButtonLookAndFeelMethods()
+        doAssert not customImageButtonLookAndFeelMethods.isNil(), "newCustomImageButtonLookAndFeelMethods built nothing"
+        customImageButtonLookAndFeelMethods[].setDrawImageButtonHandler(proc(arg0: ptr Graphics, arg1: ptr Image, imageX: cint, imageY: cint, imageW: cint, imageH: cint, overlayColour: ptr Colour, imageOpacity: cfloat, arg8: ptr ImageButton) = discard)
+        cdelete customImageButtonLookAndFeelMethods
+        var customLabelListener = newCustomLabelListener()
+        doAssert not customLabelListener.isNil(), "newCustomLabelListener built nothing"
+        customLabelListener[].setLabelTextChangedHandler(proc(labelThatHasChanged: ptr Label) = discard)
+        cdelete customLabelListener
+        var customLabelLookAndFeelMethods = newCustomLabelLookAndFeelMethods()
+        doAssert not customLabelLookAndFeelMethods.isNil(), "newCustomLabelLookAndFeelMethods built nothing"
+        customLabelLookAndFeelMethods[].setDrawLabelHandler(proc(arg0: ptr Graphics, arg1: ptr Label) = discard)
+        customLabelLookAndFeelMethods[].setGetLabelFontHandler(proc(arg0: ptr Label): Font = makeFont(makeFontOptions()))
+        customLabelLookAndFeelMethods[].setGetLabelBorderSizeHandler(proc(arg0: ptr Label): BorderSize[cint] = makeBorderSize(0.cint))
+        cdelete customLabelLookAndFeelMethods
+        var customMarkerListListener = newCustomMarkerListListener()
+        doAssert not customMarkerListListener.isNil(), "newCustomMarkerListListener built nothing"
+        customMarkerListListener[].setMarkersChangedHandler(proc(markerList: ptr MarkerList) = discard)
+        cdelete customMarkerListListener
+        var customMarkerListMarkerListHolder = newCustomMarkerListMarkerListHolder()
+        doAssert not customMarkerListMarkerListHolder.isNil(), "newCustomMarkerListMarkerListHolder built nothing"
+        customMarkerListMarkerListHolder[].setGetMarkersHandler(proc(xAxis: bool): ptr MarkerList = nil)
+        cdelete customMarkerListMarkerListHolder
+        var customMenuBarModelListener = newCustomMenuBarModelListener()
+        doAssert not customMenuBarModelListener.isNil(), "newCustomMenuBarModelListener built nothing"
+        customMenuBarModelListener[].setMenuBarItemsChangedHandler(proc(menuBarModel: ptr MenuBarModel) = discard)
+        customMenuBarModelListener[].setMenuCommandInvokedHandler(proc(menuBarModel: ptr MenuBarModel, info: ptr ApplicationCommandTargetInvocationInfo) = discard)
+        cdelete customMenuBarModelListener
+        var customModalComponentManagerCallback = newCustomModalComponentManagerCallback()
+        doAssert not customModalComponentManagerCallback.isNil(), "newCustomModalComponentManagerCallback built nothing"
+        customModalComponentManagerCallback[].setModalStateFinishedHandler(proc(returnValue: cint) = discard)
+        cdelete customModalComponentManagerCallback
+        var customMouseInactivityDetectorListener = newCustomMouseInactivityDetectorListener()
+        doAssert not customMouseInactivityDetectorListener.isNil(), "newCustomMouseInactivityDetectorListener built nothing"
+        customMouseInactivityDetectorListener[].setMouseBecameActiveHandler(proc() = discard)
+        customMouseInactivityDetectorListener[].setMouseBecameInactiveHandler(proc() = discard)
+        cdelete customMouseInactivityDetectorListener
+        var customPopupMenuCustomCallback = newCustomPopupMenuCustomCallback()
+        doAssert not customPopupMenuCustomCallback.isNil(), "newCustomPopupMenuCustomCallback built nothing"
+        customPopupMenuCustomCallback[].setMenuItemTriggeredHandler(proc(): bool = false)
+        cdelete customPopupMenuCustomCallback
+        var customPopupMenuCustomComponent = newCustomPopupMenuCustomComponent(true)
+        doAssert not customPopupMenuCustomComponent.isNil(), "newCustomPopupMenuCustomComponent built nothing"
+        customPopupMenuCustomComponent[].setGetIdealSizeHandler(proc(idealWidth: ptr cint, idealHeight: ptr cint) = discard)
+        cdelete customPopupMenuCustomComponent
+        var customPopupMenuLookAndFeelMethods = newCustomPopupMenuLookAndFeelMethods()
+        doAssert not customPopupMenuLookAndFeelMethods.isNil(), "newCustomPopupMenuLookAndFeelMethods built nothing"
+        customPopupMenuLookAndFeelMethods[].setDrawPopupMenuBackgroundWithOptionsHandler(proc(arg0: ptr Graphics, width: cint, height: cint, arg3: ptr PopupMenuOptions) = discard)
+        customPopupMenuLookAndFeelMethods[].setDrawPopupMenuItemWithOptionsHandler(proc(arg0: ptr Graphics, area: ptr Rectangle[cint], isHighlighted: bool, item: ptr PopupMenuItem, arg4: ptr PopupMenuOptions) = discard)
+        customPopupMenuLookAndFeelMethods[].setDrawPopupMenuSectionHeaderWithOptionsHandler(proc(arg0: ptr Graphics, area: ptr Rectangle[cint], sectionName: ptr String, arg3: ptr PopupMenuOptions) = discard)
+        customPopupMenuLookAndFeelMethods[].setGetPopupMenuFontHandler(proc(): Font = makeFont(makeFontOptions()))
+        customPopupMenuLookAndFeelMethods[].setDrawPopupMenuUpDownArrowWithOptionsHandler(proc(arg0: ptr Graphics, width: cint, height: cint, isScrollUpArrow: bool, arg4: ptr PopupMenuOptions) = discard)
+        customPopupMenuLookAndFeelMethods[].setGetIdealPopupMenuItemSizeWithOptionsHandler(proc(text: ptr String, isSeparator: bool, standardMenuItemHeight: cint, idealWidth: ptr cint, idealHeight: ptr cint, arg5: ptr PopupMenuOptions) = discard)
+        customPopupMenuLookAndFeelMethods[].setGetIdealPopupMenuSectionHeaderSizeWithOptionsHandler(proc(text: ptr String, standardMenuItemHeight: cint, idealWidth: ptr cint, idealHeight: ptr cint, arg4: ptr PopupMenuOptions) = discard)
+        customPopupMenuLookAndFeelMethods[].setGetMenuWindowFlagsHandler(proc(): cint = 0.cint)
+        customPopupMenuLookAndFeelMethods[].setDrawMenuBarBackgroundHandler(proc(arg0: ptr Graphics, width: cint, height: cint, isMouseOverBar: bool, arg4: ptr MenuBarComponent) = discard)
+        customPopupMenuLookAndFeelMethods[].setGetDefaultMenuBarHeightHandler(proc(): cint = 0.cint)
+        customPopupMenuLookAndFeelMethods[].setGetMenuBarItemWidthHandler(proc(arg0: ptr MenuBarComponent, itemIndex: cint, itemText: ptr String): cint = 0.cint)
+        customPopupMenuLookAndFeelMethods[].setGetMenuBarFontHandler(proc(arg0: ptr MenuBarComponent, itemIndex: cint, itemText: ptr String): Font = makeFont(makeFontOptions()))
+        customPopupMenuLookAndFeelMethods[].setDrawMenuBarItemHandler(proc(arg0: ptr Graphics, width: cint, height: cint, itemIndex: cint, itemText: ptr String, isMouseOverItem: bool, isMenuOpen: bool, isMouseOverBar: bool, arg8: ptr MenuBarComponent) = discard)
+        customPopupMenuLookAndFeelMethods[].setGetParentComponentForMenuOptionsHandler(proc(options: ptr PopupMenuOptions): ptr Component = nil)
+        customPopupMenuLookAndFeelMethods[].setPreparePopupMenuWindowHandler(proc(newWindow: ptr Component) = discard)
+        customPopupMenuLookAndFeelMethods[].setShouldPopupMenuScaleWithTargetComponentHandler(proc(options: ptr PopupMenuOptions): bool = false)
+        customPopupMenuLookAndFeelMethods[].setGetPopupMenuBorderSizeWithOptionsHandler(proc(arg0: ptr PopupMenuOptions): cint = 0.cint)
+        customPopupMenuLookAndFeelMethods[].setDrawPopupMenuColumnSeparatorWithOptionsHandler(proc(g: ptr Graphics, bounds: ptr Rectangle[cint], arg2: ptr PopupMenuOptions) = discard)
+        customPopupMenuLookAndFeelMethods[].setGetPopupMenuColumnSeparatorWidthWithOptionsHandler(proc(arg0: ptr PopupMenuOptions): cint = 0.cint)
+        cdelete customPopupMenuLookAndFeelMethods
+        var customProgressBarLookAndFeelMethods = newCustomProgressBarLookAndFeelMethods()
+        doAssert not customProgressBarLookAndFeelMethods.isNil(), "newCustomProgressBarLookAndFeelMethods built nothing"
+        customProgressBarLookAndFeelMethods[].setDrawProgressBarHandler(proc(arg0: ptr Graphics, arg1: ptr ProgressBar, width: cint, height: cint, progress: cdouble, textToShow: ptr String) = discard)
+        customProgressBarLookAndFeelMethods[].setIsProgressBarOpaqueHandler(proc(arg0: ptr ProgressBar): bool = false)
+        customProgressBarLookAndFeelMethods[].setGetDefaultProgressBarStyleHandler(proc(arg0: ptr ProgressBar): cint = 0.cint)
+        cdelete customProgressBarLookAndFeelMethods
+        var customPropertyComponentLookAndFeelMethods = newCustomPropertyComponentLookAndFeelMethods()
+        doAssert not customPropertyComponentLookAndFeelMethods.isNil(), "newCustomPropertyComponentLookAndFeelMethods built nothing"
+        customPropertyComponentLookAndFeelMethods[].setDrawPropertyPanelSectionHeaderHandler(proc(arg0: ptr Graphics, name: ptr String, isOpen: bool, width: cint, height: cint) = discard)
+        customPropertyComponentLookAndFeelMethods[].setDrawPropertyComponentBackgroundHandler(proc(arg0: ptr Graphics, width: cint, height: cint, arg3: ptr PropertyComponent) = discard)
+        customPropertyComponentLookAndFeelMethods[].setDrawPropertyComponentLabelHandler(proc(arg0: ptr Graphics, width: cint, height: cint, arg3: ptr PropertyComponent) = discard)
+        customPropertyComponentLookAndFeelMethods[].setGetPropertyComponentContentPositionHandler(proc(arg0: ptr PropertyComponent): Rectangle[cint] = makeRectangle(0.cint, 0.cint, 0.cint, 0.cint))
+        customPropertyComponentLookAndFeelMethods[].setGetPropertyPanelSectionHeaderHeightHandler(proc(sectionTitle: ptr String): cint = 0.cint)
+        cdelete customPropertyComponentLookAndFeelMethods
+        var customRelativePointPathElementBase = newCustomRelativePointPathElementBase(RelativePointPathElementType_lineToElement)
+        doAssert not customRelativePointPathElementBase.isNil(), "newCustomRelativePointPathElementBase built nothing"
+        customRelativePointPathElementBase[].setAddToPathHandler(proc(path: ptr Path, arg1: ptr ExpressionScope) = discard)
+        customRelativePointPathElementBase[].setGetControlPointsHandler(proc(numPoints: ptr cint): ptr RelativePoint = nil)
+        customRelativePointPathElementBase[].setCloneHandler(proc(): ptr RelativePointPathElementBase = nil)
+        cdelete customRelativePointPathElementBase
+        var customResizableWindowLookAndFeelMethods = newCustomResizableWindowLookAndFeelMethods()
+        doAssert not customResizableWindowLookAndFeelMethods.isNil(), "newCustomResizableWindowLookAndFeelMethods built nothing"
+        customResizableWindowLookAndFeelMethods[].setDrawCornerResizerHandler(proc(arg0: ptr Graphics, w: cint, h: cint, isMouseOver: bool, isMouseDragging: bool) = discard)
+        customResizableWindowLookAndFeelMethods[].setDrawResizableFrameHandler(proc(arg0: ptr Graphics, w: cint, h: cint, arg3: ptr BorderSize[cint]) = discard)
+        customResizableWindowLookAndFeelMethods[].setFillResizableWindowBackgroundHandler(proc(arg0: ptr Graphics, w: cint, h: cint, arg3: ptr BorderSize[cint], arg4: ptr ResizableWindow) = discard)
+        customResizableWindowLookAndFeelMethods[].setDrawResizableWindowBorderHandler(proc(arg0: ptr Graphics, w: cint, h: cint, border: ptr BorderSize[cint], arg4: ptr ResizableWindow) = discard)
+        cdelete customResizableWindowLookAndFeelMethods
+        var customScrollBarListener = newCustomScrollBarListener()
+        doAssert not customScrollBarListener.isNil(), "newCustomScrollBarListener built nothing"
+        customScrollBarListener[].setScrollBarMovedHandler(proc(scrollBarThatHasMoved: ptr ScrollBar, newRangeStart: cdouble) = discard)
+        cdelete customScrollBarListener
+        var customSliderLookAndFeelMethods = newCustomSliderLookAndFeelMethods()
+        doAssert not customSliderLookAndFeelMethods.isNil(), "newCustomSliderLookAndFeelMethods built nothing"
+        customSliderLookAndFeelMethods[].setDrawLinearSliderHandler(proc(arg0: ptr Graphics, x: cint, y: cint, width: cint, height: cint, sliderPos: cfloat, minSliderPos: cfloat, maxSliderPos: cfloat, arg8: SliderSliderStyle, arg9: ptr Slider) = discard)
+        customSliderLookAndFeelMethods[].setDrawLinearSliderBackgroundHandler(proc(arg0: ptr Graphics, x: cint, y: cint, width: cint, height: cint, sliderPos: cfloat, minSliderPos: cfloat, maxSliderPos: cfloat, arg8: SliderSliderStyle, arg9: ptr Slider) = discard)
+        customSliderLookAndFeelMethods[].setDrawLinearSliderOutlineHandler(proc(arg0: ptr Graphics, x: cint, y: cint, width: cint, height: cint, arg5: SliderSliderStyle, arg6: ptr Slider) = discard)
+        customSliderLookAndFeelMethods[].setDrawLinearSliderThumbHandler(proc(arg0: ptr Graphics, x: cint, y: cint, width: cint, height: cint, sliderPos: cfloat, minSliderPos: cfloat, maxSliderPos: cfloat, arg8: SliderSliderStyle, arg9: ptr Slider) = discard)
+        customSliderLookAndFeelMethods[].setGetSliderThumbRadiusHandler(proc(arg0: ptr Slider): cint = 0.cint)
+        customSliderLookAndFeelMethods[].setDrawRotarySliderHandler(proc(arg0: ptr Graphics, x: cint, y: cint, width: cint, height: cint, sliderPosProportional: cfloat, rotaryStartAngle: cfloat, rotaryEndAngle: cfloat, arg8: ptr Slider) = discard)
+        customSliderLookAndFeelMethods[].setCreateSliderButtonHandler(proc(arg0: ptr Slider, isIncrement: bool): ptr Button = nil)
+        customSliderLookAndFeelMethods[].setCreateSliderTextBoxHandler(proc(arg0: ptr Slider): ptr Label = nil)
+        customSliderLookAndFeelMethods[].setGetSliderEffectHandler(proc(arg0: ptr Slider): ptr ImageEffectFilter = nil)
+        customSliderLookAndFeelMethods[].setGetSliderPopupFontHandler(proc(arg0: ptr Slider): Font = makeFont(makeFontOptions()))
+        customSliderLookAndFeelMethods[].setGetSliderPopupPlacementHandler(proc(arg0: ptr Slider): cint = 0.cint)
+        customSliderLookAndFeelMethods[].setGetSliderLayoutHandler(proc(arg0: ptr Slider): SliderSliderLayout = makeSliderSliderLayout())
+        cdelete customSliderLookAndFeelMethods
+        var customStretchableLayoutResizerBarLookAndFeelMethods = newCustomStretchableLayoutResizerBarLookAndFeelMethods()
+        doAssert not customStretchableLayoutResizerBarLookAndFeelMethods.isNil(), "newCustomStretchableLayoutResizerBarLookAndFeelMethods built nothing"
+        customStretchableLayoutResizerBarLookAndFeelMethods[].setDrawStretchableLayoutResizerBarHandler(proc(arg0: ptr Graphics, w: cint, h: cint, isVerticalBar: bool, isMouseOver: bool, isMouseDragging: bool) = discard)
+        cdelete customStretchableLayoutResizerBarLookAndFeelMethods
+        var customTabbedButtonBarLookAndFeelMethods = newCustomTabbedButtonBarLookAndFeelMethods()
+        doAssert not customTabbedButtonBarLookAndFeelMethods.isNil(), "newCustomTabbedButtonBarLookAndFeelMethods built nothing"
+        customTabbedButtonBarLookAndFeelMethods[].setGetTabButtonSpaceAroundImageHandler(proc(): cint = 0.cint)
+        customTabbedButtonBarLookAndFeelMethods[].setGetTabButtonOverlapHandler(proc(tabDepth: cint): cint = 0.cint)
+        customTabbedButtonBarLookAndFeelMethods[].setGetTabButtonBestWidthHandler(proc(arg0: ptr TabBarButton, tabDepth: cint): cint = 0.cint)
+        customTabbedButtonBarLookAndFeelMethods[].setGetTabButtonExtraComponentBoundsHandler(proc(arg0: ptr TabBarButton, textArea: ptr Rectangle[cint], extraComp: ptr Component): Rectangle[cint] = makeRectangle(0.cint, 0.cint, 0.cint, 0.cint))
+        customTabbedButtonBarLookAndFeelMethods[].setDrawTabButtonHandler(proc(arg0: ptr TabBarButton, arg1: ptr Graphics, isMouseOver: bool, isMouseDown: bool) = discard)
+        customTabbedButtonBarLookAndFeelMethods[].setGetTabButtonFontHandler(proc(arg0: ptr TabBarButton, height: cfloat): Font = makeFont(makeFontOptions()))
+        customTabbedButtonBarLookAndFeelMethods[].setDrawTabButtonTextHandler(proc(arg0: ptr TabBarButton, arg1: ptr Graphics, isMouseOver: bool, isMouseDown: bool) = discard)
+        customTabbedButtonBarLookAndFeelMethods[].setDrawTabbedButtonBarBackgroundHandler(proc(arg0: ptr TabbedButtonBar, arg1: ptr Graphics) = discard)
+        customTabbedButtonBarLookAndFeelMethods[].setDrawTabAreaBehindFrontButtonHandler(proc(arg0: ptr TabbedButtonBar, arg1: ptr Graphics, w: cint, h: cint) = discard)
+        customTabbedButtonBarLookAndFeelMethods[].setCreateTabButtonShapeHandler(proc(arg0: ptr TabBarButton, path: ptr Path, isMouseOver: bool, isMouseDown: bool) = discard)
+        customTabbedButtonBarLookAndFeelMethods[].setFillTabButtonShapeHandler(proc(arg0: ptr TabBarButton, arg1: ptr Graphics, path: ptr Path, isMouseOver: bool, isMouseDown: bool) = discard)
+        customTabbedButtonBarLookAndFeelMethods[].setCreateTabBarExtrasButtonHandler(proc(): ptr Button = nil)
+        cdelete customTabbedButtonBarLookAndFeelMethods
+        var customTableHeaderComponentListener = newCustomTableHeaderComponentListener()
+        doAssert not customTableHeaderComponentListener.isNil(), "newCustomTableHeaderComponentListener built nothing"
+        customTableHeaderComponentListener[].setTableColumnsChangedHandler(proc(tableHeader: ptr TableHeaderComponent) = discard)
+        customTableHeaderComponentListener[].setTableColumnsResizedHandler(proc(tableHeader: ptr TableHeaderComponent) = discard)
+        customTableHeaderComponentListener[].setTableSortOrderChangedHandler(proc(tableHeader: ptr TableHeaderComponent) = discard)
+        cdelete customTableHeaderComponentListener
+        var customTableHeaderComponentLookAndFeelMethods = newCustomTableHeaderComponentLookAndFeelMethods()
+        doAssert not customTableHeaderComponentLookAndFeelMethods.isNil(), "newCustomTableHeaderComponentLookAndFeelMethods built nothing"
+        customTableHeaderComponentLookAndFeelMethods[].setDrawTableHeaderBackgroundHandler(proc(arg0: ptr Graphics, arg1: ptr TableHeaderComponent) = discard)
+        customTableHeaderComponentLookAndFeelMethods[].setDrawTableHeaderColumnHandler(proc(arg0: ptr Graphics, arg1: ptr TableHeaderComponent, columnName: ptr String, columnId: cint, width: cint, height: cint, isMouseOver: bool, isMouseDown: bool, columnFlags: cint) = discard)
+        cdelete customTableHeaderComponentLookAndFeelMethods
+        var customTextEditorInputFilter = newCustomTextEditorInputFilter()
+        doAssert not customTextEditorInputFilter.isNil(), "newCustomTextEditorInputFilter built nothing"
+        customTextEditorInputFilter[].setFilterNewTextHandler(proc(arg0: ptr TextEditor, newInput: ptr String): String = makeString(""))
+        cdelete customTextEditorInputFilter
+        var customTextEditorLookAndFeelMethods = newCustomTextEditorLookAndFeelMethods()
+        doAssert not customTextEditorLookAndFeelMethods.isNil(), "newCustomTextEditorLookAndFeelMethods built nothing"
+        customTextEditorLookAndFeelMethods[].setFillTextEditorBackgroundHandler(proc(arg0: ptr Graphics, width: cint, height: cint, arg3: ptr TextEditor) = discard)
+        customTextEditorLookAndFeelMethods[].setDrawTextEditorOutlineHandler(proc(arg0: ptr Graphics, width: cint, height: cint, arg3: ptr TextEditor) = discard)
+        customTextEditorLookAndFeelMethods[].setCreateCaretComponentHandler(proc(keyFocusOwner: ptr Component): ptr CaretComponent = nil)
+        cdelete customTextEditorLookAndFeelMethods
+        var customTextPropertyComponentListener = newCustomTextPropertyComponentListener()
+        doAssert not customTextPropertyComponentListener.isNil(), "newCustomTextPropertyComponentListener built nothing"
+        customTextPropertyComponentListener[].setTextPropertyComponentChangedHandler(proc(arg0: ptr TextPropertyComponent) = discard)
+        cdelete customTextPropertyComponentListener
+        var customToolbarLookAndFeelMethods = newCustomToolbarLookAndFeelMethods()
+        doAssert not customToolbarLookAndFeelMethods.isNil(), "newCustomToolbarLookAndFeelMethods built nothing"
+        customToolbarLookAndFeelMethods[].setPaintToolbarBackgroundHandler(proc(arg0: ptr Graphics, width: cint, height: cint, arg3: ptr Toolbar) = discard)
+        customToolbarLookAndFeelMethods[].setCreateToolbarMissingItemsButtonHandler(proc(arg0: ptr Toolbar): ptr Button = nil)
+        customToolbarLookAndFeelMethods[].setPaintToolbarButtonBackgroundHandler(proc(arg0: ptr Graphics, width: cint, height: cint, isMouseOver: bool, isMouseDown: bool, arg5: ptr ToolbarItemComponent) = discard)
+        customToolbarLookAndFeelMethods[].setPaintToolbarButtonLabelHandler(proc(arg0: ptr Graphics, x: cint, y: cint, width: cint, height: cint, text: ptr String, arg6: ptr ToolbarItemComponent) = discard)
+        cdelete customToolbarLookAndFeelMethods
+        var customTooltipWindowLookAndFeelMethods = newCustomTooltipWindowLookAndFeelMethods()
+        doAssert not customTooltipWindowLookAndFeelMethods.isNil(), "newCustomTooltipWindowLookAndFeelMethods built nothing"
+        customTooltipWindowLookAndFeelMethods[].setGetTooltipBoundsHandler(proc(tipText: ptr String, screenPos: Point[cint], parentArea: Rectangle[cint]): Rectangle[cint] = makeRectangle(0.cint, 0.cint, 0.cint, 0.cint))
+        customTooltipWindowLookAndFeelMethods[].setDrawTooltipHandler(proc(arg0: ptr Graphics, text: ptr String, width: cint, height: cint) = discard)
+        cdelete customTooltipWindowLookAndFeelMethods
+        cdelete positionerOwner
+    shutdownJuce_GUI()
+
+testNestedSubclassesGuiBasics()

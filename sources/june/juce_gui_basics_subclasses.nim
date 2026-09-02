@@ -156,6 +156,44 @@ proc setSetValueAsStringHandler*(this: var CustomAccessibilityValueInterface, ha
 proc setGetRangeHandler*(this: var CustomAccessibilityValueInterface, handler: proc(): AccessibilityValueInterfaceAccessibleValueRange {.closure.}) =
     this.onGetRange = bindClosure(handler)
 
+defineCppClassInternal CustomAlertWindowLookAndFeelMethods of AlertWindowLookAndFeelMethods:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::AlertWindow::LookAndFeelMethods"
+    proc createAlertWindow(title: constptr[String], message: constptr[String], button1: constptr[String], button2: constptr[String], button3: constptr[String], iconType: MessageBoxIconType, numButtons: cint, associatedComponent: ptr Component): ptr AlertWindow = discard
+    proc drawAlertBox(arg0: varref[Graphics], arg1: varref[AlertWindow], textArea: constptr[Rectangle[cint]], arg3: varref[TextLayout]) = discard
+    proc getAlertBoxWindowFlags(): cint = discard
+    proc getWidthsForTextButtons(arg0: varref[AlertWindow], arg1: constptr[Array[ptr TextButton]]): Array[cint] = discard
+    proc getAlertWindowButtonHeight(): cint = discard
+    proc getAlertWindowTitleFont(): Font = discard
+    proc getAlertWindowMessageFont(): Font = discard
+    proc getAlertWindowFont(): Font = discard
+
+proc newCustomAlertWindowLookAndFeelMethods*(): ptr CustomAlertWindowLookAndFeelMethods {.importcpp: "(new june::CustomAlertWindowLookAndFeelMethods)".}
+
+proc setCreateAlertWindowHandler*(this: var CustomAlertWindowLookAndFeelMethods, handler: proc(title: ptr String, message: ptr String, button1: ptr String, button2: ptr String, button3: ptr String, iconType: MessageBoxIconType, numButtons: cint, associatedComponent: ptr Component): ptr AlertWindow {.closure.}) =
+    this.onCreateAlertWindow = bindClosure(handler)
+
+proc setDrawAlertBoxHandler*(this: var CustomAlertWindowLookAndFeelMethods, handler: proc(arg0: ptr Graphics, arg1: ptr AlertWindow, textArea: ptr Rectangle[cint], arg3: ptr TextLayout) {.closure.}) =
+    this.onDrawAlertBox = bindClosure(handler)
+
+proc setGetAlertBoxWindowFlagsHandler*(this: var CustomAlertWindowLookAndFeelMethods, handler: proc(): cint {.closure.}) =
+    this.onGetAlertBoxWindowFlags = bindClosure(handler)
+
+proc setGetWidthsForTextButtonsHandler*(this: var CustomAlertWindowLookAndFeelMethods, handler: proc(arg0: ptr AlertWindow, arg1: ptr Array[ptr TextButton]): Array[cint] {.closure.}) =
+    this.onGetWidthsForTextButtons = bindClosure(handler)
+
+proc setGetAlertWindowButtonHeightHandler*(this: var CustomAlertWindowLookAndFeelMethods, handler: proc(): cint {.closure.}) =
+    this.onGetAlertWindowButtonHeight = bindClosure(handler)
+
+proc setGetAlertWindowTitleFontHandler*(this: var CustomAlertWindowLookAndFeelMethods, handler: proc(): Font {.closure.}) =
+    this.onGetAlertWindowTitleFont = bindClosure(handler)
+
+proc setGetAlertWindowMessageFontHandler*(this: var CustomAlertWindowLookAndFeelMethods, handler: proc(): Font {.closure.}) =
+    this.onGetAlertWindowMessageFont = bindClosure(handler)
+
+proc setGetAlertWindowFontHandler*(this: var CustomAlertWindowLookAndFeelMethods, handler: proc(): Font {.closure.}) =
+    this.onGetAlertWindowFont = bindClosure(handler)
+
 defineCppClassInternal CustomApplicationCommandManagerListener of ApplicationCommandManagerListener:
     include "juce_gui_basics/juce_gui_basics.h"
     cppTypeName ApplicationCommandTargetInvocationInfo, "ApplicationCommandTarget::InvocationInfo"
@@ -218,6 +256,68 @@ proc setGetContentSizeHandler*(this: var CustomBubbleComponent, handler: proc(wi
 proc setPaintContentHandler*(this: var CustomBubbleComponent, handler: proc(g: ptr Graphics, width: cint, height: cint) {.closure.}) =
     this.onPaintContent = bindClosure(handler)
 
+defineCppClassInternal CustomBubbleComponentLookAndFeelMethods of BubbleComponentLookAndFeelMethods:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::BubbleComponent::LookAndFeelMethods"
+    proc drawBubble(g: varref[Graphics], bubbleComponent: varref[BubbleComponent], positionOfTip: constptr[Point[cfloat]], body: constptr[Rectangle[cfloat]]) = discard
+    proc setComponentEffectForBubbleComponent(bubbleComponent: varref[BubbleComponent]) = discard
+
+proc newCustomBubbleComponentLookAndFeelMethods*(): ptr CustomBubbleComponentLookAndFeelMethods {.importcpp: "(new june::CustomBubbleComponentLookAndFeelMethods)".}
+
+proc setDrawBubbleHandler*(this: var CustomBubbleComponentLookAndFeelMethods, handler: proc(g: ptr Graphics, bubbleComponent: ptr BubbleComponent, positionOfTip: ptr Point[cfloat], body: ptr Rectangle[cfloat]) {.closure.}) =
+    this.onDrawBubble = bindClosure(handler)
+
+proc setSetComponentEffectForBubbleComponentHandler*(this: var CustomBubbleComponentLookAndFeelMethods, handler: proc(bubbleComponent: ptr BubbleComponent) {.closure.}) =
+    this.onSetComponentEffectForBubbleComponent = bindClosure(handler)
+
+defineCppClassInternal CustomButtonListener of ButtonListener:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::Button::Listener"
+    proc buttonClicked(arg0: ptr Button) = discard
+
+proc newCustomButtonListener*(): ptr CustomButtonListener {.importcpp: "(new june::CustomButtonListener)".}
+
+proc setButtonClickedHandler*(this: var CustomButtonListener, handler: proc(arg0: ptr Button) {.closure.}) =
+    this.onButtonClicked = bindClosure(handler)
+
+defineCppClassInternal CustomButtonLookAndFeelMethods of ButtonLookAndFeelMethods:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::Button::LookAndFeelMethods"
+    proc drawButtonBackground(arg0: varref[Graphics], arg1: varref[Button], backgroundColour: constptr[Colour], shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) = discard
+    proc getTextButtonFont(arg0: varref[TextButton], buttonHeight: cint): Font = discard
+    proc getTextButtonWidthToFitText(arg0: varref[TextButton], buttonHeight: cint): cint = discard
+    proc drawButtonText(arg0: varref[Graphics], arg1: varref[TextButton], shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) = discard
+    proc drawToggleButton(arg0: varref[Graphics], arg1: varref[ToggleButton], shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) = discard
+    proc changeToggleButtonWidthToFitText(arg0: varref[ToggleButton]) = discard
+    proc drawTickBox(arg0: varref[Graphics], arg1: varref[Component], x: cfloat, y: cfloat, w: cfloat, h: cfloat, ticked: bool, isEnabled: bool, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) = discard
+    proc drawDrawableButton(arg0: varref[Graphics], arg1: varref[DrawableButton], shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) = discard
+
+proc newCustomButtonLookAndFeelMethods*(): ptr CustomButtonLookAndFeelMethods {.importcpp: "(new june::CustomButtonLookAndFeelMethods)".}
+
+proc setDrawButtonBackgroundHandler*(this: var CustomButtonLookAndFeelMethods, handler: proc(arg0: ptr Graphics, arg1: ptr Button, backgroundColour: ptr Colour, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.closure.}) =
+    this.onDrawButtonBackground = bindClosure(handler)
+
+proc setGetTextButtonFontHandler*(this: var CustomButtonLookAndFeelMethods, handler: proc(arg0: ptr TextButton, buttonHeight: cint): Font {.closure.}) =
+    this.onGetTextButtonFont = bindClosure(handler)
+
+proc setGetTextButtonWidthToFitTextHandler*(this: var CustomButtonLookAndFeelMethods, handler: proc(arg0: ptr TextButton, buttonHeight: cint): cint {.closure.}) =
+    this.onGetTextButtonWidthToFitText = bindClosure(handler)
+
+proc setDrawButtonTextHandler*(this: var CustomButtonLookAndFeelMethods, handler: proc(arg0: ptr Graphics, arg1: ptr TextButton, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.closure.}) =
+    this.onDrawButtonText = bindClosure(handler)
+
+proc setDrawToggleButtonHandler*(this: var CustomButtonLookAndFeelMethods, handler: proc(arg0: ptr Graphics, arg1: ptr ToggleButton, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.closure.}) =
+    this.onDrawToggleButton = bindClosure(handler)
+
+proc setChangeToggleButtonWidthToFitTextHandler*(this: var CustomButtonLookAndFeelMethods, handler: proc(arg0: ptr ToggleButton) {.closure.}) =
+    this.onChangeToggleButtonWidthToFitText = bindClosure(handler)
+
+proc setDrawTickBoxHandler*(this: var CustomButtonLookAndFeelMethods, handler: proc(arg0: ptr Graphics, arg1: ptr Component, x: cfloat, y: cfloat, w: cfloat, h: cfloat, ticked: bool, isEnabled: bool, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.closure.}) =
+    this.onDrawTickBox = bindClosure(handler)
+
+proc setDrawDrawableButtonHandler*(this: var CustomButtonLookAndFeelMethods, handler: proc(arg0: ptr Graphics, arg1: ptr DrawableButton, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.closure.}) =
+    this.onDrawDrawableButton = bindClosure(handler)
+
 defineCppClassInternal CustomButtonPropertyComponent of ButtonPropertyComponent:
     include "juce_gui_basics/juce_gui_basics.h"
     proc buttonClicked() = discard
@@ -252,6 +352,79 @@ proc setInvalidateHandler*(this: var CustomCachedComponentImage, handler: proc(a
 proc setReleaseResourcesHandler*(this: var CustomCachedComponentImage, handler: proc() {.closure.}) =
     this.onReleaseResources = bindClosure(handler)
 
+defineCppClassInternal CustomCallOutBoxLookAndFeelMethods of CallOutBoxLookAndFeelMethods:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::CallOutBox::LookAndFeelMethods"
+    proc drawCallOutBoxBackground(arg0: varref[CallOutBox], arg1: varref[Graphics], arg2: constptr[Path], arg3: varref[Image]) = discard
+    proc getCallOutBoxBorderSize(arg0: constptr[CallOutBox]): cint = discard
+    proc getCallOutBoxCornerSize(arg0: constptr[CallOutBox]): cfloat = discard
+
+proc newCustomCallOutBoxLookAndFeelMethods*(): ptr CustomCallOutBoxLookAndFeelMethods {.importcpp: "(new june::CustomCallOutBoxLookAndFeelMethods)".}
+
+proc setDrawCallOutBoxBackgroundHandler*(this: var CustomCallOutBoxLookAndFeelMethods, handler: proc(arg0: ptr CallOutBox, arg1: ptr Graphics, arg2: ptr Path, arg3: ptr Image) {.closure.}) =
+    this.onDrawCallOutBoxBackground = bindClosure(handler)
+
+proc setGetCallOutBoxBorderSizeHandler*(this: var CustomCallOutBoxLookAndFeelMethods, handler: proc(arg0: ptr CallOutBox): cint {.closure.}) =
+    this.onGetCallOutBoxBorderSize = bindClosure(handler)
+
+proc setGetCallOutBoxCornerSizeHandler*(this: var CustomCallOutBoxLookAndFeelMethods, handler: proc(arg0: ptr CallOutBox): cfloat {.closure.}) =
+    this.onGetCallOutBoxCornerSize = bindClosure(handler)
+
+defineCppClassInternal CustomComboBoxListener of ComboBoxListener:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::ComboBox::Listener"
+    proc comboBoxChanged(comboBoxThatHasChanged: ptr ComboBox) = discard
+
+proc newCustomComboBoxListener*(): ptr CustomComboBoxListener {.importcpp: "(new june::CustomComboBoxListener)".}
+
+proc setComboBoxChangedHandler*(this: var CustomComboBoxListener, handler: proc(comboBoxThatHasChanged: ptr ComboBox) {.closure.}) =
+    this.onComboBoxChanged = bindClosure(handler)
+
+defineCppClassInternal CustomComboBoxLookAndFeelMethods of ComboBoxLookAndFeelMethods:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppTypeName PopupMenuOptions, "PopupMenu::Options"
+    cppParent "juce::ComboBox::LookAndFeelMethods"
+    proc drawComboBox(arg0: varref[Graphics], width: cint, height: cint, isButtonDown: bool, buttonX: cint, buttonY: cint, buttonW: cint, buttonH: cint, arg8: varref[ComboBox]) = discard
+    proc getComboBoxFont(arg0: varref[ComboBox]): Font = discard
+    proc createComboBoxTextBox(arg0: varref[ComboBox]): ptr Label = discard
+    proc positionComboBoxText(arg0: varref[ComboBox], labelToPosition: varref[Label]) = discard
+    proc getOptionsForComboBoxPopupMenu(arg0: varref[ComboBox], arg1: varref[Label]): PopupMenuOptions = discard
+    proc drawComboBoxTextWhenNothingSelected(arg0: varref[Graphics], arg1: varref[ComboBox], arg2: varref[Label]) = discard
+
+proc newCustomComboBoxLookAndFeelMethods*(): ptr CustomComboBoxLookAndFeelMethods {.importcpp: "(new june::CustomComboBoxLookAndFeelMethods)".}
+
+proc setDrawComboBoxHandler*(this: var CustomComboBoxLookAndFeelMethods, handler: proc(arg0: ptr Graphics, width: cint, height: cint, isButtonDown: bool, buttonX: cint, buttonY: cint, buttonW: cint, buttonH: cint, arg8: ptr ComboBox) {.closure.}) =
+    this.onDrawComboBox = bindClosure(handler)
+
+proc setGetComboBoxFontHandler*(this: var CustomComboBoxLookAndFeelMethods, handler: proc(arg0: ptr ComboBox): Font {.closure.}) =
+    this.onGetComboBoxFont = bindClosure(handler)
+
+proc setCreateComboBoxTextBoxHandler*(this: var CustomComboBoxLookAndFeelMethods, handler: proc(arg0: ptr ComboBox): ptr Label {.closure.}) =
+    this.onCreateComboBoxTextBox = bindClosure(handler)
+
+proc setPositionComboBoxTextHandler*(this: var CustomComboBoxLookAndFeelMethods, handler: proc(arg0: ptr ComboBox, labelToPosition: ptr Label) {.closure.}) =
+    this.onPositionComboBoxText = bindClosure(handler)
+
+proc setGetOptionsForComboBoxPopupMenuHandler*(this: var CustomComboBoxLookAndFeelMethods, handler: proc(arg0: ptr ComboBox, arg1: ptr Label): PopupMenuOptions {.closure.}) =
+    this.onGetOptionsForComboBoxPopupMenu = bindClosure(handler)
+
+proc setDrawComboBoxTextWhenNothingSelectedHandler*(this: var CustomComboBoxLookAndFeelMethods, handler: proc(arg0: ptr Graphics, arg1: ptr ComboBox, arg2: ptr Label) {.closure.}) =
+    this.onDrawComboBoxTextWhenNothingSelected = bindClosure(handler)
+
+defineCppClassInternal CustomComponentBuilderTypeHandler of ComponentBuilderTypeHandler:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::ComponentBuilder::TypeHandler"
+    proc addNewComponentFromState(state: constptr[ValueTree], parent: ptr Component): ptr Component = discard
+    proc updateComponentFromState(component: ptr Component, state: constptr[ValueTree]) = discard
+
+proc newCustomComponentBuilderTypeHandler*(valueTreeType: Identifier): ptr CustomComponentBuilderTypeHandler {.importcpp: "(new june::CustomComponentBuilderTypeHandler(@))".}
+
+proc setAddNewComponentFromStateHandler*(this: var CustomComponentBuilderTypeHandler, handler: proc(state: ptr ValueTree, parent: ptr Component): ptr Component {.closure.}) =
+    this.onAddNewComponentFromState = bindClosure(handler)
+
+proc setUpdateComponentFromStateHandler*(this: var CustomComponentBuilderTypeHandler, handler: proc(component: ptr Component, state: ptr ValueTree) {.closure.}) =
+    this.onUpdateComponentFromState = bindClosure(handler)
+
 defineCppClassInternal CustomComponentMovementWatcher of ComponentMovementWatcher:
     include "juce_gui_basics/juce_gui_basics.h"
     proc componentMovedOrResized(wasMoved: bool, wasResized: bool) = discard
@@ -268,6 +441,36 @@ proc setComponentPeerChangedHandler*(this: var CustomComponentMovementWatcher, h
 
 proc setComponentVisibilityChangedHandler*(this: var CustomComponentMovementWatcher, handler: proc() {.closure.}) =
     this.onComponentVisibilityChanged = bindClosure(handler)
+
+defineCppClassInternal CustomComponentPeerScaleFactorListener of ComponentPeerScaleFactorListener:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::ComponentPeer::ScaleFactorListener"
+    proc nativeScaleFactorChanged(newScaleFactor: cdouble) = discard
+
+proc newCustomComponentPeerScaleFactorListener*(): ptr CustomComponentPeerScaleFactorListener {.importcpp: "(new june::CustomComponentPeerScaleFactorListener)".}
+
+proc setNativeScaleFactorChangedHandler*(this: var CustomComponentPeerScaleFactorListener, handler: proc(newScaleFactor: cdouble) {.closure.}) =
+    this.onNativeScaleFactorChanged = bindClosure(handler)
+
+defineCppClassInternal CustomComponentPeerVBlankListener of ComponentPeerVBlankListener:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::ComponentPeer::VBlankListener"
+    proc onVBlank(timestampSec: cdouble) = discard
+
+proc newCustomComponentPeerVBlankListener*(): ptr CustomComponentPeerVBlankListener {.importcpp: "(new june::CustomComponentPeerVBlankListener)".}
+
+proc setOnVBlankHandler*(this: var CustomComponentPeerVBlankListener, handler: proc(timestampSec: cdouble) {.closure.}) =
+    this.onOnVBlank = bindClosure(handler)
+
+defineCppClassInternal CustomComponentPositioner of ComponentPositioner:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::Component::Positioner"
+    proc applyNewBounds(newBounds: constptr[Rectangle[cint]]) = discard
+
+proc newCustomComponentPositioner*(component: Component): ptr CustomComponentPositioner {.importcpp: "(new june::CustomComponentPositioner(@))".}
+
+proc setApplyNewBoundsHandler*(this: var CustomComponentPositioner, handler: proc(newBounds: ptr Rectangle[cint]) {.closure.}) =
+    this.onApplyNewBounds = bindClosure(handler)
 
 defineCppClassInternal CustomComponentTraverser of ComponentTraverser:
     include "juce_gui_basics/juce_gui_basics.h"
@@ -289,6 +492,16 @@ proc setGetPreviousComponentHandler*(this: var CustomComponentTraverser, handler
 
 proc setGetAllComponentsHandler*(this: var CustomComponentTraverser, handler: proc(parentComponent: ptr Component): CppVector[ptr Component] {.closure.}) =
     this.onGetAllComponents = bindClosure(handler)
+
+defineCppClassInternal CustomConcertinaPanelLookAndFeelMethods of ConcertinaPanelLookAndFeelMethods:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::ConcertinaPanel::LookAndFeelMethods"
+    proc drawConcertinaPanelHeader(arg0: varref[Graphics], area: constptr[Rectangle[cint]], isMouseOver: bool, isMouseDown: bool, arg4: varref[ConcertinaPanel], arg5: varref[Component]) = discard
+
+proc newCustomConcertinaPanelLookAndFeelMethods*(): ptr CustomConcertinaPanelLookAndFeelMethods {.importcpp: "(new june::CustomConcertinaPanelLookAndFeelMethods)".}
+
+proc setDrawConcertinaPanelHeaderHandler*(this: var CustomConcertinaPanelLookAndFeelMethods, handler: proc(arg0: ptr Graphics, area: ptr Rectangle[cint], isMouseOver: bool, isMouseDown: bool, arg4: ptr ConcertinaPanel, arg5: ptr Component) {.closure.}) =
+    this.onDrawConcertinaPanelHeader = bindClosure(handler)
 
 defineCppClassInternal CustomDarkModeSettingListener of DarkModeSettingListener:
     include "juce_gui_basics/juce_gui_basics.h"
@@ -364,6 +577,36 @@ proc newCustomDrawableShape*(): ptr CustomDrawableShape {.importcpp: "(new june:
 proc setCreateCopyHandler*(this: var CustomDrawableShape, handler: proc(): UniquePtr[Drawable] {.closure.}) =
     this.onCreateCopy = bindClosure(handler)
 
+defineCppClassInternal CustomExtraLookAndFeelBaseClassesAudioDeviceSelectorComponentMethods of ExtraLookAndFeelBaseClassesAudioDeviceSelectorComponentMethods:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::ExtraLookAndFeelBaseClasses::AudioDeviceSelectorComponentMethods"
+    proc drawLevelMeter(arg0: varref[Graphics], width: cint, height: cint, level: cfloat) = discard
+
+proc newCustomExtraLookAndFeelBaseClassesAudioDeviceSelectorComponentMethods*(): ptr CustomExtraLookAndFeelBaseClassesAudioDeviceSelectorComponentMethods {.importcpp: "(new june::CustomExtraLookAndFeelBaseClassesAudioDeviceSelectorComponentMethods)".}
+
+proc setDrawLevelMeterHandler*(this: var CustomExtraLookAndFeelBaseClassesAudioDeviceSelectorComponentMethods, handler: proc(arg0: ptr Graphics, width: cint, height: cint, level: cfloat) {.closure.}) =
+    this.onDrawLevelMeter = bindClosure(handler)
+
+defineCppClassInternal CustomExtraLookAndFeelBaseClassesKeyMappingEditorComponentMethods of ExtraLookAndFeelBaseClassesKeyMappingEditorComponentMethods:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::ExtraLookAndFeelBaseClasses::KeyMappingEditorComponentMethods"
+    proc drawKeymapChangeButton(arg0: varref[Graphics], width: cint, height: cint, arg3: varref[Button], keyDescription: constptr[String]) = discard
+
+proc newCustomExtraLookAndFeelBaseClassesKeyMappingEditorComponentMethods*(): ptr CustomExtraLookAndFeelBaseClassesKeyMappingEditorComponentMethods {.importcpp: "(new june::CustomExtraLookAndFeelBaseClassesKeyMappingEditorComponentMethods)".}
+
+proc setDrawKeymapChangeButtonHandler*(this: var CustomExtraLookAndFeelBaseClassesKeyMappingEditorComponentMethods, handler: proc(arg0: ptr Graphics, width: cint, height: cint, arg3: ptr Button, keyDescription: ptr String) {.closure.}) =
+    this.onDrawKeymapChangeButton = bindClosure(handler)
+
+defineCppClassInternal CustomExtraLookAndFeelBaseClassesLassoComponentMethods of ExtraLookAndFeelBaseClassesLassoComponentMethods:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::ExtraLookAndFeelBaseClasses::LassoComponentMethods"
+    proc drawLasso(arg0: varref[Graphics], lassoComp: varref[Component]) = discard
+
+proc newCustomExtraLookAndFeelBaseClassesLassoComponentMethods*(): ptr CustomExtraLookAndFeelBaseClassesLassoComponentMethods {.importcpp: "(new june::CustomExtraLookAndFeelBaseClassesLassoComponentMethods)".}
+
+proc setDrawLassoHandler*(this: var CustomExtraLookAndFeelBaseClassesLassoComponentMethods, handler: proc(arg0: ptr Graphics, lassoComp: ptr Component) {.closure.}) =
+    this.onDrawLasso = bindClosure(handler)
+
 defineCppClassInternal CustomFileBrowserListener of FileBrowserListener:
     include "juce_gui_basics/juce_gui_basics.h"
     proc selectionChanged() = discard
@@ -416,6 +659,20 @@ proc newCustomFilenameComponentListener*(): ptr CustomFilenameComponentListener 
 proc setFilenameComponentChangedHandler*(this: var CustomFilenameComponentListener, handler: proc(fileComponentThatHasChanged: ptr FilenameComponent) {.closure.}) =
     this.onFilenameComponentChanged = bindClosure(handler)
 
+defineCppClassInternal CustomFilenameComponentLookAndFeelMethods of FilenameComponentLookAndFeelMethods:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::FilenameComponent::LookAndFeelMethods"
+    proc createFilenameComponentBrowseButton(text: constptr[String]): ptr Button = discard
+    proc layoutFilenameComponent(arg0: varref[FilenameComponent], filenameBox: ptr ComboBox, browseButton: ptr Button) = discard
+
+proc newCustomFilenameComponentLookAndFeelMethods*(): ptr CustomFilenameComponentLookAndFeelMethods {.importcpp: "(new june::CustomFilenameComponentLookAndFeelMethods)".}
+
+proc setCreateFilenameComponentBrowseButtonHandler*(this: var CustomFilenameComponentLookAndFeelMethods, handler: proc(text: ptr String): ptr Button {.closure.}) =
+    this.onCreateFilenameComponentBrowseButton = bindClosure(handler)
+
+proc setLayoutFilenameComponentHandler*(this: var CustomFilenameComponentLookAndFeelMethods, handler: proc(arg0: ptr FilenameComponent, filenameBox: ptr ComboBox, browseButton: ptr Button) {.closure.}) =
+    this.onLayoutFilenameComponent = bindClosure(handler)
+
 defineCppClassInternal CustomFocusChangeListener of FocusChangeListener:
     include "juce_gui_basics/juce_gui_basics.h"
     proc globalFocusChanged(focusedComponent: ptr Component) = discard
@@ -425,6 +682,40 @@ proc newCustomFocusChangeListener*(): ptr CustomFocusChangeListener {.importcpp:
 proc setGlobalFocusChangedHandler*(this: var CustomFocusChangeListener, handler: proc(focusedComponent: ptr Component) {.closure.}) =
     this.onGlobalFocusChanged = bindClosure(handler)
 
+defineCppClassInternal CustomFocusOutlineOutlineWindowProperties of FocusOutlineOutlineWindowProperties:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::FocusOutline::OutlineWindowProperties"
+    proc getOutlineBounds(focusedComponent: varref[Component]): Rectangle[cint] = discard
+    proc drawOutline(arg0: varref[Graphics], width: cint, height: cint) = discard
+
+proc newCustomFocusOutlineOutlineWindowProperties*(): ptr CustomFocusOutlineOutlineWindowProperties {.importcpp: "(new june::CustomFocusOutlineOutlineWindowProperties)".}
+
+proc setGetOutlineBoundsHandler*(this: var CustomFocusOutlineOutlineWindowProperties, handler: proc(focusedComponent: ptr Component): Rectangle[cint] {.closure.}) =
+    this.onGetOutlineBounds = bindClosure(handler)
+
+proc setDrawOutlineHandler*(this: var CustomFocusOutlineOutlineWindowProperties, handler: proc(arg0: ptr Graphics, width: cint, height: cint) {.closure.}) =
+    this.onDrawOutline = bindClosure(handler)
+
+defineCppClassInternal CustomGroupComponentLookAndFeelMethods of GroupComponentLookAndFeelMethods:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::GroupComponent::LookAndFeelMethods"
+    proc drawGroupComponentOutline(arg0: varref[Graphics], w: cint, h: cint, text: constptr[String], arg4: constptr[Justification], arg5: varref[GroupComponent]) = discard
+
+proc newCustomGroupComponentLookAndFeelMethods*(): ptr CustomGroupComponentLookAndFeelMethods {.importcpp: "(new june::CustomGroupComponentLookAndFeelMethods)".}
+
+proc setDrawGroupComponentOutlineHandler*(this: var CustomGroupComponentLookAndFeelMethods, handler: proc(arg0: ptr Graphics, w: cint, h: cint, text: ptr String, arg4: ptr Justification, arg5: ptr GroupComponent) {.closure.}) =
+    this.onDrawGroupComponentOutline = bindClosure(handler)
+
+defineCppClassInternal CustomImageButtonLookAndFeelMethods of ImageButtonLookAndFeelMethods:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::ImageButton::LookAndFeelMethods"
+    proc drawImageButton(arg0: varref[Graphics], arg1: ptr Image, imageX: cint, imageY: cint, imageW: cint, imageH: cint, overlayColour: constptr[Colour], imageOpacity: cfloat, arg8: varref[ImageButton]) = discard
+
+proc newCustomImageButtonLookAndFeelMethods*(): ptr CustomImageButtonLookAndFeelMethods {.importcpp: "(new june::CustomImageButtonLookAndFeelMethods)".}
+
+proc setDrawImageButtonHandler*(this: var CustomImageButtonLookAndFeelMethods, handler: proc(arg0: ptr Graphics, arg1: ptr Image, imageX: cint, imageY: cint, imageW: cint, imageH: cint, overlayColour: ptr Colour, imageOpacity: cfloat, arg8: ptr ImageButton) {.closure.}) =
+    this.onDrawImageButton = bindClosure(handler)
+
 defineCppClassInternal CustomKeyListener of KeyListener:
     include "juce_gui_basics/juce_gui_basics.h"
     proc keyPressed(key: constptr[KeyPress], originatingComponent: ptr Component): bool = discard
@@ -433,6 +724,54 @@ proc newCustomKeyListener*(): ptr CustomKeyListener {.importcpp: "(new june::Cus
 
 proc setKeyPressedHandler*(this: var CustomKeyListener, handler: proc(key: ptr KeyPress, originatingComponent: ptr Component): bool {.closure.}) =
     this.onKeyPressed = bindClosure(handler)
+
+defineCppClassInternal CustomLabelListener of LabelListener:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::Label::Listener"
+    proc labelTextChanged(labelThatHasChanged: ptr Label) = discard
+
+proc newCustomLabelListener*(): ptr CustomLabelListener {.importcpp: "(new june::CustomLabelListener)".}
+
+proc setLabelTextChangedHandler*(this: var CustomLabelListener, handler: proc(labelThatHasChanged: ptr Label) {.closure.}) =
+    this.onLabelTextChanged = bindClosure(handler)
+
+defineCppClassInternal CustomLabelLookAndFeelMethods of LabelLookAndFeelMethods:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::Label::LookAndFeelMethods"
+    proc drawLabel(arg0: varref[Graphics], arg1: varref[Label]) = discard
+    proc getLabelFont(arg0: varref[Label]): Font = discard
+    proc getLabelBorderSize(arg0: varref[Label]): BorderSize[cint] = discard
+
+proc newCustomLabelLookAndFeelMethods*(): ptr CustomLabelLookAndFeelMethods {.importcpp: "(new june::CustomLabelLookAndFeelMethods)".}
+
+proc setDrawLabelHandler*(this: var CustomLabelLookAndFeelMethods, handler: proc(arg0: ptr Graphics, arg1: ptr Label) {.closure.}) =
+    this.onDrawLabel = bindClosure(handler)
+
+proc setGetLabelFontHandler*(this: var CustomLabelLookAndFeelMethods, handler: proc(arg0: ptr Label): Font {.closure.}) =
+    this.onGetLabelFont = bindClosure(handler)
+
+proc setGetLabelBorderSizeHandler*(this: var CustomLabelLookAndFeelMethods, handler: proc(arg0: ptr Label): BorderSize[cint] {.closure.}) =
+    this.onGetLabelBorderSize = bindClosure(handler)
+
+defineCppClassInternal CustomMarkerListListener of MarkerListListener:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::MarkerList::Listener"
+    proc markersChanged(markerList: ptr MarkerList) = discard
+
+proc newCustomMarkerListListener*(): ptr CustomMarkerListListener {.importcpp: "(new june::CustomMarkerListListener)".}
+
+proc setMarkersChangedHandler*(this: var CustomMarkerListListener, handler: proc(markerList: ptr MarkerList) {.closure.}) =
+    this.onMarkersChanged = bindClosure(handler)
+
+defineCppClassInternal CustomMarkerListMarkerListHolder of MarkerListMarkerListHolder:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::MarkerList::MarkerListHolder"
+    proc getMarkers(xAxis: bool): ptr MarkerList = discard
+
+proc newCustomMarkerListMarkerListHolder*(): ptr CustomMarkerListMarkerListHolder {.importcpp: "(new june::CustomMarkerListMarkerListHolder)".}
+
+proc setGetMarkersHandler*(this: var CustomMarkerListMarkerListHolder, handler: proc(xAxis: bool): ptr MarkerList {.closure.}) =
+    this.onGetMarkers = bindClosure(handler)
 
 defineCppClassInternal CustomMenuBarModel of MenuBarModel:
     include "juce_gui_basics/juce_gui_basics.h"
@@ -451,6 +790,169 @@ proc setGetMenuForIndexHandler*(this: var CustomMenuBarModel, handler: proc(topL
 proc setMenuItemSelectedHandler*(this: var CustomMenuBarModel, handler: proc(menuItemID: cint, topLevelMenuIndex: cint) {.closure.}) =
     this.onMenuItemSelected = bindClosure(handler)
 
+defineCppClassInternal CustomMenuBarModelListener of MenuBarModelListener:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppTypeName ApplicationCommandTargetInvocationInfo, "ApplicationCommandTarget::InvocationInfo"
+    cppParent "juce::MenuBarModel::Listener"
+    proc menuBarItemsChanged(menuBarModel: ptr MenuBarModel) = discard
+    proc menuCommandInvoked(menuBarModel: ptr MenuBarModel, info: constptr[ApplicationCommandTargetInvocationInfo]) = discard
+
+proc newCustomMenuBarModelListener*(): ptr CustomMenuBarModelListener {.importcpp: "(new june::CustomMenuBarModelListener)".}
+
+proc setMenuBarItemsChangedHandler*(this: var CustomMenuBarModelListener, handler: proc(menuBarModel: ptr MenuBarModel) {.closure.}) =
+    this.onMenuBarItemsChanged = bindClosure(handler)
+
+proc setMenuCommandInvokedHandler*(this: var CustomMenuBarModelListener, handler: proc(menuBarModel: ptr MenuBarModel, info: ptr ApplicationCommandTargetInvocationInfo) {.closure.}) =
+    this.onMenuCommandInvoked = bindClosure(handler)
+
+defineCppClassInternal CustomModalComponentManagerCallback of ModalComponentManagerCallback:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::ModalComponentManager::Callback"
+    proc modalStateFinished(returnValue: cint) = discard
+
+proc newCustomModalComponentManagerCallback*(): ptr CustomModalComponentManagerCallback {.importcpp: "(new june::CustomModalComponentManagerCallback)".}
+
+proc setModalStateFinishedHandler*(this: var CustomModalComponentManagerCallback, handler: proc(returnValue: cint) {.closure.}) =
+    this.onModalStateFinished = bindClosure(handler)
+
+defineCppClassInternal CustomMouseInactivityDetectorListener of MouseInactivityDetectorListener:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::MouseInactivityDetector::Listener"
+    proc mouseBecameActive() = discard
+    proc mouseBecameInactive() = discard
+
+proc newCustomMouseInactivityDetectorListener*(): ptr CustomMouseInactivityDetectorListener {.importcpp: "(new june::CustomMouseInactivityDetectorListener)".}
+
+proc setMouseBecameActiveHandler*(this: var CustomMouseInactivityDetectorListener, handler: proc() {.closure.}) =
+    this.onMouseBecameActive = bindClosure(handler)
+
+proc setMouseBecameInactiveHandler*(this: var CustomMouseInactivityDetectorListener, handler: proc() {.closure.}) =
+    this.onMouseBecameInactive = bindClosure(handler)
+
+defineCppClassInternal CustomPopupMenuCustomCallback of PopupMenuCustomCallback:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::PopupMenu::CustomCallback"
+    proc menuItemTriggered(): bool = discard
+
+proc newCustomPopupMenuCustomCallback*(): ptr CustomPopupMenuCustomCallback {.importcpp: "(new june::CustomPopupMenuCustomCallback)".}
+
+proc setMenuItemTriggeredHandler*(this: var CustomPopupMenuCustomCallback, handler: proc(): bool {.closure.}) =
+    this.onMenuItemTriggered = bindClosure(handler)
+
+defineCppClassInternal CustomPopupMenuCustomComponent of PopupMenuCustomComponent:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::PopupMenu::CustomComponent"
+    proc getIdealSize(idealWidth: varref[cint], idealHeight: varref[cint]) = discard
+
+proc newCustomPopupMenuCustomComponent*(): ptr CustomPopupMenuCustomComponent {.importcpp: "(new june::CustomPopupMenuCustomComponent)".}
+proc newCustomPopupMenuCustomComponent*(isTriggeredAutomatically: bool): ptr CustomPopupMenuCustomComponent {.importcpp: "(new june::CustomPopupMenuCustomComponent(@))".}
+
+proc setGetIdealSizeHandler*(this: var CustomPopupMenuCustomComponent, handler: proc(idealWidth: ptr cint, idealHeight: ptr cint) {.closure.}) =
+    this.onGetIdealSize = bindClosure(handler)
+
+defineCppClassInternal CustomPopupMenuLookAndFeelMethods of PopupMenuLookAndFeelMethods:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppTypeName PopupMenuOptions, "PopupMenu::Options"
+    cppTypeName PopupMenuItem, "PopupMenu::Item"
+    cppParent "juce::PopupMenu::LookAndFeelMethods"
+    proc drawPopupMenuBackgroundWithOptions(arg0: varref[Graphics], width: cint, height: cint, arg3: constptr[PopupMenuOptions]) = discard
+    proc drawPopupMenuItemWithOptions(arg0: varref[Graphics], area: constptr[Rectangle[cint]], isHighlighted: bool, item: constptr[PopupMenuItem], arg4: constptr[PopupMenuOptions]) = discard
+    proc drawPopupMenuSectionHeaderWithOptions(arg0: varref[Graphics], area: constptr[Rectangle[cint]], sectionName: constptr[String], arg3: constptr[PopupMenuOptions]) = discard
+    proc getPopupMenuFont(): Font = discard
+    proc drawPopupMenuUpDownArrowWithOptions(arg0: varref[Graphics], width: cint, height: cint, isScrollUpArrow: bool, arg4: constptr[PopupMenuOptions]) = discard
+    proc getIdealPopupMenuItemSizeWithOptions(text: constptr[String], isSeparator: bool, standardMenuItemHeight: cint, idealWidth: varref[cint], idealHeight: varref[cint], arg5: constptr[PopupMenuOptions]) = discard
+    proc getIdealPopupMenuSectionHeaderSizeWithOptions(text: constptr[String], standardMenuItemHeight: cint, idealWidth: varref[cint], idealHeight: varref[cint], arg4: constptr[PopupMenuOptions]) = discard
+    proc getMenuWindowFlags(): cint = discard
+    proc drawMenuBarBackground(arg0: varref[Graphics], width: cint, height: cint, isMouseOverBar: bool, arg4: varref[MenuBarComponent]) = discard
+    proc getDefaultMenuBarHeight(): cint = discard
+    proc getMenuBarItemWidth(arg0: varref[MenuBarComponent], itemIndex: cint, itemText: constptr[String]): cint = discard
+    proc getMenuBarFont(arg0: varref[MenuBarComponent], itemIndex: cint, itemText: constptr[String]): Font = discard
+    proc drawMenuBarItem(arg0: varref[Graphics], width: cint, height: cint, itemIndex: cint, itemText: constptr[String], isMouseOverItem: bool, isMenuOpen: bool, isMouseOverBar: bool, arg8: varref[MenuBarComponent]) = discard
+    proc getParentComponentForMenuOptions(options: constptr[PopupMenuOptions]): ptr Component = discard
+    proc preparePopupMenuWindow(newWindow: varref[Component]) = discard
+    proc shouldPopupMenuScaleWithTargetComponent(options: constptr[PopupMenuOptions]): bool = discard
+    proc getPopupMenuBorderSizeWithOptions(arg0: constptr[PopupMenuOptions]): cint = discard
+    proc drawPopupMenuColumnSeparatorWithOptions(g: varref[Graphics], bounds: constptr[Rectangle[cint]], arg2: constptr[PopupMenuOptions]) = discard
+    proc getPopupMenuColumnSeparatorWidthWithOptions(arg0: constptr[PopupMenuOptions]): cint = discard
+
+proc newCustomPopupMenuLookAndFeelMethods*(): ptr CustomPopupMenuLookAndFeelMethods {.importcpp: "(new june::CustomPopupMenuLookAndFeelMethods)".}
+
+proc setDrawPopupMenuBackgroundWithOptionsHandler*(this: var CustomPopupMenuLookAndFeelMethods, handler: proc(arg0: ptr Graphics, width: cint, height: cint, arg3: ptr PopupMenuOptions) {.closure.}) =
+    this.onDrawPopupMenuBackgroundWithOptions = bindClosure(handler)
+
+proc setDrawPopupMenuItemWithOptionsHandler*(this: var CustomPopupMenuLookAndFeelMethods, handler: proc(arg0: ptr Graphics, area: ptr Rectangle[cint], isHighlighted: bool, item: ptr PopupMenuItem, arg4: ptr PopupMenuOptions) {.closure.}) =
+    this.onDrawPopupMenuItemWithOptions = bindClosure(handler)
+
+proc setDrawPopupMenuSectionHeaderWithOptionsHandler*(this: var CustomPopupMenuLookAndFeelMethods, handler: proc(arg0: ptr Graphics, area: ptr Rectangle[cint], sectionName: ptr String, arg3: ptr PopupMenuOptions) {.closure.}) =
+    this.onDrawPopupMenuSectionHeaderWithOptions = bindClosure(handler)
+
+proc setGetPopupMenuFontHandler*(this: var CustomPopupMenuLookAndFeelMethods, handler: proc(): Font {.closure.}) =
+    this.onGetPopupMenuFont = bindClosure(handler)
+
+proc setDrawPopupMenuUpDownArrowWithOptionsHandler*(this: var CustomPopupMenuLookAndFeelMethods, handler: proc(arg0: ptr Graphics, width: cint, height: cint, isScrollUpArrow: bool, arg4: ptr PopupMenuOptions) {.closure.}) =
+    this.onDrawPopupMenuUpDownArrowWithOptions = bindClosure(handler)
+
+proc setGetIdealPopupMenuItemSizeWithOptionsHandler*(this: var CustomPopupMenuLookAndFeelMethods, handler: proc(text: ptr String, isSeparator: bool, standardMenuItemHeight: cint, idealWidth: ptr cint, idealHeight: ptr cint, arg5: ptr PopupMenuOptions) {.closure.}) =
+    this.onGetIdealPopupMenuItemSizeWithOptions = bindClosure(handler)
+
+proc setGetIdealPopupMenuSectionHeaderSizeWithOptionsHandler*(this: var CustomPopupMenuLookAndFeelMethods, handler: proc(text: ptr String, standardMenuItemHeight: cint, idealWidth: ptr cint, idealHeight: ptr cint, arg4: ptr PopupMenuOptions) {.closure.}) =
+    this.onGetIdealPopupMenuSectionHeaderSizeWithOptions = bindClosure(handler)
+
+proc setGetMenuWindowFlagsHandler*(this: var CustomPopupMenuLookAndFeelMethods, handler: proc(): cint {.closure.}) =
+    this.onGetMenuWindowFlags = bindClosure(handler)
+
+proc setDrawMenuBarBackgroundHandler*(this: var CustomPopupMenuLookAndFeelMethods, handler: proc(arg0: ptr Graphics, width: cint, height: cint, isMouseOverBar: bool, arg4: ptr MenuBarComponent) {.closure.}) =
+    this.onDrawMenuBarBackground = bindClosure(handler)
+
+proc setGetDefaultMenuBarHeightHandler*(this: var CustomPopupMenuLookAndFeelMethods, handler: proc(): cint {.closure.}) =
+    this.onGetDefaultMenuBarHeight = bindClosure(handler)
+
+proc setGetMenuBarItemWidthHandler*(this: var CustomPopupMenuLookAndFeelMethods, handler: proc(arg0: ptr MenuBarComponent, itemIndex: cint, itemText: ptr String): cint {.closure.}) =
+    this.onGetMenuBarItemWidth = bindClosure(handler)
+
+proc setGetMenuBarFontHandler*(this: var CustomPopupMenuLookAndFeelMethods, handler: proc(arg0: ptr MenuBarComponent, itemIndex: cint, itemText: ptr String): Font {.closure.}) =
+    this.onGetMenuBarFont = bindClosure(handler)
+
+proc setDrawMenuBarItemHandler*(this: var CustomPopupMenuLookAndFeelMethods, handler: proc(arg0: ptr Graphics, width: cint, height: cint, itemIndex: cint, itemText: ptr String, isMouseOverItem: bool, isMenuOpen: bool, isMouseOverBar: bool, arg8: ptr MenuBarComponent) {.closure.}) =
+    this.onDrawMenuBarItem = bindClosure(handler)
+
+proc setGetParentComponentForMenuOptionsHandler*(this: var CustomPopupMenuLookAndFeelMethods, handler: proc(options: ptr PopupMenuOptions): ptr Component {.closure.}) =
+    this.onGetParentComponentForMenuOptions = bindClosure(handler)
+
+proc setPreparePopupMenuWindowHandler*(this: var CustomPopupMenuLookAndFeelMethods, handler: proc(newWindow: ptr Component) {.closure.}) =
+    this.onPreparePopupMenuWindow = bindClosure(handler)
+
+proc setShouldPopupMenuScaleWithTargetComponentHandler*(this: var CustomPopupMenuLookAndFeelMethods, handler: proc(options: ptr PopupMenuOptions): bool {.closure.}) =
+    this.onShouldPopupMenuScaleWithTargetComponent = bindClosure(handler)
+
+proc setGetPopupMenuBorderSizeWithOptionsHandler*(this: var CustomPopupMenuLookAndFeelMethods, handler: proc(arg0: ptr PopupMenuOptions): cint {.closure.}) =
+    this.onGetPopupMenuBorderSizeWithOptions = bindClosure(handler)
+
+proc setDrawPopupMenuColumnSeparatorWithOptionsHandler*(this: var CustomPopupMenuLookAndFeelMethods, handler: proc(g: ptr Graphics, bounds: ptr Rectangle[cint], arg2: ptr PopupMenuOptions) {.closure.}) =
+    this.onDrawPopupMenuColumnSeparatorWithOptions = bindClosure(handler)
+
+proc setGetPopupMenuColumnSeparatorWidthWithOptionsHandler*(this: var CustomPopupMenuLookAndFeelMethods, handler: proc(arg0: ptr PopupMenuOptions): cint {.closure.}) =
+    this.onGetPopupMenuColumnSeparatorWidthWithOptions = bindClosure(handler)
+
+defineCppClassInternal CustomProgressBarLookAndFeelMethods of ProgressBarLookAndFeelMethods:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppTypeName ProgressBarStyle, "ProgressBar::Style"
+    cppParent "juce::ProgressBar::LookAndFeelMethods"
+    proc drawProgressBar(arg0: varref[Graphics], arg1: varref[ProgressBar], width: cint, height: cint, progress: cdouble, textToShow: constptr[String]) = discard
+    proc isProgressBarOpaque(arg0: varref[ProgressBar]): bool = discard
+    proc getDefaultProgressBarStyle(arg0: constptr[ProgressBar]): basescalar[ProgressBarStyle] = discard
+
+proc newCustomProgressBarLookAndFeelMethods*(): ptr CustomProgressBarLookAndFeelMethods {.importcpp: "(new june::CustomProgressBarLookAndFeelMethods)".}
+
+proc setDrawProgressBarHandler*(this: var CustomProgressBarLookAndFeelMethods, handler: proc(arg0: ptr Graphics, arg1: ptr ProgressBar, width: cint, height: cint, progress: cdouble, textToShow: ptr String) {.closure.}) =
+    this.onDrawProgressBar = bindClosure(handler)
+
+proc setIsProgressBarOpaqueHandler*(this: var CustomProgressBarLookAndFeelMethods, handler: proc(arg0: ptr ProgressBar): bool {.closure.}) =
+    this.onIsProgressBarOpaque = bindClosure(handler)
+
+proc setGetDefaultProgressBarStyleHandler*(this: var CustomProgressBarLookAndFeelMethods, handler: proc(arg0: ptr ProgressBar): cint {.closure.}) =
+    this.onGetDefaultProgressBarStyle = bindClosure(handler)
+
 defineCppClassInternal CustomPropertyComponent of PropertyComponent:
     include "juce_gui_basics/juce_gui_basics.h"
     proc refresh() = discard
@@ -459,6 +961,32 @@ proc newCustomPropertyComponent*(propertyName: String, preferredHeight: cint): p
 
 proc setRefreshHandler*(this: var CustomPropertyComponent, handler: proc() {.closure.}) =
     this.onRefresh = bindClosure(handler)
+
+defineCppClassInternal CustomPropertyComponentLookAndFeelMethods of PropertyComponentLookAndFeelMethods:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::PropertyComponent::LookAndFeelMethods"
+    proc drawPropertyPanelSectionHeader(arg0: varref[Graphics], name: constptr[String], isOpen: bool, width: cint, height: cint) = discard
+    proc drawPropertyComponentBackground(arg0: varref[Graphics], width: cint, height: cint, arg3: varref[PropertyComponent]) = discard
+    proc drawPropertyComponentLabel(arg0: varref[Graphics], width: cint, height: cint, arg3: varref[PropertyComponent]) = discard
+    proc getPropertyComponentContentPosition(arg0: varref[PropertyComponent]): Rectangle[cint] = discard
+    proc getPropertyPanelSectionHeaderHeight(sectionTitle: constptr[String]): cint = discard
+
+proc newCustomPropertyComponentLookAndFeelMethods*(): ptr CustomPropertyComponentLookAndFeelMethods {.importcpp: "(new june::CustomPropertyComponentLookAndFeelMethods)".}
+
+proc setDrawPropertyPanelSectionHeaderHandler*(this: var CustomPropertyComponentLookAndFeelMethods, handler: proc(arg0: ptr Graphics, name: ptr String, isOpen: bool, width: cint, height: cint) {.closure.}) =
+    this.onDrawPropertyPanelSectionHeader = bindClosure(handler)
+
+proc setDrawPropertyComponentBackgroundHandler*(this: var CustomPropertyComponentLookAndFeelMethods, handler: proc(arg0: ptr Graphics, width: cint, height: cint, arg3: ptr PropertyComponent) {.closure.}) =
+    this.onDrawPropertyComponentBackground = bindClosure(handler)
+
+proc setDrawPropertyComponentLabelHandler*(this: var CustomPropertyComponentLookAndFeelMethods, handler: proc(arg0: ptr Graphics, width: cint, height: cint, arg3: ptr PropertyComponent) {.closure.}) =
+    this.onDrawPropertyComponentLabel = bindClosure(handler)
+
+proc setGetPropertyComponentContentPositionHandler*(this: var CustomPropertyComponentLookAndFeelMethods, handler: proc(arg0: ptr PropertyComponent): Rectangle[cint] {.closure.}) =
+    this.onGetPropertyComponentContentPosition = bindClosure(handler)
+
+proc setGetPropertyPanelSectionHeaderHeightHandler*(this: var CustomPropertyComponentLookAndFeelMethods, handler: proc(sectionTitle: ptr String): cint {.closure.}) =
+    this.onGetPropertyPanelSectionHeaderHeight = bindClosure(handler)
 
 defineCppClassInternal CustomRelativeCoordinatePositionerBase of RelativeCoordinatePositionerBase:
     include "juce_gui_basics/juce_gui_basics.h"
@@ -476,6 +1004,210 @@ proc setRegisterCoordinatesHandler*(this: var CustomRelativeCoordinatePositioner
 
 proc setApplyToComponentBoundsHandler*(this: var CustomRelativeCoordinatePositionerBase, handler: proc() {.closure.}) =
     this.onApplyToComponentBounds = bindClosure(handler)
+
+defineCppClassInternal CustomRelativePointPathElementBase of RelativePointPathElementBase:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppTypeName RelativePointPathElementBase, "RelativePointPath::ElementBase"
+    cppTypeName ExpressionScope, "Expression::Scope"
+    cppParent "juce::RelativePointPath::ElementBase"
+    proc addToPath(path: varref[Path], arg1: ptr ExpressionScope) {.cppconst.} = discard
+    proc getControlPoints(numPoints: varref[cint]): ptr RelativePoint = discard
+    proc clone(): ptr RelativePointPathElementBase {.cppconst.} = discard
+
+proc newCustomRelativePointPathElementBase*(`type`: RelativePointPathElementType): ptr CustomRelativePointPathElementBase {.importcpp: "(new june::CustomRelativePointPathElementBase(@))".}
+
+proc setAddToPathHandler*(this: var CustomRelativePointPathElementBase, handler: proc(path: ptr Path, arg1: ptr ExpressionScope) {.closure.}) =
+    this.onAddToPath = bindClosure(handler)
+
+proc setGetControlPointsHandler*(this: var CustomRelativePointPathElementBase, handler: proc(numPoints: ptr cint): ptr RelativePoint {.closure.}) =
+    this.onGetControlPoints = bindClosure(handler)
+
+proc setCloneHandler*(this: var CustomRelativePointPathElementBase, handler: proc(): ptr RelativePointPathElementBase {.closure.}) =
+    this.onClone = bindClosure(handler)
+
+defineCppClassInternal CustomResizableWindowLookAndFeelMethods of ResizableWindowLookAndFeelMethods:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::ResizableWindow::LookAndFeelMethods"
+    proc drawCornerResizer(arg0: varref[Graphics], w: cint, h: cint, isMouseOver: bool, isMouseDragging: bool) = discard
+    proc drawResizableFrame(arg0: varref[Graphics], w: cint, h: cint, arg3: constptr[BorderSize[cint]]) = discard
+    proc fillResizableWindowBackground(arg0: varref[Graphics], w: cint, h: cint, arg3: constptr[BorderSize[cint]], arg4: varref[ResizableWindow]) = discard
+    proc drawResizableWindowBorder(arg0: varref[Graphics], w: cint, h: cint, border: constptr[BorderSize[cint]], arg4: varref[ResizableWindow]) = discard
+
+proc newCustomResizableWindowLookAndFeelMethods*(): ptr CustomResizableWindowLookAndFeelMethods {.importcpp: "(new june::CustomResizableWindowLookAndFeelMethods)".}
+
+proc setDrawCornerResizerHandler*(this: var CustomResizableWindowLookAndFeelMethods, handler: proc(arg0: ptr Graphics, w: cint, h: cint, isMouseOver: bool, isMouseDragging: bool) {.closure.}) =
+    this.onDrawCornerResizer = bindClosure(handler)
+
+proc setDrawResizableFrameHandler*(this: var CustomResizableWindowLookAndFeelMethods, handler: proc(arg0: ptr Graphics, w: cint, h: cint, arg3: ptr BorderSize[cint]) {.closure.}) =
+    this.onDrawResizableFrame = bindClosure(handler)
+
+proc setFillResizableWindowBackgroundHandler*(this: var CustomResizableWindowLookAndFeelMethods, handler: proc(arg0: ptr Graphics, w: cint, h: cint, arg3: ptr BorderSize[cint], arg4: ptr ResizableWindow) {.closure.}) =
+    this.onFillResizableWindowBackground = bindClosure(handler)
+
+proc setDrawResizableWindowBorderHandler*(this: var CustomResizableWindowLookAndFeelMethods, handler: proc(arg0: ptr Graphics, w: cint, h: cint, border: ptr BorderSize[cint], arg4: ptr ResizableWindow) {.closure.}) =
+    this.onDrawResizableWindowBorder = bindClosure(handler)
+
+defineCppClassInternal CustomScrollBarListener of ScrollBarListener:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::ScrollBar::Listener"
+    proc scrollBarMoved(scrollBarThatHasMoved: ptr ScrollBar, newRangeStart: cdouble) = discard
+
+proc newCustomScrollBarListener*(): ptr CustomScrollBarListener {.importcpp: "(new june::CustomScrollBarListener)".}
+
+proc setScrollBarMovedHandler*(this: var CustomScrollBarListener, handler: proc(scrollBarThatHasMoved: ptr ScrollBar, newRangeStart: cdouble) {.closure.}) =
+    this.onScrollBarMoved = bindClosure(handler)
+
+defineCppClassInternal CustomSliderLookAndFeelMethods of SliderLookAndFeelMethods:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppTypeName SliderSliderStyle, "Slider::SliderStyle"
+    cppTypeName SliderSliderLayout, "Slider::SliderLayout"
+    cppParent "juce::Slider::LookAndFeelMethods"
+    proc drawLinearSlider(arg0: varref[Graphics], x: cint, y: cint, width: cint, height: cint, sliderPos: cfloat, minSliderPos: cfloat, maxSliderPos: cfloat, arg8: SliderSliderStyle, arg9: varref[Slider]) = discard
+    proc drawLinearSliderBackground(arg0: varref[Graphics], x: cint, y: cint, width: cint, height: cint, sliderPos: cfloat, minSliderPos: cfloat, maxSliderPos: cfloat, arg8: SliderSliderStyle, arg9: varref[Slider]) = discard
+    proc drawLinearSliderOutline(arg0: varref[Graphics], x: cint, y: cint, width: cint, height: cint, arg5: SliderSliderStyle, arg6: varref[Slider]) = discard
+    proc drawLinearSliderThumb(arg0: varref[Graphics], x: cint, y: cint, width: cint, height: cint, sliderPos: cfloat, minSliderPos: cfloat, maxSliderPos: cfloat, arg8: SliderSliderStyle, arg9: varref[Slider]) = discard
+    proc getSliderThumbRadius(arg0: varref[Slider]): cint = discard
+    proc drawRotarySlider(arg0: varref[Graphics], x: cint, y: cint, width: cint, height: cint, sliderPosProportional: cfloat, rotaryStartAngle: cfloat, rotaryEndAngle: cfloat, arg8: varref[Slider]) = discard
+    proc createSliderButton(arg0: varref[Slider], isIncrement: bool): ptr Button = discard
+    proc createSliderTextBox(arg0: varref[Slider]): ptr Label = discard
+    proc getSliderEffect(arg0: varref[Slider]): ptr ImageEffectFilter = discard
+    proc getSliderPopupFont(arg0: varref[Slider]): Font = discard
+    proc getSliderPopupPlacement(arg0: varref[Slider]): cint = discard
+    proc getSliderLayout(arg0: varref[Slider]): SliderSliderLayout = discard
+
+proc newCustomSliderLookAndFeelMethods*(): ptr CustomSliderLookAndFeelMethods {.importcpp: "(new june::CustomSliderLookAndFeelMethods)".}
+
+proc setDrawLinearSliderHandler*(this: var CustomSliderLookAndFeelMethods, handler: proc(arg0: ptr Graphics, x: cint, y: cint, width: cint, height: cint, sliderPos: cfloat, minSliderPos: cfloat, maxSliderPos: cfloat, arg8: SliderSliderStyle, arg9: ptr Slider) {.closure.}) =
+    this.onDrawLinearSlider = bindClosure(handler)
+
+proc setDrawLinearSliderBackgroundHandler*(this: var CustomSliderLookAndFeelMethods, handler: proc(arg0: ptr Graphics, x: cint, y: cint, width: cint, height: cint, sliderPos: cfloat, minSliderPos: cfloat, maxSliderPos: cfloat, arg8: SliderSliderStyle, arg9: ptr Slider) {.closure.}) =
+    this.onDrawLinearSliderBackground = bindClosure(handler)
+
+proc setDrawLinearSliderOutlineHandler*(this: var CustomSliderLookAndFeelMethods, handler: proc(arg0: ptr Graphics, x: cint, y: cint, width: cint, height: cint, arg5: SliderSliderStyle, arg6: ptr Slider) {.closure.}) =
+    this.onDrawLinearSliderOutline = bindClosure(handler)
+
+proc setDrawLinearSliderThumbHandler*(this: var CustomSliderLookAndFeelMethods, handler: proc(arg0: ptr Graphics, x: cint, y: cint, width: cint, height: cint, sliderPos: cfloat, minSliderPos: cfloat, maxSliderPos: cfloat, arg8: SliderSliderStyle, arg9: ptr Slider) {.closure.}) =
+    this.onDrawLinearSliderThumb = bindClosure(handler)
+
+proc setGetSliderThumbRadiusHandler*(this: var CustomSliderLookAndFeelMethods, handler: proc(arg0: ptr Slider): cint {.closure.}) =
+    this.onGetSliderThumbRadius = bindClosure(handler)
+
+proc setDrawRotarySliderHandler*(this: var CustomSliderLookAndFeelMethods, handler: proc(arg0: ptr Graphics, x: cint, y: cint, width: cint, height: cint, sliderPosProportional: cfloat, rotaryStartAngle: cfloat, rotaryEndAngle: cfloat, arg8: ptr Slider) {.closure.}) =
+    this.onDrawRotarySlider = bindClosure(handler)
+
+proc setCreateSliderButtonHandler*(this: var CustomSliderLookAndFeelMethods, handler: proc(arg0: ptr Slider, isIncrement: bool): ptr Button {.closure.}) =
+    this.onCreateSliderButton = bindClosure(handler)
+
+proc setCreateSliderTextBoxHandler*(this: var CustomSliderLookAndFeelMethods, handler: proc(arg0: ptr Slider): ptr Label {.closure.}) =
+    this.onCreateSliderTextBox = bindClosure(handler)
+
+proc setGetSliderEffectHandler*(this: var CustomSliderLookAndFeelMethods, handler: proc(arg0: ptr Slider): ptr ImageEffectFilter {.closure.}) =
+    this.onGetSliderEffect = bindClosure(handler)
+
+proc setGetSliderPopupFontHandler*(this: var CustomSliderLookAndFeelMethods, handler: proc(arg0: ptr Slider): Font {.closure.}) =
+    this.onGetSliderPopupFont = bindClosure(handler)
+
+proc setGetSliderPopupPlacementHandler*(this: var CustomSliderLookAndFeelMethods, handler: proc(arg0: ptr Slider): cint {.closure.}) =
+    this.onGetSliderPopupPlacement = bindClosure(handler)
+
+proc setGetSliderLayoutHandler*(this: var CustomSliderLookAndFeelMethods, handler: proc(arg0: ptr Slider): SliderSliderLayout {.closure.}) =
+    this.onGetSliderLayout = bindClosure(handler)
+
+defineCppClassInternal CustomStretchableLayoutResizerBarLookAndFeelMethods of StretchableLayoutResizerBarLookAndFeelMethods:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::StretchableLayoutResizerBar::LookAndFeelMethods"
+    proc drawStretchableLayoutResizerBar(arg0: varref[Graphics], w: cint, h: cint, isVerticalBar: bool, isMouseOver: bool, isMouseDragging: bool) = discard
+
+proc newCustomStretchableLayoutResizerBarLookAndFeelMethods*(): ptr CustomStretchableLayoutResizerBarLookAndFeelMethods {.importcpp: "(new june::CustomStretchableLayoutResizerBarLookAndFeelMethods)".}
+
+proc setDrawStretchableLayoutResizerBarHandler*(this: var CustomStretchableLayoutResizerBarLookAndFeelMethods, handler: proc(arg0: ptr Graphics, w: cint, h: cint, isVerticalBar: bool, isMouseOver: bool, isMouseDragging: bool) {.closure.}) =
+    this.onDrawStretchableLayoutResizerBar = bindClosure(handler)
+
+defineCppClassInternal CustomTabbedButtonBarLookAndFeelMethods of TabbedButtonBarLookAndFeelMethods:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::TabbedButtonBar::LookAndFeelMethods"
+    proc getTabButtonSpaceAroundImage(): cint = discard
+    proc getTabButtonOverlap(tabDepth: cint): cint = discard
+    proc getTabButtonBestWidth(arg0: varref[TabBarButton], tabDepth: cint): cint = discard
+    proc getTabButtonExtraComponentBounds(arg0: constptr[TabBarButton], textArea: varref[Rectangle[cint]], extraComp: varref[Component]): Rectangle[cint] = discard
+    proc drawTabButton(arg0: varref[TabBarButton], arg1: varref[Graphics], isMouseOver: bool, isMouseDown: bool) = discard
+    proc getTabButtonFont(arg0: varref[TabBarButton], height: cfloat): Font = discard
+    proc drawTabButtonText(arg0: varref[TabBarButton], arg1: varref[Graphics], isMouseOver: bool, isMouseDown: bool) = discard
+    proc drawTabbedButtonBarBackground(arg0: varref[TabbedButtonBar], arg1: varref[Graphics]) = discard
+    proc drawTabAreaBehindFrontButton(arg0: varref[TabbedButtonBar], arg1: varref[Graphics], w: cint, h: cint) = discard
+    proc createTabButtonShape(arg0: varref[TabBarButton], path: varref[Path], isMouseOver: bool, isMouseDown: bool) = discard
+    proc fillTabButtonShape(arg0: varref[TabBarButton], arg1: varref[Graphics], path: constptr[Path], isMouseOver: bool, isMouseDown: bool) = discard
+    proc createTabBarExtrasButton(): ptr Button = discard
+
+proc newCustomTabbedButtonBarLookAndFeelMethods*(): ptr CustomTabbedButtonBarLookAndFeelMethods {.importcpp: "(new june::CustomTabbedButtonBarLookAndFeelMethods)".}
+
+proc setGetTabButtonSpaceAroundImageHandler*(this: var CustomTabbedButtonBarLookAndFeelMethods, handler: proc(): cint {.closure.}) =
+    this.onGetTabButtonSpaceAroundImage = bindClosure(handler)
+
+proc setGetTabButtonOverlapHandler*(this: var CustomTabbedButtonBarLookAndFeelMethods, handler: proc(tabDepth: cint): cint {.closure.}) =
+    this.onGetTabButtonOverlap = bindClosure(handler)
+
+proc setGetTabButtonBestWidthHandler*(this: var CustomTabbedButtonBarLookAndFeelMethods, handler: proc(arg0: ptr TabBarButton, tabDepth: cint): cint {.closure.}) =
+    this.onGetTabButtonBestWidth = bindClosure(handler)
+
+proc setGetTabButtonExtraComponentBoundsHandler*(this: var CustomTabbedButtonBarLookAndFeelMethods, handler: proc(arg0: ptr TabBarButton, textArea: ptr Rectangle[cint], extraComp: ptr Component): Rectangle[cint] {.closure.}) =
+    this.onGetTabButtonExtraComponentBounds = bindClosure(handler)
+
+proc setDrawTabButtonHandler*(this: var CustomTabbedButtonBarLookAndFeelMethods, handler: proc(arg0: ptr TabBarButton, arg1: ptr Graphics, isMouseOver: bool, isMouseDown: bool) {.closure.}) =
+    this.onDrawTabButton = bindClosure(handler)
+
+proc setGetTabButtonFontHandler*(this: var CustomTabbedButtonBarLookAndFeelMethods, handler: proc(arg0: ptr TabBarButton, height: cfloat): Font {.closure.}) =
+    this.onGetTabButtonFont = bindClosure(handler)
+
+proc setDrawTabButtonTextHandler*(this: var CustomTabbedButtonBarLookAndFeelMethods, handler: proc(arg0: ptr TabBarButton, arg1: ptr Graphics, isMouseOver: bool, isMouseDown: bool) {.closure.}) =
+    this.onDrawTabButtonText = bindClosure(handler)
+
+proc setDrawTabbedButtonBarBackgroundHandler*(this: var CustomTabbedButtonBarLookAndFeelMethods, handler: proc(arg0: ptr TabbedButtonBar, arg1: ptr Graphics) {.closure.}) =
+    this.onDrawTabbedButtonBarBackground = bindClosure(handler)
+
+proc setDrawTabAreaBehindFrontButtonHandler*(this: var CustomTabbedButtonBarLookAndFeelMethods, handler: proc(arg0: ptr TabbedButtonBar, arg1: ptr Graphics, w: cint, h: cint) {.closure.}) =
+    this.onDrawTabAreaBehindFrontButton = bindClosure(handler)
+
+proc setCreateTabButtonShapeHandler*(this: var CustomTabbedButtonBarLookAndFeelMethods, handler: proc(arg0: ptr TabBarButton, path: ptr Path, isMouseOver: bool, isMouseDown: bool) {.closure.}) =
+    this.onCreateTabButtonShape = bindClosure(handler)
+
+proc setFillTabButtonShapeHandler*(this: var CustomTabbedButtonBarLookAndFeelMethods, handler: proc(arg0: ptr TabBarButton, arg1: ptr Graphics, path: ptr Path, isMouseOver: bool, isMouseDown: bool) {.closure.}) =
+    this.onFillTabButtonShape = bindClosure(handler)
+
+proc setCreateTabBarExtrasButtonHandler*(this: var CustomTabbedButtonBarLookAndFeelMethods, handler: proc(): ptr Button {.closure.}) =
+    this.onCreateTabBarExtrasButton = bindClosure(handler)
+
+defineCppClassInternal CustomTableHeaderComponentListener of TableHeaderComponentListener:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::TableHeaderComponent::Listener"
+    proc tableColumnsChanged(tableHeader: ptr TableHeaderComponent) = discard
+    proc tableColumnsResized(tableHeader: ptr TableHeaderComponent) = discard
+    proc tableSortOrderChanged(tableHeader: ptr TableHeaderComponent) = discard
+
+proc newCustomTableHeaderComponentListener*(): ptr CustomTableHeaderComponentListener {.importcpp: "(new june::CustomTableHeaderComponentListener)".}
+
+proc setTableColumnsChangedHandler*(this: var CustomTableHeaderComponentListener, handler: proc(tableHeader: ptr TableHeaderComponent) {.closure.}) =
+    this.onTableColumnsChanged = bindClosure(handler)
+
+proc setTableColumnsResizedHandler*(this: var CustomTableHeaderComponentListener, handler: proc(tableHeader: ptr TableHeaderComponent) {.closure.}) =
+    this.onTableColumnsResized = bindClosure(handler)
+
+proc setTableSortOrderChangedHandler*(this: var CustomTableHeaderComponentListener, handler: proc(tableHeader: ptr TableHeaderComponent) {.closure.}) =
+    this.onTableSortOrderChanged = bindClosure(handler)
+
+defineCppClassInternal CustomTableHeaderComponentLookAndFeelMethods of TableHeaderComponentLookAndFeelMethods:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::TableHeaderComponent::LookAndFeelMethods"
+    proc drawTableHeaderBackground(arg0: varref[Graphics], arg1: varref[TableHeaderComponent]) = discard
+    proc drawTableHeaderColumn(arg0: varref[Graphics], arg1: varref[TableHeaderComponent], columnName: constptr[String], columnId: cint, width: cint, height: cint, isMouseOver: bool, isMouseDown: bool, columnFlags: cint) = discard
+
+proc newCustomTableHeaderComponentLookAndFeelMethods*(): ptr CustomTableHeaderComponentLookAndFeelMethods {.importcpp: "(new june::CustomTableHeaderComponentLookAndFeelMethods)".}
+
+proc setDrawTableHeaderBackgroundHandler*(this: var CustomTableHeaderComponentLookAndFeelMethods, handler: proc(arg0: ptr Graphics, arg1: ptr TableHeaderComponent) {.closure.}) =
+    this.onDrawTableHeaderBackground = bindClosure(handler)
+
+proc setDrawTableHeaderColumnHandler*(this: var CustomTableHeaderComponentLookAndFeelMethods, handler: proc(arg0: ptr Graphics, arg1: ptr TableHeaderComponent, columnName: ptr String, columnId: cint, width: cint, height: cint, isMouseOver: bool, isMouseDown: bool, columnFlags: cint) {.closure.}) =
+    this.onDrawTableHeaderColumn = bindClosure(handler)
 
 defineCppClassInternal CustomTableListBoxModel of TableListBoxModel:
     include "juce_gui_basics/juce_gui_basics.h"
@@ -506,6 +1238,34 @@ proc setIsInterestedInTextDragHandler*(this: var CustomTextDragAndDropTarget, ha
 
 proc setTextDroppedHandler*(this: var CustomTextDragAndDropTarget, handler: proc(text: ptr String, x: cint, y: cint) {.closure.}) =
     this.onTextDropped = bindClosure(handler)
+
+defineCppClassInternal CustomTextEditorInputFilter of TextEditorInputFilter:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::TextEditor::InputFilter"
+    proc filterNewText(arg0: varref[TextEditor], newInput: constptr[String]): String = discard
+
+proc newCustomTextEditorInputFilter*(): ptr CustomTextEditorInputFilter {.importcpp: "(new june::CustomTextEditorInputFilter)".}
+
+proc setFilterNewTextHandler*(this: var CustomTextEditorInputFilter, handler: proc(arg0: ptr TextEditor, newInput: ptr String): String {.closure.}) =
+    this.onFilterNewText = bindClosure(handler)
+
+defineCppClassInternal CustomTextEditorLookAndFeelMethods of TextEditorLookAndFeelMethods:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::TextEditor::LookAndFeelMethods"
+    proc fillTextEditorBackground(arg0: varref[Graphics], width: cint, height: cint, arg3: varref[TextEditor]) = discard
+    proc drawTextEditorOutline(arg0: varref[Graphics], width: cint, height: cint, arg3: varref[TextEditor]) = discard
+    proc createCaretComponent(keyFocusOwner: ptr Component): ptr CaretComponent = discard
+
+proc newCustomTextEditorLookAndFeelMethods*(): ptr CustomTextEditorLookAndFeelMethods {.importcpp: "(new june::CustomTextEditorLookAndFeelMethods)".}
+
+proc setFillTextEditorBackgroundHandler*(this: var CustomTextEditorLookAndFeelMethods, handler: proc(arg0: ptr Graphics, width: cint, height: cint, arg3: ptr TextEditor) {.closure.}) =
+    this.onFillTextEditorBackground = bindClosure(handler)
+
+proc setDrawTextEditorOutlineHandler*(this: var CustomTextEditorLookAndFeelMethods, handler: proc(arg0: ptr Graphics, width: cint, height: cint, arg3: ptr TextEditor) {.closure.}) =
+    this.onDrawTextEditorOutline = bindClosure(handler)
+
+proc setCreateCaretComponentHandler*(this: var CustomTextEditorLookAndFeelMethods, handler: proc(keyFocusOwner: ptr Component): ptr CaretComponent {.closure.}) =
+    this.onCreateCaretComponent = bindClosure(handler)
 
 defineCppClassInternal CustomTextInputTarget of TextInputTarget:
     include "juce_gui_basics/juce_gui_basics.h"
@@ -556,6 +1316,16 @@ proc setGetCharIndexForPointHandler*(this: var CustomTextInputTarget, handler: p
 proc setGetTextBoundsHandler*(this: var CustomTextInputTarget, handler: proc(textRange: Range[cint]): RectangleList[cint] {.closure.}) =
     this.onGetTextBounds = bindClosure(handler)
 
+defineCppClassInternal CustomTextPropertyComponentListener of TextPropertyComponentListener:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::TextPropertyComponent::Listener"
+    proc textPropertyComponentChanged(arg0: ptr TextPropertyComponent) = discard
+
+proc newCustomTextPropertyComponentListener*(): ptr CustomTextPropertyComponentListener {.importcpp: "(new june::CustomTextPropertyComponentListener)".}
+
+proc setTextPropertyComponentChangedHandler*(this: var CustomTextPropertyComponentListener, handler: proc(arg0: ptr TextPropertyComponent) {.closure.}) =
+    this.onTextPropertyComponentChanged = bindClosure(handler)
+
 defineCppClassInternal CustomThreadWithProgressWindow of ThreadWithProgressWindow:
     include "juce_gui_basics/juce_gui_basics.h"
     proc run() = discard
@@ -599,6 +1369,28 @@ proc setGetDefaultItemSetHandler*(this: var CustomToolbarItemFactory, handler: p
 proc setCreateItemHandler*(this: var CustomToolbarItemFactory, handler: proc(itemId: cint): ptr ToolbarItemComponent {.closure.}) =
     this.onCreateItem = bindClosure(handler)
 
+defineCppClassInternal CustomToolbarLookAndFeelMethods of ToolbarLookAndFeelMethods:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::Toolbar::LookAndFeelMethods"
+    proc paintToolbarBackground(arg0: varref[Graphics], width: cint, height: cint, arg3: varref[Toolbar]) = discard
+    proc createToolbarMissingItemsButton(arg0: varref[Toolbar]): ptr Button = discard
+    proc paintToolbarButtonBackground(arg0: varref[Graphics], width: cint, height: cint, isMouseOver: bool, isMouseDown: bool, arg5: varref[ToolbarItemComponent]) = discard
+    proc paintToolbarButtonLabel(arg0: varref[Graphics], x: cint, y: cint, width: cint, height: cint, text: constptr[String], arg6: varref[ToolbarItemComponent]) = discard
+
+proc newCustomToolbarLookAndFeelMethods*(): ptr CustomToolbarLookAndFeelMethods {.importcpp: "(new june::CustomToolbarLookAndFeelMethods)".}
+
+proc setPaintToolbarBackgroundHandler*(this: var CustomToolbarLookAndFeelMethods, handler: proc(arg0: ptr Graphics, width: cint, height: cint, arg3: ptr Toolbar) {.closure.}) =
+    this.onPaintToolbarBackground = bindClosure(handler)
+
+proc setCreateToolbarMissingItemsButtonHandler*(this: var CustomToolbarLookAndFeelMethods, handler: proc(arg0: ptr Toolbar): ptr Button {.closure.}) =
+    this.onCreateToolbarMissingItemsButton = bindClosure(handler)
+
+proc setPaintToolbarButtonBackgroundHandler*(this: var CustomToolbarLookAndFeelMethods, handler: proc(arg0: ptr Graphics, width: cint, height: cint, isMouseOver: bool, isMouseDown: bool, arg5: ptr ToolbarItemComponent) {.closure.}) =
+    this.onPaintToolbarButtonBackground = bindClosure(handler)
+
+proc setPaintToolbarButtonLabelHandler*(this: var CustomToolbarLookAndFeelMethods, handler: proc(arg0: ptr Graphics, x: cint, y: cint, width: cint, height: cint, text: ptr String, arg6: ptr ToolbarItemComponent) {.closure.}) =
+    this.onPaintToolbarButtonLabel = bindClosure(handler)
+
 defineCppClassInternal CustomTooltipClient of TooltipClient:
     include "juce_gui_basics/juce_gui_basics.h"
     proc getTooltip(): String = discard
@@ -607,6 +1399,20 @@ proc newCustomTooltipClient*(): ptr CustomTooltipClient {.importcpp: "(new june:
 
 proc setGetTooltipHandler*(this: var CustomTooltipClient, handler: proc(): String {.closure.}) =
     this.onGetTooltip = bindClosure(handler)
+
+defineCppClassInternal CustomTooltipWindowLookAndFeelMethods of TooltipWindowLookAndFeelMethods:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::TooltipWindow::LookAndFeelMethods"
+    proc getTooltipBounds(tipText: constptr[String], screenPos: Point[cint], parentArea: Rectangle[cint]): Rectangle[cint] = discard
+    proc drawTooltip(arg0: varref[Graphics], text: constptr[String], width: cint, height: cint) = discard
+
+proc newCustomTooltipWindowLookAndFeelMethods*(): ptr CustomTooltipWindowLookAndFeelMethods {.importcpp: "(new june::CustomTooltipWindowLookAndFeelMethods)".}
+
+proc setGetTooltipBoundsHandler*(this: var CustomTooltipWindowLookAndFeelMethods, handler: proc(tipText: ptr String, screenPos: Point[cint], parentArea: Rectangle[cint]): Rectangle[cint] {.closure.}) =
+    this.onGetTooltipBounds = bindClosure(handler)
+
+proc setDrawTooltipHandler*(this: var CustomTooltipWindowLookAndFeelMethods, handler: proc(arg0: ptr Graphics, text: ptr String, width: cint, height: cint) {.closure.}) =
+    this.onDrawTooltip = bindClosure(handler)
 
 defineCppClassInternal CustomTreeViewItem of TreeViewItem:
     include "juce_gui_basics/juce_gui_basics.h"
@@ -619,5 +1425,11 @@ proc setMightContainSubItemsHandler*(this: var CustomTreeViewItem, handler: proc
 
 # Withheld, with the reason:
 #   AccessibilityTableInterface: Optional<Span> returned by getRowSpan has no Nim spelling
+#   ComponentBuilderImageProvider: const var & in getImageForIdentifier has no Nim spelling
 #   ComponentPeer: a pure virtual is private, so no subclass can implement it
+#   DocumentWindowLookAndFeelMethods: DocumentWindow & in drawDocumentWindowTitleBar has no Nim spelling
+#   FileBrowserComponentLookAndFeelMethods: drawFileBrowserRow takes 12 arguments, and a std::function Nim can spell carries at most 10 here
 #   MultiDocumentPanel: std::function<void (bool)> in tryToCloseDocumentAsync has no Nim spelling
+#   ScrollBarLookAndFeelMethods: drawScrollbar takes 11 arguments, and a std::function Nim can spell carries at most 10 here
+#   SidePanelLookAndFeelMethods: getSidePanelTitleJustification returns Justification, which has no default constructor, and Nim builds a temporary for a closure's result
+#   TreeViewLookAndFeelMethods: drawTreeviewPlusMinusBox takes a Colour by value, which Nim hands over as a pointer, so the closure does not convert to the std::function

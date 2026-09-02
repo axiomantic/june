@@ -290,7 +290,10 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
   var cppIncludedHeader = "june_generated_" & parentClassName & ".h"
   var cppGeneratedHeader = "june_generated_" & className & ".h"
 
-  var cppIncludeDefinition = "#pragma once\n\n#include <utility>\n\n"
+  # june.h, because the forwarder falls back through june::fallback when no
+  # handler is set. The generated header includes only the JUCE module it needs
+  # otherwise, and that does not declare it.
+  var cppIncludeDefinition = "#pragma once\n\n#include <utility>\n\n#include <june.h>\n\n"
   if not internalClass:
       cppIncludeDefinition &= "#include \"" & cppIncludedHeader & "\"\n"
 
@@ -402,7 +405,13 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
         if returnValue.castReturn:
           cppFuncSignature &= "(" & returnValue.cpp & ") "
       cppFuncSignature &= funcPointerName & "(" & cppFuncPointerCallArgs & "); "
-      if hasReturnValue: cppFuncSignature &= " else return {}; "
+      # june::fallback rather than `return {}`: a type with no default
+      # constructor - juce::Justification, juce::Font - cannot be value
+      # initialised, and a look and feel method returning one could not be
+      # generated at all.
+      if hasReturnValue:
+        cppFuncSignature &= " else return june::fallback<" &
+                            toCppString(returnValue) & ">(); "
       cppFuncSignature &= "}"
 
       cppClassDefinition &= cppFuncPointerSignature & "\n"

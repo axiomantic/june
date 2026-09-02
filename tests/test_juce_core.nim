@@ -1744,3 +1744,33 @@ proc testUrlInputStreamOptions() =
 
 testUrlInputStreamOptions()
 
+# The nested abstract classes =================================================
+#
+# The subclass generator keyed an abstract class on its own spelling, which
+# never matched a declared Nim name for a nested one, so every Listener,
+# LookAndFeelMethods and other nested interface was skipped with no withheld
+# entry. Building each compiles the C++ class, and setting each handler is what
+# type-checks and generates the setter.
+
+proc testNestedSubclassesCore() =
+
+    block:
+        var customExpressionScopeVisitor = newCustomExpressionScopeVisitor()
+        doAssert not customExpressionScopeVisitor.isNil(), "newCustomExpressionScopeVisitor built nothing"
+        customExpressionScopeVisitor[].setVisitHandler(proc(arg0: ptr ExpressionScope) = discard)
+        cdelete customExpressionScopeVisitor
+        var customThreadListener = newCustomThreadListener()
+        doAssert not customThreadListener.isNil(), "newCustomThreadListener built nothing"
+        customThreadListener[].setExitSignalSentHandler(proc() = discard)
+        cdelete customThreadListener
+        var customThreadPoolJobSelector = newCustomThreadPoolJobSelector()
+        doAssert not customThreadPoolJobSelector.isNil(), "newCustomThreadPoolJobSelector built nothing"
+        customThreadPoolJobSelector[].setIsJobSuitableHandler(proc(job: ptr ThreadPoolJob): bool = false)
+        cdelete customThreadPoolJobSelector
+        var customURLDownloadTaskListener = newCustomURLDownloadTaskListener()
+        doAssert not customURLDownloadTaskListener.isNil(), "newCustomURLDownloadTaskListener built nothing"
+        customURLDownloadTaskListener[].setFinishedHandler(proc(task: ptr URLDownloadTask, success: bool) = discard)
+        cdelete customURLDownloadTaskListener
+
+
+testNestedSubclassesCore()
