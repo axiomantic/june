@@ -389,6 +389,20 @@ The generator reads the JUCE headers with libclang.
     PYTHONPATH=tools python3 tools/inspect_juce.py --module "$module" > "sources/june/$module.nim"
   done
 
+A JUCE class with a pure virtual cannot be constructed, so one with no C++
+subclass is unreachable from Nim however completely its methods are bound.
+``tools/generate_subclasses.py`` writes that subclass for every abstract class
+in a module, and is run the same way::
+
+  for module in juce_core juce_events juce_data_structures juce_graphics juce_gui_basics; do
+    PYTHONPATH=tools python3 tools/generate_subclasses.py --module "$module" > "sources/june/${module}_subclasses.nim"
+  done
+
+A class it cannot express is listed at the end of the file with the reason, in
+the same style as an unbound proc. The test suite constructs every generated
+subclass: the generated C++ has a template forwarding constructor, so one whose
+base has no default constructor compiles cleanly until something calls it.
+
 The generator aborts on a parse error rather than emitting a binding for a type
 it did not resolve. An unresolved type does not stop libclang, it degrades to
 ``int``, so a run that printed nothing and emitted a full file used to look

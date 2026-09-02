@@ -58,3 +58,7 @@ defineCppClassInternal CustomChangeListener of ChangeListener:
 
 proc newCustomChangeListener*(): ptr CustomChangeListener {.importcpp: "(new june::CustomChangeListener)".}
 
+
+# Subclasses for the abstract classes of this module. Generated; see
+# tools/generate_subclasses.py.
+include juce_events_subclasses

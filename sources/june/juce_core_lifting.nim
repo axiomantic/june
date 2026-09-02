@@ -70,3 +70,7 @@ type CrashHandlerFunction* = proc(platformSpecificData: pointer) {.cdecl.}
 
 proc setApplicationCrashHandler*(this: typedesc[SystemStats], handler: CrashHandlerFunction)
     {.header: juce_core, importcpp: "juce::SystemStats::setApplicationCrashHandler(@)".}
+
+# Subclasses for the abstract classes of this module. Generated; see
+# tools/generate_subclasses.py.
+include juce_core_subclasses

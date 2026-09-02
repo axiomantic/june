@@ -22,3 +22,7 @@ iterator properties*(this: ValueTree): tuple[name: Identifier, value: juce_var] 
     for index in 0 ..< this.getNumProperties():
         let name = this.getPropertyName(index)
         yield (name, this.getProperty(name))
+
+# Subclasses for the abstract classes of this module. Generated; see
+# tools/generate_subclasses.py.
+include juce_data_structures_subclasses
