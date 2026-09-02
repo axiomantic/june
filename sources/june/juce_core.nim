@@ -1565,7 +1565,7 @@ proc read*(this: var SubregionStream, destBuffer: pointer, maxBytesToRead: cint)
 proc isExhausted*(this: var SubregionStream): bool {.header: juce_core, importcpp: "#.isExhausted()".}
 proc `==`*(this: SubregionStream, other: SubregionStream): bool {.error: "juce::SubregionStream defines no operator==; compare a property instead".}
 
-proc makeInputSource*(): InputSource {.header: juce_core, importcpp: "juce::InputSource(@)".}
+# proc makeInputSource*(): InputSource {.header: juce_core, importcpp: "juce::InputSource(@)".}  # InputSource is abstract; build a CustomInputSource instead
 proc createInputStream*(this: var InputSource): ptr InputStream {.header: juce_core, importcpp: "#.createInputStream()".}
 proc createInputStreamFor*(this: var InputSource, relatedItemPath: String): ptr InputStream {.header: juce_core, importcpp: "#.createInputStreamFor(@)".}
 proc hashCode*(this: InputSource): int64 {.header: juce_core, importcpp: "#.hashCode()".}
@@ -1765,7 +1765,7 @@ proc overwriteTargetFileWithTemporary*(this: TemporaryFile): bool {.header: juce
 proc deleteTemporaryFile*(this: TemporaryFile): bool {.header: juce_core, importcpp: "#.deleteTemporaryFile()".}
 proc `==`*(this: TemporaryFile, other: TemporaryFile): bool {.error: "juce::TemporaryFile defines no operator==; compare a property instead".}
 
-proc makeFileFilter*(filterDescription: String): FileFilter {.header: juce_core, importcpp: "juce::FileFilter(@)".}
+# proc makeFileFilter*(filterDescription: String): FileFilter {.header: juce_core, importcpp: "juce::FileFilter(@)".}  # FileFilter is abstract; build a CustomFileFilter instead
 proc getDescription*(this: FileFilter): String {.header: juce_core, importcpp: "#.getDescription()".}
 proc isFileSuitable*(this: FileFilter, file: File): bool {.header: juce_core, importcpp: "#.isFileSuitable(@)".}
 proc isDirectorySuitable*(this: FileFilter, file: File): bool {.header: juce_core, importcpp: "#.isDirectorySuitable(@)".}
@@ -2014,7 +2014,7 @@ proc signal*(this: WaitableEvent) {.header: juce_core, importcpp: "#.signal()".}
 proc reset*(this: WaitableEvent) {.header: juce_core, importcpp: "#.reset()".}
 proc `==`*(this: WaitableEvent, other: WaitableEvent): bool {.error: "juce::WaitableEvent defines no operator==; compare a property instead".}
 
-proc makeThread*(threadName: String, threadStackSize: uint64): Thread {.header: juce_core, importcpp: "juce::Thread(@)".}
+# proc makeThread*(threadName: String, threadStackSize: uint64): Thread {.header: juce_core, importcpp: "juce::Thread(@)".}  # Thread is abstract; build a CustomThread instead
 proc osDefaultStackSize*(this: typedesc[Thread]): uint64 {.header: juce_core, importcpp: "(juce::Thread::osDefaultStackSize)".}
 proc run*(this: var Thread) {.header: juce_core, importcpp: "#.run()".}
 proc startThread*(this: var Thread): bool {.header: juce_core, importcpp: "#.startThread()".}
@@ -2066,7 +2066,7 @@ proc isTimerRunning*(this: HighResolutionTimer): bool {.header: juce_core, impor
 proc getTimerInterval*(this: HighResolutionTimer): cint {.header: juce_core, importcpp: "#.getTimerInterval()".}
 proc `==`*(this: HighResolutionTimer, other: HighResolutionTimer): bool {.error: "juce::HighResolutionTimer defines no operator==; compare a property instead".}
 
-proc makeThreadPoolJob*(name: String): ThreadPoolJob {.header: juce_core, importcpp: "juce::ThreadPoolJob(@)".}
+# proc makeThreadPoolJob*(name: String): ThreadPoolJob {.header: juce_core, importcpp: "juce::ThreadPoolJob(@)".}  # ThreadPoolJob is abstract; build a CustomThreadPoolJob instead
 proc getJobName*(this: ThreadPoolJob): String {.header: juce_core, importcpp: "#.getJobName()".}
 proc setJobName*(this: var ThreadPoolJob, newName: String) {.header: juce_core, importcpp: "#.setJobName(@)".}
 proc runJob*(this: var ThreadPoolJob): ThreadPoolJobJobStatus {.header: juce_core, importcpp: "#.runJob()".}
@@ -2418,7 +2418,7 @@ proc `+=`*(this: var TimedDiagnostic, other: TimedDiagnostic) {.header: juce_cor
 proc `-=`*(this: var TimedDiagnostic, other: TimedDiagnostic) {.header: juce_core, importcpp: "#.operator-=(@)".}
 proc `==`*(this: TimedDiagnostic, other: TimedDiagnostic): bool {.error: "juce::TimedDiagnostic defines no operator==; compare a property instead".}
 
-proc makeUnitTest*(name: String, category: String): UnitTest {.header: juce_core, importcpp: "juce::UnitTest(@)".}
+# proc makeUnitTest*(name: String, category: String): UnitTest {.header: juce_core, importcpp: "juce::UnitTest(@)".}  # UnitTest is abstract; build a CustomUnitTest instead
 proc getName*(this: UnitTest): String {.header: juce_core, importcpp: "#.getName()".}
 proc getCategory*(this: UnitTest): String {.header: juce_core, importcpp: "#.getCategory()".}
 proc performTest*(this: var UnitTest, runner: ptr UnitTestRunner) {.header: juce_core, importcpp: "#.performTest(@)".}
