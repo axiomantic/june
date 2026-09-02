@@ -975,3 +975,71 @@ proc testGraphicsValueClasses() =
                  "after moving the baseline is at " & $glyph.getBaselineY()
 
 testGraphicsValueClasses()
+
+# TextLayoutRun and TextLayoutGlyph ===========================================
+#
+# A laid-out line is a list of runs, and each run is a list of glyphs. Walking
+# down from the layout to the glyphs is what says the whole structure is
+# reachable from Nim rather than only its top.
+
+proc testTextLayoutRuns() =
+    block:
+        var text = makeAttributedString(makeString("Hello"))
+        text.setColour(makeColour(255'u8, 0'u8, 0'u8, 255'u8))
+
+        var layout = makeTextLayout()
+        layout.createLayout(text, 400.0'f32)
+        doAssert layout.getNumLines() == 1,
+                 "the text laid out on " & $layout.getNumLines() & " lines"
+
+        var glyphs = 0
+        var runs = 0
+        var lastAnchorX = -1.0'f32
+        for line in layout:
+            # Chained rather than bound to a local. OwnedArray and
+            # Array<Glyph> are both non-copyable - Glyph has no default
+            # constructor - so `var runs = line.runs()` asks C++ for a copy it
+            # will not make, and so does `for run in line.runs()`, because the
+            # items iterator takes the array by value. Used inline, no copy is
+            # needed and the accessor hands back the reference it holds.
+            for runIndex in 0 ..< line.runs().size():
+                runs += 1
+                doAssert line.runs()[runIndex][].stringRange().getLength() > 0,
+                         "a run covers no characters"
+                doAssert line.runs()[runIndex][].colour().getRed() == 255'u8,
+                         "the run lost the colour it was given"
+                for glyphIndex in 0 ..< line.runs()[runIndex][].glyphs().size():
+                    glyphs += 1
+                    # getReference, not []: `[]` returns by value and Nim
+                    # builds a temporary for that, which needs a default
+                    # constructor. TextLayout::Glyph has none.
+                    let width = line.runs()[runIndex][].glyphs()
+                                    .getReference(glyphIndex).width()
+                    doAssert width > 0.0'f32, "a glyph is " & $width & " wide"
+                    # Glyphs run left to right along the line.
+                    let anchorX = line.runs()[runIndex][].glyphs()
+                                      .getReference(glyphIndex).anchor().getX()
+                    doAssert anchorX > lastAnchorX,
+                             "glyph " & $glyphs & " is not right of the one before"
+                    lastAnchorX = anchorX
+
+        doAssert runs >= 1, "the line holds " & $runs & " runs"
+        doAssert glyphs == 5,
+                 "the five characters produced " & $glyphs & " glyphs"
+
+    block:
+        # Built by hand rather than laid out, so the fields are exactly what
+        # they were set to.
+        let glyph = makeTextLayoutGlyph(42.cint, makePoint(3.0'f32, 4.0'f32), 9.0'f32)
+        doAssert glyph.glyphCode() == 42, "the glyph code is " & $glyph.glyphCode()
+        doAssert glyph.anchor().getY() == 4.0'f32,
+                 "the anchor is at y " & $glyph.anchor().getY()
+        doAssert glyph.width() == 9.0'f32, "the glyph is " & $glyph.width() & " wide"
+
+        var run = makeTextLayoutRun(makeRange(0.cint, 5.cint), 4.cint)
+        doAssert run.stringRange().getLength() == 5,
+                 "the run covers " & $run.stringRange().getLength() & " characters"
+        run.colour = makeColour(0'u8, 0'u8, 255'u8, 255'u8)
+        doAssert run.colour().getBlue() == 255'u8, "the run is not blue"
+
+testTextLayoutRuns()
