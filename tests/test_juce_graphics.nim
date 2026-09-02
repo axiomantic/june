@@ -897,3 +897,81 @@ proc testRemainingGraphicsHandlers() =
         cdelete imageType
 
 testRemainingGraphicsHandlers()
+
+# PixelAlpha, PathFlatteningIterator and PositionedGlyph =======================
+#
+# Three classes whose answers are arithmetic, so the assertions can be exact
+# rather than "something was drawn".
+
+proc testGraphicsValueClasses() =
+    block:
+        # PixelAlpha stores an alpha and nothing else. JUCE's own getRed,
+        # getGreen and getBlue return a literal 0 for it, and setARGB drops
+        # every argument but the first.
+        var pixel = makePixelAlpha()
+        pixel.setAlpha(200'u8)
+        doAssert pixel.getAlpha() == 200'u8, "the pixel holds " & $pixel.getAlpha()
+        doAssert pixel.getRed() == 0'u8, "red reads " & $pixel.getRed()
+        doAssert pixel.getGreen() == 0'u8, "green reads " & $pixel.getGreen()
+        doAssert pixel.getBlue() == 0'u8, "blue reads " & $pixel.getBlue()
+
+        pixel.multiplyAlpha(128.cint)
+        doAssert pixel.getAlpha() == 100'u8,
+                 "after halving, the alpha is " & $pixel.getAlpha()
+
+        pixel.setARGB(50'u8, 255'u8, 255'u8, 255'u8)
+        doAssert pixel.getAlpha() == 50'u8, "setARGB left " & $pixel.getAlpha()
+        doAssert pixel.getRed() == 0'u8,
+                 "setARGB kept a red of " & $pixel.getRed()
+
+    block:
+        # A rectangle flattens to four straight segments, and the iterator walks
+        # them. Every segment has to lie on the rectangle's own edges.
+        var path = makePath()
+        path.addRectangle(0.0'f32, 0.0'f32, 10.0'f32, 20.0'f32)
+
+        var walker = makePathFlatteningIterator(path, makeAffineTransform(), 1.0'f32)
+        var segments = 0
+        var closes = 0
+        var indices: seq[cint] = @[]
+        while walker.next():
+            segments += 1
+            for value in [walker.x1(), walker.x2()]:
+                doAssert value >= 0.0'f32 and value <= 10.0'f32,
+                         "a segment left the rectangle at x " & $value
+            for value in [walker.y1(), walker.y2()]:
+                doAssert value >= 0.0'f32 and value <= 20.0'f32,
+                         "a segment left the rectangle at y " & $value
+            if walker.closesSubPath(): closes += 1
+            indices.add walker.subPathIndex()
+
+        doAssert segments == 4,
+                 "the rectangle flattened to " & $segments & " segments"
+        doAssert closes == 1,
+                 $closes & " of the segments closed the sub path"
+        # JUCE documents subPathIndex as the index of the line within its own
+        # sub path, and says only that the first one is 0.
+        doAssert indices.len > 0 and indices[0] == 0,
+                 "the first segment reported sub path index " & $indices
+
+    block:
+        # A glyph placed at a known anchor reports that anchor back.
+        let font = makeFont(makeFontOptions())
+        var glyph = makePositionedGlyph(font, WChar(ord('A')), 0.cint,
+                                        5.0'f32, 30.0'f32, 12.0'f32, false)
+        doAssert glyph.getCharacter() == WChar(ord('A')),
+                 "the glyph holds codepoint " & $glyph.getCharacter().int
+        doAssert not glyph.isWhitespace(), "the glyph called itself whitespace"
+        doAssert glyph.getLeft() == 5.0'f32, "the glyph starts at " & $glyph.getLeft()
+        doAssert glyph.getRight() == 17.0'f32, "the glyph ends at " & $glyph.getRight()
+        doAssert glyph.getBaselineY() == 30.0'f32,
+                 "the baseline is at " & $glyph.getBaselineY()
+        doAssert glyph.getBounds().getWidth() == 12.0'f32,
+                 "the glyph is " & $glyph.getBounds().getWidth() & " wide"
+
+        glyph.moveBy(3.0'f32, -2.0'f32)
+        doAssert glyph.getLeft() == 8.0'f32, "after moving it starts at " & $glyph.getLeft()
+        doAssert glyph.getBaselineY() == 28.0'f32,
+                 "after moving the baseline is at " & $glyph.getBaselineY()
+
+testGraphicsValueClasses()
