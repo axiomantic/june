@@ -1256,6 +1256,15 @@ def run_main(juce_module_name, juce_class_name_to_export):
         # fixes an overloaded method fixes an overloaded constructor too.
         scalar_overloaded_ctors = scalar_overloaded_names(public_constructors)
 
+        # An abstract class cannot be allocated, so a constructor for one is a
+        # binding that looks usable and is a compile error at every call. The
+        # generated Custom<Name> subclass in the _subclasses file is what a
+        # caller wants instead.
+        try:
+            class_is_abstract = c.is_abstract_record()
+        except AttributeError:
+            class_is_abstract = False
+
         for ctor in public_constructors:
             ctor_args, ctor_types, ctor_comment = [], [], ""
             ctor_cpp_types = []
@@ -1273,6 +1282,10 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 ctor_juce_args = "@"
 
             ctor_reason = ""
+            if class_is_abstract:
+                ctor_comment = "# "
+                ctor_reason = (f"{class_name} is abstract; build a "
+                               f"Custom{class_name} instead")
 
             # A copy or move constructor would just shadow the plain one.
             if len(ctor_types) == 1 and ctor_types[0].replace("var ", "").replace("lent ", "") == class_name:
