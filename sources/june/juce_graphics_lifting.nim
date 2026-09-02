@@ -34,3 +34,14 @@ proc `$`*[T](this: Point[T]): string = $this.toString()
 # Subclasses for the abstract classes of this module. Generated; see
 # tools/generate_subclasses.py.
 include juce_graphics_subclasses
+
+# Both expose a C++ iterator with no Nim spelling. The indexed accessors give
+# the same loop, and both hand back a reference, so the receiver is var.
+
+iterator items*(this: var GlyphArrangement): var PositionedGlyph =
+    for index in 0 ..< this.getNumGlyphs():
+        yield this.getGlyph(index)
+
+iterator items*(this: var TextLayout): var TextLayoutLine =
+    for index in 0 ..< this.getNumLines():
+        yield this.getLine(index)

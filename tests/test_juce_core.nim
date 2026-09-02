@@ -688,3 +688,34 @@ proc testNotOperators() =
   doAssert (not Result.fail(makeString("boom"))), "operator! on a failed Result said it was fine"
 
 testNotOperators()
+
+# String and MemoryBlock iterators ============================================
+#
+# Both classes expose a C++ iterator, which has no Nim spelling, so each is
+# commented in the bindings with "loop with the Nim iterator instead". These
+# are that iterator; without them the reason pointed at something that did not
+# exist.
+
+proc testCoreIterators() =
+  var seen = ""
+  for character in makeString("abc"):
+    seen.add(char(character))
+  doAssert seen == "abc", "the String iterator gave " & seen
+
+  # An empty string yields nothing rather than one empty item.
+  var emptyCount = 0
+  for _ in makeString(""):
+    emptyCount += 1
+  doAssert emptyCount == 0, "an empty String yielded " & $emptyCount & " items"
+
+  var block1 = makeMemoryBlock(3.uint64, true)
+  doAssert block1.getSize() == 3, "the block is " & $block1.getSize() & " bytes"
+  var total = 0
+  var count = 0
+  for byteValue in block1:
+    total += byteValue.int
+    count += 1
+  doAssert count == 3, "the MemoryBlock iterator yielded " & $count & " bytes"
+  doAssert total == 0, "initialiseToZero left " & $total
+
+testCoreIterators()
