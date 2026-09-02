@@ -285,7 +285,8 @@ proc testFont() =
     doAssert font.isBold(), "setBold did not take"
 
     # And the style flags agree with the predicates.
-    doAssert (font.getStyleFlags() and FontFontStyleFlags_bold.cint) != 0,
+    doAssert (font.getStyleFlags().FontFontStyleFlags and FontFontStyleFlags_bold) ==
+             FontFontStyleFlags_bold,
              "style flags disagree with isBold"
 
     # A wider string measures wider. The absolute widths depend on the host
@@ -687,3 +688,23 @@ proc testNormalisableRange() =
 testRemainingRangeHelpers()
 testRemainingRectangleHelpers()
 testNormalisableRange()
+
+# Flag enums combine ==========================================================
+#
+# JUCE spells a flag set as a nested enum called Flags. A distinct cint has no
+# bitwise operators, so combining two used to mean casting both sides to cint
+# and back; the flag enums carry borrowed or and and now.
+
+proc testFlagEnums() =
+    let combined = FontFontStyleFlags_bold or FontFontStyleFlags_italic
+    doAssert (combined and FontFontStyleFlags_bold) == FontFontStyleFlags_bold,
+             "the combination lost bold"
+    doAssert (combined and FontFontStyleFlags_italic) == FontFontStyleFlags_italic,
+             "the combination lost italic"
+
+    # A flag that was not combined in is absent, which is what says or is a
+    # bitwise or rather than something that returns everything.
+    doAssert (combined and FontFontStyleFlags_underlined) != FontFontStyleFlags_underlined,
+             "the combination contained a flag nobody set"
+
+testFlagEnums()

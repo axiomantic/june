@@ -98,6 +98,14 @@ proc `==`*(a: FontFontStyleFlags, b: FontFontStyleFlags): bool {.borrow.}
 proc `==`*(a: AttributedStringWordWrap, b: AttributedStringWordWrap): bool {.borrow.}
 proc `==`*(a: AttributedStringReadingDirection, b: AttributedStringReadingDirection): bool {.borrow.}
 
+# Bitwise operators for the flag sets among them.
+proc `or`*(a: JustificationFlags, b: JustificationFlags): JustificationFlags {.borrow.}
+proc `and`*(a: JustificationFlags, b: JustificationFlags): JustificationFlags {.borrow.}
+proc `or`*(a: RectanglePlacementFlags, b: RectanglePlacementFlags): RectanglePlacementFlags {.borrow.}
+proc `and`*(a: RectanglePlacementFlags, b: RectanglePlacementFlags): RectanglePlacementFlags {.borrow.}
+proc `or`*(a: FontFontStyleFlags, b: FontFontStyleFlags): FontFontStyleFlags {.borrow.}
+proc `and`*(a: FontFontStyleFlags, b: FontFontStyleFlags): FontFontStyleFlags {.borrow.}
+
 let TypefaceMetricsKind_legacy* {.header: juce_graphics, importcpp: "juce::TypefaceMetricsKind::legacy".}: TypefaceMetricsKind
 let TypefaceMetricsKind_portable* {.header: juce_graphics, importcpp: "juce::TypefaceMetricsKind::portable".}: TypefaceMetricsKind
 
