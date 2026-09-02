@@ -1198,7 +1198,8 @@ def run_main(juce_module_name, juce_class_name_to_export):
             if m.result_type.spelling in ["CFStringRef", "OSType"]:
                 comment, reason = "# ", "a platform type with no Nim spelling"
 
-            if m.spelling in ["begin", "end", "cbegin", "cend"]:
+            if (m.spelling in ["begin", "end", "cbegin", "cend"]
+                    or m.spelling.endswith("Iterator")):
                 comment, reason = "# ", "a C++ iterator; loop with the Nim iterator instead"
             elif skip_class_method(class_name, m.spelling):
                 comment, reason = "# ", "excluded deliberately: see skip_class_method"

@@ -1958,9 +1958,9 @@ proc getAllSubText*(this: XmlElement): String {.header: juce_core, importcpp: "#
 proc getChildElementAllSubText*(this: XmlElement, childTagName: StringRef, defaultReturnValue: String): String {.header: juce_core, importcpp: "#.getChildElementAllSubText(@)".}
 proc addTextElement*(this: var XmlElement, text: String) {.header: juce_core, importcpp: "#.addTextElement(@)".}
 proc deleteAllTextElements*(this: var XmlElement) {.header: juce_core, importcpp: "#.deleteAllTextElements()".}
-# proc getChildIterator*(this: XmlElement): Iterator<GetNextElement> {.header: juce_core, importcpp: "#.getChildIterator()".}  # excluded deliberately: see skip_class_method
-# proc getChildWithTagNameIterator*(this: XmlElement, name: StringRef): Iterator<GetNextElementWithTagName> {.header: juce_core, importcpp: "#.getChildWithTagNameIterator(@)".}  # excluded deliberately: see skip_class_method
-# proc getAttributeIterator*(this: XmlElement): AttributeIterator {.header: juce_core, importcpp: "#.getAttributeIterator()".}  # a type that cannot be spelled in Nim
+# proc getChildIterator*(this: XmlElement): Iterator<GetNextElement> {.header: juce_core, importcpp: "#.getChildIterator()".}  # a C++ iterator; loop with the Nim iterator instead
+# proc getChildWithTagNameIterator*(this: XmlElement, name: StringRef): Iterator<GetNextElementWithTagName> {.header: juce_core, importcpp: "#.getChildWithTagNameIterator(@)".}  # a C++ iterator; loop with the Nim iterator instead
+# proc getAttributeIterator*(this: XmlElement): AttributeIterator {.header: juce_core, importcpp: "#.getAttributeIterator()".}  # a C++ iterator; loop with the Nim iterator instead
 proc macroBasedForLoop*(this: XmlElement) {.header: juce_core, importcpp: "#.macroBasedForLoop()".}
 proc createDocument*(this: XmlElement, dtdToUse: StringRef, allOnOneLine: bool = false, includeXmlHeader: bool = true, encodingType: StringRef, lineWrapLength: cint = 60): String {.header: juce_core, importcpp: "#.createDocument(@)".}
 proc writeToStream*(this: XmlElement, output: var OutputStream, dtdToUse: StringRef, allOnOneLine: bool = false, includeXmlHeader: bool = true, encodingType: StringRef, lineWrapLength: cint = 60) {.header: juce_core, importcpp: "#.writeToStream(@)".}
