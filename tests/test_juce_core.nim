@@ -1616,3 +1616,85 @@ proc testRemainingCoreHandlers() =
         cdelete client
 
 testRemainingCoreHandlers()
+
+# UnitTestRunner ==============================================================
+#
+# JUCE's own test harness, driven from Nim. A UnitTest registers itself when it
+# is built, so the runner is asked for this one by name rather than being told
+# to run everything. The result comes back through a ConstPtr, which is what
+# getResult returns.
+
+proc testUnitTestRunner() =
+    block:
+        var ran = 0
+        var subject = newCustomUnitTest(makeString("june-runner-check"),
+                                        makeString("june"))
+        subject[].setRunTestHandler(proc() =
+            ran += 1
+            var self = cast[ptr UnitTest](subject)
+            self[].beginTest(makeString("two expectations"))
+            self[].expect(true, makeString("a true expectation failed"))
+            self[].expect(false, makeString("deliberate failure")))
+
+        var runner = makeUnitTestRunner()
+        # Off, or the deliberate failure below trips a jassert in a debug build.
+        runner.setAssertOnFailure(false)
+        runner.setPassesAreLogged(false)
+        runner.runTestsWithName(makeString("june-runner-check"))
+
+        doAssert ran == 1, "the test body ran " & $ran & " times"
+        doAssert runner.getNumResults() == 1,
+                 "the runner produced " & $runner.getNumResults() & " results"
+
+        let result = runner.getResult(0.cint)
+        doAssert not result.isNil(), "the runner has no result to read"
+        doAssert $result[].unitTestName() == "june-runner-check",
+                 "the result is for " & $result[].unitTestName()
+        doAssert $result[].subcategoryName() == "two expectations",
+                 "the subcategory is " & $result[].subcategoryName()
+        doAssert result[].passes() == 1,
+                 "the result counted " & $result[].passes() & " passes"
+        doAssert result[].failures() == 1,
+                 "the result counted " & $result[].failures() & " failures"
+
+        cdelete subject
+
+# PerformanceCounter ==========================================================
+#
+# The statistics are arithmetic over the samples fed in, so they can be checked
+# exactly without timing anything.
+
+proc testPerformanceCounterStatistics() =
+    block:
+        var stats = makePerformanceCounterStatistics()
+        stats.name = makeString("counter")
+        doAssert stats.numRuns() == 0, "a fresh counter has " & $stats.numRuns() & " runs"
+
+        stats.addResult(2.0)
+        stats.addResult(4.0)
+        stats.addResult(6.0)
+
+        doAssert stats.numRuns() == 3, "the counter holds " & $stats.numRuns() & " runs"
+        doAssert stats.totalSeconds() == 12.0,
+                 "the total is " & $stats.totalSeconds()
+        # addResult keeps the total, the extremes and the count, and leaves
+        # averageSeconds alone: JUCE fills that in only in
+        # getStatisticsAndReset, so a caller reading it off a Statistics it
+        # accumulated itself gets nothing.
+        doAssert stats.averageSeconds() == 0.0,
+                 "addResult set the average to " & $stats.averageSeconds()
+        stats.averageSeconds = stats.totalSeconds() / stats.numRuns().float64
+        doAssert stats.averageSeconds() == 4.0,
+                 "the average is " & $stats.averageSeconds()
+        doAssert stats.minimumSeconds() == 2.0,
+                 "the minimum is " & $stats.minimumSeconds()
+        doAssert stats.maximumSeconds() == 6.0,
+                 "the maximum is " & $stats.maximumSeconds()
+        doAssert "counter" in $stats, "the description reads " & $stats
+
+        stats.clear()
+        doAssert stats.numRuns() == 0,
+                 "after clearing the counter holds " & $stats.numRuns() & " runs"
+
+testUnitTestRunner()
+testPerformanceCounterStatistics()
