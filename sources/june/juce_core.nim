@@ -2763,7 +2763,7 @@ proc unalignedPointerCast*[Type](`ptr`: pointer): Type {.header: juce_core, impo
 proc unalignedPointerCast*[Type](`ptr`: constPointer): Type {.header: juce_core, importcpp: "juce::unalignedPointerCast(@)".}
 proc addBytesToPointer*[Type, IntegerType](basePointer: ptr Type, bytes: IntegerType): ptr Type {.header: juce_core, importcpp: "juce::addBytesToPointer(@)".}
 proc rawToUniquePtr*[T](`ptr`: ptr T): UniquePtr[T] {.header: juce_core, importcpp: "juce::rawToUniquePtr(@)".}
-# proc ignoreUnused*[Types](arg1: Types ...) {.header: juce_core, importcpp: "juce::ignoreUnused(@)".}  # a type that cannot be spelled in Nim
+# proc ignoreUnused*[Types](arg1: Types ...) {.header: juce_core, importcpp: "juce::ignoreUnused(@)".}  # a parameter pack, which has no fixed arity to give a Nim proc
 proc juce_hypot*[Type](a: Type, b: Type): Type {.header: juce_core, importcpp: "juce::juce_hypot(@)".}
 proc degreesToRadians*[FloatType](degrees: FloatType): FloatType {.header: juce_core, importcpp: "juce::degreesToRadians(@)".}
 proc radiansToDegrees*[FloatType](radians: FloatType): FloatType {.header: juce_core, importcpp: "juce::radiansToDegrees(@)".}
@@ -2797,7 +2797,7 @@ proc truncatePositiveToUnsignedInt*[FloatType](value: FloatType): uint32 {.heade
 proc isPowerOfTwo*[IntegerType](value: IntegerType): bool {.header: juce_core, importcpp: "juce::isPowerOfTwo(@)".}
 proc negativeAwareModulo*[IntegerType](dividend: IntegerType, divisor: IntegerType): IntegerType {.header: juce_core, importcpp: "juce::negativeAwareModulo(@)".}
 proc square*[NumericType](n: NumericType): NumericType {.header: juce_core, importcpp: "juce::square(@)".}
-# proc toUnderlyingType*[T](t: T): std::enable_if_t<std::is_enum_v<T>, std::underlying_type_t<T>> {.header: juce_core, importcpp: "juce::toUnderlyingType(@)".}  # a type that cannot be spelled in Nim
+# proc toUnderlyingType*[T](t: T): std::enable_if_t<std::is_enum_v<T>, std::underlying_type_t<T>> {.header: juce_core, importcpp: "juce::toUnderlyingType(@)".}  # a SFINAE-constrained signature, which Nim has no way to express
 # proc deleteAndZero*[Type](arg1: ScopedPointer<Type>) {.header: juce_core, importcpp: "juce::deleteAndZero(@)".}  # a type that cannot be spelled in Nim
 proc makeOptional*[Value](v: Value): Optional[Value] {.header: juce_core, importcpp: "juce::makeOptional(@)".}
 # proc makeRange*[Begin, End](begin: Begin, `end`: End): auto {.header: juce_core, importcpp: "juce::makeRange(@)".}  # a type that cannot be spelled in Nim
@@ -2810,8 +2810,8 @@ proc findInsertIndexInSortedArray*[ElementType, ElementComparator](comparator: E
 # proc indexOfSorted*[ElementComparator, ObjectClass, TypeOfCriticalSectionToUse](comparator: ElementComparator, objectToLookFor: ptr ObjectClass): cint {.header: juce_core, importcpp: "juce::indexOfSorted(@)".}  # a template parameter that appears only in the return type, which nothing can deduce
 # proc sort*[ElementComparator, ObjectClass, TypeOfCriticalSectionToUse](comparator: ElementComparator, retainOrderOfEquivalentItems: bool) {.header: juce_core, importcpp: "juce::sort(@)".}  # a template parameter that appears only in the return type, which nothing can deduce
 # proc named*[T](c: std::string_view, t: T): auto {.header: juce_core, importcpp: "juce::named(@)".}  # a type that cannot be spelled in Nim
-# proc serialisationSize*[T](t: T): std::enable_if_t<std::is_integral_v<T>, SerialisationSize<T>> {.header: juce_core, importcpp: "juce::serialisationSize(@)".}  # a type that cannot be spelled in Nim
-# proc serialisationSize*[T](t: T): std::enable_if_t<std::is_integral_v<T>, SerialisationSize< T>> {.header: juce_core, importcpp: "juce::serialisationSize(@)".}  # a type that cannot be spelled in Nim
+# proc serialisationSize*[T](t: T): std::enable_if_t<std::is_integral_v<T>, SerialisationSize<T>> {.header: juce_core, importcpp: "juce::serialisationSize(@)".}  # a SFINAE-constrained signature, which Nim has no way to express
+# proc serialisationSize*[T](t: T): std::enable_if_t<std::is_integral_v<T>, SerialisationSize< T>> {.header: juce_core, importcpp: "juce::serialisationSize(@)".}  # a SFINAE-constrained signature, which Nim has no way to express
 
 
 
