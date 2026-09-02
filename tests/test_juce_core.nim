@@ -1095,3 +1095,25 @@ proc testCharPointerUTF32() =
            "a terminator-only buffer reported non-empty"
 
 testCharPointerUTF32()
+
+# CharPointer_UTF16 and the UTF-16 buffer =====================================
+#
+# copyToUTF16 fills a caller's buffer through a `short*`, and isValidString
+# reads one back. Both are spelled `ptr int16` in Nim, which is a different
+# question from the wchar_t one above: there the identities did not match and
+# nothing was callable, here Nim's int16 is C++'s short and they do.
+
+proc testUTF16Buffer() =
+  var buffer: array[16, int16]
+  let bytesWritten = makeString("hi").copyToUTF16(buffer[0].addr, 32'u64)
+  doAssert bytesWritten > 0'u64, "copyToUTF16 wrote " & $bytesWritten
+
+  doAssert CharPointer_UTF16.isValidString(buffer[0].addr, 32.cint),
+           "isValidString rejected what copyToUTF16 produced"
+
+  # The cursor over that buffer reads the characters back.
+  var cursor = makeCharPointer_UTF16(buffer[0].addr)
+  doAssert cursor.getAndAdvance() == uint32('h'), "the first character"
+  doAssert cursor.getAndAdvance() == uint32('i'), "the second character"
+
+testUTF16Buffer()
