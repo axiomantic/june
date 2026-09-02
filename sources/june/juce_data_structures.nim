@@ -25,6 +25,9 @@ type
   ApplicationProperties* {.header: juce_data_structures, importcpp: "juce::ApplicationProperties", inheritable, pure.} = object
   PropertiesFileStorageFormat* {.header: juce_data_structures, importcpp: "juce::PropertiesFile::StorageFormat".} = distinct cint
 
+# Comparison for the enums above, taken from their base type.
+proc `==`*(a: PropertiesFileStorageFormat, b: PropertiesFileStorageFormat): bool {.borrow.}
+
 let PropertiesFileStorageFormat_storeAsBinary* {.header: juce_data_structures, importcpp: "juce::PropertiesFile::storeAsBinary".}: PropertiesFileStorageFormat
 let PropertiesFileStorageFormat_storeAsCompressedBinary* {.header: juce_data_structures, importcpp: "juce::PropertiesFile::storeAsCompressedBinary".}: PropertiesFileStorageFormat
 let PropertiesFileStorageFormat_storeAsXML* {.header: juce_data_structures, importcpp: "juce::PropertiesFile::storeAsXML".}: PropertiesFileStorageFormat

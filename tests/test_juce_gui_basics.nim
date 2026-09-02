@@ -1367,14 +1367,11 @@ proc testTabbedComponent() =
         doAssert tabs.getCurrentTabIndex() == 0,
                  "the current tab is " & $tabs.getCurrentTabIndex()
 
-        # The orientation enum is a distinct cint with no == of its own, so the
-        # comparison goes through the underlying value.
+        # The enums carry a borrowed ==, so they compare directly.
         tabs.setOrientation(TabbedButtonBarOrientation_TabsAtBottom)
-        doAssert tabs.getOrientation().cint ==
-                 TabbedButtonBarOrientation_TabsAtBottom.cint,
+        doAssert tabs.getOrientation() == TabbedButtonBarOrientation_TabsAtBottom,
                  "setOrientation did not take"
-        doAssert tabs.getOrientation().cint !=
-                 TabbedButtonBarOrientation_TabsAtTop.cint,
+        doAssert tabs.getOrientation() != TabbedButtonBarOrientation_TabsAtTop,
                  "the orientation is still the one it was built with"
 
         tabs.clearTabs()
