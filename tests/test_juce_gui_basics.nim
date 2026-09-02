@@ -1179,3 +1179,55 @@ proc testTabbedButtonBar() =
     shutdownJuce_GUI()
 
 testTabbedButtonBar()
+
+# LookAndFeel_V2, at the pixels ===============================================
+#
+# The look and feel is almost entirely paint calls, so the only way to say
+# anything about it is to give it a surface and read back what it drew. These
+# call its methods directly rather than through a component, which is what
+# makes them checkable without anything on screen.
+
+proc testLookAndFeelDraws() =
+    initialiseJuce_GUI()
+
+    block:
+        var feel = makeLookAndFeel_V2()
+        let image = makeImage(ImagePixelFormat_ARGB, 60.cint, 40.cint, true)
+        var context = makeGraphics(image)
+
+        # Nothing has been drawn, so the surface is still transparent.
+        doAssert image.getPixelAt(30.cint, 20.cint).getAlpha() == 0,
+                 "a cleared image was not transparent"
+
+        var button = newCustomButton(makeString("Press"))
+        button[].setBounds(makeRectangle(0.cint, 0.cint, 60.cint, 40.cint))
+        feel.drawButtonBackground(context, cast[ptr Button](button)[],
+                                  makeColour(255'u8, 0'u8, 0'u8, 255'u8), false, false)
+
+        # The background covers the middle of the button.
+        doAssert image.getPixelAt(30.cint, 20.cint).getAlpha() > 0,
+                 "drawButtonBackground left the surface transparent"
+
+        cdelete button
+
+    block:
+        # The rotary slider draws into the area it is given and not outside it.
+        var feel = makeLookAndFeel_V2()
+        let image = makeImage(ImagePixelFormat_ARGB, 80.cint, 40.cint, true)
+        var context = makeGraphics(image)
+        var slider = newCustomSlider()
+        slider[].setBounds(makeRectangle(0.cint, 0.cint, 40.cint, 40.cint))
+
+        feel.drawRotarySlider(context, 0.cint, 0.cint, 40.cint, 40.cint,
+                              0.5'f32, 0.0'f32, 3.14'f32, cast[ptr Slider](slider)[])
+
+        doAssert image.getPixelAt(20.cint, 20.cint).getAlpha() > 0,
+                 "drawRotarySlider left its own area transparent"
+        doAssert image.getPixelAt(70.cint, 20.cint).getAlpha() == 0,
+                 "drawRotarySlider drew outside the area it was given"
+
+        cdelete slider
+
+    shutdownJuce_GUI()
+
+testLookAndFeelDraws()
