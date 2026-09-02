@@ -169,6 +169,24 @@ type
 proc `=copy`*[T](dst: var HeapBlock[T], src: HeapBlock[T]) {.error: "a HeapBlock cannot be copied".}
 proc `=destroy`*[T](this: var HeapBlock[T]) = discard
 
+# Three more types nothing could build, each of which a binding takes as a
+# parameter: Typeface.createSystemTypefaceFor and LowLevelGraphicsContext
+# .drawGlyphs take a Span, DragAndDropTargetSourceDetails.sourceComponent takes
+# a WeakReference, and DialogWindowLaunchOptions.content takes an
+# OptionalScopedPointer. Every one of those was unreachable.
+proc makeSpan*[T](): Span[T]
+    {.header: "<juce_core/juce_core.h>", importcpp: "juce::Span<'*0>()", constructor.}
+proc makeSpan*[T](first: ptr T, count: csize_t): Span[T]
+    {.header: "<juce_core/juce_core.h>", importcpp: "juce::Span<'*0>(@)", constructor.}
+
+proc makeWeakReference*[T](target: ptr T): WeakReference[T]
+    {.header: "<juce_core/juce_core.h>", importcpp: "juce::WeakReference<'*0>(@)", constructor.}
+
+# takeOwnership says whether the pointer is deleted with the wrapper, which is
+# the whole point of the type: false makes it a plain observer.
+proc makeOptionalScopedPointer*[T](target: ptr T, takeOwnership: bool): OptionalScopedPointer[T]
+    {.header: "<juce_core/juce_core.h>", importcpp: "juce::OptionalScopedPointer<'*0>(@)", constructor.}
+
 # Parallelogram had no constructor, so nothing could build one. It is what
 # DrawableImage.getBoundingBox returns and what DrawableRectangle.setRectangle
 # takes, and neither was reachable without this.

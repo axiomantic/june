@@ -2637,16 +2637,16 @@ proc makeAccessibilityHandlerInterfaces*(`ptr`: UniquePtr[AccessibilityCellInter
 proc makeAccessibilityHandlerInterfaces*(valueIn: UniquePtr[AccessibilityValueInterface], textIn: UniquePtr[AccessibilityTextInterface], tableIn: UniquePtr[AccessibilityTableInterface], cellIn: UniquePtr[AccessibilityCellInterface]): AccessibilityHandlerInterfaces {.header: juce_gui_basics, importcpp: "juce::AccessibilityHandler::Interfaces(@)".}
 proc value*(this: AccessibilityHandlerInterfaces): UniquePtr[AccessibilityValueInterface] {.header: juce_gui_basics, importcpp: "#.value".}
 proc value*(this: var AccessibilityHandlerInterfaces): var UniquePtr[AccessibilityValueInterface] {.header: juce_gui_basics, importcpp: "#.value".}
-proc `value=`*(this: var AccessibilityHandlerInterfaces, value: UniquePtr[AccessibilityValueInterface]) {.header: juce_gui_basics, importcpp: "#.value = #".}
+proc `value=`*(this: var AccessibilityHandlerInterfaces, value: UniquePtr[AccessibilityValueInterface]) {.header: juce_gui_basics, importcpp: "#.value = std::move(#)".}
 proc text*(this: AccessibilityHandlerInterfaces): UniquePtr[AccessibilityTextInterface] {.header: juce_gui_basics, importcpp: "#.text".}
 proc text*(this: var AccessibilityHandlerInterfaces): var UniquePtr[AccessibilityTextInterface] {.header: juce_gui_basics, importcpp: "#.text".}
-proc `text=`*(this: var AccessibilityHandlerInterfaces, value: UniquePtr[AccessibilityTextInterface]) {.header: juce_gui_basics, importcpp: "#.text = #".}
+proc `text=`*(this: var AccessibilityHandlerInterfaces, value: UniquePtr[AccessibilityTextInterface]) {.header: juce_gui_basics, importcpp: "#.text = std::move(#)".}
 proc table*(this: AccessibilityHandlerInterfaces): UniquePtr[AccessibilityTableInterface] {.header: juce_gui_basics, importcpp: "#.table".}
 proc table*(this: var AccessibilityHandlerInterfaces): var UniquePtr[AccessibilityTableInterface] {.header: juce_gui_basics, importcpp: "#.table".}
-proc `table=`*(this: var AccessibilityHandlerInterfaces, value: UniquePtr[AccessibilityTableInterface]) {.header: juce_gui_basics, importcpp: "#.table = #".}
+proc `table=`*(this: var AccessibilityHandlerInterfaces, value: UniquePtr[AccessibilityTableInterface]) {.header: juce_gui_basics, importcpp: "#.table = std::move(#)".}
 proc cell*(this: AccessibilityHandlerInterfaces): UniquePtr[AccessibilityCellInterface] {.header: juce_gui_basics, importcpp: "#.cell".}
 proc cell*(this: var AccessibilityHandlerInterfaces): var UniquePtr[AccessibilityCellInterface] {.header: juce_gui_basics, importcpp: "#.cell".}
-proc `cell=`*(this: var AccessibilityHandlerInterfaces, value: UniquePtr[AccessibilityCellInterface]) {.header: juce_gui_basics, importcpp: "#.cell = #".}
+proc `cell=`*(this: var AccessibilityHandlerInterfaces, value: UniquePtr[AccessibilityCellInterface]) {.header: juce_gui_basics, importcpp: "#.cell = std::move(#)".}
 proc `==`*(this: AccessibilityHandlerInterfaces, other: AccessibilityHandlerInterfaces): bool {.error: "juce::AccessibilityHandler::Interfaces defines no operator==; compare a property instead".}
 
 proc createCopy*(this: Drawable): UniquePtr[Drawable] {.header: juce_gui_basics, importcpp: "#.createCopy()".}
@@ -2764,10 +2764,10 @@ proc action*(this: var PopupMenuItem): var CppFunctionObjectN0 {.header: juce_gu
 proc `action=`*(this: var PopupMenuItem, value: CppFunctionObjectN0) {.header: juce_gui_basics, importcpp: "#.action = #".}
 proc subMenu*(this: PopupMenuItem): UniquePtr[PopupMenu] {.header: juce_gui_basics, importcpp: "#.subMenu".}
 proc subMenu*(this: var PopupMenuItem): var UniquePtr[PopupMenu] {.header: juce_gui_basics, importcpp: "#.subMenu".}
-proc `subMenu=`*(this: var PopupMenuItem, value: UniquePtr[PopupMenu]) {.header: juce_gui_basics, importcpp: "#.subMenu = #".}
+proc `subMenu=`*(this: var PopupMenuItem, value: UniquePtr[PopupMenu]) {.header: juce_gui_basics, importcpp: "#.subMenu = std::move(#)".}
 proc image*(this: PopupMenuItem): UniquePtr[Drawable] {.header: juce_gui_basics, importcpp: "#.image".}
 proc image*(this: var PopupMenuItem): var UniquePtr[Drawable] {.header: juce_gui_basics, importcpp: "#.image".}
-proc `image=`*(this: var PopupMenuItem, value: UniquePtr[Drawable]) {.header: juce_gui_basics, importcpp: "#.image = #".}
+proc `image=`*(this: var PopupMenuItem, value: UniquePtr[Drawable]) {.header: juce_gui_basics, importcpp: "#.image = std::move(#)".}
 proc customComponent*(this: PopupMenuItem): ReferenceCountedObjectPtr[PopupMenuCustomComponent] {.header: juce_gui_basics, importcpp: "#.customComponent".}
 proc customComponent*(this: var PopupMenuItem): var ReferenceCountedObjectPtr[PopupMenuCustomComponent] {.header: juce_gui_basics, importcpp: "#.customComponent".}
 proc `customComponent=`*(this: var PopupMenuItem, value: ReferenceCountedObjectPtr[PopupMenuCustomComponent]) {.header: juce_gui_basics, importcpp: "#.customComponent = #".}
@@ -4389,7 +4389,7 @@ proc dialogBackgroundColour*(this: var DialogWindowLaunchOptions): var Colour {.
 proc `dialogBackgroundColour=`*(this: var DialogWindowLaunchOptions, value: Colour) {.header: juce_gui_basics, importcpp: "#.dialogBackgroundColour = #".}
 proc content*(this: DialogWindowLaunchOptions): OptionalScopedPointer[Component] {.header: juce_gui_basics, importcpp: "#.content".}
 proc content*(this: var DialogWindowLaunchOptions): var OptionalScopedPointer[Component] {.header: juce_gui_basics, importcpp: "#.content".}
-proc `content=`*(this: var DialogWindowLaunchOptions, value: OptionalScopedPointer[Component]) {.header: juce_gui_basics, importcpp: "#.content = #".}
+proc `content=`*(this: var DialogWindowLaunchOptions, value: OptionalScopedPointer[Component]) {.header: juce_gui_basics, importcpp: "#.content = std::move(#)".}
 proc componentToCentreAround*(this: DialogWindowLaunchOptions): ptr Component {.header: juce_gui_basics, importcpp: "#.componentToCentreAround".}
 proc componentToCentreAround*(this: var DialogWindowLaunchOptions): var ptr Component {.header: juce_gui_basics, importcpp: "#.componentToCentreAround".}
 proc `componentToCentreAround=`*(this: var DialogWindowLaunchOptions, value: ptr Component) {.header: juce_gui_basics, importcpp: "#.componentToCentreAround = #".}
