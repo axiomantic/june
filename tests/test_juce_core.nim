@@ -773,3 +773,31 @@ proc testStringOperators() =
   doAssert a == "aa", "String == literal"
 
 testStringOperators()
+
+# The other converter-exposed comparisons =====================================
+#
+# String was where <= went ambiguous, so the same check runs over the types the
+# converters also reach. StringRef compares against a String rather than
+# another StringRef, which is JUCE's own design, and it does not own its
+# characters - the String it was made from has to outlive it, or the comparison
+# reads freed memory and quietly returns the wrong answer.
+
+proc testConverterComparisons() =
+  let owned = makeString("aa")
+  let reference = makeStringRef(owned)
+  doAssert reference == makeString("aa"), "StringRef == String"
+  doAssert reference < makeString("bb"), "StringRef < String"
+  doAssert reference <= makeString("bb"), "StringRef <= String"
+
+  let first = makeIdentifier("aa")
+  let second = makeIdentifier("bb")
+  doAssert first == first, "Identifier =="
+  doAssert first != second, "Identifier !="
+
+  let one = makejuce_var(1.cint)
+  let two = makejuce_var(2.cint)
+  doAssert one != two, "var !="
+  doAssert one < two, "var <"
+  doAssert one <= two, "var <="
+
+testConverterComparisons()
