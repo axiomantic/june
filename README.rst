@@ -424,7 +424,28 @@ class and names the ``Custom<Name>`` to build instead. Emitting one produced a
 binding that read as usable and was a compile error at every call site, which
 nothing caught because nothing called it.
 ``tools/generate_subclasses.py`` writes that subclass for every abstract class
-in a module, and is run the same way::
+in a module, nested ones included. It used to key a class on its own spelling,
+which never matched a declared Nim name for a nested one, so 58 were skipped
+with no withheld entry -- every ``Listener`` and ``LookAndFeelMethods``
+interface an application implements, ``ComponentBuilder::TypeHandler``,
+``TextEditor::InputFilter`` and the rest. A nested class carries a
+``cppParent`` directive giving its real qualified spelling.
+
+Four things a subclass cannot express are detected and withheld with the
+reason: a virtual with more arguments than a ``std::function`` Nim can spell
+(``importcpp`` substitutes a type by a single digit, so ten for a void
+override and nine for one with a result), a handler returning a type with no
+default constructor (Nim builds a temporary for a closure's result), a private
+pure virtual, and an overloaded one. A fifth is a measured list: Nim hands some
+objects to a C function by pointer and others by value, and which is which only
+shows when the generated ``std::function`` is assigned -- ``Point<int>`` by
+value works and ``Colour`` by value does not.
+
+The forwarder falls back through ``june::fallback<R>()`` rather than
+``return {}``, so a return type with no default constructor is a runtime
+failure rather than a class that cannot be generated at all.
+
+It is run the same way::
 
   for module in juce_core juce_events juce_data_structures juce_graphics juce_gui_basics; do
     PYTHONPATH=tools .venv/bin/python tools/generate_subclasses.py --module "$module" > "sources/june/${module}_subclasses.nim"

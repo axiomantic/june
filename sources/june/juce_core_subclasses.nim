@@ -12,6 +12,17 @@
 # bound. Each of these is that subclass: a std::function per override, set
 # through the matching handler setter.
 
+defineCppClassInternal CustomExpressionScopeVisitor of ExpressionScopeVisitor:
+    include "juce_core/juce_core.h"
+    cppTypeName ExpressionScope, "Expression::Scope"
+    cppParent "juce::Expression::Scope::Visitor"
+    proc visit(arg0: constptr[ExpressionScope]) = discard
+
+proc newCustomExpressionScopeVisitor*(): ptr CustomExpressionScopeVisitor {.importcpp: "(new june::CustomExpressionScopeVisitor)".}
+
+proc setVisitHandler*(this: var CustomExpressionScopeVisitor, handler: proc(arg0: ptr ExpressionScope) {.closure.}) =
+    this.onVisit = bindClosure(handler)
+
 defineCppClassInternal CustomFileFilter of FileFilter:
     include "juce_core/juce_core.h"
     proc isFileSuitable(file: constptr[File]): bool {.cppconst.} = discard
@@ -115,6 +126,16 @@ proc newCustomThread*(threadName: String, threadStackSize: csize_t): ptr CustomT
 proc setRunHandler*(this: var CustomThread, handler: proc() {.closure.}) =
     this.onRun = bindClosure(handler)
 
+defineCppClassInternal CustomThreadListener of ThreadListener:
+    include "juce_core/juce_core.h"
+    cppParent "juce::Thread::Listener"
+    proc exitSignalSent() = discard
+
+proc newCustomThreadListener*(): ptr CustomThreadListener {.importcpp: "(new june::CustomThreadListener)".}
+
+proc setExitSignalSentHandler*(this: var CustomThreadListener, handler: proc() {.closure.}) =
+    this.onExitSignalSent = bindClosure(handler)
+
 defineCppClassInternal CustomThreadPoolJob of ThreadPoolJob:
     include "juce_core/juce_core.h"
     cppTypeName ThreadPoolJobJobStatus, "ThreadPoolJob::JobStatus"
@@ -125,6 +146,16 @@ proc newCustomThreadPoolJob*(name: String): ptr CustomThreadPoolJob {.importcpp:
 proc setRunJobHandler*(this: var CustomThreadPoolJob, handler: proc(): cint {.closure.}) =
     this.onRunJob = bindClosure(handler)
 
+defineCppClassInternal CustomThreadPoolJobSelector of ThreadPoolJobSelector:
+    include "juce_core/juce_core.h"
+    cppParent "juce::ThreadPool::JobSelector"
+    proc isJobSuitable(job: ptr ThreadPoolJob): bool = discard
+
+proc newCustomThreadPoolJobSelector*(): ptr CustomThreadPoolJobSelector {.importcpp: "(new june::CustomThreadPoolJobSelector)".}
+
+proc setIsJobSuitableHandler*(this: var CustomThreadPoolJobSelector, handler: proc(job: ptr ThreadPoolJob): bool {.closure.}) =
+    this.onIsJobSuitable = bindClosure(handler)
+
 defineCppClassInternal CustomTimeSliceClient of TimeSliceClient:
     include "juce_core/juce_core.h"
     proc useTimeSlice(): cint = discard
@@ -133,6 +164,17 @@ proc newCustomTimeSliceClient*(): ptr CustomTimeSliceClient {.importcpp: "(new j
 
 proc setUseTimeSliceHandler*(this: var CustomTimeSliceClient, handler: proc(): cint {.closure.}) =
     this.onUseTimeSlice = bindClosure(handler)
+
+defineCppClassInternal CustomURLDownloadTaskListener of URLDownloadTaskListener:
+    include "juce_core/juce_core.h"
+    cppTypeName URLDownloadTask, "URL::DownloadTask"
+    cppParent "juce::URL::DownloadTaskListener"
+    proc finished(task: ptr URLDownloadTask, success: bool) = discard
+
+proc newCustomURLDownloadTaskListener*(): ptr CustomURLDownloadTaskListener {.importcpp: "(new june::CustomURLDownloadTaskListener)".}
+
+proc setFinishedHandler*(this: var CustomURLDownloadTaskListener, handler: proc(task: ptr URLDownloadTask, success: bool) {.closure.}) =
+    this.onFinished = bindClosure(handler)
 
 defineCppClassInternal CustomUnitTest of UnitTest:
     include "juce_core/juce_core.h"

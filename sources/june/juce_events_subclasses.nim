@@ -102,6 +102,16 @@ proc newCustomMessageListener*(): ptr CustomMessageListener {.importcpp: "(new j
 proc setHandleMessageHandler*(this: var CustomMessageListener, handler: proc(message: ptr Message) {.closure.}) =
     this.onHandleMessage = bindClosure(handler)
 
+defineCppClassInternal CustomMessageManagerMessageBase of MessageManagerMessageBase:
+    include "juce_events/juce_events.h"
+    cppParent "juce::MessageManager::MessageBase"
+    proc messageCallback() = discard
+
+proc newCustomMessageManagerMessageBase*(): ptr CustomMessageManagerMessageBase {.importcpp: "(new june::CustomMessageManagerMessageBase)".}
+
+proc setMessageCallbackHandler*(this: var CustomMessageManagerMessageBase, handler: proc() {.closure.}) =
+    this.onMessageCallback = bindClosure(handler)
+
 defineCppClassInternal CustomMultiTimer of MultiTimer:
     include "juce_events/juce_events.h"
     proc timerCallback(timerID: cint) = discard
