@@ -349,6 +349,17 @@ Passing a Nim string straight to a ``StringRef`` parameter is safe: the
 converter's temporary lives for the duration of the call, which is the same
 contract C++ gives.
 
+An enum is a ``distinct cint``, which has none of ``cint``'s operators unless
+they are given to it. Each one carries a borrowed ``==`` and ``$``, and the
+flag sets -- the enums whose name ends in ``Flags``, which is how JUCE spells a
+nested ``Flags`` enum -- also carry ``or`` and ``and``::
+
+  let style = FontFontStyleFlags_bold or FontFontStyleFlags_italic
+  if (style and FontFontStyleFlags_bold) == FontFontStyleFlags_bold: discard
+
+``$`` prints the number rather than the name. The binding holds the C++
+enumerator and there is no table of names on this side to look one up in.
+
 Instantiate a class template with ``cint`` or ``cfloat``, never Nim's ``int`` or
 ``float``. Nim puts the parameter's C++ name into the template, and Nim's
 ``int`` is 64-bit, so ``Rectangle[int]`` asks for a ``juce::Rectangle<long
