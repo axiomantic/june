@@ -70,11 +70,13 @@ type
   ImagePixelDataNativeExtensions* {.header: juce_graphics, importcpp: "juce::ImagePixelDataNativeExtensions", inheritable, pure.} = object
   TypefaceMetricsKind* {.header: juce_graphics, importcpp: "juce::TypefaceMetricsKind".} = distinct cint
   JustificationFlags* {.header: juce_graphics, importcpp: "juce::Justification::Flags".} = distinct cint
+  PathIteratorPathElementType* {.header: juce_graphics, importcpp: "juce::Path::Iterator::PathElementType".} = distinct cint
   PathStrokeTypeJointStyle* {.header: juce_graphics, importcpp: "juce::PathStrokeType::JointStyle".} = distinct cint
   PathStrokeTypeEndCapStyle* {.header: juce_graphics, importcpp: "juce::PathStrokeType::EndCapStyle".} = distinct cint
   RectanglePlacementFlags* {.header: juce_graphics, importcpp: "juce::RectanglePlacement::Flags".} = distinct cint
   GraphicsResamplingQuality* {.header: juce_graphics, importcpp: "juce::Graphics::ResamplingQuality".} = distinct cint
   ImagePixelFormat* {.header: juce_graphics, importcpp: "juce::Image::PixelFormat".} = distinct cint
+  ImageBitmapDataReadWriteMode* {.header: juce_graphics, importcpp: "juce::Image::BitmapData::ReadWriteMode".} = distinct cint
   TypefaceColourGlyphFormat* {.header: juce_graphics, importcpp: "juce::Typeface::ColourGlyphFormat".} = distinct cint
   FontFontStyleFlags* {.header: juce_graphics, importcpp: "juce::Font::FontStyleFlags".} = distinct cint
   AttributedStringWordWrap* {.header: juce_graphics, importcpp: "juce::AttributedString::WordWrap".} = distinct cint
@@ -99,6 +101,12 @@ let JustificationFlags_topLeft* {.header: juce_graphics, importcpp: "juce::Justi
 let JustificationFlags_topRight* {.header: juce_graphics, importcpp: "juce::Justification::topRight".}: JustificationFlags
 let JustificationFlags_bottomLeft* {.header: juce_graphics, importcpp: "juce::Justification::bottomLeft".}: JustificationFlags
 let JustificationFlags_bottomRight* {.header: juce_graphics, importcpp: "juce::Justification::bottomRight".}: JustificationFlags
+
+let PathIteratorPathElementType_startNewSubPath* {.header: juce_graphics, importcpp: "juce::Path::Iterator::startNewSubPath".}: PathIteratorPathElementType
+let PathIteratorPathElementType_lineTo* {.header: juce_graphics, importcpp: "juce::Path::Iterator::lineTo".}: PathIteratorPathElementType
+let PathIteratorPathElementType_quadraticTo* {.header: juce_graphics, importcpp: "juce::Path::Iterator::quadraticTo".}: PathIteratorPathElementType
+let PathIteratorPathElementType_cubicTo* {.header: juce_graphics, importcpp: "juce::Path::Iterator::cubicTo".}: PathIteratorPathElementType
+let PathIteratorPathElementType_closePath* {.header: juce_graphics, importcpp: "juce::Path::Iterator::closePath".}: PathIteratorPathElementType
 
 let PathStrokeTypeJointStyle_mitered* {.header: juce_graphics, importcpp: "juce::PathStrokeType::mitered".}: PathStrokeTypeJointStyle
 let PathStrokeTypeJointStyle_curved* {.header: juce_graphics, importcpp: "juce::PathStrokeType::curved".}: PathStrokeTypeJointStyle
@@ -129,6 +137,10 @@ let ImagePixelFormat_UnknownFormat* {.header: juce_graphics, importcpp: "juce::I
 let ImagePixelFormat_RGB* {.header: juce_graphics, importcpp: "juce::Image::RGB".}: ImagePixelFormat
 let ImagePixelFormat_ARGB* {.header: juce_graphics, importcpp: "juce::Image::ARGB".}: ImagePixelFormat
 let ImagePixelFormat_SingleChannel* {.header: juce_graphics, importcpp: "juce::Image::SingleChannel".}: ImagePixelFormat
+
+let ImageBitmapDataReadWriteMode_readOnly* {.header: juce_graphics, importcpp: "juce::Image::BitmapData::readOnly".}: ImageBitmapDataReadWriteMode
+let ImageBitmapDataReadWriteMode_writeOnly* {.header: juce_graphics, importcpp: "juce::Image::BitmapData::writeOnly".}: ImageBitmapDataReadWriteMode
+let ImageBitmapDataReadWriteMode_readWrite* {.header: juce_graphics, importcpp: "juce::Image::BitmapData::readWrite".}: ImageBitmapDataReadWriteMode
 
 let TypefaceColourGlyphFormat_colourGlyphFormatBitmap* {.header: juce_graphics, importcpp: "juce::Typeface::colourGlyphFormatBitmap".}: TypefaceColourGlyphFormat
 let TypefaceColourGlyphFormat_colourGlyphFormatSvg* {.header: juce_graphics, importcpp: "juce::Typeface::colourGlyphFormatSvg".}: TypefaceColourGlyphFormat
@@ -623,7 +635,7 @@ proc clone*(this: var ImagePixelData): ReferenceCountedObjectPtr[ImagePixelData]
 proc createType*(this: ImagePixelData): UniquePtr[ImageType] {.header: juce_graphics, importcpp: "#.createType()".}
 proc getBackupExtensions*(this: var ImagePixelData): ptr ImagePixelDataBackupExtensions {.header: juce_graphics, importcpp: "#.getBackupExtensions()".}
 proc getBackupExtensions*(this: ImagePixelData): ptr ImagePixelDataBackupExtensions {.header: juce_graphics, importcpp: "#.getBackupExtensions()".}
-# proc initialiseBitmapData*(this: var ImagePixelData, arg1: var ImageBitmapData, x: cint, y: cint, arg4: Image::BitmapData::ReadWriteMode) {.header: juce_graphics, importcpp: "#.initialiseBitmapData(@)".}  # a type that cannot be spelled in Nim
+proc initialiseBitmapData*(this: var ImagePixelData, arg1: var ImageBitmapData, x: cint, y: cint, arg4: ImageBitmapDataReadWriteMode) {.header: juce_graphics, importcpp: "#.initialiseBitmapData(@)".}
 proc getSharedCount*(this: ImagePixelData): cint {.header: juce_graphics, importcpp: "#.getSharedCount()".}
 proc moveImageSection*(this: var ImagePixelData, destTopLeft: Point[cint], sourceRect: Rectangle[cint]) {.header: juce_graphics, importcpp: "#.moveImageSection(@)".}
 proc applyGaussianBlurEffectInArea*(this: var ImagePixelData, bounds: Rectangle[cint], radius: cfloat) {.header: juce_graphics, importcpp: "#.applyGaussianBlurEffectInArea(@)".}
