@@ -1743,3 +1743,4 @@ proc testUrlInputStreamOptions() =
                  "the callback saw " & $seen
 
 testUrlInputStreamOptions()
+
