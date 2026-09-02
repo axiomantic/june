@@ -1696,3 +1696,50 @@ proc testPerformanceCounterStatistics() =
 
 testUnitTestRunner()
 testPerformanceCounterStatistics()
+
+# URL::InputStreamOptions =====================================================
+#
+# A builder: every withX returns a new options object rather than changing the
+# one it was called on, so the original has to come back unchanged. The
+# progress callback is a two-argument std::function, which nothing else in the
+# suite binds.
+
+proc testUrlInputStreamOptions() =
+    block:
+        let plain = makeURLInputStreamOptions(URLParameterHandling_inAddress)
+        doAssert plain.getParameterHandling() == URLParameterHandling_inAddress,
+                 "the options lost their parameter handling"
+        doAssert $plain.getExtraHeaders() == "",
+                 "a fresh options object carries headers: " & $plain.getExtraHeaders()
+
+        let configured = plain
+            .withExtraHeaders(makeString("X-June: 1"))
+            .withConnectionTimeoutMs(2500.cint)
+            .withNumRedirectsToFollow(3.cint)
+            .withHttpRequestCmd(makeString("POST"))
+
+        doAssert $configured.getExtraHeaders() == "X-June: 1",
+                 "the headers read " & $configured.getExtraHeaders()
+        doAssert configured.getConnectionTimeoutMs() == 2500,
+                 "the timeout is " & $configured.getConnectionTimeoutMs()
+        doAssert configured.getNumRedirectsToFollow() == 3,
+                 "the redirect count is " & $configured.getNumRedirectsToFollow()
+        doAssert $configured.getHttpRequestCmd() == "POST",
+                 "the request command is " & $configured.getHttpRequestCmd()
+
+        # The builder copies rather than mutating, so the original is untouched.
+        doAssert $plain.getExtraHeaders() == "",
+                 "withExtraHeaders changed the object it was called on"
+
+        # A two-argument closure, reached back through the options and called.
+        var seen: seq[(cint, cint)] = @[]
+        let watched = plain.withProgressCallback(
+            bindClosure(proc(sent: cint, total: cint): bool =
+                seen.add((sent, total))
+                true))
+        var callback = watched.getProgressCallback()
+        doAssert callback(10.cint, 100.cint), "the callback reported failure"
+        doAssert seen == @[(10.cint, 100.cint)],
+                 "the callback saw " & $seen
+
+testUrlInputStreamOptions()
