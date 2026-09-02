@@ -169,6 +169,35 @@ type
 proc `=copy`*[T](dst: var HeapBlock[T], src: HeapBlock[T]) {.error: "a HeapBlock cannot be copied".}
 proc `=destroy`*[T](this: var HeapBlock[T]) = discard
 
+# Parallelogram had no constructor, so nothing could build one. It is what
+# DrawableImage.getBoundingBox returns and what DrawableRectangle.setRectangle
+# takes, and neither was reachable without this.
+proc makeParallelogram*[T](): Parallelogram[T]
+    {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::Parallelogram<'*0>()", constructor.}
+proc makeParallelogram*[T](rectangle: Rectangle[T]): Parallelogram[T]
+    {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::Parallelogram<'*0>(@)", constructor.}
+proc makeParallelogram*[T](topLeft: Point[T], topRight: Point[T],
+                           bottomLeft: Point[T]): Parallelogram[T]
+    {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::Parallelogram<'*0>(@)", constructor.}
+
+# Nothing could be read back off one either. The three corners are public
+# fields on the C++ side, and the rest are the accessors JUCE derives from
+# them.
+proc topLeft*[T](this: Parallelogram[T]): Point[T]
+    {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.topLeft".}
+proc topRight*[T](this: Parallelogram[T]): Point[T]
+    {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.topRight".}
+proc bottomLeft*[T](this: Parallelogram[T]): Point[T]
+    {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.bottomLeft".}
+proc getBottomRight*[T](this: Parallelogram[T]): Point[T]
+    {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getBottomRight()".}
+proc getWidth*[T](this: Parallelogram[T]): T
+    {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getWidth()".}
+proc getHeight*[T](this: Parallelogram[T]): T
+    {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getHeight()".}
+proc isEmpty*[T](this: Parallelogram[T]): bool
+    {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.isEmpty()".}
+
 proc makeHeapBlock*[T](): HeapBlock[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::HeapBlock<'*0>()".}
 proc makeHeapBlock*[T](numElements: csize_t): HeapBlock[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::HeapBlock<'*0>(@)".}
 proc `[]`*[T](this: HeapBlock[T], index: cint): T {.importcpp: "#[#]".}
