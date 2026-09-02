@@ -1173,3 +1173,20 @@ proc testVarConversions() =
   doAssert makejuce_var(1.cint).toBool(), "one converted to false"
 
 testVarConversions()
+
+# The overloaded free functions ===============================================
+#
+# countNumberOfBits is declared for uint32 and for uint64, which is the same
+# shape that made juce::var's constructors ambiguous under g++ and not under
+# clang. Both are called here, so the Linux build is the one that answers
+# whether they need the same cast.
+
+proc testOverloadedFreeFunctions() =
+  doAssert countNumberOfBits(0b1011'u32) == 3,
+           "the 32-bit form gave " & $countNumberOfBits(0b1011'u32)
+  doAssert countNumberOfBits(0b1011'u64) == 3,
+           "the 64-bit form gave " & $countNumberOfBits(0b1011'u64)
+  doAssert findHighestSetBit(0b1000'u32) == 3,
+           "findHighestSetBit gave " & $findHighestSetBit(0b1000'u32)
+
+testOverloadedFreeFunctions()
