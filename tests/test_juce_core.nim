@@ -1411,3 +1411,26 @@ proc testUncalledHandWritten() =
   doAssert makeString("xyz").toRawUTF8() == "xyz", "toRawUTF8 gave " & makeString("xyz").toRawUTF8()
 
 testUncalledHandWritten()
+
+# CharPointer_ASCII ===========================================================
+#
+# The last of the four character cursors. Its getAndAdvance returns a WChar
+# like the others, even though every character it can hold fits in seven bits.
+
+proc testCharPointerASCII() =
+  var buffer = "hi!"
+  let start = makeCharPointer_ASCII(cast[ptr char](buffer[0].addr))
+
+  doAssert start.isNotEmpty(), "a filled buffer reported empty"
+  doAssert start.length() == 3'u64, "length gave " & $start.length()
+
+  var cursor = makeCharPointer_ASCII(cast[ptr char](buffer[0].addr))
+  doAssert cursor.getAndAdvance() == 'h'.ord.uint32, "the first character"
+  doAssert cursor.getAndAdvance() == 'i'.ord.uint32, "the second character"
+  doAssert cursor.length() == 1'u64, "after two steps the rest is " & $cursor.length()
+
+  var empty = ""
+  doAssert makeCharPointer_ASCII(cast[ptr char](empty.cstring)).isEmpty(),
+           "an empty buffer reported non-empty"
+
+testCharPointerASCII()
