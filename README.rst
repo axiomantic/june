@@ -390,7 +390,10 @@ The generator reads the JUCE headers with libclang.
   done
 
 A JUCE class with a pure virtual cannot be constructed, so one with no C++
-subclass is unreachable from Nim however completely its methods are bound.
+subclass is unreachable from Nim however completely its methods are bound. That
+covers ``Thread``, ``InputStream``, ``OutputStream``, ``Logger``,
+``UndoableAction``, ``KeyListener``, ``DragAndDropTarget``, ``TreeViewItem``,
+``MenuBarModel`` and the rest of the abstract classes.
 ``tools/generate_subclasses.py`` writes that subclass for every abstract class
 in a module, and is run the same way::
 
@@ -399,9 +402,26 @@ in a module, and is run the same way::
   done
 
 A class it cannot express is listed at the end of the file with the reason, in
-the same style as an unbound proc. The test suite constructs every generated
-subclass: the generated C++ has a template forwarding constructor, so one whose
-base has no default constructor compiles cleanly until something calls it.
+the same style as an unbound proc. Count what is left with::
+
+  grep -h '^#   ' sources/june/*_subclasses.nim
+
+Each generated class exposes one setter per pure virtual, taking a plain Nim
+closure::
+
+  var stream = newCustomOutputStream()
+  stream[].setWriteHandler(proc(data: pointer, bytes: csize_t): bool =
+    written += bytes.int
+    true)
+
+JUCE calls the handler through the virtual, so ``stream.writeText(...)`` -
+which is JUCE's own code - reaches it. The suite asserts that.
+
+The test suite constructs every generated subclass, which is the check that
+matters. The generated C++ has a template forwarding constructor, so a class
+whose base has no default constructor compiles cleanly until something calls
+it, and a subclass that leaves an inherited pure virtual unimplemented is still
+abstract - neither shows up at build time.
 
 The generator aborts on a parse error rather than emitting a binding for a type
 it did not resolve. An unresolved type does not stop libclang, it degrades to

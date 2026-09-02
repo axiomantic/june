@@ -546,3 +546,31 @@ proc testStringLikeOverloads() =
   doAssert text.compare("Hello!") == 0, "compare returned " & $text.compare("Hello!")
 
 testStringLikeOverloads()
+
+# A generated subclass, used ==================================================
+#
+# Constructing one proves it is not abstract. This proves the handler is
+# actually reached: writeText is JUCE's own code, and the only way it can put
+# bytes anywhere is through the write() virtual the subclass overrides.
+
+proc testGeneratedSubclassDispatch() =
+  var written = 0
+  var stream = newCustomOutputStream()
+  stream[].setWriteHandler(proc(data: pointer, bytes: csize_t): bool =
+    written += bytes.int
+    true)
+  stream[].setFlushHandler(proc() = discard)
+  stream[].setGetPositionHandler(proc(): int64 = written.int64)
+  stream[].setSetPositionHandler(proc(newPosition: int64): bool = false)
+
+  # Called from C++, through the virtual.
+  doAssert stream[].writeText(makeString("hello"), false, false, cast[constChar](nil)),
+           "writeText reported failure"
+  doAssert written == 5, "the handler saw " & $written & " bytes"
+
+  # And the returning virtual reads back through JUCE's own accessor.
+  doAssert stream[].getPosition() == 5, "getPosition returned " & $stream[].getPosition()
+
+  cdelete stream
+
+testGeneratedSubclassDispatch()
