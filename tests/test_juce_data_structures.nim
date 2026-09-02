@@ -69,3 +69,31 @@ proc testValueTreeIteration() =
   doAssert propertyNames == @["size"], "properties " & $propertyNames
 
 testValueTreeIteration()
+
+# A generated UndoableAction, performed =======================================
+#
+# perform and undo are both pure virtual, so an undoable action could not be
+# written in Nim. UndoManager owns the action once it is handed over, which is
+# why nothing deletes it here.
+
+proc testGeneratedUndoableAction() =
+  var performed = 0
+  var undone = 0
+
+  var action = newCustomUndoableAction()
+  action[].setPerformHandler(proc(): bool =
+    performed += 1
+    true)
+  action[].setUndoHandler(proc(): bool =
+    undone += 1
+    true)
+
+  var manager = makeUndoManager(30000.cint, 30.cint)
+  doAssert manager.perform(cast[ptr UndoableAction](action)), "perform reported failure"
+  doAssert performed == 1, "perform ran " & $performed & " times"
+  doAssert undone == 0, "undo ran before it was asked to"
+
+  doAssert manager.undo(), "undo reported failure"
+  doAssert undone == 1, "undo ran " & $undone & " times"
+
+testGeneratedUndoableAction()
