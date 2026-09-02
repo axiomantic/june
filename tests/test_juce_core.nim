@@ -1436,3 +1436,22 @@ proc testCharPointerASCII() =
            "an empty buffer reported non-empty"
 
 testCharPointerASCII()
+
+# Enum equality ===============================================================
+#
+# Every bound enum is a distinct cint, which has none of cint's operators
+# unless they are given to it. Comparing two enum values used to need a cast on
+# both sides; each enum carries a borrowed == now.
+
+proc testEnumEquality() =
+  doAssert ImagePixelFormat_ARGB == ImagePixelFormat_ARGB,
+           "an enum value did not equal itself"
+  doAssert ImagePixelFormat_ARGB != ImagePixelFormat_RGB,
+           "two different enum values compared equal"
+
+  # != comes from Nim deriving it, which is the reason the generator does not
+  # bind one.
+  doAssert not (ImagePixelFormat_ARGB != ImagePixelFormat_ARGB),
+           "the derived != disagreed with =="
+
+testEnumEquality()

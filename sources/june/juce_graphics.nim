@@ -83,6 +83,21 @@ type
   AttributedStringWordWrap* {.header: juce_graphics, importcpp: "juce::AttributedString::WordWrap".} = distinct cint
   AttributedStringReadingDirection* {.header: juce_graphics, importcpp: "juce::AttributedString::ReadingDirection".} = distinct cint
 
+# Comparison for the enums above, taken from their base type.
+proc `==`*(a: TypefaceMetricsKind, b: TypefaceMetricsKind): bool {.borrow.}
+proc `==`*(a: JustificationFlags, b: JustificationFlags): bool {.borrow.}
+proc `==`*(a: PathIteratorPathElementType, b: PathIteratorPathElementType): bool {.borrow.}
+proc `==`*(a: PathStrokeTypeJointStyle, b: PathStrokeTypeJointStyle): bool {.borrow.}
+proc `==`*(a: PathStrokeTypeEndCapStyle, b: PathStrokeTypeEndCapStyle): bool {.borrow.}
+proc `==`*(a: RectanglePlacementFlags, b: RectanglePlacementFlags): bool {.borrow.}
+proc `==`*(a: GraphicsResamplingQuality, b: GraphicsResamplingQuality): bool {.borrow.}
+proc `==`*(a: ImagePixelFormat, b: ImagePixelFormat): bool {.borrow.}
+proc `==`*(a: ImageBitmapDataReadWriteMode, b: ImageBitmapDataReadWriteMode): bool {.borrow.}
+proc `==`*(a: TypefaceColourGlyphFormat, b: TypefaceColourGlyphFormat): bool {.borrow.}
+proc `==`*(a: FontFontStyleFlags, b: FontFontStyleFlags): bool {.borrow.}
+proc `==`*(a: AttributedStringWordWrap, b: AttributedStringWordWrap): bool {.borrow.}
+proc `==`*(a: AttributedStringReadingDirection, b: AttributedStringReadingDirection): bool {.borrow.}
+
 let TypefaceMetricsKind_legacy* {.header: juce_graphics, importcpp: "juce::TypefaceMetricsKind::legacy".}: TypefaceMetricsKind
 let TypefaceMetricsKind_portable* {.header: juce_graphics, importcpp: "juce::TypefaceMetricsKind::portable".}: TypefaceMetricsKind
 
