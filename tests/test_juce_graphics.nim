@@ -413,3 +413,51 @@ proc testAttributedString() =
     doAssert $text.getText() == "", "clear left " & $text.getText()
 
 testAttributedString()
+
+# Drawing, checked at the pixels ==============================================
+#
+# JUCE renders into an Image without a display, so the drawing calls can be
+# checked by what they put on the surface rather than by returning without
+# error. Each of these reads a pixel the shape covers and one it does not.
+
+proc testFillAllAndOpacity() =
+    let image = makeImage(ImagePixelFormat_ARGB, 20.cint, 20.cint, true)
+    var context = makeGraphics(image)
+
+    context.fillAll(makeColour(0'u8, 255'u8, 0'u8, 255'u8))
+    doAssert image.getPixelAt(0.cint, 0.cint).getGreen() == 255, "fillAll missed a corner"
+    doAssert image.getPixelAt(19.cint, 19.cint).getGreen() == 255, "fillAll missed the far corner"
+
+proc testShapes() =
+    let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+    var context = makeGraphics(image)
+    context.setColour(makeColour(0'u8, 0'u8, 255'u8, 255'u8))
+
+    # A filled ellipse covers its centre and misses the corner of its box.
+    context.fillEllipse(0.0'f32, 0.0'f32, 20.0'f32, 20.0'f32)
+    doAssert image.getPixelAt(10.cint, 10.cint).getBlue() == 255, "the ellipse centre is empty"
+    doAssert image.getPixelAt(0.cint, 0.cint).getBlue() == 0,
+             "the ellipse filled the corner of its bounding box"
+
+    # A horizontal line covers its own row and not the one below.
+    context.setColour(makeColour(255'u8, 0'u8, 0'u8, 255'u8))
+    context.drawHorizontalLine(30.cint, 0.0'f32, 40.0'f32)
+    doAssert image.getPixelAt(20.cint, 30.cint).getRed() == 255, "the line did not draw"
+    doAssert image.getPixelAt(20.cint, 32.cint).getRed() == 0, "the line was too thick"
+
+proc testClipRegion() =
+    let image = makeImage(ImagePixelFormat_ARGB, 20.cint, 20.cint, true)
+    var context = makeGraphics(image)
+
+    # Clipped to the top-left quarter, a fill of everything reaches only that.
+    doAssert context.reduceClipRegion(makeRectangle(0.cint, 0.cint, 10.cint, 10.cint)),
+             "reduceClipRegion reported an empty region"
+    context.fillAll(makeColour(255'u8, 0'u8, 0'u8, 255'u8))
+
+    doAssert image.getPixelAt(5.cint, 5.cint).getRed() == 255, "the clipped area was not filled"
+    doAssert image.getPixelAt(15.cint, 15.cint).getRed() == 0,
+             "the fill escaped the clip region"
+
+testFillAllAndOpacity()
+testShapes()
+testClipRegion()
