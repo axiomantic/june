@@ -37,6 +37,20 @@ const cppPrimitiveNames = {
   "culong": "unsigned long",
   "clonglong": "long long",
   "culonglong": "unsigned long long",
+  # Nim's untyped pointer. Spelled `pointer` in Nim and `void*` in C++, so the
+  # std::function would take a type C++ has never heard of without this.
+  "pointer": "void*",
+  # The fixed-width names. Nim spells these as its own aliases and C++ knows
+  # none of them, so a std::function declared with one does not compile.
+  "csize_t": "size_t",
+  "int8": "signed char",
+  "uint8": "unsigned char",
+  "int16": "short",
+  "uint16": "unsigned short",
+  "int32": "int",
+  "uint32": "unsigned int",
+  "int64": "long long",
+  "uint64": "unsigned long long",
 }
 
 
@@ -44,6 +58,41 @@ proc cppPrimitiveName(name: string): string {.compiletime.} =
   for (nimName, cppName) in cppPrimitiveNames:
     if name == nimName: return cppName
   result = name
+
+
+# The C++ spelling of a Nim type node. A class template has to be rendered
+# rather than stringified: `Rectangle[cint]` is `Rectangle<int>` in C++, and
+# $node would produce the Nim form, which does not compile. The generated
+# header opens `namespace june { using namespace juce; }`, so a bare JUCE name
+# resolves without qualifying it.
+# Class templates whose Nim name is not their C++ name. Everything else in the
+# bindings keeps the JUCE spelling, so only the std:: wrappers need naming here.
+const cppTemplateNames = {
+  "UniquePtr": "std::unique_ptr",
+  "SharedPtr": "std::shared_ptr",
+  "CppVector": "std::vector",
+  "CppOptional": "std::optional",
+}
+
+
+proc cppTemplateName(name: string): string {.compiletime.} =
+  for (nimName, cppName) in cppTemplateNames:
+    if name == nimName: return cppName
+  result = cppPrimitiveName(name)
+
+
+proc cppTypeSpelling(node: NimNode): string {.compiletime.} =
+  case node.kind:
+  of nnkBracketExpr:
+    result = cppTemplateName($node[0]) & "<"
+    for index in 1 ..< node.len:
+      if index > 1: result &= ", "
+      result &= cppTypeSpelling(node[index])
+    result &= ">"
+  of nnkPtrTy:
+    result = cppTypeSpelling(node[0]) & "*"
+  else:
+    result = cppPrimitiveName($node)
 
 
 proc makeCppType(node: NimNode): CppType {.compiletime.} =
@@ -58,7 +107,7 @@ proc makeCppType(node: NimNode): CppType {.compiletime.} =
   of nnkBracketExpr:
     if ($realNode[0] == "constval"):
       result.nim = realNode[1]
-      result.cpp = $realNode[1]
+      result.cpp = cppTypeSpelling(realNode[1])
       result.isConst = true
     elif ($realNode[0] == "constref"):
       # Only for a type Nim passes by value. Nim's calling convention hands an
@@ -74,7 +123,7 @@ proc makeCppType(node: NimNode): CppType {.compiletime.} =
               referencedName & " by pointer, so the callback signature would " &
               "not match. Use constptr[" & referencedName & "] instead."
       result.nim = realNode[1]
-      result.cpp = $realNode[1]
+      result.cpp = cppTypeSpelling(realNode[1])
       result.isConst = true
       result.isReference = true
     elif ($realNode[0] == "constptr"):
@@ -83,7 +132,7 @@ proc makeCppType(node: NimNode): CppType {.compiletime.} =
       # by value: juce::MouseEvent cannot be assigned, so the conversion from
       # std::function<void(MouseEvent)> has no viable operator=.
       result.nim = realNode[1]
-      result.cpp = $realNode[1]
+      result.cpp = cppTypeSpelling(realNode[1])
       result.isConst = true
       result.isReference = true
       result.passAsPointer = true
@@ -93,11 +142,15 @@ proc makeCppType(node: NimNode): CppType {.compiletime.} =
       # override with a const Graphics& does not match it, so the compiler
       # reports a non-virtual member function marked override.
       result.nim = realNode[1]
-      result.cpp = $realNode[1]
+      result.cpp = cppTypeSpelling(realNode[1])
       result.isReference = true
       result.passAsPointer = true
     else:
-      error "Invalid type definition"
+      # A class template used by value, such as Point[cint] or Range[cint].
+      # Nim spells the instantiation directly, so the node itself is the member
+      # type and only the C++ side needs rendering.
+      result.nim = realNode
+      result.cpp = cppTypeSpelling(realNode)
 
   of nnkPtrTy:
     # A pointer parameter, such as ChangeListener's ChangeBroadcaster*. Passed
@@ -260,7 +313,18 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
       # Cpp codegen function declaration
       cppFuncPointerSignature = cppFuncPointerSignature.strip(leading = false) & ")> " & funcPointerName & ";"
 
-      cppFuncSignature &= ") override { if (" & funcPointerName & ") "
+      # `{.cppconst.}` marks an override of a const virtual. Without it the
+      # generated method is a different signature from the one it means to
+      # override, so C++ treats it as a new non-virtual member and rejects the
+      # override marker.
+      var isConstMethod = false
+      if node[4].kind == nnkPragma:
+        for pragma in node[4]:
+          if pragma.kind == nnkIdent and eqIdent(pragma, "cppconst"):
+            isConstMethod = true
+      if isConstMethod: cppFuncSignature &= ") const override { if ("
+      else: cppFuncSignature &= ") override { if ("
+      cppFuncSignature &= funcPointerName & ") "
       if hasReturnValue: cppFuncSignature &= "return "
       cppFuncSignature &= funcPointerName & "(" & cppFuncPointerCallArgs & "); "
       if hasReturnValue: cppFuncSignature &= " else return {}; "

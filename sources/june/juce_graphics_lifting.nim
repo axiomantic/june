@@ -30,3 +30,7 @@ proc toString*[T](this: Point[T]): String {.header: juce_graphics, importcpp: "#
 proc `$`*[T](this: Rectangle[T]): string = $this.toString()
 proc `$`*[T](this: Point[T]): string = $this.toString()
 
+
+# Subclasses for the abstract classes of this module. Generated; see
+# tools/generate_subclasses.py.
+include juce_graphics_subclasses

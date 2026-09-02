@@ -259,3 +259,7 @@ proc setPaintListBoxItemHandler*(this: var CustomListBoxModel,
                                                width, height: cint,
                                                rowIsSelected: bool) {.closure.}) =
     this.onPaintListBoxItem = bindClosure(handler)
+
+# Subclasses for the abstract classes of this module. Generated; see
+# tools/generate_subclasses.py.
+include juce_gui_basics_subclasses

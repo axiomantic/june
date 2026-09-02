@@ -742,3 +742,174 @@ proc testListBoxModel() =
     shutdownJuce_GUI()
 
 testListBoxModel()
+
+# Generated subclasses: construction ==========================================
+#
+# Every generated subclass, actually constructed. Compiling one is not evidence
+# that it works: the generated C++ class has a template forwarding constructor,
+# so `new june::CustomThread` is instantiated only where something calls it, and
+# a class whose base has no default constructor builds cleanly right up until it
+# is used. juce::Thread, which takes a name, is exactly that case.
+
+proc testGeneratedSubclassesConstruct() =
+    initialiseJuce_GUI()
+
+    block:
+        let value = newCustomHighResolutionTimer()
+        doAssert not value.isNil, "newCustomHighResolutionTimer returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomInputSource()
+        doAssert not value.isNil, "newCustomInputSource returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomInputStream()
+        doAssert not value.isNil, "newCustomInputStream returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomLogger()
+        doAssert not value.isNil, "newCustomLogger returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomTimeSliceClient()
+        doAssert not value.isNil, "newCustomTimeSliceClient returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomUndoableAction()
+        doAssert not value.isNil, "newCustomUndoableAction returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomCallbackMessage()
+        doAssert not value.isNil, "newCustomCallbackMessage returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomInterprocessConnectionServer()
+        doAssert not value.isNil, "newCustomInterprocessConnectionServer returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomMessageListener()
+        doAssert not value.isNil, "newCustomMessageListener returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomMultiTimer()
+        doAssert not value.isNil, "newCustomMultiTimer returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomImageEffectFilter()
+        doAssert not value.isNil, "newCustomImageEffectFilter returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomImageFileFormat()
+        doAssert not value.isNil, "newCustomImageFileFormat returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomImagePixelDataBackupExtensions()
+        doAssert not value.isNil, "newCustomImagePixelDataBackupExtensions returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomAccessibilityNumericValueInterface()
+        doAssert not value.isNil, "newCustomAccessibilityNumericValueInterface returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomAccessibilityTextInterface()
+        doAssert not value.isNil, "newCustomAccessibilityTextInterface returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomAccessibilityTextValueInterface()
+        doAssert not value.isNil, "newCustomAccessibilityTextValueInterface returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomBorderedComponentBoundsConstrainer()
+        doAssert not value.isNil, "newCustomBorderedComponentBoundsConstrainer returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomDarkModeSettingListener()
+        doAssert not value.isNil, "newCustomDarkModeSettingListener returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomDrawable()
+        doAssert not value.isNil, "newCustomDrawable returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomFileBrowserListener()
+        doAssert not value.isNil, "newCustomFileBrowserListener returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomFileDragAndDropTarget()
+        doAssert not value.isNil, "newCustomFileDragAndDropTarget returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomFilePreviewComponent()
+        doAssert not value.isNil, "newCustomFilePreviewComponent returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomFilenameComponentListener()
+        doAssert not value.isNil, "newCustomFilenameComponentListener returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomFocusChangeListener()
+        doAssert not value.isNil, "newCustomFocusChangeListener returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomKeyListener()
+        doAssert not value.isNil, "newCustomKeyListener returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomMenuBarModel()
+        doAssert not value.isNil, "newCustomMenuBarModel returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomTableListBoxModel()
+        doAssert not value.isNil, "newCustomTableListBoxModel returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomTextDragAndDropTarget()
+        doAssert not value.isNil, "newCustomTextDragAndDropTarget returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomTooltipClient()
+        doAssert not value.isNil, "newCustomTooltipClient returned nil"
+        cdelete value
+
+    block:
+        let value = newCustomTreeViewItem()
+        doAssert not value.isNil, "newCustomTreeViewItem returned nil"
+        cdelete value
+
+    # The constructor that takes arguments, which needs a value each.
+    block:
+        let thread = newCustomThread(makeString("worker"), 0.csize_t)
+        doAssert not thread.isNil, "newCustomThread returned nil"
+        cdelete thread
+
+    shutdownJuce_GUI()
+
+testGeneratedSubclassesConstruct()
