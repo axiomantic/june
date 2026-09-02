@@ -708,3 +708,34 @@ proc testFlagEnums() =
              "the combination contained a flag nobody set"
 
 testFlagEnums()
+
+# LowLevelGraphicsSoftwareRenderer ============================================
+#
+# The renderer Graphics uses when there is no hardware behind it. Constructing
+# one over an Image and asking about its clip is checkable without drawing, and
+# the clip is what everything else is measured against.
+
+proc testSoftwareRenderer() =
+    let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 30.cint, true)
+    var renderer = makeLowLevelGraphicsSoftwareRenderer(image)
+
+    doAssert not renderer.isVectorDevice(), "the software renderer called itself a vector device"
+    doAssert not renderer.isClipEmpty(), "a fresh renderer had an empty clip"
+
+    # The clip starts as the whole image.
+    doAssert renderer.getClipBounds().getWidth() == 40,
+             "the clip is " & $renderer.getClipBounds().getWidth() & " wide"
+    doAssert renderer.getClipBounds().getHeight() == 30,
+             "the clip is " & $renderer.getClipBounds().getHeight() & " tall"
+
+    doAssert renderer.clipRegionIntersects(makeRectangle(0.cint, 0.cint, 10.cint, 10.cint)),
+             "a rectangle inside the image did not intersect the clip"
+    doAssert not renderer.clipRegionIntersects(makeRectangle(100.cint, 100.cint, 10.cint, 10.cint)),
+             "a rectangle outside the image intersected the clip"
+
+    # Moving the origin shifts what the clip bounds report.
+    renderer.setOrigin(makePoint(5.cint, 5.cint))
+    doAssert renderer.getClipBounds().getX() == -5,
+             "after moving the origin the clip starts at " & $renderer.getClipBounds().getX()
+
+testSoftwareRenderer()
