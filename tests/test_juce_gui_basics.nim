@@ -1068,3 +1068,75 @@ proc testScrollBar() =
     shutdownJuce_GUI()
 
 testScrollBar()
+
+# TableHeaderComponent, GridItem and PopupMenuItem ============================
+#
+# Three classes whose interesting parts are data rather than pixels: a column
+# model, a layout item's properties, and a menu entry.
+
+proc testTableHeaderColumns() =
+    initialiseJuce_GUI()
+
+    block:
+        var header = makeTableHeaderComponent()
+        doAssert header.getNumColumns(false) == 0, "a fresh header had columns"
+
+        header.addColumn(makeString("Name"), 1.cint, 120.cint, 30.cint, -1.cint, 1.cint, -1.cint)
+        header.addColumn(makeString("Size"), 2.cint, 80.cint, 30.cint, -1.cint, 1.cint, -1.cint)
+        doAssert header.getNumColumns(false) == 2,
+                 "the header holds " & $header.getNumColumns(false) & " columns"
+        doAssert $header.getColumnName(1.cint) == "Name",
+                 "column 1 is " & $header.getColumnName(1.cint)
+        doAssert header.getColumnWidth(1.cint) == 120,
+                 "column 1 is " & $header.getColumnWidth(1.cint) & " wide"
+
+        header.setColumnName(1.cint, makeString("Renamed"))
+        doAssert $header.getColumnName(1.cint) == "Renamed", "setColumnName did not take"
+
+        header.setColumnWidth(2.cint, 200.cint)
+        doAssert header.getColumnWidth(2.cint) == 200, "setColumnWidth did not take"
+
+        header.removeColumn(1.cint)
+        doAssert header.getNumColumns(false) == 1,
+                 "after removal there are " & $header.getNumColumns(false)
+
+        header.removeAllColumns()
+        doAssert header.getNumColumns(false) == 0, "removeAllColumns left something"
+
+    shutdownJuce_GUI()
+
+proc testGridItemProperties() =
+    var item = makeGridItem()
+    doAssert item.associatedComponent() == nil, "a fresh GridItem had a component"
+    doAssert item.order() == 0, "order started at " & $item.order()
+
+    item.order = 3.cint
+    doAssert item.order() == 3, "order is " & $item.order()
+
+    # A GridItem built around a component remembers it.
+    var component = newCustomComponent()
+    var attached = makeGridItem(component)
+    doAssert attached.associatedComponent() == cast[ptr Component](component),
+             "the GridItem is holding a different component"
+    cdelete component
+
+proc testPopupMenuItem() =
+    # The two constructors disagree on the id, and it is JUCE that does so: the
+    # field is declared `int itemID = 0`, and Item(String) sets it to -1.
+    doAssert makePopupMenuItem().itemID() == 0,
+             "a default item had id " & $makePopupMenuItem().itemID()
+
+    var item = makePopupMenuItem(makeString("Open"))
+    doAssert $item.text() == "Open", "the item text is " & $item.text()
+    doAssert item.itemID() == -1,
+             "an item built from text had id " & $item.itemID()
+
+    item.itemID = 7.cint
+    doAssert item.itemID() == 7, "itemID is " & $item.itemID()
+
+    item.text = makeString("Close")
+    doAssert $item.text() == "Close", "the text did not change"
+
+testTableHeaderColumns()
+testGridItemProperties()
+testPopupMenuItem()
