@@ -72,7 +72,7 @@ proc getValueSource*(this: var Value): var ValueValueSource {.header: juce_data_
 
 proc makeValueTree*(): ValueTree {.header: juce_data_structures, importcpp: "juce::ValueTree(@)".}
 proc makeValueTree*(`type`: Identifier): ValueTree {.header: juce_data_structures, importcpp: "juce::ValueTree(@)".}
-# proc makeValueTree*(`type`: Identifier, properties: std::initializer_list<NamedValueSet::NamedValue>, subTrees: std::initializer_list<ValueTree>): ValueTree {.header: juce_data_structures, importcpp: "juce::ValueTree(@)".}  # a type that cannot be spelled in Nim
+# proc makeValueTree*(`type`: Identifier, properties: std::initializer_list<NamedValueSet::NamedValue>, subTrees: std::initializer_list<ValueTree>): ValueTree {.header: juce_data_structures, importcpp: "juce::ValueTree(@)".}  # a std::initializer_list parameter, which Nim cannot spell; build the value with the incremental API instead
 proc `ValueTree=`*(this: var ValueTree, arg1: ValueTree): var ValueTree {.header: juce_data_structures, importcpp: "#.operator=(@)".}
 proc `==`*(this: ValueTree, arg1: ValueTree): bool {.header: juce_data_structures, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: ValueTree, arg1: ValueTree): bool {.header: juce_data_structures, importcpp: "#.operator!=(@)".}  # Nim derives != from ==

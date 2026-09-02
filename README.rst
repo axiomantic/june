@@ -305,8 +305,10 @@ and says why. Most of them are not gaps: an ``operator!=``, ``operator>`` or
 ``operator>=`` is commented because Nim derives it, a ``begin`` or ``end``
 because the Nim iterator replaces it, one of a pair of string-like overloads
 because a Nim string reaches the other just as well and the call would be
-ambiguous, and others because the generator excludes them on purpose. Only the
-ones marked as a type that cannot be spelled in Nim are missing capability.
+ambiguous, a C array or ``std::initializer_list`` parameter because the same
+class takes a String, a value or the incremental API instead, and others
+because the generator excludes them on purpose. Only the nine marked as a type
+that cannot be spelled in Nim are missing capability.
 
 ``$`` uses JUCE's ``toString`` where there is one. Nim's own ``$`` prints
 ``()`` for these, because an ``importcpp`` object declares no fields and there

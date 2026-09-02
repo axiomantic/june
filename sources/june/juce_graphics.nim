@@ -665,7 +665,7 @@ proc transformed*(this: FillType, transform: AffineTransform): FillType {.header
 proc `==`*(this: FillType, arg1: FillType): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: FillType, arg1: FillType): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 
-# proc makeFontFeatureTag*(string: char ()[5]): FontFeatureTag {.header: juce_graphics, importcpp: "juce::FontFeatureTag(@)".}  # a type that cannot be spelled in Nim
+# proc makeFontFeatureTag*(string: char ()[5]): FontFeatureTag {.header: juce_graphics, importcpp: "juce::FontFeatureTag(@)".}  # a C array parameter; every one of these has an overload taking a String or a value instead
 proc makeFontFeatureTag*(tagValue: uint32): FontFeatureTag {.header: juce_graphics, importcpp: "juce::FontFeatureTag(@)".}
 proc toString*(this: FontFeatureTag): String {.header: juce_graphics, importcpp: "#.toString()".}
 proc getTag*(this: FontFeatureTag): uint32 {.header: juce_graphics, importcpp: "#.getTag()".}

@@ -787,7 +787,7 @@ proc isNull*(this: Identifier): bool {.header: juce_core, importcpp: "#.isNull()
 
 proc makeStringArray*(): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
 proc makeStringArray*(firstValue: String): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
-# proc makeStringArray*(strings: std::initializer_list<constChar>): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}  # a type that cannot be spelled in Nim
+# proc makeStringArray*(strings: std::initializer_list<constChar>): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}  # a std::initializer_list parameter, which Nim cannot spell; build the value with the incremental API instead
 proc makeStringArray*(arg1: Array[String]): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
 proc makeStringArray*(strings: ptr String, numberOfStrings: cint): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
 proc makeStringArray*(strings: constChar, numberOfStrings: cint): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
@@ -909,7 +909,7 @@ proc getRawData*(this: Uuid): ptr uint8 {.header: juce_core, importcpp: "#.getRa
 proc `Uuid=`*(this: var Uuid, rawData: ptr uint8): var Uuid {.header: juce_core, importcpp: "#.operator=(@)".}
 
 proc makeArgumentList*(executable: String, arguments: StringArray): ArgumentList {.header: juce_core, importcpp: "juce::ArgumentList(@)".}
-# proc makeArgumentList*(argc: cint, argv: ptr char[]): ArgumentList {.header: juce_core, importcpp: "juce::ArgumentList(@)".}  # a type that cannot be spelled in Nim
+# proc makeArgumentList*(argc: cint, argv: ptr char[]): ArgumentList {.header: juce_core, importcpp: "juce::ArgumentList(@)".}  # a C array parameter; every one of these has an overload taking a String or a value instead
 proc makeArgumentList*(executable: String, arguments: String): ArgumentList {.header: juce_core, importcpp: "juce::ArgumentList(@)".}
 proc `ArgumentList=`*(this: var ArgumentList, arg1: ArgumentList): var ArgumentList {.header: juce_core, importcpp: "#.operator=(@)".}
 proc size*(this: ArgumentList): cint {.header: juce_core, importcpp: "#.size()".}
@@ -1018,7 +1018,7 @@ proc `==`*(this: NamedValue, arg1: NamedValue): bool {.header: juce_core, import
 # proc operator!=*(this: NamedValue, arg1: NamedValue): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 
 proc makeNamedValueSet*(): NamedValueSet {.header: juce_core, importcpp: "juce::NamedValueSet(@)".}
-# proc makeNamedValueSet*(arg1: std::initializer_list<NamedValue>): NamedValueSet {.header: juce_core, importcpp: "juce::NamedValueSet(@)".}  # a type that cannot be spelled in Nim
+# proc makeNamedValueSet*(arg1: std::initializer_list<NamedValue>): NamedValueSet {.header: juce_core, importcpp: "juce::NamedValueSet(@)".}  # a std::initializer_list parameter, which Nim cannot spell; build the value with the incremental API instead
 proc `==`*(this: NamedValueSet, arg1: NamedValueSet): bool {.header: juce_core, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: NamedValueSet, arg1: NamedValueSet): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 # proc begin*(this: NamedValueSet): ptr NamedValue {.header: juce_core, importcpp: "#.begin()".}  # a C++ iterator; loop with the Nim iterator instead
@@ -1708,7 +1708,7 @@ proc `<=`*(this: IPAddress, arg1: IPAddress): bool {.header: juce_core, importcp
 # proc operator>=*(this: IPAddress, arg1: IPAddress): bool {.header: juce_core, importcpp: "#.operator>=(@)".}  # Nim derives > and >= from < and <=
 
 proc makeMACAddress*(): MACAddress {.header: juce_core, importcpp: "juce::MACAddress(@)".}
-# proc makeMACAddress*(bytes: uint8[6]): MACAddress {.header: juce_core, importcpp: "juce::MACAddress(@)".}  # a type that cannot be spelled in Nim
+# proc makeMACAddress*(bytes: uint8[6]): MACAddress {.header: juce_core, importcpp: "juce::MACAddress(@)".}  # a C array parameter; every one of these has an overload taking a String or a value instead
 proc makeMACAddress*(address: StringRef): MACAddress {.header: juce_core, importcpp: "juce::MACAddress(@)".}
 proc `MACAddress=`*(this: var MACAddress, arg1: MACAddress): var MACAddress {.header: juce_core, importcpp: "#.operator=(@)".}
 proc getBytes*(this: MACAddress): ptr uint8 {.header: juce_core, importcpp: "#.getBytes()".}
