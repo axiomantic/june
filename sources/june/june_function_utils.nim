@@ -14,6 +14,9 @@ type
     CppFunctionObjectR0*[R] {.importcpp: "std::function<'0()>", header: "<functional>".} = object
     CppFunctionObjectN1*[T] {.importcpp: "std::function<void('0)>", header: "<functional>".} = object
     CppFunctionObjectR1*[R, T] {.importcpp: "std::function<'0('1)>", header: "<functional>".} = object
+    # The const-reference form. JUCE asks for this where the argument holds a
+    # reference member and so cannot be passed by value at all.
+    CppFunctionObjectR1Ref*[R, T] {.importcpp: "std::function<'0(const '1&)>", header: "<functional>".} = object
     CppFunctionObjectN2*[T1, T2] {.importcpp: "std::function<void('0, '1)>", header: "<functional>".} = object
     CppFunctionObjectR2*[R, T1, T2] {.importcpp: "std::function<'0('1, '2)>", header: "<functional>".} = object
     CppFunctionObjectN3*[T1, T2, T3] {.importcpp: "std::function<void('0, '1, '2)>", header: "<functional>".} = object
@@ -36,6 +39,7 @@ type
     CppFunctionClosureR0[R] = proc (env: pointer): R {.nimcall.}
     CppFunctionClosureN1[T] = proc (a: T, env: pointer) {.nimcall.}
     CppFunctionClosureR1[R, T] = proc (a: T, env: pointer): R {.nimcall.}
+    CppFunctionClosureR1Ref[R, T] = proc (a: ptr T, env: pointer): R {.nimcall.}
     CppFunctionClosureN2[T1, T2] = proc (a1: T1, a2: T2, env: pointer) {.nimcall.}
     CppFunctionClosureR2[R, T1, T2] = proc (a1: T1, a2: T2, env: pointer): R {.nimcall.}
     CppFunctionClosureN3[T1, T2, T3] = proc (a1: T1, a2: T2, a3: T3, env: pointer) {.nimcall.}
@@ -73,6 +77,7 @@ proc bindInternal(p: CppFunctionClosureN0, env: pointer): CppFunctionObjectN0 {.
 proc bindInternal[R](p: CppFunctionClosureR0[R], env: pointer): CppFunctionObjectR0[R] {.header: "<june.h>", importcpp: "june::bind(@)".}
 proc bindInternal[T](p: CppFunctionClosureN1[T], env: pointer): CppFunctionObjectN1[T] {.header: "<june.h>", importcpp: "june::bind(@)".}
 proc bindInternal[R, T](p: CppFunctionClosureR1[R, T], env: pointer): CppFunctionObjectR1[R, T] {.header: "<june.h>", importcpp: "june::bind(@)".}
+proc bindInternalConstRef[R, T](p: CppFunctionClosureR1Ref[R, T], env: pointer): CppFunctionObjectR1Ref[R, T] {.header: "<june.h>", importcpp: "june::bindConstRef(@)".}
 proc bindInternal[T1, T2](p: CppFunctionClosureN2[T1, T2], env: pointer): CppFunctionObjectN2[T1, T2] {.header: "<june.h>", importcpp: "june::bind(@)".}
 proc bindInternal[R, T1, T2](p: CppFunctionClosureR2[R, T1, T2], env: pointer): CppFunctionObjectR2[R, T1, T2] {.header: "<june.h>", importcpp: "june::bind(@)".}
 proc bindInternal[T1, T2, T3](p: CppFunctionClosureN3[T1, T2, T3], env: pointer): CppFunctionObjectN3[T1, T2, T3] {.header: "<june.h>", importcpp: "june::bind(@)".}
@@ -119,6 +124,12 @@ proc bindClosure*[T](f: proc(a: T) {.closure.}): CppFunctionObjectN1[T] =
     bindInternal(cast[CppFunctionClosureN1[T]](rawProc f), retainEnv(rawEnv f))
 proc bindClosure*[R, T](f: proc(a: T): R {.closure.}): CppFunctionObjectR1[R, T] =
     bindInternal(cast[CppFunctionClosureR1[R, T]](rawProc f), retainEnv(rawEnv f))
+
+# A separate name rather than another bindClosure overload: a
+# `proc(a: ptr T): R` also matches the one above with T bound to `ptr T`, and
+# the two would be ambiguous.
+proc bindConstRefClosure*[R, T](f: proc(a: ptr T): R {.closure.}): CppFunctionObjectR1Ref[R, T] =
+    bindInternalConstRef(cast[CppFunctionClosureR1Ref[R, T]](rawProc f), retainEnv(rawEnv f))
 proc bindClosure*[T1, T2](f: proc(a1: T1, a2: T2) {.closure.}): CppFunctionObjectN2[T1, T2] =
     bindInternal(cast[CppFunctionClosureN2[T1, T2]](rawProc f), retainEnv(rawEnv f))
 proc bindClosure*[R, T1, T2](f: proc(a1: T1, a2: T2): R {.closure.}): CppFunctionObjectR2[R, T1, T2] =

@@ -959,7 +959,7 @@ proc makejuce_var*(value: String): juce_var {.header: juce_core, importcpp: "juc
 proc makejuce_var*(value: Array[juce_var]): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
 proc makejuce_var*(value: StringArray): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
 proc makejuce_var*(`object`: ptr ReferenceCountedObject): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
-proc makejuce_var*(`method`: CppFunctionObjectR1[juce_var, juce_varNativeFunctionArgs]): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
+proc makejuce_var*(`method`: CppFunctionObjectR1Ref[juce_var, juce_varNativeFunctionArgs]): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
 proc makejuce_var*(binaryData: constPointer, dataSize: uint64): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
 proc makejuce_var*(binaryData: MemoryBlock): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
 proc `juce_var=`*(this: var juce_var, valueToCopy: juce_var): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
@@ -973,7 +973,7 @@ proc `juce_var=`*(this: var juce_var, value: String): var juce_var {.header: juc
 proc `juce_var=`*(this: var juce_var, value: MemoryBlock): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `juce_var=`*(this: var juce_var, value: Array[juce_var]): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `juce_var=`*(this: var juce_var, `object`: ptr ReferenceCountedObject): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
-proc `juce_var=`*(this: var juce_var, `method`: CppFunctionObjectR1[juce_var, juce_varNativeFunctionArgs]): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
+proc `juce_var=`*(this: var juce_var, `method`: CppFunctionObjectR1Ref[juce_var, juce_varNativeFunctionArgs]): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
 proc swapWith*(this: var juce_var, other: var juce_var) {.header: juce_core, importcpp: "#.swapWith(@)".}
 proc toString*(this: juce_var): String {.header: juce_core, importcpp: "#.toString()".}
 proc getArray*(this: juce_var): ptr Array[juce_var] {.header: juce_core, importcpp: "#.getArray()".}
@@ -1018,7 +1018,7 @@ proc call*(this: var juce_var, `method`: Identifier, arg1: juce_var, arg2: juce_
 proc call*(this: juce_var, `method`: Identifier, arg1: juce_var, arg2: juce_var, arg3: juce_var, arg4: juce_var): juce_var {.header: juce_core, importcpp: "#.call(@)".}
 proc call*(this: juce_var, `method`: Identifier, arg1: juce_var, arg2: juce_var, arg3: juce_var, arg4: juce_var, arg5: juce_var): juce_var {.header: juce_core, importcpp: "#.call(@)".}
 proc invoke*(this: juce_var, `method`: Identifier, arguments: ptr juce_var, numArguments: cint): juce_var {.header: juce_core, importcpp: "#.invoke(@)".}
-proc getNativeFunction*(this: juce_var): CppFunctionObjectR1[juce_var, juce_varNativeFunctionArgs] {.header: juce_core, importcpp: "#.getNativeFunction()".}
+proc getNativeFunction*(this: juce_var): CppFunctionObjectR1Ref[juce_var, juce_varNativeFunctionArgs] {.header: juce_core, importcpp: "#.getNativeFunction()".}
 proc writeToStream*(this: juce_var, output: var OutputStream) {.header: juce_core, importcpp: "#.writeToStream(@)".}
 
 proc `==`*(this: NamedValue, arg1: NamedValue): bool {.header: juce_core, importcpp: "#.operator==(@)".}
@@ -1059,7 +1059,7 @@ proc setProperty*(this: var DynamicObject, propertyName: Identifier, newValue: j
 proc removeProperty*(this: var DynamicObject, propertyName: Identifier) {.header: juce_core, importcpp: "#.removeProperty(@)".}
 proc hasMethod*(this: DynamicObject, methodName: Identifier): bool {.header: juce_core, importcpp: "#.hasMethod(@)".}
 proc invokeMethod*(this: var DynamicObject, methodName: Identifier, args: juce_varNativeFunctionArgs): juce_var {.header: juce_core, importcpp: "#.invokeMethod(@)".}
-# proc setMethod*(this: var DynamicObject, methodName: Identifier, function: CppFunctionObjectR1[juce_var, NativeFunctionArgs]) {.header: juce_core, importcpp: "#.setMethod(@)".}  # a type that cannot be spelled in Nim
+proc setMethod*(this: var DynamicObject, methodName: Identifier, function: CppFunctionObjectR1Ref[juce_var, juce_varNativeFunctionArgs]) {.header: juce_core, importcpp: "#.setMethod(@)".}
 proc clear*(this: var DynamicObject) {.header: juce_core, importcpp: "#.clear()".}
 proc getProperties*(this: var DynamicObject): var NamedValueSet {.header: juce_core, importcpp: "#.getProperties()".}
 proc getProperties*(this: DynamicObject): NamedValueSet {.header: juce_core, importcpp: "#.getProperties()".}
