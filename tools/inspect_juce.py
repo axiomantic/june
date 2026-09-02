@@ -1,5 +1,7 @@
 import sys
 import os
+from collections import Counter
+
 import clang.cindex
 import typing
 import argparse
@@ -158,6 +160,15 @@ def remap_type(t, *args):
 
     if "<" in result:
         mapped = remap_template(result, *args)
+        # std::function over a const reference is a different C++ type from one
+        # over a value, and where the argument holds a reference member - as
+        # var::NativeFunctionArgs does - the by-value form does not compile at
+        # all. The const and the & are stripped from the spelling above before
+        # remap_template ever sees them, so the distinction is read here, off
+        # the original.
+        if (mapped is not None and mapped.startswith("CppFunctionObjectR1[")
+                and re.search(r"std::function<[^<>]*\(\s*const\s[^()*]*&\s*\)>", t.spelling)):
+            mapped = "CppFunctionObjectR1Ref[" + mapped[len("CppFunctionObjectR1["):]
         # Leave the C++ spelling in place when it cannot be mapped. It is not
         # valid Nim, which is exactly the signal the emit site checks in order
         # to comment the proc out.
@@ -337,7 +348,8 @@ def remap_template_arg(spelling, *args):
             # template arguments. Guessing here is safe: a name that is not
             # declared is caught by the check at the emit site, which comments
             # the proc out exactly as an unresolved one already is.
-            qualifiers = [part for part in result.split("::") if part and part != "juce"]
+            qualifiers = [remap_class_name(part) for part in result.split("::")
+                          if part and part != "juce"]
             result = "".join(qualifiers)
             for table in args:
                 result = table.get(result, result)
@@ -465,7 +477,7 @@ known_builtin_types = {
     "pointer", "void", "csize_t", "cchar", "cuchar", "cshort", "cushort",
     "cint", "cuint", "clong", "culong", "clonglong", "culonglong",
     "cfloat", "cdouble", "constChar", "constPointer",
-    "UniquePtr", "CppOptional", "CppVector",
+    "UniquePtr", "CppOptional", "CppVector", "CppFunctionObjectR1Ref",
     "CppString", "CppMap", "CppUnorderedMap", "CppArray",
     "Rectangle", "Point", "Line", "BorderSize", "Range",
     "Array", "OwnedArray", "ReferenceCountedObjectPtr",
@@ -954,6 +966,16 @@ def run_main(juce_module_name, juce_class_name_to_export):
                     and node.access_specifier == AccessSpecifier.PUBLIC):
                 global_nested_remap[f"juce::{c.spelling}::{node.spelling}"] = f"{remap_class_name(c.spelling)}{node.spelling}"
 
+    # libclang prints a nested name as it was written, so one used inside its
+    # own enclosing class arrives unqualified and the table above, keyed on the
+    # qualified name, does not match it. A bare name is only safe to resolve
+    # where nothing else in the module shares it: several classes have an
+    # Options, and guessing between them would bind the wrong type.
+    bare_nested_counts = Counter(key.split("::")[-1] for key in global_nested_remap)
+    unambiguous_nested_remap = {
+        key.split("::")[-1]: value for key, value in global_nested_remap.items()
+        if bare_nested_counts[key.split("::")[-1]] == 1}
+
     for c in module_classes:
         if juce_class_name_to_export is not None and c.spelling != juce_class_name_to_export:
             continue
@@ -994,7 +1016,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
                     or node.access_specifier != AccessSpecifier.PUBLIC):
                 continue
             resolved = remap_type(node.underlying_typedef_type,
-                                  remap_inner_classes, enum_remap, class_juce_map, global_nested_remap)
+                                  remap_inner_classes, enum_remap, class_juce_map, global_nested_remap, unambiguous_nested_remap)
             if resolved and "<" not in resolved and "::" not in resolved and not is_c_array(resolved):
                 remap_inner_classes.setdefault(node.spelling, resolved)
                 remap_inner_classes.setdefault(f"juce::{c.spelling}::{node.spelling}", resolved)
@@ -1014,7 +1036,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
                                and x.access_specifier == AccessSpecifier.PUBLIC]
 
         def constructor_arg_types(ctor):
-            return [remap_type(a.type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap)
+            return [remap_type(a.type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap, unambiguous_nested_remap)
                     for a in ctor.get_arguments()]
 
         keep_string_constructor = preferred_string_constructor(
@@ -1023,7 +1045,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
         for ctor in public_constructors:
             ctor_args, ctor_types, ctor_comment = [], [], ""
             for count, arg in enumerate(ctor.get_arguments()):
-                argument_type = remap_type(arg.type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap)
+                argument_type = remap_type(arg.type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap, unambiguous_nested_remap)
                 ctor_args.append(f"{remap_argument_name(arg.spelling, count)}: {argument_type}")
                 ctor_types.append(argument_type)
 
@@ -1077,7 +1099,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
         keep_string_operand = {}
         for method_spelling in {x.spelling for x in public_methods}:
             overload_types = [
-                [remap_type(a.type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap)
+                [remap_type(a.type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap, unambiguous_nested_remap)
                  for a in x.get_arguments()]
                 for x in public_methods if x.spelling == method_spelling]
             preferred = preferred_string_operand(overload_types, class_name)
@@ -1112,7 +1134,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
                     default_value = f" = {default_value}"
 
                 spelling = remap_argument_name(arg.spelling, count)
-                argument_type = remap_type(arg.type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap)
+                argument_type = remap_type(arg.type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap, unambiguous_nested_remap)
 
                 # A default is only kept where the literal is already a value of
                 # the parameter's type here. The converters that would make, say,
@@ -1140,7 +1162,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
             reason = ""
             return_type = ""
             if m.result_type.spelling != "void":
-                return_type = f": {remap_type(m.result_type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap)}"
+                return_type = f": {remap_type(m.result_type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap, unambiguous_nested_remap)}"
 
             if m.result_type.spelling in ["CFStringRef", "OSType"]:
                 comment, reason = "# ", "a platform type with no Nim spelling"

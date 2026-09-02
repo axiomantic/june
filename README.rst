@@ -201,6 +201,19 @@ To run something on the message thread, bind the closure first and pass it to
   let callback: CppFunctionObjectN0 = bindClosure(proc() = echo "on the message thread")
   discard MessageManager.callAsync(callback)
 
+Where JUCE takes the callback by const reference, bind it with
+``bindConstRefClosure`` and declare the argument as a pointer. ``juce::var``'s
+native functions are the case that needs it: ``NativeFunctionArgs`` holds a
+reference member, so a ``std::function`` over it by value does not compile.
+
+.. code-block:: nim
+
+  let obj = cnew(makeDynamicObject())
+  let answer: CppFunctionObjectR1Ref[juce_var, juce_varNativeFunctionArgs] =
+    bindConstRefClosure(proc(args: ptr juce_varNativeFunctionArgs): juce_var =
+      makejuce_var(7.cint))
+  obj[].setMethod(makeIdentifier("answer"), answer)
+
 To run one on a background thread, hand it to a ``ThreadPool``. The job returns
 a status, so the pool knows whether to run it again:
 

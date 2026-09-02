@@ -352,3 +352,30 @@ proc testEqualityGuards() =
   doAssert not (makeRange(0.cint, 10.cint) == makeRange(5.cint, 20.cint))
 
 testEqualityGuards()
+
+# Attaching a Nim closure to a DynamicObject as a method. The parameter is a
+# std::function over var::NativeFunctionArgs, a nested name libclang prints
+# unqualified, so this binding was a comment until that name resolved.
+proc testDynamicObjectMethod() =
+  # Heap-allocated because a var holds the object by reference-counted pointer.
+  let obj = cnew(makeDynamicObject())
+
+  # bindConstRefClosure rather than bindClosure: JUCE takes this one by const
+  # reference, and NativeFunctionArgs holds a reference member, so a
+  # std::function over it by value does not compile at all.
+  let answer: CppFunctionObjectR1Ref[juce_var, juce_varNativeFunctionArgs] =
+    bindConstRefClosure(proc(args: ptr juce_varNativeFunctionArgs): juce_var =
+      makejuce_var(7.cint))
+
+  doAssert not obj[].hasMethod(makeIdentifier("answer"))
+  obj[].setMethod(makeIdentifier("answer"), answer)
+  doAssert obj[].hasMethod(makeIdentifier("answer"))
+
+  # And the closure is what JUCE calls: wrap the object in a var and invoke the
+  # method through it, the way a script would.
+  let asVar = makejuce_var(cast[ptr ReferenceCountedObject](obj))
+  doAssert asVar.isObject()
+  let returned = asVar.call(makeIdentifier("answer"))
+  doAssert $returned.toString() == "7", "the method returned " & $returned.toString()
+
+testDynamicObjectMethod()
