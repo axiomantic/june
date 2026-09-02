@@ -91,7 +91,7 @@ proc anotherInstanceStarted*(this: var JUCEApplicationBase, commandLine: String)
 proc systemRequestedQuit*(this: var JUCEApplicationBase) {.header: juce_events, importcpp: "#.systemRequestedQuit()".}
 proc suspended*(this: var JUCEApplicationBase) {.header: juce_events, importcpp: "#.suspended()".}
 proc resumed*(this: var JUCEApplicationBase) {.header: juce_events, importcpp: "#.resumed()".}
-# proc unhandledException*(this: var JUCEApplicationBase, arg1: ptr std::exception, sourceFilename: String, lineNumber: cint) {.header: juce_events, importcpp: "#.unhandledException(@)".}  # a type that cannot be spelled in Nim
+proc unhandledException*(this: var JUCEApplicationBase, arg1: ptr CppException, sourceFilename: String, lineNumber: cint) {.header: juce_events, importcpp: "#.unhandledException(@)".}
 proc memoryWarningReceived*(this: var JUCEApplicationBase) {.header: juce_events, importcpp: "#.memoryWarningReceived()".}
 proc backButtonPressed*(this: var JUCEApplicationBase): bool {.header: juce_events, importcpp: "#.backButtonPressed()".}
 proc setApplicationReturnValue*(this: var JUCEApplicationBase, newReturnValue: cint) {.header: juce_events, importcpp: "#.setApplicationReturnValue(@)".}

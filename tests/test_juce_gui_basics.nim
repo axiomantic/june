@@ -225,10 +225,6 @@ testSliderAndLabel()
 # LookAndFeel is how a JUCE application is themed. The assertion that matters is
 # that an override installed from Nim is the one JUCE calls when it draws a
 # widget, rather than the LookAndFeel_V4 drawing it would otherwise use.
-
-# LookAndFeel is how a JUCE application is themed. The assertion that matters is
-# that an override installed from Nim is the one JUCE calls when it draws a
-# widget, rather than the LookAndFeel_V4 drawing it would otherwise use.
 proc testLookAndFeel() =
   initialiseJuce_GUI()
 

@@ -1,5 +1,6 @@
 import sys
 import os
+import subprocess
 from collections import Counter
 
 import clang.cindex
@@ -101,6 +102,7 @@ def remap_type(t, *args):
         "unsigned long long": "uint64",
         "juce::var": "juce_var",
         "std::string": "CppString",
+        "std::exception": "CppException",
         "var": "juce_var",
         "var::NativeFunctionArgs": "juce_varNativeFunctionArgs",
         "NamedValueSet::NamedValue": "NamedValueSetNamedValue"
@@ -484,7 +486,7 @@ known_builtin_types = {
     "cint", "cuint", "clong", "culong", "clonglong", "culonglong",
     "cfloat", "cdouble", "constChar", "constPointer",
     "UniquePtr", "CppOptional", "CppVector", "CppFunctionObjectR1Ref",
-    "CppString", "CppMap", "CppUnorderedMap", "CppArray",
+    "CppString", "CppMap", "CppUnorderedMap", "CppArray", "CppException",
     "Rectangle", "Point", "Line", "BorderSize", "Range",
     "Array", "OwnedArray", "ReferenceCountedObjectPtr",
     "Span", "RectangleList", "Parallelogram", "SparseSet", "Optional",
@@ -655,7 +657,8 @@ def use_system_libclang():
     """
     candidates = []
     if sys.platform == "darwin":
-        clang_bin = os.popen("xcrun --find clang 2>/dev/null").read().strip()
+        clang_bin = subprocess.run(["xcrun", "--find", "clang"], capture_output=True,
+                                   text=True).stdout.strip()
         if clang_bin:
             toolchain = os.path.dirname(os.path.dirname(clang_bin))
             candidates.append(os.path.join(toolchain, "lib", "libclang.dylib"))
@@ -723,7 +726,8 @@ def run_main(juce_module_name, juce_class_name_to_export):
     # A .h file is parsed as C unless the language is stated, which fails outright
     # under current libclang. On macOS the SDK also has to be named explicitly.
     if sys.platform == "darwin":
-        sdk_path = os.popen("xcrun --show-sdk-path").read().strip()
+        sdk_path = subprocess.run(["xcrun", "--show-sdk-path"], capture_output=True,
+                                  text=True).stdout.strip()
         if sdk_path:
             juce_args += ["-isysroot", sdk_path]
 
