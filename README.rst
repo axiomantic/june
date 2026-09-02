@@ -302,7 +302,8 @@ Hand-written additions live in the ``*_lifting.nim`` files and in
 - The class templates: ``Rectangle``, ``Point``, ``Line``, ``BorderSize``,
   ``Range``, ``Array``, ``OwnedArray``, ``Span``, ``RectangleList``,
   ``SparseSet``, ``NormalisableRange``, ``Parallelogram``, ``Optional``,
-  ``HeapBlock`` and ``ReferenceCountedObjectPtr``. ``HeapBlock`` owns its buffer
+  ``HeapBlock``, ``WeakReference``, ``OptionalScopedPointer`` and
+  ``ReferenceCountedObjectPtr``. ``HeapBlock`` owns its buffer
   and cannot be copied, so Nim rejects a copy of one at compile time.
 - Iterators over the containers a caller loops over: ``ValueTree`` children and
   properties, ``StringArray``, ``XmlElement`` children and attributes,

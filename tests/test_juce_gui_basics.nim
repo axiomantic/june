@@ -434,3 +434,26 @@ proc testFieldAccessors() =
   shutdownJuce_GUI()
 
 testFieldAccessors()
+
+# WeakReference goes nil when what it points at is deleted, which is the whole
+# reason a drag-and-drop details struct holds one rather than a raw pointer.
+proc testWeakReferenceField() =
+  initialiseJuce_GUI()
+
+  block:
+    let component = newCustomComponent()
+    var details = makeDragAndDropTargetSourceDetails(
+      makejuce_var(1.cint), cast[ptr Component](component), makePoint(0.cint, 0.cint))
+
+    doAssert not details.sourceComponent.isNil()
+    doAssert details.sourceComponent.get() == cast[ptr Component](component)
+    doAssert not details.sourceComponent.wasObjectDeleted()
+
+    cdelete component
+    doAssert details.sourceComponent.wasObjectDeleted(),
+             "the weak reference did not notice the deletion"
+    doAssert details.sourceComponent.isNil()
+
+  shutdownJuce_GUI()
+
+testWeakReferenceField()

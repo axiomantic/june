@@ -147,6 +147,8 @@ type
     ReferenceCountedObjectPtr*[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::ReferenceCountedObjectPtr".} = object
     Span*[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::Span".} = object
     HeapBlock*[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::HeapBlock".} = object
+    WeakReference*[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::WeakReference".} = object
+    OptionalScopedPointer*[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::OptionalScopedPointer".} = object
     RectangleList*[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::RectangleList".} = object
     Parallelogram*[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::Parallelogram".} = object
 
@@ -164,6 +166,20 @@ proc `[]=`*[T](this: var HeapBlock[T], index: cint, value: T) {.importcpp: "#[#]
 proc get*[T](this: HeapBlock[T]): ptr T {.importcpp: "#.get()".}
 proc isNil*[T](this: HeapBlock[T]): bool {.importcpp: "(#.get() == nullptr)".}
 proc calloc*[T](this: var HeapBlock[T], numElements: csize_t) {.importcpp: "#.calloc(@)".}
+
+# A weak reference goes nil when what it points at is deleted, which is the
+# whole reason to hold one.
+proc get*[T](this: WeakReference[T]): ptr T {.importcpp: "#.get()".}
+proc wasObjectDeleted*[T](this: WeakReference[T]): bool {.importcpp: "#.wasObjectDeleted()".}
+proc isNil*[T](this: WeakReference[T]): bool {.importcpp: "(#.get() == nullptr)".}
+
+# OptionalScopedPointer may or may not own what it points at, so like the other
+# owning wrappers it cannot be copied.
+proc `=copy`*[T](dst: var OptionalScopedPointer[T], src: OptionalScopedPointer[T]) {.error: "an OptionalScopedPointer cannot be copied".}
+proc `=destroy`*[T](this: var OptionalScopedPointer[T]) = discard
+proc get*[T](this: OptionalScopedPointer[T]): ptr T {.importcpp: "#.get()".}
+proc release*[T](this: var OptionalScopedPointer[T]): ptr T {.importcpp: "#.release()".}
+proc isNil*[T](this: OptionalScopedPointer[T]): bool {.importcpp: "(#.get() == nullptr)".}
 
 proc size*[T](this: Array[T]): cint {.importcpp: "#.size()".}
 proc isEmpty*[T](this: Array[T]): bool {.importcpp: "#.isEmpty()".}
