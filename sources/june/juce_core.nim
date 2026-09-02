@@ -2110,9 +2110,9 @@ proc makeIPAddress*(address1: uint8, address2: uint8, address3: uint8, address4:
 proc makeIPAddress*(address1: uint16, address2: uint16, address3: uint16, address4: uint16, address5: uint16, address6: uint16, address7: uint16, address8: uint16): IPAddress {.header: juce_core, importcpp: "juce::IPAddress(@)".}
 proc makeIPAddress*(asNativeEndian32Bit: uint32): IPAddress {.header: juce_core, importcpp: "juce::IPAddress(@)".}
 proc makeIPAddress*(address: String): IPAddress {.header: juce_core, importcpp: "juce::IPAddress(@)".}
-# proc address*(this: IPAddress): uint8[16] {.header: juce_core, importcpp: "#.address".}  # a C array parameter; every one of these has an overload taking a String or a value instead
-# proc address*(this: var IPAddress): var uint8[16] {.header: juce_core, importcpp: "#.address".}  # a C array parameter; every one of these has an overload taking a String or a value instead
-# proc `address=`*(this: var IPAddress, value: uint8[16]) {.header: juce_core, importcpp: "#.address = #".}  # a C array parameter; every one of these has an overload taking a String or a value instead
+# proc address*(this: IPAddress): uint8[16] {.header: juce_core, importcpp: "#.address".}  # a fixed-size C array member, which Nim cannot spell and which no other accessor exposes
+# proc address*(this: var IPAddress): var uint8[16] {.header: juce_core, importcpp: "#.address".}  # a fixed-size C array member, which Nim cannot spell and which no other accessor exposes
+# proc `address=`*(this: var IPAddress, value: uint8[16]) {.header: juce_core, importcpp: "#.address = #".}  # a fixed-size C array member, which Nim cannot spell and which no other accessor exposes
 proc isIPv6*(this: IPAddress): bool {.header: juce_core, importcpp: "#.isIPv6".}
 proc isIPv6*(this: var IPAddress): var bool {.header: juce_core, importcpp: "#.isIPv6".}
 proc `isIPv6=`*(this: var IPAddress, value: bool) {.header: juce_core, importcpp: "#.isIPv6 = #".}

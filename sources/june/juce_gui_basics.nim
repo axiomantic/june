@@ -2915,9 +2915,9 @@ proc clone*(this: RelativePointPathLineTo): ptr RelativePointPathElementBase {.h
 proc `==`*(this: RelativePointPathLineTo, other: RelativePointPathLineTo): bool {.error: "juce::RelativePointPath::LineTo defines no operator==; compare a property instead".}
 
 proc makeRelativePointPathQuadraticTo*(controlPoint: RelativePoint, endPoint: RelativePoint): RelativePointPathQuadraticTo {.header: juce_gui_basics, importcpp: "juce::RelativePointPath::QuadraticTo(@)".}
-# proc controlPoints*(this: RelativePointPathQuadraticTo): RelativePoint[2] {.header: juce_gui_basics, importcpp: "#.controlPoints".}  # a C array parameter; every one of these has an overload taking a String or a value instead
-# proc controlPoints*(this: var RelativePointPathQuadraticTo): var RelativePoint[2] {.header: juce_gui_basics, importcpp: "#.controlPoints".}  # a C array parameter; every one of these has an overload taking a String or a value instead
-# proc `controlPoints=`*(this: var RelativePointPathQuadraticTo, value: RelativePoint[2]) {.header: juce_gui_basics, importcpp: "#.controlPoints = #".}  # a C array parameter; every one of these has an overload taking a String or a value instead
+# proc controlPoints*(this: RelativePointPathQuadraticTo): RelativePoint[2] {.header: juce_gui_basics, importcpp: "#.controlPoints".}  # a fixed-size C array member, which Nim cannot spell and which no other accessor exposes
+# proc controlPoints*(this: var RelativePointPathQuadraticTo): var RelativePoint[2] {.header: juce_gui_basics, importcpp: "#.controlPoints".}  # a fixed-size C array member, which Nim cannot spell and which no other accessor exposes
+# proc `controlPoints=`*(this: var RelativePointPathQuadraticTo, value: RelativePoint[2]) {.header: juce_gui_basics, importcpp: "#.controlPoints = #".}  # a fixed-size C array member, which Nim cannot spell and which no other accessor exposes
 proc createTree*(this: RelativePointPathQuadraticTo): ValueTree {.header: juce_gui_basics, importcpp: "#.createTree()".}
 proc addToPath*(this: RelativePointPathQuadraticTo, path: var Path, arg2: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.addToPath(@)".}
 proc getControlPoints*(this: var RelativePointPathQuadraticTo, numPoints: var cint): ptr RelativePoint {.header: juce_gui_basics, importcpp: "#.getControlPoints(@)".}
@@ -2925,9 +2925,9 @@ proc clone*(this: RelativePointPathQuadraticTo): ptr RelativePointPathElementBas
 proc `==`*(this: RelativePointPathQuadraticTo, other: RelativePointPathQuadraticTo): bool {.error: "juce::RelativePointPath::QuadraticTo defines no operator==; compare a property instead".}
 
 proc makeRelativePointPathCubicTo*(controlPoint1: RelativePoint, controlPoint2: RelativePoint, endPoint: RelativePoint): RelativePointPathCubicTo {.header: juce_gui_basics, importcpp: "juce::RelativePointPath::CubicTo(@)".}
-# proc controlPoints*(this: RelativePointPathCubicTo): RelativePoint[3] {.header: juce_gui_basics, importcpp: "#.controlPoints".}  # a C array parameter; every one of these has an overload taking a String or a value instead
-# proc controlPoints*(this: var RelativePointPathCubicTo): var RelativePoint[3] {.header: juce_gui_basics, importcpp: "#.controlPoints".}  # a C array parameter; every one of these has an overload taking a String or a value instead
-# proc `controlPoints=`*(this: var RelativePointPathCubicTo, value: RelativePoint[3]) {.header: juce_gui_basics, importcpp: "#.controlPoints = #".}  # a C array parameter; every one of these has an overload taking a String or a value instead
+# proc controlPoints*(this: RelativePointPathCubicTo): RelativePoint[3] {.header: juce_gui_basics, importcpp: "#.controlPoints".}  # a fixed-size C array member, which Nim cannot spell and which no other accessor exposes
+# proc controlPoints*(this: var RelativePointPathCubicTo): var RelativePoint[3] {.header: juce_gui_basics, importcpp: "#.controlPoints".}  # a fixed-size C array member, which Nim cannot spell and which no other accessor exposes
+# proc `controlPoints=`*(this: var RelativePointPathCubicTo, value: RelativePoint[3]) {.header: juce_gui_basics, importcpp: "#.controlPoints = #".}  # a fixed-size C array member, which Nim cannot spell and which no other accessor exposes
 proc createTree*(this: RelativePointPathCubicTo): ValueTree {.header: juce_gui_basics, importcpp: "#.createTree()".}
 proc addToPath*(this: RelativePointPathCubicTo, path: var Path, arg2: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.addToPath(@)".}
 proc getControlPoints*(this: var RelativePointPathCubicTo, numPoints: var cint): ptr RelativePoint {.header: juce_gui_basics, importcpp: "#.getControlPoints(@)".}
