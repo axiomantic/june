@@ -200,6 +200,13 @@ proc testContainerIteration() =
     tags.add($child[].getTagName())
   doAssert tags == @["first", "second"], "tags " & $tags
 
+  document.setAttribute(makeIdentifier("id"), makeString("root-1"))
+  document.setAttribute(makeIdentifier("lang"), makeString("en"))
+  var attributes: seq[string] = @[]
+  for name, value in document.attributes():
+    attributes.add($name & "=" & $value)
+  doAssert attributes == @["id=root-1", "lang=en"], "attributes " & $attributes
+
 testContainerIteration()
 
 # BigInteger's bitwise and shift operators. Nim spells shifts `shl` and `shr`,
