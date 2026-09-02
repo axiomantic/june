@@ -47,6 +47,12 @@ include {juce_module_name}_lifting
 # {(&NTIv2_...)}, and C++ rejects it: JUCE's classes have no such member.
 nim_class_def = """  {class_name}{export} {{.header: {juce_module_name}, importcpp: "{spelling}", inheritable, pure.}} = object{base}"""
 
+nim_function_def = """{comment}proc {function_name}*({function_args}){function_return} {{.header: {juce_module_name}, importcpp: "juce::{juce_spelling}({juce_args})".}}{reason}"""
+
+# Free functions the _lifting files already bind, which would otherwise be
+# emitted a second time under the same name.
+free_functions_bound_by_lifting = {"initialiseJuce_GUI", "shutdownJuce_GUI"}
+
 # A public field. C++ reaches one by name; Nim reaches it through a getter and a
 # setter, which is also what lets the binding stay an importcpp object with no
 # fields of its own.
@@ -619,30 +625,33 @@ nim_compound_assignments = {
 }
 
 
+# Nim can spell these, so bind them as the operators they are. They used to be
+# mangled into `Colour==`, which is a legal identifier and useless: the whole
+# point of binding an operator is to write a == b. At module scope because JUCE
+# declares some of them as free functions rather than members.
+nim_operators = {
+    "operator==": "`==`",
+    "operator<": "`<`",
+    "operator<=": "`<=`",
+    "operator+": "`+`",
+    "operator-": "`-`",
+    "operator*": "`*`",
+    "operator/": "`/`",
+    "operator[]": "`[]`",
+    # Nim has no bitwise or shift operator of its own for these spellings -
+    # it uses `and`, `or`, `shl` and `shr` - so binding them introduces no
+    # ambiguity with an existing overload. `&` is the exception: it already
+    # concatenates strings, and an overload on a JUCE type is distinct.
+    "operator|": "`|`",
+    "operator&": "`&`",
+    "operator^": "`^`",
+    "operator%": "`%`",
+    "operator<<": "`shl`",
+    "operator>>": "`shr`",
+}
+
+
 def remap_operator_name(class_name, method_name):
-    # Nim can spell these, so bind them as the operators they are. They used to
-    # be mangled into `Colour==`, which is a legal identifier and useless: the
-    # whole point of binding an operator is to write a == b.
-    nim_operators = {
-        "operator==": "`==`",
-        "operator<": "`<`",
-        "operator<=": "`<=`",
-        "operator+": "`+`",
-        "operator-": "`-`",
-        "operator*": "`*`",
-        "operator/": "`/`",
-        "operator[]": "`[]`",
-        # Nim has no bitwise or shift operator of its own for these spellings -
-        # it uses `and`, `or`, `shl` and `shr` - so binding them introduces no
-        # ambiguity with an existing overload. `&` is the exception: it already
-        # concatenates strings, and an overload on a JUCE type is distinct.
-        "operator|": "`|`",
-        "operator&": "`&`",
-        "operator^": "`^`",
-        "operator%": "`%`",
-        "operator<<": "`shl`",
-        "operator>>": "`shr`",
-    }
     if method_name in nim_operators:
         return nim_operators[method_name]
 
@@ -830,6 +839,20 @@ def run_main(juce_module_name, juce_class_name_to_export):
     for entry in juce_namespace:
         all_functions += [node for node in filter(
             lambda x: x.kind == CursorKind.FUNCTION_DECL, entry.get_children())]
+
+    # A class whose operator== is a free function rather than a member still
+    # has equality, and emitting the no-equality guard for it would collide
+    # with the operator the free-function pass binds. juce::String is the case
+    # that matters; its == and < are both free.
+    classes_with_free_equality = set()
+    for function in all_functions:
+        if function.spelling != "operator==":
+            continue
+        arguments = list(function.get_arguments())
+        if not arguments:
+            continue
+        first = arguments[0].type.spelling.replace("const", "").replace("&", "").strip()
+        classes_with_free_equality.add(remap_class_name(first.split("::")[-1]))
 
     # Extract all juce classes
     all_classes = []
@@ -1456,12 +1479,110 @@ def run_main(juce_module_name, juce_class_name_to_export):
             # which prints "()" because these declare no fields.
             dollar_definitions.append(nim_dollar_def.format(**{"class_name": class_name}))
 
-        if not class_bound_equality and class_name not in equality_bound_by_lifting:
+        if (not class_bound_equality and class_name not in equality_bound_by_lifting
+                and class_name not in classes_with_free_equality):
             print(nim_no_equality_def.format(**{
                 "class_name": class_name,
                 "spelling": qualified_name }))
 
         print()
+
+    # The same string-overload rule the methods have, across the free
+    # functions. JUCE declares operator< for String, StringRef and constChar in
+    # every combination, and a Nim string literal reaches each of them, so a
+    # comparison of two Strings matched several equally well.
+    module_functions = [f for f in all_functions if declared_in_this_module(f) and f.spelling]
+    free_preferred = {}
+    for function in module_functions:
+        key = (function.spelling, len(list(function.get_arguments())))
+        types = [remap_type(a.type, remap_inner_classes, enum_remap, class_juce_map,
+                            global_nested_remap, unambiguous_nested_remap)
+                 for a in function.get_arguments()]
+        free_preferred.setdefault(key, []).append(types)
+    free_keep = {}
+    for key, overloads in free_preferred.items():
+        if len(overloads) < 2:
+            continue
+        for position in range(key[1]):
+            candidates = {types[position] for types in overloads
+                          if types[position] in string_like_types}
+            if len(candidates) < 2:
+                continue
+            for preferred in string_like_types:
+                if preferred in candidates:
+                    free_keep[(key, position)] = preferred
+                    break
+
+    # Free functions in the juce namespace. These were collected and then
+    # discarded, so countNumberOfBits, findHighestSetBit and the rest had no
+    # binding at all.
+    for function in all_functions:
+        if not declared_in_this_module(function) or not function.spelling:
+            continue
+
+        function_name = remap_identifier(function.spelling)
+        comment, reason = "", ""
+
+        # JUCE declares String's ==, < and + as free functions rather than
+        # members, so the operator table applies here too. There is no class to
+        # mangle an unspellable one into, so it stays a comment.
+        if function.spelling.startswith("operator"):
+            mapped = (nim_operators.get(function.spelling)
+                      or nim_compound_assignments.get(function.spelling))
+            if mapped:
+                function_name = mapped
+            else:
+                comment, reason = "# ", operator_comment_reason(function.spelling)
+        if function.spelling in ("begin", "end", "cbegin", "cend"):
+            comment, reason = "# ", "a C++ iterator; loop with the Nim iterator instead"
+        if function.spelling in free_functions_bound_by_lifting:
+            comment, reason = "# ", "bound by hand in the _lifting file"
+
+        function_args, function_types = [], []
+        for count, arg in enumerate(function.get_arguments()):
+            argument_type = remap_type(arg.type, remap_inner_classes, enum_remap,
+                                       class_juce_map, global_nested_remap, unambiguous_nested_remap)
+            function_args.append(f"{remap_argument_name(arg.spelling, count)}: {argument_type}")
+            function_types.append(argument_type)
+
+        function_return = ""
+        if function.result_type.spelling != "void":
+            function_return = f": {remap_type(function.result_type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap, unambiguous_nested_remap)}"
+
+        rendered = ", ".join(function_types) + function_return
+        if ("<" in rendered or "::" in rendered or "(" in rendered
+                or is_c_array(rendered)
+                or not type_is_declared(rendered, declared_type_names)):
+            comment = "# "
+            reason = reason or unbound_type_reason(rendered)
+
+        overload_key = (function.spelling, len(function_types))
+        withheld = next(
+            (position for position in range(len(function_types))
+             if free_keep.get((overload_key, position), function_types[position])
+                != function_types[position]
+             and function_types[position] in string_like_types), None)
+        if withheld is not None:
+            comment = "# "
+            reason = (f"redundant with the {free_keep[(overload_key, withheld)]} overload, "
+                      "which a string also reaches")
+
+        signature = ("<free>", function_name, tuple(function_types), function_return)
+        if signature in emitted_signatures:
+            continue
+        emitted_signatures.add(signature)
+
+        print(nim_function_def.format(**{
+            "comment": comment,
+            "function_name": function_name,
+            "function_args": ", ".join(function_args),
+            "function_return": function_return,
+            "juce_module_name": juce_module_name,
+            "juce_spelling": function.spelling,
+            "juce_args": "@" if function_args else "",
+            "reason": f"  # {reason}" if comment and reason else "" }))
+
+    print()
 
     print(nim_suffix_def.format(**{"juce_module_name": juce_module_name}))
 

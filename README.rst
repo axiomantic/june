@@ -281,6 +281,9 @@ Hand-written additions live in the ``*_lifting.nim`` files and in
   ``Image::BitmapData`` is ``ImageBitmapData``. At any depth:
   ``Expression::Scope::Visitor`` is ``ExpressionScopeVisitor``.
 - Constructors, as ``make<ClassName>`` procs.
+- Free functions in the ``juce`` namespace, including the operators JUCE
+  declares there rather than as members: ``String`` concatenation is one, and
+  its ``==`` is another.
 - Public fields, as a getter and a setter, so ``parameters.startAngleRadians``
   reads and ``parameters.startAngleRadians = x`` writes. A field C++ will not
   let anyone assign -- a const one, or a reference -- gets only the getter.

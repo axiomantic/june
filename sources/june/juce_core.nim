@@ -1329,7 +1329,6 @@ proc `+=`*(this: var RelativeTime, timeToAdd: RelativeTime) {.header: juce_core,
 proc `-=`*(this: var RelativeTime, timeToSubtract: RelativeTime) {.header: juce_core, importcpp: "#.operator-=(@)".}
 proc `+=`*(this: var RelativeTime, secondsToAdd: float64) {.header: juce_core, importcpp: "#.operator+=(@)".}
 proc `-=`*(this: var RelativeTime, secondsToSubtract: float64) {.header: juce_core, importcpp: "#.operator-=(@)".}
-proc `==`*(this: RelativeTime, other: RelativeTime): bool {.error: "juce::RelativeTime defines no operator==; compare a property instead".}
 
 proc makeTime*(): Time {.header: juce_core, importcpp: "juce::Time(@)".}
 proc makeTime*(millisecondsSinceEpoch: int64): Time {.header: juce_core, importcpp: "juce::Time(@)".}
@@ -1373,7 +1372,6 @@ proc getHighResolutionTicksPerSecond*(this: typedesc[Time]): int64 {.header: juc
 proc highResolutionTicksToSeconds*(this: typedesc[Time], ticks: int64): float64 {.header: juce_core, importcpp: "juce::Time::highResolutionTicksToSeconds(@)".}
 proc secondsToHighResolutionTicks*(this: typedesc[Time], seconds: float64): int64 {.header: juce_core, importcpp: "juce::Time::secondsToHighResolutionTicks(@)".}
 proc getCompilationDate*(this: typedesc[Time]): Time {.header: juce_core, importcpp: "juce::Time::getCompilationDate()".}
-proc `==`*(this: Time, other: Time): bool {.error: "juce::Time defines no operator==; compare a property instead".}
 
 proc getTotalLength*(this: var InputStream): int64 {.header: juce_core, importcpp: "#.getTotalLength()".}
 proc getNumBytesRemaining*(this: var InputStream): int64 {.header: juce_core, importcpp: "#.getNumBytesRemaining()".}
@@ -2605,6 +2603,134 @@ proc createInputStream*(this: var AndroidDocumentInputSource): ptr InputStream {
 proc createInputStreamFor*(this: var AndroidDocumentInputSource, relatedItemPath: String): ptr InputStream {.header: juce_core, importcpp: "#.createInputStreamFor(@)".}
 proc hashCode*(this: AndroidDocumentInputSource): int64 {.header: juce_core, importcpp: "#.hashCode()".}
 proc `==`*(this: AndroidDocumentInputSource, other: AndroidDocumentInputSource): bool {.error: "juce::AndroidDocumentInputSource defines no operator==; compare a property instead".}
+
+proc juce_assert_noreturn*() {.header: juce_core, importcpp: "juce::juce_assert_noreturn()".}
+proc juce_isRunningUnderDebugger*(): bool {.header: juce_core, importcpp: "juce::juce_isRunningUnderDebugger()".}
+proc logAssertion*(file: constChar, line: cint) {.header: juce_core, importcpp: "juce::logAssertion(@)".}
+proc zeromem*(memory: pointer, numBytes: uint64) {.header: juce_core, importcpp: "juce::zeromem(@)".}
+proc juce_hypot*(a: cfloat, b: cfloat): cfloat {.header: juce_core, importcpp: "juce::juce_hypot(@)".}
+proc roundToInt*(value: cint): cint {.header: juce_core, importcpp: "juce::roundToInt(@)".}
+proc roundToIntAccurate*(value: float64): cint {.header: juce_core, importcpp: "juce::roundToIntAccurate(@)".}
+proc nextPowerOfTwo*(n: cint): cint {.header: juce_core, importcpp: "juce::nextPowerOfTwo(@)".}
+proc findHighestSetBit*(n: uint32): cint {.header: juce_core, importcpp: "juce::findHighestSetBit(@)".}
+proc countNumberOfBits*(n: uint32): cint {.header: juce_core, importcpp: "juce::countNumberOfBits(@)".}
+proc countNumberOfBits*(n: uint64): cint {.header: juce_core, importcpp: "juce::countNumberOfBits(@)".}
+proc writeLittleEndianBitsInBuffer*(targetBuffer: pointer, startBit: uint32, numBits: uint32, value: uint32) {.header: juce_core, importcpp: "juce::writeLittleEndianBitsInBuffer(@)".}
+proc readLittleEndianBitsInBuffer*(sourceBuffer: constPointer, startBit: uint32, numBits: uint32): uint32 {.header: juce_core, importcpp: "juce::readLittleEndianBitsInBuffer(@)".}
+proc roundDoubleToInt*(value: float64): cint {.header: juce_core, importcpp: "juce::roundDoubleToInt(@)".}
+proc roundFloatToInt*(value: cfloat): cint {.header: juce_core, importcpp: "juce::roundFloatToInt(@)".}
+proc abs64*(n: int64): int64 {.header: juce_core, importcpp: "juce::abs64(@)".}
+# proc `+`*(string1: constChar, string2: String): String {.header: juce_core, importcpp: "juce::operator+(@)".}  # redundant with the String overload, which a string also reaches
+proc `+`*(string1: ptr uint16, string2: String): String {.header: juce_core, importcpp: "juce::operator+(@)".}
+proc `+`*(string1: char, string2: String): String {.header: juce_core, importcpp: "juce::operator+(@)".}
+proc `+`*(string1: uint16, string2: String): String {.header: juce_core, importcpp: "juce::operator+(@)".}
+proc `+`*(string1: String, string2: String): String {.header: juce_core, importcpp: "juce::operator+(@)".}
+# proc `+`*(string1: String, string2: constChar): String {.header: juce_core, importcpp: "juce::operator+(@)".}  # redundant with the String overload, which a string also reaches
+proc `+`*(string1: String, string2: ptr uint16): String {.header: juce_core, importcpp: "juce::operator+(@)".}
+proc `+`*(string1: String, string2: CppString): String {.header: juce_core, importcpp: "juce::operator+(@)".}
+proc `+`*(string1: String, characterToAppend: char): String {.header: juce_core, importcpp: "juce::operator+(@)".}
+proc `+`*(string1: String, characterToAppend: uint16): String {.header: juce_core, importcpp: "juce::operator+(@)".}
+proc `shl`*(string1: var String, characterToAppend: char): var String {.header: juce_core, importcpp: "juce::operator<<(@)".}
+proc `shl`*(string1: var String, characterToAppend: uint16): var String {.header: juce_core, importcpp: "juce::operator<<(@)".}
+# proc `shl`*(string1: var String, string2: constChar): var String {.header: juce_core, importcpp: "juce::operator<<(@)".}  # redundant with the String overload, which a string also reaches
+proc `shl`*(string1: var String, string2: ptr uint16): var String {.header: juce_core, importcpp: "juce::operator<<(@)".}
+proc `shl`*(string1: var String, string2: String): var String {.header: juce_core, importcpp: "juce::operator<<(@)".}
+# proc `shl`*(string1: var String, string2: StringRef): var String {.header: juce_core, importcpp: "juce::operator<<(@)".}  # redundant with the String overload, which a string also reaches
+proc `shl`*(string1: var String, string2: CppString): var String {.header: juce_core, importcpp: "juce::operator<<(@)".}
+proc `shl`*(string1: var String, number: uint8): var String {.header: juce_core, importcpp: "juce::operator<<(@)".}
+proc `shl`*(string1: var String, number: int16): var String {.header: juce_core, importcpp: "juce::operator<<(@)".}
+proc `shl`*(string1: var String, number: cint): var String {.header: juce_core, importcpp: "juce::operator<<(@)".}
+proc `shl`*(string1: var String, number: int64): var String {.header: juce_core, importcpp: "juce::operator<<(@)".}
+proc `shl`*(string1: var String, number: uint64): var String {.header: juce_core, importcpp: "juce::operator<<(@)".}
+proc `shl`*(string1: var String, number: cfloat): var String {.header: juce_core, importcpp: "juce::operator<<(@)".}
+proc `shl`*(string1: var String, number: float64): var String {.header: juce_core, importcpp: "juce::operator<<(@)".}
+proc `shl`*(arg1: var String, arg2: bool): var String {.header: juce_core, importcpp: "juce::operator<<(@)".}
+proc `==`*(string1: String, string2: String): bool {.header: juce_core, importcpp: "juce::operator==(@)".}
+# proc `==`*(string1: String, string2: constChar): bool {.header: juce_core, importcpp: "juce::operator==(@)".}  # redundant with the String overload, which a string also reaches
+proc `==`*(string1: String, string2: ptr uint16): bool {.header: juce_core, importcpp: "juce::operator==(@)".}
+proc `==`*(string1: String, string2: CharPointer_UTF8): bool {.header: juce_core, importcpp: "juce::operator==(@)".}
+proc `==`*(string1: String, string2: CharPointer_UTF16): bool {.header: juce_core, importcpp: "juce::operator==(@)".}
+proc `==`*(string1: String, string2: CharPointer_UTF32): bool {.header: juce_core, importcpp: "juce::operator==(@)".}
+# proc operator!=*(string1: String, string2: String): bool {.header: juce_core, importcpp: "juce::operator!=(@)".}  # Nim derives != from ==
+# proc operator!=*(string1: String, string2: constChar): bool {.header: juce_core, importcpp: "juce::operator!=(@)".}  # redundant with the String overload, which a string also reaches
+# proc operator!=*(string1: String, string2: ptr uint16): bool {.header: juce_core, importcpp: "juce::operator!=(@)".}  # Nim derives != from ==
+# proc operator!=*(string1: String, string2: CharPointer_UTF8): bool {.header: juce_core, importcpp: "juce::operator!=(@)".}  # Nim derives != from ==
+# proc operator!=*(string1: String, string2: CharPointer_UTF16): bool {.header: juce_core, importcpp: "juce::operator!=(@)".}  # Nim derives != from ==
+# proc operator!=*(string1: String, string2: CharPointer_UTF32): bool {.header: juce_core, importcpp: "juce::operator!=(@)".}  # Nim derives != from ==
+proc `shl`*(stream: var OutputStream, stringToWrite: String): var OutputStream {.header: juce_core, importcpp: "juce::operator<<(@)".}
+# proc `shl`*(stream: var OutputStream, stringToWrite: StringRef): var OutputStream {.header: juce_core, importcpp: "juce::operator<<(@)".}  # redundant with the String overload, which a string also reaches
+# proc `==`*(string1: String, string2: StringRef): bool {.header: juce_core, importcpp: "juce::operator==(@)".}  # redundant with the String overload, which a string also reaches
+# proc operator!=*(string1: String, string2: StringRef): bool {.header: juce_core, importcpp: "juce::operator!=(@)".}  # redundant with the String overload, which a string also reaches
+proc `<`*(string1: String, string2: StringRef): bool {.header: juce_core, importcpp: "juce::operator<(@)".}
+proc `<=`*(string1: String, string2: StringRef): bool {.header: juce_core, importcpp: "juce::operator<=(@)".}
+# proc operator>*(string1: String, string2: StringRef): bool {.header: juce_core, importcpp: "juce::operator>(@)".}  # Nim derives > and >= from < and <=
+# proc operator>=*(string1: String, string2: StringRef): bool {.header: juce_core, importcpp: "juce::operator>=(@)".}  # Nim derives > and >= from < and <=
+# proc `+`*(s1: String, s2: StringRef): String {.header: juce_core, importcpp: "juce::operator+(@)".}  # redundant with the String overload, which a string also reaches
+# proc `+`*(s1: StringRef, s2: String): String {.header: juce_core, importcpp: "juce::operator+(@)".}  # redundant with the String overload, which a string also reaches
+# proc `+`*(s1: constChar, s2: StringRef): String {.header: juce_core, importcpp: "juce::operator+(@)".}  # redundant with the String overload, which a string also reaches
+# proc `+`*(s1: StringRef, s2: constChar): String {.header: juce_core, importcpp: "juce::operator+(@)".}  # redundant with the String overload, which a string also reaches
+proc `shl`*(string1: var String, arg2: NewLine): var String {.header: juce_core, importcpp: "juce::operator<<(@)".}
+proc `+=`*(s: var String, arg2: NewLine): var String {.header: juce_core, importcpp: "juce::operator+=(@)".}
+proc `+`*(arg1: NewLine, arg2: NewLine): String {.header: juce_core, importcpp: "juce::operator+(@)".}
+proc `+`*(s: String, arg2: NewLine): String {.header: juce_core, importcpp: "juce::operator+(@)".}
+proc `+`*(arg1: NewLine, s: String): String {.header: juce_core, importcpp: "juce::operator+(@)".}
+# proc `+`*(arg1: NewLine, s: constChar): String {.header: juce_core, importcpp: "juce::operator+(@)".}  # redundant with the String overload, which a string also reaches
+# proc `+`*(s: constChar, arg2: NewLine): String {.header: juce_core, importcpp: "juce::operator+(@)".}  # redundant with the String overload, which a string also reaches
+proc `&`*(a: SystemStatsMachineIdFlags, b: SystemStatsMachineIdFlags): SystemStatsMachineIdFlags {.header: juce_core, importcpp: "juce::operator&(@)".}
+proc `|`*(a: SystemStatsMachineIdFlags, b: SystemStatsMachineIdFlags): SystemStatsMachineIdFlags {.header: juce_core, importcpp: "juce::operator|(@)".}
+# proc operator~*(a: SystemStatsMachineIdFlags): SystemStatsMachineIdFlags {.header: juce_core, importcpp: "juce::operator~(@)".}  # an operator with no Nim spelling
+proc `|=`*(a: var SystemStatsMachineIdFlags, b: SystemStatsMachineIdFlags): var SystemStatsMachineIdFlags {.header: juce_core, importcpp: "juce::operator|=(@)".}
+proc `&=`*(a: var SystemStatsMachineIdFlags, b: SystemStatsMachineIdFlags): var SystemStatsMachineIdFlags {.header: juce_core, importcpp: "juce::operator&=(@)".}
+proc translate*(stringLiteral: String): String {.header: juce_core, importcpp: "juce::translate(@)".}
+# proc translate*(stringLiteral: constChar): String {.header: juce_core, importcpp: "juce::translate(@)".}  # redundant with the String overload, which a string also reaches
+proc translate*(stringLiteral: CharPointer_UTF8): String {.header: juce_core, importcpp: "juce::translate(@)".}
+proc translate*(stringLiteral: String, resultIfNotFound: String): String {.header: juce_core, importcpp: "juce::translate(@)".}
+proc `==`*(arg1: juce_var, arg2: juce_var): bool {.header: juce_core, importcpp: "juce::operator==(@)".}
+# proc operator!=*(arg1: juce_var, arg2: juce_var): bool {.header: juce_core, importcpp: "juce::operator!=(@)".}  # Nim derives != from ==
+proc `<`*(arg1: juce_var, arg2: juce_var): bool {.header: juce_core, importcpp: "juce::operator<(@)".}
+proc `<=`*(arg1: juce_var, arg2: juce_var): bool {.header: juce_core, importcpp: "juce::operator<=(@)".}
+# proc operator>*(arg1: juce_var, arg2: juce_var): bool {.header: juce_core, importcpp: "juce::operator>(@)".}  # Nim derives > and >= from < and <=
+# proc operator>=*(arg1: juce_var, arg2: juce_var): bool {.header: juce_core, importcpp: "juce::operator>=(@)".}  # Nim derives > and >= from < and <=
+proc `==`*(arg1: juce_var, arg2: String): bool {.header: juce_core, importcpp: "juce::operator==(@)".}
+# proc operator!=*(arg1: juce_var, arg2: String): bool {.header: juce_core, importcpp: "juce::operator!=(@)".}  # Nim derives != from ==
+# proc `==`*(arg1: juce_var, arg2: constChar): bool {.header: juce_core, importcpp: "juce::operator==(@)".}  # redundant with the String overload, which a string also reaches
+# proc operator!=*(arg1: juce_var, arg2: constChar): bool {.header: juce_core, importcpp: "juce::operator!=(@)".}  # redundant with the String overload, which a string also reaches
+proc `==`*(t1: RelativeTime, t2: RelativeTime): bool {.header: juce_core, importcpp: "juce::operator==(@)".}
+# proc operator!=*(t1: RelativeTime, t2: RelativeTime): bool {.header: juce_core, importcpp: "juce::operator!=(@)".}  # Nim derives != from ==
+# proc operator>*(t1: RelativeTime, t2: RelativeTime): bool {.header: juce_core, importcpp: "juce::operator>(@)".}  # Nim derives > and >= from < and <=
+proc `<`*(t1: RelativeTime, t2: RelativeTime): bool {.header: juce_core, importcpp: "juce::operator<(@)".}
+# proc operator>=*(t1: RelativeTime, t2: RelativeTime): bool {.header: juce_core, importcpp: "juce::operator>=(@)".}  # Nim derives > and >= from < and <=
+proc `<=`*(t1: RelativeTime, t2: RelativeTime): bool {.header: juce_core, importcpp: "juce::operator<=(@)".}
+proc `+`*(t1: RelativeTime, t2: RelativeTime): RelativeTime {.header: juce_core, importcpp: "juce::operator+(@)".}
+proc `-`*(t1: RelativeTime, t2: RelativeTime): RelativeTime {.header: juce_core, importcpp: "juce::operator-(@)".}
+proc `+`*(time: Time, delta: RelativeTime): Time {.header: juce_core, importcpp: "juce::operator+(@)".}
+proc `+`*(delta: RelativeTime, time: Time): Time {.header: juce_core, importcpp: "juce::operator+(@)".}
+proc `-`*(time: Time, delta: RelativeTime): Time {.header: juce_core, importcpp: "juce::operator-(@)".}
+proc `-`*(time1: Time, time2: Time): RelativeTime {.header: juce_core, importcpp: "juce::operator-(@)".}
+proc `==`*(time1: Time, time2: Time): bool {.header: juce_core, importcpp: "juce::operator==(@)".}
+# proc operator!=*(time1: Time, time2: Time): bool {.header: juce_core, importcpp: "juce::operator!=(@)".}  # Nim derives != from ==
+proc `<`*(time1: Time, time2: Time): bool {.header: juce_core, importcpp: "juce::operator<(@)".}
+proc `<=`*(time1: Time, time2: Time): bool {.header: juce_core, importcpp: "juce::operator<=(@)".}
+# proc operator>*(time1: Time, time2: Time): bool {.header: juce_core, importcpp: "juce::operator>(@)".}  # Nim derives > and >= from < and <=
+# proc operator>=*(time1: Time, time2: Time): bool {.header: juce_core, importcpp: "juce::operator>=(@)".}  # Nim derives > and >= from < and <=
+proc `shl`*(stream: var OutputStream, number: cint): var OutputStream {.header: juce_core, importcpp: "juce::operator<<(@)".}
+proc `shl`*(stream: var OutputStream, number: int64): var OutputStream {.header: juce_core, importcpp: "juce::operator<<(@)".}
+proc `shl`*(stream: var OutputStream, number: float64): var OutputStream {.header: juce_core, importcpp: "juce::operator<<(@)".}
+proc `shl`*(stream: var OutputStream, character: char): var OutputStream {.header: juce_core, importcpp: "juce::operator<<(@)".}
+# proc `shl`*(stream: var OutputStream, text: constChar): var OutputStream {.header: juce_core, importcpp: "juce::operator<<(@)".}  # redundant with the String overload, which a string also reaches
+proc `shl`*(stream: var OutputStream, data: MemoryBlock): var OutputStream {.header: juce_core, importcpp: "juce::operator<<(@)".}
+proc `shl`*(stream: var OutputStream, fileToRead: File): var OutputStream {.header: juce_core, importcpp: "juce::operator<<(@)".}
+proc `shl`*(stream: var OutputStream, streamToRead: var InputStream): var OutputStream {.header: juce_core, importcpp: "juce::operator<<(@)".}
+proc `shl`*(stream: var OutputStream, arg2: NewLine): var OutputStream {.header: juce_core, importcpp: "juce::operator<<(@)".}
+proc `shl`*(stream: var OutputStream, streamToRead: MemoryOutputStream): var OutputStream {.header: juce_core, importcpp: "juce::operator<<(@)".}
+proc `*`*(e: DirectoryEntry): DirectoryEntry {.header: juce_core, importcpp: "juce::operator*(@)".}
+# proc begin*(it: RangedDirectoryIterator): RangedDirectoryIterator {.header: juce_core, importcpp: "juce::begin(@)".}  # a C++ iterator; loop with the Nim iterator instead
+# proc `end`*(arg1: RangedDirectoryIterator): RangedDirectoryIterator {.header: juce_core, importcpp: "juce::end(@)".}  # a C++ iterator; loop with the Nim iterator instead
+proc `shl`*(stream: var OutputStream, value: BigInteger): var OutputStream {.header: juce_core, importcpp: "juce::operator<<(@)".}
+proc parseXML*(textToParse: String): UniquePtr[XmlElement] {.header: juce_core, importcpp: "juce::parseXML(@)".}
+proc parseXML*(fileToParse: File): UniquePtr[XmlElement] {.header: juce_core, importcpp: "juce::parseXML(@)".}
+proc parseXMLIfTagMatches*(textToParse: String, requiredTag: StringRef): UniquePtr[XmlElement] {.header: juce_core, importcpp: "juce::parseXMLIfTagMatches(@)".}
+proc parseXMLIfTagMatches*(fileToParse: File, requiredTag: StringRef): UniquePtr[XmlElement] {.header: juce_core, importcpp: "juce::parseXMLIfTagMatches(@)".}
 
 
 

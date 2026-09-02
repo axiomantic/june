@@ -267,6 +267,9 @@ proc `==`*(this: NetworkServiceDiscoveryAvailableServiceList, other: NetworkServ
 proc makeScopedLowPowerModeDisabler*(): ScopedLowPowerModeDisabler {.header: juce_events, importcpp: "juce::ScopedLowPowerModeDisabler(@)".}
 proc `==`*(this: ScopedLowPowerModeDisabler, other: ScopedLowPowerModeDisabler): bool {.error: "juce::ScopedLowPowerModeDisabler defines no operator==; compare a property instead".}
 
+# proc initialiseJuce_GUI*() {.header: juce_events, importcpp: "juce::initialiseJuce_GUI()".}  # bound by hand in the _lifting file
+# proc shutdownJuce_GUI*() {.header: juce_events, importcpp: "juce::shutdownJuce_GUI()".}  # bound by hand in the _lifting file
+
 
 
 include juce_events_lifting

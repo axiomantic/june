@@ -386,3 +386,19 @@ proc testDynamicObjectMethod() =
   doAssert $returned.toString() == "7", "the method returned " & $returned.toString()
 
 testDynamicObjectMethod()
+
+# JUCE declares String's + and == as free functions, and free functions were
+# collected and then discarded, so concatenating two Strings was not possible.
+proc testFreeFunctionOperators() =
+  let greeting = makeString("Hello, ") + makeString("world")
+  doAssert $greeting == "Hello, world", "concatenation gave " & $greeting
+
+  doAssert makeString("a") == makeString("a")
+  doAssert not (makeString("a") == makeString("b"))
+  doAssert makeString("a") != makeString("b")
+
+  # And a plain free function, which had no binding at all.
+  doAssert countNumberOfBits(0b1011'u32) == 3
+  doAssert findHighestSetBit(0b1000'u32) == 3
+
+testFreeFunctionOperators()
