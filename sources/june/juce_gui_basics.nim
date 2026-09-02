@@ -5114,7 +5114,7 @@ proc `==`*(this: GridItemSpan, other: GridItemSpan): bool {.error: "juce::GridIt
 
 proc makeGridItemProperty*(): GridItemProperty {.header: juce_gui_basics, importcpp: "juce::GridItem::Property(@)".}
 proc makeGridItemProperty*(keyword: GridItemKeyword): GridItemProperty {.header: juce_gui_basics, importcpp: "juce::GridItem::Property(@)".}
-# proc makeGridItemProperty*(lineNameToUse: constChar): GridItemProperty {.header: juce_gui_basics, importcpp: "juce::GridItem::Property(@)".}  # redundant with the String overload, which a string also reaches
+proc makeGridItemProperty*(lineNameToUse: constChar): GridItemProperty {.header: juce_gui_basics, importcpp: "juce::GridItem::Property(@)".}
 proc makeGridItemProperty*(lineNameToUse: String): GridItemProperty {.header: juce_gui_basics, importcpp: "juce::GridItem::Property(@)".}
 proc makeGridItemProperty*(numberToUse: cint): GridItemProperty {.header: juce_gui_basics, importcpp: "juce::GridItem::Property(@)".}
 proc makeGridItemProperty*(numberToUse: cint, lineNameToUse: String): GridItemProperty {.header: juce_gui_basics, importcpp: "juce::GridItem::Property(@)".}

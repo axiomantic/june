@@ -518,3 +518,31 @@ proc testURL() =
   doAssert not ($url.toString(true)).contains("y=2"), "withParameter mutated the original"
 
 testURL()
+
+# String-like overloads =======================================================
+#
+# A Nim string literal reaches String, StringRef and constChar through three
+# separate converters, so a method overloaded on all three matches it three
+# ways. Nim 1.6 called that ambiguous and the generator emitted only one of
+# them; Nim 2.2 resolves it and all three are bound. These calls are what the
+# generator would otherwise have to withhold.
+
+proc testStringLikeOverloads() =
+  var text = makeString("Hello")
+
+  doAssert text.equalsIgnoreCase("HELLO"), "a literal did not resolve"
+  doAssert text.equalsIgnoreCase(makeString("HELLO")), "a String did not resolve"
+  doAssert text.equalsIgnoreCase(makeStringRef(makeString("HELLO"))),
+           "a StringRef did not resolve"
+
+  # += is overloaded the same way.
+  text += "!"
+  doAssert $text == "Hello!", "text is " & $text
+
+  # And the StringRef constructor, which used to be withheld outright.
+  doAssert $makeString(makeStringRef(makeString("x"))) == "x",
+           "the StringRef constructor did not round trip"
+
+  doAssert text.compare("Hello!") == 0, "compare returned " & $text.compare("Hello!")
+
+testStringLikeOverloads()

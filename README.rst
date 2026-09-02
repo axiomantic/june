@@ -100,8 +100,8 @@ A simple example application (subject to changes):
       application[].onGetApplicationName = bindClosure(proc(): String = "JUNE App")
       application[].onGetApplicationVersion = bindClosure(proc(): String = "0.1")
 
-      application[].onInitialise = bindClosure(proc(commandLine: String) =
-          echo "Starting JUNE App " & $commandLine
+      application[].onInitialise = bindClosure(proc(commandLine: ptr String) =
+          echo "Starting JUNE App " & $commandLine[]
 
           var windowName = application[].getApplicationName()
 
@@ -350,18 +350,20 @@ A proc that is not bound is emitted as a comment rather than omitted, with the
 reason on the same line, so what is missing stays visible in the generated file
 and says why. Most of them are not gaps: an ``operator!=``, ``operator>`` or
 ``operator>=`` is commented because Nim derives it, a ``begin`` or ``end``
-because the Nim iterator replaces it, one of a pair of string-like overloads
-because a Nim string reaches the other just as well and the call would be
-ambiguous, a C array or ``std::initializer_list`` parameter because the same
+because the Nim iterator replaces it, a C array or
+``std::initializer_list`` parameter because the same
 class takes a String, a value or the incremental API instead, and others
 because the generator excludes them on purpose. Only the ones marked as a type
 that cannot be spelled in Nim are missing capability, and each of those is a
-C++ shape with no Nim equivalent. One is left:
-``ComponentPeer::setMultimonitorPositionOverride`` returns a class declared
-inside its own function body, which has no name outside it even in C++. Count
-them with::
+C++ shape with no Nim equivalent: a class template used as a value
+(``ListenerList<Listener>``, ``SingletonHolder<T>``, ``Tolerance<T>``), a
+``std::variant`` or ``std::string_view``, a function template whose return type
+is ``auto``, a platform handle such as ``__CFString``, and
+``ComponentPeer::setMultimonitorPositionOverride``, which returns a class
+declared inside its own function body and so has no name outside it even in
+C++. List them with::
 
-  grep -c 'cannot be spelled' sources/june/juce_*.nim
+  grep -n 'cannot be spelled' sources/june/juce_*.nim
 
 ``$`` uses JUCE's ``toString`` where there is one. Nim's own ``$`` prints
 ``()`` for these, because an ``importcpp`` object declares no fields and there
