@@ -163,6 +163,7 @@ proc makeValueTreePropertyWithDefault*(tree: var ValueTree, propertyID: Identifi
 proc makeValueTreePropertyWithDefault*(tree: var ValueTree, propertyID: Identifier, um: ptr UndoManager, defaultToUse: juce_var): ValueTreePropertyWithDefault {.header: juce_data_structures, importcpp: "juce::ValueTreePropertyWithDefault(@)".}
 proc makeValueTreePropertyWithDefault*(tree: var ValueTree, propertyID: Identifier, um: ptr UndoManager, defaultToUse: juce_var, arrayDelimiter: StringRef): ValueTreePropertyWithDefault {.header: juce_data_structures, importcpp: "juce::ValueTreePropertyWithDefault(@)".}
 proc onDefaultChange*(this: ValueTreePropertyWithDefault): CppFunctionObjectN0 {.header: juce_data_structures, importcpp: "#.onDefaultChange".}
+proc onDefaultChange*(this: var ValueTreePropertyWithDefault): var CppFunctionObjectN0 {.header: juce_data_structures, importcpp: "#.onDefaultChange".}
 proc `onDefaultChange=`*(this: var ValueTreePropertyWithDefault, value: CppFunctionObjectN0) {.header: juce_data_structures, importcpp: "#.onDefaultChange = #".}
 proc get*(this: ValueTreePropertyWithDefault): juce_var {.header: juce_data_structures, importcpp: "#.get()".}
 proc getPropertyAsValue*(this: var ValueTreePropertyWithDefault): Value {.header: juce_data_structures, importcpp: "#.getPropertyAsValue()".}
@@ -195,24 +196,34 @@ proc `==`*(this: PropertiesFile, other: PropertiesFile): bool {.error: "juce::Pr
 
 proc makePropertiesFileOptions*(): PropertiesFileOptions {.header: juce_data_structures, importcpp: "juce::PropertiesFile::Options(@)".}
 proc applicationName*(this: PropertiesFileOptions): String {.header: juce_data_structures, importcpp: "#.applicationName".}
+proc applicationName*(this: var PropertiesFileOptions): var String {.header: juce_data_structures, importcpp: "#.applicationName".}
 proc `applicationName=`*(this: var PropertiesFileOptions, value: String) {.header: juce_data_structures, importcpp: "#.applicationName = #".}
 proc filenameSuffix*(this: PropertiesFileOptions): String {.header: juce_data_structures, importcpp: "#.filenameSuffix".}
+proc filenameSuffix*(this: var PropertiesFileOptions): var String {.header: juce_data_structures, importcpp: "#.filenameSuffix".}
 proc `filenameSuffix=`*(this: var PropertiesFileOptions, value: String) {.header: juce_data_structures, importcpp: "#.filenameSuffix = #".}
 proc folderName*(this: PropertiesFileOptions): String {.header: juce_data_structures, importcpp: "#.folderName".}
+proc folderName*(this: var PropertiesFileOptions): var String {.header: juce_data_structures, importcpp: "#.folderName".}
 proc `folderName=`*(this: var PropertiesFileOptions, value: String) {.header: juce_data_structures, importcpp: "#.folderName = #".}
 proc osxLibrarySubFolder*(this: PropertiesFileOptions): String {.header: juce_data_structures, importcpp: "#.osxLibrarySubFolder".}
+proc osxLibrarySubFolder*(this: var PropertiesFileOptions): var String {.header: juce_data_structures, importcpp: "#.osxLibrarySubFolder".}
 proc `osxLibrarySubFolder=`*(this: var PropertiesFileOptions, value: String) {.header: juce_data_structures, importcpp: "#.osxLibrarySubFolder = #".}
 proc commonToAllUsers*(this: PropertiesFileOptions): bool {.header: juce_data_structures, importcpp: "#.commonToAllUsers".}
+proc commonToAllUsers*(this: var PropertiesFileOptions): var bool {.header: juce_data_structures, importcpp: "#.commonToAllUsers".}
 proc `commonToAllUsers=`*(this: var PropertiesFileOptions, value: bool) {.header: juce_data_structures, importcpp: "#.commonToAllUsers = #".}
 proc ignoreCaseOfKeyNames*(this: PropertiesFileOptions): bool {.header: juce_data_structures, importcpp: "#.ignoreCaseOfKeyNames".}
+proc ignoreCaseOfKeyNames*(this: var PropertiesFileOptions): var bool {.header: juce_data_structures, importcpp: "#.ignoreCaseOfKeyNames".}
 proc `ignoreCaseOfKeyNames=`*(this: var PropertiesFileOptions, value: bool) {.header: juce_data_structures, importcpp: "#.ignoreCaseOfKeyNames = #".}
 proc doNotSave*(this: PropertiesFileOptions): bool {.header: juce_data_structures, importcpp: "#.doNotSave".}
+proc doNotSave*(this: var PropertiesFileOptions): var bool {.header: juce_data_structures, importcpp: "#.doNotSave".}
 proc `doNotSave=`*(this: var PropertiesFileOptions, value: bool) {.header: juce_data_structures, importcpp: "#.doNotSave = #".}
 proc millisecondsBeforeSaving*(this: PropertiesFileOptions): cint {.header: juce_data_structures, importcpp: "#.millisecondsBeforeSaving".}
+proc millisecondsBeforeSaving*(this: var PropertiesFileOptions): var cint {.header: juce_data_structures, importcpp: "#.millisecondsBeforeSaving".}
 proc `millisecondsBeforeSaving=`*(this: var PropertiesFileOptions, value: cint) {.header: juce_data_structures, importcpp: "#.millisecondsBeforeSaving = #".}
 proc storageFormat*(this: PropertiesFileOptions): PropertiesFileStorageFormat {.header: juce_data_structures, importcpp: "#.storageFormat".}
+proc storageFormat*(this: var PropertiesFileOptions): var PropertiesFileStorageFormat {.header: juce_data_structures, importcpp: "#.storageFormat".}
 proc `storageFormat=`*(this: var PropertiesFileOptions, value: PropertiesFileStorageFormat) {.header: juce_data_structures, importcpp: "#.storageFormat = #".}
 proc processLock*(this: PropertiesFileOptions): ptr InterProcessLock {.header: juce_data_structures, importcpp: "#.processLock".}
+proc processLock*(this: var PropertiesFileOptions): var ptr InterProcessLock {.header: juce_data_structures, importcpp: "#.processLock".}
 proc `processLock=`*(this: var PropertiesFileOptions, value: ptr InterProcessLock) {.header: juce_data_structures, importcpp: "#.processLock = #".}
 proc getDefaultFile*(this: PropertiesFileOptions): File {.header: juce_data_structures, importcpp: "#.getDefaultFile()".}
 proc `==`*(this: PropertiesFileOptions, other: PropertiesFileOptions): bool {.error: "juce::PropertiesFile::Options defines no operator==; compare a property instead".}

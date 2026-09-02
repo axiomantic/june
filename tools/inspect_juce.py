@@ -81,6 +81,8 @@ nim_static_var_def = """{comment}proc {var_name}*(this: typedesc[{class_name}]):
 nim_field_getter_def = """{comment}proc {field_name}*(this: {class_name}): {field_type} {{.header: {juce_module_name}, importcpp: "#.{juce_spelling}".}}{reason}"""
 # The setter's backticks already quote the name, so it takes the raw spelling:
 # a field called `end` is `end=`, not ``end`=`.
+nim_field_var_getter_def = """{comment}proc {field_name}*(this: var {class_name}): var {field_type} {{.header: {juce_module_name}, importcpp: "#.{juce_spelling}".}}{reason}"""
+
 nim_field_setter_def = """{comment}proc `{raw_name}=`*(this: var {class_name}, value: {field_type}) {{.header: {juce_module_name}, importcpp: "#.{juce_spelling} = #".}}{reason}"""
 
 # A static method has no receiver, so it takes the class as a typedesc and is
@@ -1386,6 +1388,17 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 "class_name": class_name, "field_type": field_type.replace("var ", ""),
                 "juce_module_name": juce_module_name, "juce_spelling": field.spelling,
                 "reason": f"  # {field_reason}" if field_comment else "" }))
+
+            # A second getter returning var, so a container field can be
+            # mutated in place: box.items.add(x) works on the field itself,
+            # where the by-value getter above hands back a copy. Same C++
+            # expression; Nim picks by whether the receiver is mutable.
+            if not (field.type.is_const_qualified() or "&" in field.type.spelling):
+                print(nim_field_var_getter_def.format(**{
+                    "comment": field_comment, "field_name": field_name,
+                    "class_name": class_name, "field_type": field_type.replace("var ", ""),
+                    "juce_module_name": juce_module_name, "juce_spelling": field.spelling,
+                    "reason": f"  # {field_reason}" if field_comment else "" }))
 
             # No setter for a field C++ will not let anyone assign: a const one,
             # or a reference, which binds once and cannot be repointed.

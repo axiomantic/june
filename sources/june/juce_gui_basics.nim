@@ -1027,6 +1027,7 @@ proc originalComponent*(this: MouseEvent): Component {.header: juce_gui_basics, 
 proc eventTime*(this: MouseEvent): Time {.header: juce_gui_basics, importcpp: "#.eventTime".}
 proc mouseDownTime*(this: MouseEvent): Time {.header: juce_gui_basics, importcpp: "#.mouseDownTime".}
 proc source*(this: MouseEvent): MouseInputSource {.header: juce_gui_basics, importcpp: "#.source".}
+proc source*(this: var MouseEvent): var MouseInputSource {.header: juce_gui_basics, importcpp: "#.source".}
 proc `source=`*(this: var MouseEvent, value: MouseInputSource) {.header: juce_gui_basics, importcpp: "#.source = #".}
 proc `MouseEvent=`*(this: var MouseEvent, arg1: MouseEvent): var MouseEvent {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
 proc getMouseDownX*(this: MouseEvent): cint {.header: juce_gui_basics, importcpp: "#.getMouseDownX()".}
@@ -1059,22 +1060,30 @@ proc getDoubleClickTimeout*(this: typedesc[MouseEvent]): cint {.header: juce_gui
 proc `==`*(this: MouseEvent, other: MouseEvent): bool {.error: "juce::MouseEvent defines no operator==; compare a property instead".}
 
 proc deltaX*(this: MouseWheelDetails): cfloat {.header: juce_gui_basics, importcpp: "#.deltaX".}
+proc deltaX*(this: var MouseWheelDetails): var cfloat {.header: juce_gui_basics, importcpp: "#.deltaX".}
 proc `deltaX=`*(this: var MouseWheelDetails, value: cfloat) {.header: juce_gui_basics, importcpp: "#.deltaX = #".}
 proc deltaY*(this: MouseWheelDetails): cfloat {.header: juce_gui_basics, importcpp: "#.deltaY".}
+proc deltaY*(this: var MouseWheelDetails): var cfloat {.header: juce_gui_basics, importcpp: "#.deltaY".}
 proc `deltaY=`*(this: var MouseWheelDetails, value: cfloat) {.header: juce_gui_basics, importcpp: "#.deltaY = #".}
 proc isReversed*(this: MouseWheelDetails): bool {.header: juce_gui_basics, importcpp: "#.isReversed".}
+proc isReversed*(this: var MouseWheelDetails): var bool {.header: juce_gui_basics, importcpp: "#.isReversed".}
 proc `isReversed=`*(this: var MouseWheelDetails, value: bool) {.header: juce_gui_basics, importcpp: "#.isReversed = #".}
 proc isSmooth*(this: MouseWheelDetails): bool {.header: juce_gui_basics, importcpp: "#.isSmooth".}
+proc isSmooth*(this: var MouseWheelDetails): var bool {.header: juce_gui_basics, importcpp: "#.isSmooth".}
 proc `isSmooth=`*(this: var MouseWheelDetails, value: bool) {.header: juce_gui_basics, importcpp: "#.isSmooth = #".}
 proc isInertial*(this: MouseWheelDetails): bool {.header: juce_gui_basics, importcpp: "#.isInertial".}
+proc isInertial*(this: var MouseWheelDetails): var bool {.header: juce_gui_basics, importcpp: "#.isInertial".}
 proc `isInertial=`*(this: var MouseWheelDetails, value: bool) {.header: juce_gui_basics, importcpp: "#.isInertial = #".}
 proc `==`*(this: MouseWheelDetails, other: MouseWheelDetails): bool {.error: "juce::MouseWheelDetails defines no operator==; compare a property instead".}
 
 proc rotation*(this: PenDetails): cfloat {.header: juce_gui_basics, importcpp: "#.rotation".}
+proc rotation*(this: var PenDetails): var cfloat {.header: juce_gui_basics, importcpp: "#.rotation".}
 proc `rotation=`*(this: var PenDetails, value: cfloat) {.header: juce_gui_basics, importcpp: "#.rotation = #".}
 proc tiltX*(this: PenDetails): cfloat {.header: juce_gui_basics, importcpp: "#.tiltX".}
+proc tiltX*(this: var PenDetails): var cfloat {.header: juce_gui_basics, importcpp: "#.tiltX".}
 proc `tiltX=`*(this: var PenDetails, value: cfloat) {.header: juce_gui_basics, importcpp: "#.tiltX = #".}
 proc tiltY*(this: PenDetails): cfloat {.header: juce_gui_basics, importcpp: "#.tiltY".}
+proc tiltY*(this: var PenDetails): var cfloat {.header: juce_gui_basics, importcpp: "#.tiltY".}
 proc `tiltY=`*(this: var PenDetails, value: cfloat) {.header: juce_gui_basics, importcpp: "#.tiltY = #".}
 proc `==`*(this: PenDetails, other: PenDetails): bool {.error: "juce::PenDetails defines no operator==; compare a property instead".}
 
@@ -1212,16 +1221,22 @@ proc `==`*(this: ModalComponentManagerKey, other: ModalComponentManagerKey): boo
 proc `==`*(this: ModalCallbackFunction, other: ModalCallbackFunction): bool {.error: "juce::ModalCallbackFunction defines no operator==; compare a property instead".}
 
 proc totalPaintDuration*(this: ComponentPaintDiagnostics): TimedDiagnostic {.header: juce_gui_basics, importcpp: "#.totalPaintDuration".}
+proc totalPaintDuration*(this: var ComponentPaintDiagnostics): var TimedDiagnostic {.header: juce_gui_basics, importcpp: "#.totalPaintDuration".}
 proc `totalPaintDuration=`*(this: var ComponentPaintDiagnostics, value: TimedDiagnostic) {.header: juce_gui_basics, importcpp: "#.totalPaintDuration = #".}
 proc paintDuration*(this: ComponentPaintDiagnostics): TimedDiagnostic {.header: juce_gui_basics, importcpp: "#.paintDuration".}
+proc paintDuration*(this: var ComponentPaintDiagnostics): var TimedDiagnostic {.header: juce_gui_basics, importcpp: "#.paintDuration".}
 proc `paintDuration=`*(this: var ComponentPaintDiagnostics, value: TimedDiagnostic) {.header: juce_gui_basics, importcpp: "#.paintDuration = #".}
 proc paintOverChildrenDuration*(this: ComponentPaintDiagnostics): TimedDiagnostic {.header: juce_gui_basics, importcpp: "#.paintOverChildrenDuration".}
+proc paintOverChildrenDuration*(this: var ComponentPaintDiagnostics): var TimedDiagnostic {.header: juce_gui_basics, importcpp: "#.paintOverChildrenDuration".}
 proc `paintOverChildrenDuration=`*(this: var ComponentPaintDiagnostics, value: TimedDiagnostic) {.header: juce_gui_basics, importcpp: "#.paintOverChildrenDuration = #".}
 proc applyEffectDuration*(this: ComponentPaintDiagnostics): TimedDiagnostic {.header: juce_gui_basics, importcpp: "#.applyEffectDuration".}
+proc applyEffectDuration*(this: var ComponentPaintDiagnostics): var TimedDiagnostic {.header: juce_gui_basics, importcpp: "#.applyEffectDuration".}
 proc `applyEffectDuration=`*(this: var ComponentPaintDiagnostics, value: TimedDiagnostic) {.header: juce_gui_basics, importcpp: "#.applyEffectDuration = #".}
 proc wroteToCache*(this: ComponentPaintDiagnostics): bool {.header: juce_gui_basics, importcpp: "#.wroteToCache".}
+proc wroteToCache*(this: var ComponentPaintDiagnostics): var bool {.header: juce_gui_basics, importcpp: "#.wroteToCache".}
 proc `wroteToCache=`*(this: var ComponentPaintDiagnostics, value: bool) {.header: juce_gui_basics, importcpp: "#.wroteToCache = #".}
 proc readFromCache*(this: ComponentPaintDiagnostics): bool {.header: juce_gui_basics, importcpp: "#.readFromCache".}
+proc readFromCache*(this: var ComponentPaintDiagnostics): var bool {.header: juce_gui_basics, importcpp: "#.readFromCache".}
 proc `readFromCache=`*(this: var ComponentPaintDiagnostics, value: bool) {.header: juce_gui_basics, importcpp: "#.readFromCache = #".}
 proc `==`*(this: ComponentPaintDiagnostics, other: ComponentPaintDiagnostics): bool {.error: "juce::ComponentPaintDiagnostics defines no operator==; compare a property instead".}
 
@@ -1541,6 +1556,7 @@ proc isHeadless*(this: Desktop): bool {.header: juce_gui_basics, importcpp: "#.i
 proc `==`*(this: Desktop, other: Desktop): bool {.error: "juce::Desktop defines no operator==; compare a property instead".}
 
 proc displays*(this: Displays): Array[DisplaysDisplay] {.header: juce_gui_basics, importcpp: "#.displays".}
+proc displays*(this: var Displays): var Array[DisplaysDisplay] {.header: juce_gui_basics, importcpp: "#.displays".}
 proc `displays=`*(this: var Displays, value: Array[DisplaysDisplay]) {.header: juce_gui_basics, importcpp: "#.displays = #".}
 proc physicalToLogical*(this: Displays, physicalRect: Rectangle[cint], useScaleFactorOfDisplay: ptr DisplaysDisplay = nil): Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.physicalToLogical(@)".}
 proc physicalToLogical*(this: Displays, physicalRect: Rectangle[cfloat], useScaleFactorOfDisplay: ptr DisplaysDisplay = nil): Rectangle[cfloat] {.header: juce_gui_basics, importcpp: "#.physicalToLogical(@)".}
@@ -1565,28 +1581,40 @@ proc `==`*(this: Displays, other: Displays): bool {.error: "juce::Displays defin
 
 proc makeDisplaysDisplay*(): DisplaysDisplay {.header: juce_gui_basics, importcpp: "juce::Displays::Display(@)".}
 proc isMain*(this: DisplaysDisplay): bool {.header: juce_gui_basics, importcpp: "#.isMain".}
+proc isMain*(this: var DisplaysDisplay): var bool {.header: juce_gui_basics, importcpp: "#.isMain".}
 proc `isMain=`*(this: var DisplaysDisplay, value: bool) {.header: juce_gui_basics, importcpp: "#.isMain = #".}
 proc totalArea*(this: DisplaysDisplay): Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.totalArea".}
+proc totalArea*(this: var DisplaysDisplay): var Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.totalArea".}
 proc `totalArea=`*(this: var DisplaysDisplay, value: Rectangle[cint]) {.header: juce_gui_basics, importcpp: "#.totalArea = #".}
 proc logicalBounds*(this: DisplaysDisplay): Rectangle[cfloat] {.header: juce_gui_basics, importcpp: "#.logicalBounds".}
+proc logicalBounds*(this: var DisplaysDisplay): var Rectangle[cfloat] {.header: juce_gui_basics, importcpp: "#.logicalBounds".}
 proc `logicalBounds=`*(this: var DisplaysDisplay, value: Rectangle[cfloat]) {.header: juce_gui_basics, importcpp: "#.logicalBounds = #".}
 proc userArea*(this: DisplaysDisplay): Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.userArea".}
+proc userArea*(this: var DisplaysDisplay): var Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.userArea".}
 proc `userArea=`*(this: var DisplaysDisplay, value: Rectangle[cint]) {.header: juce_gui_basics, importcpp: "#.userArea = #".}
 proc userBounds*(this: DisplaysDisplay): Rectangle[cfloat] {.header: juce_gui_basics, importcpp: "#.userBounds".}
+proc userBounds*(this: var DisplaysDisplay): var Rectangle[cfloat] {.header: juce_gui_basics, importcpp: "#.userBounds".}
 proc `userBounds=`*(this: var DisplaysDisplay, value: Rectangle[cfloat]) {.header: juce_gui_basics, importcpp: "#.userBounds = #".}
 proc safeAreaInsets*(this: DisplaysDisplay): BorderSize[cint] {.header: juce_gui_basics, importcpp: "#.safeAreaInsets".}
+proc safeAreaInsets*(this: var DisplaysDisplay): var BorderSize[cint] {.header: juce_gui_basics, importcpp: "#.safeAreaInsets".}
 proc `safeAreaInsets=`*(this: var DisplaysDisplay, value: BorderSize[cint]) {.header: juce_gui_basics, importcpp: "#.safeAreaInsets = #".}
 proc keyboardInsets*(this: DisplaysDisplay): BorderSize[cint] {.header: juce_gui_basics, importcpp: "#.keyboardInsets".}
+proc keyboardInsets*(this: var DisplaysDisplay): var BorderSize[cint] {.header: juce_gui_basics, importcpp: "#.keyboardInsets".}
 proc `keyboardInsets=`*(this: var DisplaysDisplay, value: BorderSize[cint]) {.header: juce_gui_basics, importcpp: "#.keyboardInsets = #".}
 proc topLeftPhysical*(this: DisplaysDisplay): Point[cint] {.header: juce_gui_basics, importcpp: "#.topLeftPhysical".}
+proc topLeftPhysical*(this: var DisplaysDisplay): var Point[cint] {.header: juce_gui_basics, importcpp: "#.topLeftPhysical".}
 proc `topLeftPhysical=`*(this: var DisplaysDisplay, value: Point[cint]) {.header: juce_gui_basics, importcpp: "#.topLeftPhysical = #".}
 proc physicalBounds*(this: DisplaysDisplay): Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.physicalBounds".}
+proc physicalBounds*(this: var DisplaysDisplay): var Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.physicalBounds".}
 proc `physicalBounds=`*(this: var DisplaysDisplay, value: Rectangle[cint]) {.header: juce_gui_basics, importcpp: "#.physicalBounds = #".}
 proc scale*(this: DisplaysDisplay): float64 {.header: juce_gui_basics, importcpp: "#.scale".}
+proc scale*(this: var DisplaysDisplay): var float64 {.header: juce_gui_basics, importcpp: "#.scale".}
 proc `scale=`*(this: var DisplaysDisplay, value: float64) {.header: juce_gui_basics, importcpp: "#.scale = #".}
 proc dpi*(this: DisplaysDisplay): float64 {.header: juce_gui_basics, importcpp: "#.dpi".}
+proc dpi*(this: var DisplaysDisplay): var float64 {.header: juce_gui_basics, importcpp: "#.dpi".}
 proc `dpi=`*(this: var DisplaysDisplay, value: float64) {.header: juce_gui_basics, importcpp: "#.dpi = #".}
 proc verticalFrequencyHz*(this: DisplaysDisplay): CppOptional[cdouble] {.header: juce_gui_basics, importcpp: "#.verticalFrequencyHz".}
+proc verticalFrequencyHz*(this: var DisplaysDisplay): var CppOptional[cdouble] {.header: juce_gui_basics, importcpp: "#.verticalFrequencyHz".}
 proc `verticalFrequencyHz=`*(this: var DisplaysDisplay, value: CppOptional[cdouble]) {.header: juce_gui_basics, importcpp: "#.verticalFrequencyHz = #".}
 proc `DisplaysDisplay=`*(this: var DisplaysDisplay, arg1: var DisplaysDisplay): var DisplaysDisplay {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
 proc `DisplaysDisplay=`*(this: var DisplaysDisplay, arg1: DisplaysDisplay): var DisplaysDisplay {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
@@ -1641,10 +1669,13 @@ proc `==`*(this: DragAndDropTarget, other: DragAndDropTarget): bool {.error: "ju
 
 proc makeDragAndDropTargetSourceDetails*(description: juce_var, sourceComponent: ptr Component, localPosition: Point[cint]): DragAndDropTargetSourceDetails {.header: juce_gui_basics, importcpp: "juce::DragAndDropTarget::SourceDetails(@)".}
 proc description*(this: DragAndDropTargetSourceDetails): juce_var {.header: juce_gui_basics, importcpp: "#.description".}
+proc description*(this: var DragAndDropTargetSourceDetails): var juce_var {.header: juce_gui_basics, importcpp: "#.description".}
 proc `description=`*(this: var DragAndDropTargetSourceDetails, value: juce_var) {.header: juce_gui_basics, importcpp: "#.description = #".}
 proc sourceComponent*(this: DragAndDropTargetSourceDetails): WeakReference[Component] {.header: juce_gui_basics, importcpp: "#.sourceComponent".}
+proc sourceComponent*(this: var DragAndDropTargetSourceDetails): var WeakReference[Component] {.header: juce_gui_basics, importcpp: "#.sourceComponent".}
 proc `sourceComponent=`*(this: var DragAndDropTargetSourceDetails, value: WeakReference[Component]) {.header: juce_gui_basics, importcpp: "#.sourceComponent = #".}
 proc localPosition*(this: DragAndDropTargetSourceDetails): Point[cint] {.header: juce_gui_basics, importcpp: "#.localPosition".}
+proc localPosition*(this: var DragAndDropTargetSourceDetails): var Point[cint] {.header: juce_gui_basics, importcpp: "#.localPosition".}
 proc `localPosition=`*(this: var DragAndDropTargetSourceDetails, value: Point[cint]) {.header: juce_gui_basics, importcpp: "#.localPosition = #".}
 proc `==`*(this: DragAndDropTargetSourceDetails, other: DragAndDropTargetSourceDetails): bool {.error: "juce::DragAndDropTarget::SourceDetails defines no operator==; compare a property instead".}
 
@@ -1729,16 +1760,22 @@ proc `==`*(this: TextInputTarget, other: TextInputTarget): bool {.error: "juce::
 
 proc makeApplicationCommandInfo*(commandID: cint): ApplicationCommandInfo {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandInfo(@)".}
 proc commandID*(this: ApplicationCommandInfo): cint {.header: juce_gui_basics, importcpp: "#.commandID".}
+proc commandID*(this: var ApplicationCommandInfo): var cint {.header: juce_gui_basics, importcpp: "#.commandID".}
 proc `commandID=`*(this: var ApplicationCommandInfo, value: cint) {.header: juce_gui_basics, importcpp: "#.commandID = #".}
 proc shortName*(this: ApplicationCommandInfo): String {.header: juce_gui_basics, importcpp: "#.shortName".}
+proc shortName*(this: var ApplicationCommandInfo): var String {.header: juce_gui_basics, importcpp: "#.shortName".}
 proc `shortName=`*(this: var ApplicationCommandInfo, value: String) {.header: juce_gui_basics, importcpp: "#.shortName = #".}
 proc description*(this: ApplicationCommandInfo): String {.header: juce_gui_basics, importcpp: "#.description".}
+proc description*(this: var ApplicationCommandInfo): var String {.header: juce_gui_basics, importcpp: "#.description".}
 proc `description=`*(this: var ApplicationCommandInfo, value: String) {.header: juce_gui_basics, importcpp: "#.description = #".}
 proc categoryName*(this: ApplicationCommandInfo): String {.header: juce_gui_basics, importcpp: "#.categoryName".}
+proc categoryName*(this: var ApplicationCommandInfo): var String {.header: juce_gui_basics, importcpp: "#.categoryName".}
 proc `categoryName=`*(this: var ApplicationCommandInfo, value: String) {.header: juce_gui_basics, importcpp: "#.categoryName = #".}
 proc defaultKeypresses*(this: ApplicationCommandInfo): Array[KeyPress] {.header: juce_gui_basics, importcpp: "#.defaultKeypresses".}
+proc defaultKeypresses*(this: var ApplicationCommandInfo): var Array[KeyPress] {.header: juce_gui_basics, importcpp: "#.defaultKeypresses".}
 proc `defaultKeypresses=`*(this: var ApplicationCommandInfo, value: Array[KeyPress]) {.header: juce_gui_basics, importcpp: "#.defaultKeypresses = #".}
 proc flags*(this: ApplicationCommandInfo): cint {.header: juce_gui_basics, importcpp: "#.flags".}
+proc flags*(this: var ApplicationCommandInfo): var cint {.header: juce_gui_basics, importcpp: "#.flags".}
 proc `flags=`*(this: var ApplicationCommandInfo, value: cint) {.header: juce_gui_basics, importcpp: "#.flags = #".}
 proc setInfo*(this: var ApplicationCommandInfo, shortName: String, description: String, categoryName: String, flags: cint) {.header: juce_gui_basics, importcpp: "#.setInfo(@)".}
 proc setActive*(this: var ApplicationCommandInfo, isActive: bool) {.header: juce_gui_basics, importcpp: "#.setActive(@)".}
@@ -1760,18 +1797,25 @@ proc `==`*(this: ApplicationCommandTarget, other: ApplicationCommandTarget): boo
 
 proc makeApplicationCommandTargetInvocationInfo*(commandID: cint): ApplicationCommandTargetInvocationInfo {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandTarget::InvocationInfo(@)".}
 proc commandID*(this: ApplicationCommandTargetInvocationInfo): cint {.header: juce_gui_basics, importcpp: "#.commandID".}
+proc commandID*(this: var ApplicationCommandTargetInvocationInfo): var cint {.header: juce_gui_basics, importcpp: "#.commandID".}
 proc `commandID=`*(this: var ApplicationCommandTargetInvocationInfo, value: cint) {.header: juce_gui_basics, importcpp: "#.commandID = #".}
 proc commandFlags*(this: ApplicationCommandTargetInvocationInfo): cint {.header: juce_gui_basics, importcpp: "#.commandFlags".}
+proc commandFlags*(this: var ApplicationCommandTargetInvocationInfo): var cint {.header: juce_gui_basics, importcpp: "#.commandFlags".}
 proc `commandFlags=`*(this: var ApplicationCommandTargetInvocationInfo, value: cint) {.header: juce_gui_basics, importcpp: "#.commandFlags = #".}
 proc invocationMethod*(this: ApplicationCommandTargetInvocationInfo): ApplicationCommandTargetInvocationInfoInvocationMethod {.header: juce_gui_basics, importcpp: "#.invocationMethod".}
+proc invocationMethod*(this: var ApplicationCommandTargetInvocationInfo): var ApplicationCommandTargetInvocationInfoInvocationMethod {.header: juce_gui_basics, importcpp: "#.invocationMethod".}
 proc `invocationMethod=`*(this: var ApplicationCommandTargetInvocationInfo, value: ApplicationCommandTargetInvocationInfoInvocationMethod) {.header: juce_gui_basics, importcpp: "#.invocationMethod = #".}
 proc originatingComponent*(this: ApplicationCommandTargetInvocationInfo): ptr Component {.header: juce_gui_basics, importcpp: "#.originatingComponent".}
+proc originatingComponent*(this: var ApplicationCommandTargetInvocationInfo): var ptr Component {.header: juce_gui_basics, importcpp: "#.originatingComponent".}
 proc `originatingComponent=`*(this: var ApplicationCommandTargetInvocationInfo, value: ptr Component) {.header: juce_gui_basics, importcpp: "#.originatingComponent = #".}
 proc keyPress*(this: ApplicationCommandTargetInvocationInfo): KeyPress {.header: juce_gui_basics, importcpp: "#.keyPress".}
+proc keyPress*(this: var ApplicationCommandTargetInvocationInfo): var KeyPress {.header: juce_gui_basics, importcpp: "#.keyPress".}
 proc `keyPress=`*(this: var ApplicationCommandTargetInvocationInfo, value: KeyPress) {.header: juce_gui_basics, importcpp: "#.keyPress = #".}
 proc isKeyDown*(this: ApplicationCommandTargetInvocationInfo): bool {.header: juce_gui_basics, importcpp: "#.isKeyDown".}
+proc isKeyDown*(this: var ApplicationCommandTargetInvocationInfo): var bool {.header: juce_gui_basics, importcpp: "#.isKeyDown".}
 proc `isKeyDown=`*(this: var ApplicationCommandTargetInvocationInfo, value: bool) {.header: juce_gui_basics, importcpp: "#.isKeyDown = #".}
 proc millisecsSinceKeyPressed*(this: ApplicationCommandTargetInvocationInfo): cint {.header: juce_gui_basics, importcpp: "#.millisecsSinceKeyPressed".}
+proc millisecsSinceKeyPressed*(this: var ApplicationCommandTargetInvocationInfo): var cint {.header: juce_gui_basics, importcpp: "#.millisecsSinceKeyPressed".}
 proc `millisecsSinceKeyPressed=`*(this: var ApplicationCommandTargetInvocationInfo, value: cint) {.header: juce_gui_basics, importcpp: "#.millisecsSinceKeyPressed = #".}
 proc `==`*(this: ApplicationCommandTargetInvocationInfo, other: ApplicationCommandTargetInvocationInfo): bool {.error: "juce::ApplicationCommandTarget::InvocationInfo defines no operator==; compare a property instead".}
 
@@ -1824,8 +1868,10 @@ proc globalFocusChanged*(this: var KeyPressMappingSet, arg1: ptr Component) {.he
 proc `==`*(this: KeyPressMappingSet, other: KeyPressMappingSet): bool {.error: "juce::KeyPressMappingSet defines no operator==; compare a property instead".}
 
 proc onClick*(this: Button): CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onClick".}
+proc onClick*(this: var Button): var CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onClick".}
 proc `onClick=`*(this: var Button, value: CppFunctionObjectN0) {.header: juce_gui_basics, importcpp: "#.onClick = #".}
 proc onStateChange*(this: Button): CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onStateChange".}
+proc onStateChange*(this: var Button): var CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onStateChange".}
 proc `onStateChange=`*(this: var Button, value: CppFunctionObjectN0) {.header: juce_gui_basics, importcpp: "#.onStateChange = #".}
 proc setButtonText*(this: var Button, newText: String) {.header: juce_gui_basics, importcpp: "#.setButtonText(@)".}
 proc getButtonText*(this: Button): String {.header: juce_gui_basics, importcpp: "#.getButtonText()".}
@@ -1953,6 +1999,7 @@ proc makeComponentBuilder*(state: ValueTree): ComponentBuilder {.header: juce_gu
 proc makeComponentBuilder*(): ComponentBuilder {.header: juce_gui_basics, importcpp: "juce::ComponentBuilder(@)".}
 proc idProperty*(this: typedesc[ComponentBuilder]): Identifier {.header: juce_gui_basics, importcpp: "(juce::ComponentBuilder::idProperty)".}
 proc state*(this: ComponentBuilder): ValueTree {.header: juce_gui_basics, importcpp: "#.state".}
+proc state*(this: var ComponentBuilder): var ValueTree {.header: juce_gui_basics, importcpp: "#.state".}
 proc `state=`*(this: var ComponentBuilder, value: ValueTree) {.header: juce_gui_basics, importcpp: "#.state = #".}
 proc getManagedComponent*(this: var ComponentBuilder): ptr Component {.header: juce_gui_basics, importcpp: "#.getManagedComponent()".}
 proc createComponent*(this: var ComponentBuilder): ptr Component {.header: juce_gui_basics, importcpp: "#.createComponent()".}
@@ -2231,8 +2278,10 @@ proc showCell*(this: AccessibilityTableInterface, arg1: AccessibilityHandler) {.
 proc `==`*(this: AccessibilityTableInterface, other: AccessibilityTableInterface): bool {.error: "juce::AccessibilityTableInterface defines no operator==; compare a property instead".}
 
 proc begin*(this: AccessibilityTableInterfaceSpan): cint {.header: juce_gui_basics, importcpp: "#.begin".}
+proc begin*(this: var AccessibilityTableInterfaceSpan): var cint {.header: juce_gui_basics, importcpp: "#.begin".}
 proc `begin=`*(this: var AccessibilityTableInterfaceSpan, value: cint) {.header: juce_gui_basics, importcpp: "#.begin = #".}
 proc num*(this: AccessibilityTableInterfaceSpan): cint {.header: juce_gui_basics, importcpp: "#.num".}
+proc num*(this: var AccessibilityTableInterfaceSpan): var cint {.header: juce_gui_basics, importcpp: "#.num".}
 proc `num=`*(this: var AccessibilityTableInterfaceSpan, value: cint) {.header: juce_gui_basics, importcpp: "#.num = #".}
 proc `==`*(this: AccessibilityTableInterfaceSpan, other: AccessibilityTableInterfaceSpan): bool {.error: "juce::AccessibilityTableInterface::Span defines no operator==; compare a property instead".}
 
@@ -2266,8 +2315,10 @@ proc getInterval*(this: AccessibilityValueInterfaceAccessibleValueRange): float6
 proc `==`*(this: AccessibilityValueInterfaceAccessibleValueRange, other: AccessibilityValueInterfaceAccessibleValueRange): bool {.error: "juce::AccessibilityValueInterface::AccessibleValueRange defines no operator==; compare a property instead".}
 
 proc min*(this: AccessibilityValueInterfaceAccessibleValueRangeMinAndMax): float64 {.header: juce_gui_basics, importcpp: "#.min".}
+proc min*(this: var AccessibilityValueInterfaceAccessibleValueRangeMinAndMax): var float64 {.header: juce_gui_basics, importcpp: "#.min".}
 proc `min=`*(this: var AccessibilityValueInterfaceAccessibleValueRangeMinAndMax, value: float64) {.header: juce_gui_basics, importcpp: "#.min = #".}
 proc max*(this: AccessibilityValueInterfaceAccessibleValueRangeMinAndMax): float64 {.header: juce_gui_basics, importcpp: "#.max".}
+proc max*(this: var AccessibilityValueInterfaceAccessibleValueRangeMinAndMax): var float64 {.header: juce_gui_basics, importcpp: "#.max".}
 proc `max=`*(this: var AccessibilityValueInterfaceAccessibleValueRangeMinAndMax, value: float64) {.header: juce_gui_basics, importcpp: "#.max = #".}
 proc `==`*(this: AccessibilityValueInterfaceAccessibleValueRangeMinAndMax, other: AccessibilityValueInterfaceAccessibleValueRangeMinAndMax): bool {.error: "juce::AccessibilityValueInterface::AccessibleValueRange::MinAndMax defines no operator==; compare a property instead".}
 
@@ -2369,12 +2420,16 @@ proc makeAccessibilityHandlerInterfaces*(`ptr`: UniquePtr[AccessibilityTableInte
 proc makeAccessibilityHandlerInterfaces*(`ptr`: UniquePtr[AccessibilityCellInterface]): AccessibilityHandlerInterfaces {.header: juce_gui_basics, importcpp: "juce::AccessibilityHandler::Interfaces(@)".}
 proc makeAccessibilityHandlerInterfaces*(valueIn: UniquePtr[AccessibilityValueInterface], textIn: UniquePtr[AccessibilityTextInterface], tableIn: UniquePtr[AccessibilityTableInterface], cellIn: UniquePtr[AccessibilityCellInterface]): AccessibilityHandlerInterfaces {.header: juce_gui_basics, importcpp: "juce::AccessibilityHandler::Interfaces(@)".}
 proc value*(this: AccessibilityHandlerInterfaces): UniquePtr[AccessibilityValueInterface] {.header: juce_gui_basics, importcpp: "#.value".}
+proc value*(this: var AccessibilityHandlerInterfaces): var UniquePtr[AccessibilityValueInterface] {.header: juce_gui_basics, importcpp: "#.value".}
 proc `value=`*(this: var AccessibilityHandlerInterfaces, value: UniquePtr[AccessibilityValueInterface]) {.header: juce_gui_basics, importcpp: "#.value = #".}
 proc text*(this: AccessibilityHandlerInterfaces): UniquePtr[AccessibilityTextInterface] {.header: juce_gui_basics, importcpp: "#.text".}
+proc text*(this: var AccessibilityHandlerInterfaces): var UniquePtr[AccessibilityTextInterface] {.header: juce_gui_basics, importcpp: "#.text".}
 proc `text=`*(this: var AccessibilityHandlerInterfaces, value: UniquePtr[AccessibilityTextInterface]) {.header: juce_gui_basics, importcpp: "#.text = #".}
 proc table*(this: AccessibilityHandlerInterfaces): UniquePtr[AccessibilityTableInterface] {.header: juce_gui_basics, importcpp: "#.table".}
+proc table*(this: var AccessibilityHandlerInterfaces): var UniquePtr[AccessibilityTableInterface] {.header: juce_gui_basics, importcpp: "#.table".}
 proc `table=`*(this: var AccessibilityHandlerInterfaces, value: UniquePtr[AccessibilityTableInterface]) {.header: juce_gui_basics, importcpp: "#.table = #".}
 proc cell*(this: AccessibilityHandlerInterfaces): UniquePtr[AccessibilityCellInterface] {.header: juce_gui_basics, importcpp: "#.cell".}
+proc cell*(this: var AccessibilityHandlerInterfaces): var UniquePtr[AccessibilityCellInterface] {.header: juce_gui_basics, importcpp: "#.cell".}
 proc `cell=`*(this: var AccessibilityHandlerInterfaces, value: UniquePtr[AccessibilityCellInterface]) {.header: juce_gui_basics, importcpp: "#.cell = #".}
 proc `==`*(this: AccessibilityHandlerInterfaces, other: AccessibilityHandlerInterfaces): bool {.error: "juce::AccessibilityHandler::Interfaces defines no operator==; compare a property instead".}
 
@@ -2483,34 +2538,49 @@ proc `==`*(this: PopupMenuCustomCallback, other: PopupMenuCustomCallback): bool 
 proc makePopupMenuItem*(): PopupMenuItem {.header: juce_gui_basics, importcpp: "juce::PopupMenu::Item(@)".}
 proc makePopupMenuItem*(text: String): PopupMenuItem {.header: juce_gui_basics, importcpp: "juce::PopupMenu::Item(@)".}
 proc text*(this: PopupMenuItem): String {.header: juce_gui_basics, importcpp: "#.text".}
+proc text*(this: var PopupMenuItem): var String {.header: juce_gui_basics, importcpp: "#.text".}
 proc `text=`*(this: var PopupMenuItem, value: String) {.header: juce_gui_basics, importcpp: "#.text = #".}
 proc itemID*(this: PopupMenuItem): cint {.header: juce_gui_basics, importcpp: "#.itemID".}
+proc itemID*(this: var PopupMenuItem): var cint {.header: juce_gui_basics, importcpp: "#.itemID".}
 proc `itemID=`*(this: var PopupMenuItem, value: cint) {.header: juce_gui_basics, importcpp: "#.itemID = #".}
 proc action*(this: PopupMenuItem): CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.action".}
+proc action*(this: var PopupMenuItem): var CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.action".}
 proc `action=`*(this: var PopupMenuItem, value: CppFunctionObjectN0) {.header: juce_gui_basics, importcpp: "#.action = #".}
 proc subMenu*(this: PopupMenuItem): UniquePtr[PopupMenu] {.header: juce_gui_basics, importcpp: "#.subMenu".}
+proc subMenu*(this: var PopupMenuItem): var UniquePtr[PopupMenu] {.header: juce_gui_basics, importcpp: "#.subMenu".}
 proc `subMenu=`*(this: var PopupMenuItem, value: UniquePtr[PopupMenu]) {.header: juce_gui_basics, importcpp: "#.subMenu = #".}
 proc image*(this: PopupMenuItem): UniquePtr[Drawable] {.header: juce_gui_basics, importcpp: "#.image".}
+proc image*(this: var PopupMenuItem): var UniquePtr[Drawable] {.header: juce_gui_basics, importcpp: "#.image".}
 proc `image=`*(this: var PopupMenuItem, value: UniquePtr[Drawable]) {.header: juce_gui_basics, importcpp: "#.image = #".}
 proc customComponent*(this: PopupMenuItem): ReferenceCountedObjectPtr[PopupMenuCustomComponent] {.header: juce_gui_basics, importcpp: "#.customComponent".}
+proc customComponent*(this: var PopupMenuItem): var ReferenceCountedObjectPtr[PopupMenuCustomComponent] {.header: juce_gui_basics, importcpp: "#.customComponent".}
 proc `customComponent=`*(this: var PopupMenuItem, value: ReferenceCountedObjectPtr[PopupMenuCustomComponent]) {.header: juce_gui_basics, importcpp: "#.customComponent = #".}
 proc customCallback*(this: PopupMenuItem): ReferenceCountedObjectPtr[PopupMenuCustomCallback] {.header: juce_gui_basics, importcpp: "#.customCallback".}
+proc customCallback*(this: var PopupMenuItem): var ReferenceCountedObjectPtr[PopupMenuCustomCallback] {.header: juce_gui_basics, importcpp: "#.customCallback".}
 proc `customCallback=`*(this: var PopupMenuItem, value: ReferenceCountedObjectPtr[PopupMenuCustomCallback]) {.header: juce_gui_basics, importcpp: "#.customCallback = #".}
 proc commandManager*(this: PopupMenuItem): ptr ApplicationCommandManager {.header: juce_gui_basics, importcpp: "#.commandManager".}
+proc commandManager*(this: var PopupMenuItem): var ptr ApplicationCommandManager {.header: juce_gui_basics, importcpp: "#.commandManager".}
 proc `commandManager=`*(this: var PopupMenuItem, value: ptr ApplicationCommandManager) {.header: juce_gui_basics, importcpp: "#.commandManager = #".}
 proc shortcutKeyDescription*(this: PopupMenuItem): String {.header: juce_gui_basics, importcpp: "#.shortcutKeyDescription".}
+proc shortcutKeyDescription*(this: var PopupMenuItem): var String {.header: juce_gui_basics, importcpp: "#.shortcutKeyDescription".}
 proc `shortcutKeyDescription=`*(this: var PopupMenuItem, value: String) {.header: juce_gui_basics, importcpp: "#.shortcutKeyDescription = #".}
 proc colour*(this: PopupMenuItem): Colour {.header: juce_gui_basics, importcpp: "#.colour".}
+proc colour*(this: var PopupMenuItem): var Colour {.header: juce_gui_basics, importcpp: "#.colour".}
 proc `colour=`*(this: var PopupMenuItem, value: Colour) {.header: juce_gui_basics, importcpp: "#.colour = #".}
 proc isEnabled*(this: PopupMenuItem): bool {.header: juce_gui_basics, importcpp: "#.isEnabled".}
+proc isEnabled*(this: var PopupMenuItem): var bool {.header: juce_gui_basics, importcpp: "#.isEnabled".}
 proc `isEnabled=`*(this: var PopupMenuItem, value: bool) {.header: juce_gui_basics, importcpp: "#.isEnabled = #".}
 proc isTicked*(this: PopupMenuItem): bool {.header: juce_gui_basics, importcpp: "#.isTicked".}
+proc isTicked*(this: var PopupMenuItem): var bool {.header: juce_gui_basics, importcpp: "#.isTicked".}
 proc `isTicked=`*(this: var PopupMenuItem, value: bool) {.header: juce_gui_basics, importcpp: "#.isTicked = #".}
 proc isSeparator*(this: PopupMenuItem): bool {.header: juce_gui_basics, importcpp: "#.isSeparator".}
+proc isSeparator*(this: var PopupMenuItem): var bool {.header: juce_gui_basics, importcpp: "#.isSeparator".}
 proc `isSeparator=`*(this: var PopupMenuItem, value: bool) {.header: juce_gui_basics, importcpp: "#.isSeparator = #".}
 proc isSectionHeader*(this: PopupMenuItem): bool {.header: juce_gui_basics, importcpp: "#.isSectionHeader".}
+proc isSectionHeader*(this: var PopupMenuItem): var bool {.header: juce_gui_basics, importcpp: "#.isSectionHeader".}
 proc `isSectionHeader=`*(this: var PopupMenuItem, value: bool) {.header: juce_gui_basics, importcpp: "#.isSectionHeader = #".}
 proc shouldBreakAfter*(this: PopupMenuItem): bool {.header: juce_gui_basics, importcpp: "#.shouldBreakAfter".}
+proc shouldBreakAfter*(this: var PopupMenuItem): var bool {.header: juce_gui_basics, importcpp: "#.shouldBreakAfter".}
 proc `shouldBreakAfter=`*(this: var PopupMenuItem, value: bool) {.header: juce_gui_basics, importcpp: "#.shouldBreakAfter = #".}
 proc `PopupMenuItem=`*(this: var PopupMenuItem, arg1: PopupMenuItem): var PopupMenuItem {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
 proc `PopupMenuItem=`*(this: var PopupMenuItem, arg1: var PopupMenuItem): var PopupMenuItem {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
@@ -2673,8 +2743,10 @@ proc markersHaveChanged*(this: var MarkerList) {.header: juce_gui_basics, import
 
 proc makeMarkerListMarker*(name: String, position: RelativeCoordinate): MarkerListMarker {.header: juce_gui_basics, importcpp: "juce::MarkerList::Marker(@)".}
 proc name*(this: MarkerListMarker): String {.header: juce_gui_basics, importcpp: "#.name".}
+proc name*(this: var MarkerListMarker): var String {.header: juce_gui_basics, importcpp: "#.name".}
 proc `name=`*(this: var MarkerListMarker, value: String) {.header: juce_gui_basics, importcpp: "#.name = #".}
 proc position*(this: MarkerListMarker): RelativeCoordinate {.header: juce_gui_basics, importcpp: "#.position".}
+proc position*(this: var MarkerListMarker): var RelativeCoordinate {.header: juce_gui_basics, importcpp: "#.position".}
 proc `position=`*(this: var MarkerListMarker, value: RelativeCoordinate) {.header: juce_gui_basics, importcpp: "#.position = #".}
 proc `==`*(this: MarkerListMarker, arg1: MarkerListMarker): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: MarkerListMarker, arg1: MarkerListMarker): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
@@ -2708,8 +2780,10 @@ proc makeRelativePoint*(absoluteX: cfloat, absoluteY: cfloat): RelativePoint {.h
 proc makeRelativePoint*(x: RelativeCoordinate, y: RelativeCoordinate): RelativePoint {.header: juce_gui_basics, importcpp: "juce::RelativePoint(@)".}
 proc makeRelativePoint*(stringVersion: String): RelativePoint {.header: juce_gui_basics, importcpp: "juce::RelativePoint(@)".}
 proc x*(this: RelativePoint): RelativeCoordinate {.header: juce_gui_basics, importcpp: "#.x".}
+proc x*(this: var RelativePoint): var RelativeCoordinate {.header: juce_gui_basics, importcpp: "#.x".}
 proc `x=`*(this: var RelativePoint, value: RelativeCoordinate) {.header: juce_gui_basics, importcpp: "#.x = #".}
 proc y*(this: RelativePoint): RelativeCoordinate {.header: juce_gui_basics, importcpp: "#.y".}
+proc y*(this: var RelativePoint): var RelativeCoordinate {.header: juce_gui_basics, importcpp: "#.y".}
 proc `y=`*(this: var RelativePoint, value: RelativeCoordinate) {.header: juce_gui_basics, importcpp: "#.y = #".}
 proc `==`*(this: RelativePoint, arg1: RelativePoint): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: RelativePoint, arg1: RelativePoint): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
@@ -2723,12 +2797,16 @@ proc makeRelativeRectangle*(rect: Rectangle[cfloat]): RelativeRectangle {.header
 proc makeRelativeRectangle*(left: RelativeCoordinate, right: RelativeCoordinate, top: RelativeCoordinate, bottom: RelativeCoordinate): RelativeRectangle {.header: juce_gui_basics, importcpp: "juce::RelativeRectangle(@)".}
 proc makeRelativeRectangle*(stringVersion: String): RelativeRectangle {.header: juce_gui_basics, importcpp: "juce::RelativeRectangle(@)".}
 proc left*(this: RelativeRectangle): RelativeCoordinate {.header: juce_gui_basics, importcpp: "#.left".}
+proc left*(this: var RelativeRectangle): var RelativeCoordinate {.header: juce_gui_basics, importcpp: "#.left".}
 proc `left=`*(this: var RelativeRectangle, value: RelativeCoordinate) {.header: juce_gui_basics, importcpp: "#.left = #".}
 proc right*(this: RelativeRectangle): RelativeCoordinate {.header: juce_gui_basics, importcpp: "#.right".}
+proc right*(this: var RelativeRectangle): var RelativeCoordinate {.header: juce_gui_basics, importcpp: "#.right".}
 proc `right=`*(this: var RelativeRectangle, value: RelativeCoordinate) {.header: juce_gui_basics, importcpp: "#.right = #".}
 proc top*(this: RelativeRectangle): RelativeCoordinate {.header: juce_gui_basics, importcpp: "#.top".}
+proc top*(this: var RelativeRectangle): var RelativeCoordinate {.header: juce_gui_basics, importcpp: "#.top".}
 proc `top=`*(this: var RelativeRectangle, value: RelativeCoordinate) {.header: juce_gui_basics, importcpp: "#.top = #".}
 proc bottom*(this: RelativeRectangle): RelativeCoordinate {.header: juce_gui_basics, importcpp: "#.bottom".}
+proc bottom*(this: var RelativeRectangle): var RelativeCoordinate {.header: juce_gui_basics, importcpp: "#.bottom".}
 proc `bottom=`*(this: var RelativeRectangle, value: RelativeCoordinate) {.header: juce_gui_basics, importcpp: "#.bottom = #".}
 proc `==`*(this: RelativeRectangle, arg1: RelativeRectangle): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: RelativeRectangle, arg1: RelativeRectangle): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
@@ -2762,10 +2840,13 @@ proc makeRelativeParallelogram*(simpleRectangle: Rectangle[cfloat]): RelativePar
 proc makeRelativeParallelogram*(topLeft: RelativePoint, topRight: RelativePoint, bottomLeft: RelativePoint): RelativeParallelogram {.header: juce_gui_basics, importcpp: "juce::RelativeParallelogram(@)".}
 proc makeRelativeParallelogram*(topLeft: String, topRight: String, bottomLeft: String): RelativeParallelogram {.header: juce_gui_basics, importcpp: "juce::RelativeParallelogram(@)".}
 proc topLeft*(this: RelativeParallelogram): RelativePoint {.header: juce_gui_basics, importcpp: "#.topLeft".}
+proc topLeft*(this: var RelativeParallelogram): var RelativePoint {.header: juce_gui_basics, importcpp: "#.topLeft".}
 proc `topLeft=`*(this: var RelativeParallelogram, value: RelativePoint) {.header: juce_gui_basics, importcpp: "#.topLeft = #".}
 proc topRight*(this: RelativeParallelogram): RelativePoint {.header: juce_gui_basics, importcpp: "#.topRight".}
+proc topRight*(this: var RelativeParallelogram): var RelativePoint {.header: juce_gui_basics, importcpp: "#.topRight".}
 proc `topRight=`*(this: var RelativeParallelogram, value: RelativePoint) {.header: juce_gui_basics, importcpp: "#.topRight = #".}
 proc bottomLeft*(this: RelativeParallelogram): RelativePoint {.header: juce_gui_basics, importcpp: "#.bottomLeft".}
+proc bottomLeft*(this: var RelativeParallelogram): var RelativePoint {.header: juce_gui_basics, importcpp: "#.bottomLeft".}
 proc `bottomLeft=`*(this: var RelativeParallelogram, value: RelativePoint) {.header: juce_gui_basics, importcpp: "#.bottomLeft = #".}
 proc resolveThreePoints*(this: RelativeParallelogram, points: ptr Point[cfloat], scope: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.resolveThreePoints(@)".}
 proc resolveFourCorners*(this: RelativeParallelogram, points: ptr Point[cfloat], scope: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.resolveFourCorners(@)".}
@@ -2782,8 +2863,10 @@ proc getBoundingBox*(this: typedesc[RelativeParallelogram], parallelogramCorners
 proc makeRelativePointPath*(): RelativePointPath {.header: juce_gui_basics, importcpp: "juce::RelativePointPath(@)".}
 proc makeRelativePointPath*(path: Path): RelativePointPath {.header: juce_gui_basics, importcpp: "juce::RelativePointPath(@)".}
 proc elements*(this: RelativePointPath): OwnedArray[RelativePointPathElementBase] {.header: juce_gui_basics, importcpp: "#.elements".}
+proc elements*(this: var RelativePointPath): var OwnedArray[RelativePointPathElementBase] {.header: juce_gui_basics, importcpp: "#.elements".}
 proc `elements=`*(this: var RelativePointPath, value: OwnedArray[RelativePointPathElementBase]) {.header: juce_gui_basics, importcpp: "#.elements = #".}
 proc usesNonZeroWinding*(this: RelativePointPath): bool {.header: juce_gui_basics, importcpp: "#.usesNonZeroWinding".}
+proc usesNonZeroWinding*(this: var RelativePointPath): var bool {.header: juce_gui_basics, importcpp: "#.usesNonZeroWinding".}
 proc `usesNonZeroWinding=`*(this: var RelativePointPath, value: bool) {.header: juce_gui_basics, importcpp: "#.usesNonZeroWinding = #".}
 proc `==`*(this: RelativePointPath, arg1: RelativePointPath): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: RelativePointPath, arg1: RelativePointPath): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
@@ -2802,6 +2885,7 @@ proc `==`*(this: RelativePointPathElementBase, other: RelativePointPathElementBa
 
 proc makeRelativePointPathStartSubPath*(pos: RelativePoint): RelativePointPathStartSubPath {.header: juce_gui_basics, importcpp: "juce::RelativePointPath::StartSubPath(@)".}
 proc startPos*(this: RelativePointPathStartSubPath): RelativePoint {.header: juce_gui_basics, importcpp: "#.startPos".}
+proc startPos*(this: var RelativePointPathStartSubPath): var RelativePoint {.header: juce_gui_basics, importcpp: "#.startPos".}
 proc `startPos=`*(this: var RelativePointPathStartSubPath, value: RelativePoint) {.header: juce_gui_basics, importcpp: "#.startPos = #".}
 proc addToPath*(this: RelativePointPathStartSubPath, path: var Path, arg2: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.addToPath(@)".}
 proc getControlPoints*(this: var RelativePointPathStartSubPath, numPoints: var cint): ptr RelativePoint {.header: juce_gui_basics, importcpp: "#.getControlPoints(@)".}
@@ -2816,6 +2900,7 @@ proc `==`*(this: RelativePointPathCloseSubPath, other: RelativePointPathCloseSub
 
 proc makeRelativePointPathLineTo*(endPoint: RelativePoint): RelativePointPathLineTo {.header: juce_gui_basics, importcpp: "juce::RelativePointPath::LineTo(@)".}
 proc endPoint*(this: RelativePointPathLineTo): RelativePoint {.header: juce_gui_basics, importcpp: "#.endPoint".}
+proc endPoint*(this: var RelativePointPathLineTo): var RelativePoint {.header: juce_gui_basics, importcpp: "#.endPoint".}
 proc `endPoint=`*(this: var RelativePointPathLineTo, value: RelativePoint) {.header: juce_gui_basics, importcpp: "#.endPoint = #".}
 proc addToPath*(this: RelativePointPathLineTo, path: var Path, arg2: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.addToPath(@)".}
 proc getControlPoints*(this: var RelativePointPathLineTo, numPoints: var cint): ptr RelativePoint {.header: juce_gui_basics, importcpp: "#.getControlPoints(@)".}
@@ -2824,6 +2909,7 @@ proc `==`*(this: RelativePointPathLineTo, other: RelativePointPathLineTo): bool 
 
 proc makeRelativePointPathQuadraticTo*(controlPoint: RelativePoint, endPoint: RelativePoint): RelativePointPathQuadraticTo {.header: juce_gui_basics, importcpp: "juce::RelativePointPath::QuadraticTo(@)".}
 # proc controlPoints*(this: RelativePointPathQuadraticTo): RelativePoint[2] {.header: juce_gui_basics, importcpp: "#.controlPoints".}  # a C array parameter; every one of these has an overload taking a String or a value instead
+# proc controlPoints*(this: var RelativePointPathQuadraticTo): var RelativePoint[2] {.header: juce_gui_basics, importcpp: "#.controlPoints".}  # a C array parameter; every one of these has an overload taking a String or a value instead
 # proc `controlPoints=`*(this: var RelativePointPathQuadraticTo, value: RelativePoint[2]) {.header: juce_gui_basics, importcpp: "#.controlPoints = #".}  # a C array parameter; every one of these has an overload taking a String or a value instead
 proc createTree*(this: RelativePointPathQuadraticTo): ValueTree {.header: juce_gui_basics, importcpp: "#.createTree()".}
 proc addToPath*(this: RelativePointPathQuadraticTo, path: var Path, arg2: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.addToPath(@)".}
@@ -2833,6 +2919,7 @@ proc `==`*(this: RelativePointPathQuadraticTo, other: RelativePointPathQuadratic
 
 proc makeRelativePointPathCubicTo*(controlPoint1: RelativePoint, controlPoint2: RelativePoint, endPoint: RelativePoint): RelativePointPathCubicTo {.header: juce_gui_basics, importcpp: "juce::RelativePointPath::CubicTo(@)".}
 # proc controlPoints*(this: RelativePointPathCubicTo): RelativePoint[3] {.header: juce_gui_basics, importcpp: "#.controlPoints".}  # a C array parameter; every one of these has an overload taking a String or a value instead
+# proc controlPoints*(this: var RelativePointPathCubicTo): var RelativePoint[3] {.header: juce_gui_basics, importcpp: "#.controlPoints".}  # a C array parameter; every one of these has an overload taking a String or a value instead
 # proc `controlPoints=`*(this: var RelativePointPathCubicTo, value: RelativePoint[3]) {.header: juce_gui_basics, importcpp: "#.controlPoints = #".}  # a C array parameter; every one of these has an overload taking a String or a value instead
 proc createTree*(this: RelativePointPathCubicTo): ValueTree {.header: juce_gui_basics, importcpp: "#.createTree()".}
 proc addToPath*(this: RelativePointPathCubicTo, path: var Path, arg2: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.addToPath(@)".}
@@ -2933,12 +3020,16 @@ proc `==`*(this: DrawableText, other: DrawableText): bool {.error: "juce::Drawab
 
 proc makeTextEditor*(componentName: String, passwordCharacter: uint16): TextEditor {.header: juce_gui_basics, importcpp: "juce::TextEditor(@)".}
 proc onTextChange*(this: TextEditor): CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onTextChange".}
+proc onTextChange*(this: var TextEditor): var CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onTextChange".}
 proc `onTextChange=`*(this: var TextEditor, value: CppFunctionObjectN0) {.header: juce_gui_basics, importcpp: "#.onTextChange = #".}
 proc onReturnKey*(this: TextEditor): CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onReturnKey".}
+proc onReturnKey*(this: var TextEditor): var CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onReturnKey".}
 proc `onReturnKey=`*(this: var TextEditor, value: CppFunctionObjectN0) {.header: juce_gui_basics, importcpp: "#.onReturnKey = #".}
 proc onEscapeKey*(this: TextEditor): CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onEscapeKey".}
+proc onEscapeKey*(this: var TextEditor): var CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onEscapeKey".}
 proc `onEscapeKey=`*(this: var TextEditor, value: CppFunctionObjectN0) {.header: juce_gui_basics, importcpp: "#.onEscapeKey = #".}
 proc onFocusLost*(this: TextEditor): CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onFocusLost".}
+proc onFocusLost*(this: var TextEditor): var CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onFocusLost".}
 proc `onFocusLost=`*(this: var TextEditor, value: CppFunctionObjectN0) {.header: juce_gui_basics, importcpp: "#.onFocusLost = #".}
 proc setMultiLine*(this: var TextEditor, shouldBeMultiLine: bool, shouldWordWrap: bool = true) {.header: juce_gui_basics, importcpp: "#.setMultiLine(@)".}
 proc isMultiLine*(this: TextEditor): bool {.header: juce_gui_basics, importcpp: "#.isMultiLine()".}
@@ -3075,10 +3166,13 @@ proc `==`*(this: TextEditorLookAndFeelMethods, other: TextEditorLookAndFeelMetho
 
 proc makeLabel*(componentName: String, labelText: String): Label {.header: juce_gui_basics, importcpp: "juce::Label(@)".}
 proc onTextChange*(this: Label): CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onTextChange".}
+proc onTextChange*(this: var Label): var CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onTextChange".}
 proc `onTextChange=`*(this: var Label, value: CppFunctionObjectN0) {.header: juce_gui_basics, importcpp: "#.onTextChange = #".}
 proc onEditorShow*(this: Label): CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onEditorShow".}
+proc onEditorShow*(this: var Label): var CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onEditorShow".}
 proc `onEditorShow=`*(this: var Label, value: CppFunctionObjectN0) {.header: juce_gui_basics, importcpp: "#.onEditorShow = #".}
 proc onEditorHide*(this: Label): CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onEditorHide".}
+proc onEditorHide*(this: var Label): var CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onEditorHide".}
 proc `onEditorHide=`*(this: var Label, value: CppFunctionObjectN0) {.header: juce_gui_basics, importcpp: "#.onEditorHide = #".}
 proc setText*(this: var Label, newText: String, notification: NotificationType) {.header: juce_gui_basics, importcpp: "#.setText(@)".}
 proc getText*(this: Label, returnActiveEditorContents: bool = false): String {.header: juce_gui_basics, importcpp: "#.getText(@)".}
@@ -3121,6 +3215,7 @@ proc `==`*(this: LabelLookAndFeelMethods, other: LabelLookAndFeelMethods): bool 
 
 proc makeComboBox*(componentName: String): ComboBox {.header: juce_gui_basics, importcpp: "juce::ComboBox(@)".}
 proc onChange*(this: ComboBox): CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onChange".}
+proc onChange*(this: var ComboBox): var CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onChange".}
 proc `onChange=`*(this: var ComboBox, value: CppFunctionObjectN0) {.header: juce_gui_basics, importcpp: "#.onChange = #".}
 proc setEditableText*(this: var ComboBox, isEditable: bool) {.header: juce_gui_basics, importcpp: "#.setEditableText(@)".}
 proc isTextEditable*(this: ComboBox): bool {.header: juce_gui_basics, importcpp: "#.isTextEditable()".}
@@ -3300,13 +3395,17 @@ proc makeSlider*(): Slider {.header: juce_gui_basics, importcpp: "juce::Slider(@
 proc makeSlider*(componentName: String): Slider {.header: juce_gui_basics, importcpp: "juce::Slider(@)".}
 proc makeSlider*(style: SliderSliderStyle, textBoxPosition: SliderTextEntryBoxPosition): Slider {.header: juce_gui_basics, importcpp: "juce::Slider(@)".}
 proc onValueChange*(this: Slider): CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onValueChange".}
+proc onValueChange*(this: var Slider): var CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onValueChange".}
 proc `onValueChange=`*(this: var Slider, value: CppFunctionObjectN0) {.header: juce_gui_basics, importcpp: "#.onValueChange = #".}
 proc onDragStart*(this: Slider): CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onDragStart".}
+proc onDragStart*(this: var Slider): var CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onDragStart".}
 proc `onDragStart=`*(this: var Slider, value: CppFunctionObjectN0) {.header: juce_gui_basics, importcpp: "#.onDragStart = #".}
 proc onDragEnd*(this: Slider): CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onDragEnd".}
+proc onDragEnd*(this: var Slider): var CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onDragEnd".}
 proc `onDragEnd=`*(this: var Slider, value: CppFunctionObjectN0) {.header: juce_gui_basics, importcpp: "#.onDragEnd = #".}
 proc valueFromTextFunction*(this: Slider): CppFunctionObjectR1Ref[cdouble, String] {.header: juce_gui_basics, importcpp: "#.valueFromTextFunction".}
 proc textFromValueFunction*(this: Slider): CppFunctionObjectR1[String, cdouble] {.header: juce_gui_basics, importcpp: "#.textFromValueFunction".}
+proc textFromValueFunction*(this: var Slider): var CppFunctionObjectR1[String, cdouble] {.header: juce_gui_basics, importcpp: "#.textFromValueFunction".}
 proc `textFromValueFunction=`*(this: var Slider, value: CppFunctionObjectR1[String, cdouble]) {.header: juce_gui_basics, importcpp: "#.textFromValueFunction = #".}
 proc setSliderStyle*(this: var Slider, newStyle: SliderSliderStyle) {.header: juce_gui_basics, importcpp: "#.setSliderStyle(@)".}
 proc getSliderStyle*(this: Slider): SliderSliderStyle {.header: juce_gui_basics, importcpp: "#.getSliderStyle()".}
@@ -3417,16 +3516,21 @@ proc setMinAndMaxValues*(this: var Slider, arg1: float64, arg2: float64, arg3: b
 proc `==`*(this: Slider, other: Slider): bool {.error: "juce::Slider defines no operator==; compare a property instead".}
 
 proc startAngleRadians*(this: SliderRotaryParameters): cfloat {.header: juce_gui_basics, importcpp: "#.startAngleRadians".}
+proc startAngleRadians*(this: var SliderRotaryParameters): var cfloat {.header: juce_gui_basics, importcpp: "#.startAngleRadians".}
 proc `startAngleRadians=`*(this: var SliderRotaryParameters, value: cfloat) {.header: juce_gui_basics, importcpp: "#.startAngleRadians = #".}
 proc endAngleRadians*(this: SliderRotaryParameters): cfloat {.header: juce_gui_basics, importcpp: "#.endAngleRadians".}
+proc endAngleRadians*(this: var SliderRotaryParameters): var cfloat {.header: juce_gui_basics, importcpp: "#.endAngleRadians".}
 proc `endAngleRadians=`*(this: var SliderRotaryParameters, value: cfloat) {.header: juce_gui_basics, importcpp: "#.endAngleRadians = #".}
 proc stopAtEnd*(this: SliderRotaryParameters): bool {.header: juce_gui_basics, importcpp: "#.stopAtEnd".}
+proc stopAtEnd*(this: var SliderRotaryParameters): var bool {.header: juce_gui_basics, importcpp: "#.stopAtEnd".}
 proc `stopAtEnd=`*(this: var SliderRotaryParameters, value: bool) {.header: juce_gui_basics, importcpp: "#.stopAtEnd = #".}
 proc `==`*(this: SliderRotaryParameters, other: SliderRotaryParameters): bool {.error: "juce::Slider::RotaryParameters defines no operator==; compare a property instead".}
 
 proc sliderBounds*(this: SliderSliderLayout): Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.sliderBounds".}
+proc sliderBounds*(this: var SliderSliderLayout): var Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.sliderBounds".}
 proc `sliderBounds=`*(this: var SliderSliderLayout, value: Rectangle[cint]) {.header: juce_gui_basics, importcpp: "#.sliderBounds = #".}
 proc textBoxBounds*(this: SliderSliderLayout): Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.textBoxBounds".}
+proc textBoxBounds*(this: var SliderSliderLayout): var Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.textBoxBounds".}
 proc `textBoxBounds=`*(this: var SliderSliderLayout, value: Rectangle[cint]) {.header: juce_gui_basics, importcpp: "#.textBoxBounds = #".}
 proc `==`*(this: SliderSliderLayout, other: SliderSliderLayout): bool {.error: "juce::Slider::SliderLayout defines no operator==; compare a property instead".}
 
@@ -3962,10 +4066,13 @@ proc `*`*(this: ComponentPeerOptionalBorderSize): BorderSize[cint] {.header: juc
 proc `==`*(this: ComponentPeerOptionalBorderSize, other: ComponentPeerOptionalBorderSize): bool {.error: "juce::ComponentPeer::OptionalBorderSize defines no operator==; compare a property instead".}
 
 proc files*(this: ComponentPeerDragInfo): StringArray {.header: juce_gui_basics, importcpp: "#.files".}
+proc files*(this: var ComponentPeerDragInfo): var StringArray {.header: juce_gui_basics, importcpp: "#.files".}
 proc `files=`*(this: var ComponentPeerDragInfo, value: StringArray) {.header: juce_gui_basics, importcpp: "#.files = #".}
 proc text*(this: ComponentPeerDragInfo): String {.header: juce_gui_basics, importcpp: "#.text".}
+proc text*(this: var ComponentPeerDragInfo): var String {.header: juce_gui_basics, importcpp: "#.text".}
 proc `text=`*(this: var ComponentPeerDragInfo, value: String) {.header: juce_gui_basics, importcpp: "#.text = #".}
 proc position*(this: ComponentPeerDragInfo): Point[cint] {.header: juce_gui_basics, importcpp: "#.position".}
+proc position*(this: var ComponentPeerDragInfo): var Point[cint] {.header: juce_gui_basics, importcpp: "#.position".}
 proc `position=`*(this: var ComponentPeerDragInfo, value: Point[cint]) {.header: juce_gui_basics, importcpp: "#.position = #".}
 proc isEmpty*(this: ComponentPeerDragInfo): bool {.header: juce_gui_basics, importcpp: "#.isEmpty()".}
 proc clear*(this: var ComponentPeerDragInfo) {.header: juce_gui_basics, importcpp: "#.clear()".}
@@ -4057,20 +4164,28 @@ proc `==`*(this: DialogWindow, other: DialogWindow): bool {.error: "juce::Dialog
 
 proc makeDialogWindowLaunchOptions*(): DialogWindowLaunchOptions {.header: juce_gui_basics, importcpp: "juce::DialogWindow::LaunchOptions(@)".}
 proc dialogTitle*(this: DialogWindowLaunchOptions): String {.header: juce_gui_basics, importcpp: "#.dialogTitle".}
+proc dialogTitle*(this: var DialogWindowLaunchOptions): var String {.header: juce_gui_basics, importcpp: "#.dialogTitle".}
 proc `dialogTitle=`*(this: var DialogWindowLaunchOptions, value: String) {.header: juce_gui_basics, importcpp: "#.dialogTitle = #".}
 proc dialogBackgroundColour*(this: DialogWindowLaunchOptions): Colour {.header: juce_gui_basics, importcpp: "#.dialogBackgroundColour".}
+proc dialogBackgroundColour*(this: var DialogWindowLaunchOptions): var Colour {.header: juce_gui_basics, importcpp: "#.dialogBackgroundColour".}
 proc `dialogBackgroundColour=`*(this: var DialogWindowLaunchOptions, value: Colour) {.header: juce_gui_basics, importcpp: "#.dialogBackgroundColour = #".}
 proc content*(this: DialogWindowLaunchOptions): OptionalScopedPointer[Component] {.header: juce_gui_basics, importcpp: "#.content".}
+proc content*(this: var DialogWindowLaunchOptions): var OptionalScopedPointer[Component] {.header: juce_gui_basics, importcpp: "#.content".}
 proc `content=`*(this: var DialogWindowLaunchOptions, value: OptionalScopedPointer[Component]) {.header: juce_gui_basics, importcpp: "#.content = #".}
 proc componentToCentreAround*(this: DialogWindowLaunchOptions): ptr Component {.header: juce_gui_basics, importcpp: "#.componentToCentreAround".}
+proc componentToCentreAround*(this: var DialogWindowLaunchOptions): var ptr Component {.header: juce_gui_basics, importcpp: "#.componentToCentreAround".}
 proc `componentToCentreAround=`*(this: var DialogWindowLaunchOptions, value: ptr Component) {.header: juce_gui_basics, importcpp: "#.componentToCentreAround = #".}
 proc escapeKeyTriggersCloseButton*(this: DialogWindowLaunchOptions): bool {.header: juce_gui_basics, importcpp: "#.escapeKeyTriggersCloseButton".}
+proc escapeKeyTriggersCloseButton*(this: var DialogWindowLaunchOptions): var bool {.header: juce_gui_basics, importcpp: "#.escapeKeyTriggersCloseButton".}
 proc `escapeKeyTriggersCloseButton=`*(this: var DialogWindowLaunchOptions, value: bool) {.header: juce_gui_basics, importcpp: "#.escapeKeyTriggersCloseButton = #".}
 proc useNativeTitleBar*(this: DialogWindowLaunchOptions): bool {.header: juce_gui_basics, importcpp: "#.useNativeTitleBar".}
+proc useNativeTitleBar*(this: var DialogWindowLaunchOptions): var bool {.header: juce_gui_basics, importcpp: "#.useNativeTitleBar".}
 proc `useNativeTitleBar=`*(this: var DialogWindowLaunchOptions, value: bool) {.header: juce_gui_basics, importcpp: "#.useNativeTitleBar = #".}
 proc resizable*(this: DialogWindowLaunchOptions): bool {.header: juce_gui_basics, importcpp: "#.resizable".}
+proc resizable*(this: var DialogWindowLaunchOptions): var bool {.header: juce_gui_basics, importcpp: "#.resizable".}
 proc `resizable=`*(this: var DialogWindowLaunchOptions, value: bool) {.header: juce_gui_basics, importcpp: "#.resizable = #".}
 proc useBottomRightCornerResizer*(this: DialogWindowLaunchOptions): bool {.header: juce_gui_basics, importcpp: "#.useBottomRightCornerResizer".}
+proc useBottomRightCornerResizer*(this: var DialogWindowLaunchOptions): var bool {.header: juce_gui_basics, importcpp: "#.useBottomRightCornerResizer".}
 proc `useBottomRightCornerResizer=`*(this: var DialogWindowLaunchOptions, value: bool) {.header: juce_gui_basics, importcpp: "#.useBottomRightCornerResizer = #".}
 proc launchAsync*(this: var DialogWindowLaunchOptions): ptr DialogWindow {.header: juce_gui_basics, importcpp: "#.launchAsync()".}
 proc create*(this: var DialogWindowLaunchOptions): ptr DialogWindow {.header: juce_gui_basics, importcpp: "#.create()".}
@@ -4154,8 +4269,10 @@ proc `==`*(this: MultiDocumentPanel, other: MultiDocumentPanel): bool {.error: "
 
 proc makeSidePanel*(title: StringRef, width: cint, positionOnLeft: bool, contentComponent: ptr Component, deleteComponentWhenNoLongerNeeded: bool): SidePanel {.header: juce_gui_basics, importcpp: "juce::SidePanel(@)".}
 proc onPanelMove*(this: SidePanel): CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onPanelMove".}
+proc onPanelMove*(this: var SidePanel): var CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onPanelMove".}
 proc `onPanelMove=`*(this: var SidePanel, value: CppFunctionObjectN0) {.header: juce_gui_basics, importcpp: "#.onPanelMove = #".}
 proc onPanelShowHide*(this: SidePanel): CppFunctionObjectN1[bool] {.header: juce_gui_basics, importcpp: "#.onPanelShowHide".}
+proc onPanelShowHide*(this: var SidePanel): var CppFunctionObjectN1[bool] {.header: juce_gui_basics, importcpp: "#.onPanelShowHide".}
 proc `onPanelShowHide=`*(this: var SidePanel, value: CppFunctionObjectN1[bool]) {.header: juce_gui_basics, importcpp: "#.onPanelShowHide = #".}
 proc setContent*(this: var SidePanel, newContentComponent: ptr Component, deleteComponentWhenNoLongerNeeded: bool = true) {.header: juce_gui_basics, importcpp: "#.setContent(@)".}
 proc getContent*(this: SidePanel): ptr Component {.header: juce_gui_basics, importcpp: "#.getContent()".}
@@ -4211,16 +4328,22 @@ proc getTimeSliceThread*(this: DirectoryContentsList): var TimeSliceThread {.hea
 proc `==`*(this: DirectoryContentsList, other: DirectoryContentsList): bool {.error: "juce::DirectoryContentsList defines no operator==; compare a property instead".}
 
 proc filename*(this: DirectoryContentsListFileInfo): String {.header: juce_gui_basics, importcpp: "#.filename".}
+proc filename*(this: var DirectoryContentsListFileInfo): var String {.header: juce_gui_basics, importcpp: "#.filename".}
 proc `filename=`*(this: var DirectoryContentsListFileInfo, value: String) {.header: juce_gui_basics, importcpp: "#.filename = #".}
 proc fileSize*(this: DirectoryContentsListFileInfo): int64 {.header: juce_gui_basics, importcpp: "#.fileSize".}
+proc fileSize*(this: var DirectoryContentsListFileInfo): var int64 {.header: juce_gui_basics, importcpp: "#.fileSize".}
 proc `fileSize=`*(this: var DirectoryContentsListFileInfo, value: int64) {.header: juce_gui_basics, importcpp: "#.fileSize = #".}
 proc modificationTime*(this: DirectoryContentsListFileInfo): Time {.header: juce_gui_basics, importcpp: "#.modificationTime".}
+proc modificationTime*(this: var DirectoryContentsListFileInfo): var Time {.header: juce_gui_basics, importcpp: "#.modificationTime".}
 proc `modificationTime=`*(this: var DirectoryContentsListFileInfo, value: Time) {.header: juce_gui_basics, importcpp: "#.modificationTime = #".}
 proc creationTime*(this: DirectoryContentsListFileInfo): Time {.header: juce_gui_basics, importcpp: "#.creationTime".}
+proc creationTime*(this: var DirectoryContentsListFileInfo): var Time {.header: juce_gui_basics, importcpp: "#.creationTime".}
 proc `creationTime=`*(this: var DirectoryContentsListFileInfo, value: Time) {.header: juce_gui_basics, importcpp: "#.creationTime = #".}
 proc isDirectory*(this: DirectoryContentsListFileInfo): bool {.header: juce_gui_basics, importcpp: "#.isDirectory".}
+proc isDirectory*(this: var DirectoryContentsListFileInfo): var bool {.header: juce_gui_basics, importcpp: "#.isDirectory".}
 proc `isDirectory=`*(this: var DirectoryContentsListFileInfo, value: bool) {.header: juce_gui_basics, importcpp: "#.isDirectory = #".}
 proc isReadOnly*(this: DirectoryContentsListFileInfo): bool {.header: juce_gui_basics, importcpp: "#.isReadOnly".}
+proc isReadOnly*(this: var DirectoryContentsListFileInfo): var bool {.header: juce_gui_basics, importcpp: "#.isReadOnly".}
 proc `isReadOnly=`*(this: var DirectoryContentsListFileInfo, value: bool) {.header: juce_gui_basics, importcpp: "#.isReadOnly = #".}
 proc `==`*(this: DirectoryContentsListFileInfo, other: DirectoryContentsListFileInfo): bool {.error: "juce::DirectoryContentsList::FileInfo defines no operator==; compare a property instead".}
 
@@ -4468,6 +4591,7 @@ proc `==`*(this: TextPropertyComponentListener, other: TextPropertyComponentList
 proc makeMultiChoicePropertyComponent*(valueToControl: Value, propertyName: String, choices: StringArray, correspondingValues: Array[juce_var], maxChoices: cint): MultiChoicePropertyComponent {.header: juce_gui_basics, importcpp: "juce::MultiChoicePropertyComponent(@)".}
 proc makeMultiChoicePropertyComponent*(valueToControl: ValueTreePropertyWithDefault, propertyName: String, choices: StringArray, correspondingValues: Array[juce_var], maxChoices: cint): MultiChoicePropertyComponent {.header: juce_gui_basics, importcpp: "juce::MultiChoicePropertyComponent(@)".}
 proc onHeightChange*(this: MultiChoicePropertyComponent): CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onHeightChange".}
+proc onHeightChange*(this: var MultiChoicePropertyComponent): var CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onHeightChange".}
 proc `onHeightChange=`*(this: var MultiChoicePropertyComponent, value: CppFunctionObjectN0) {.header: juce_gui_basics, importcpp: "#.onHeightChange = #".}
 proc isExpanded*(this: MultiChoicePropertyComponent): bool {.header: juce_gui_basics, importcpp: "#.isExpanded()".}
 proc isExpandable*(this: MultiChoicePropertyComponent): bool {.header: juce_gui_basics, importcpp: "#.isExpandable()".}
@@ -4805,34 +4929,49 @@ proc makeFlexItem*(flexBoxToControl: var FlexBox): FlexItem {.header: juce_gui_b
 proc autoValue*(this: typedesc[FlexItem]): cint {.header: juce_gui_basics, importcpp: "(juce::FlexItem::autoValue)".}
 proc notAssigned*(this: typedesc[FlexItem]): cint {.header: juce_gui_basics, importcpp: "(juce::FlexItem::notAssigned)".}
 proc currentBounds*(this: FlexItem): Rectangle[cfloat] {.header: juce_gui_basics, importcpp: "#.currentBounds".}
+proc currentBounds*(this: var FlexItem): var Rectangle[cfloat] {.header: juce_gui_basics, importcpp: "#.currentBounds".}
 proc `currentBounds=`*(this: var FlexItem, value: Rectangle[cfloat]) {.header: juce_gui_basics, importcpp: "#.currentBounds = #".}
 proc associatedComponent*(this: FlexItem): ptr Component {.header: juce_gui_basics, importcpp: "#.associatedComponent".}
+proc associatedComponent*(this: var FlexItem): var ptr Component {.header: juce_gui_basics, importcpp: "#.associatedComponent".}
 proc `associatedComponent=`*(this: var FlexItem, value: ptr Component) {.header: juce_gui_basics, importcpp: "#.associatedComponent = #".}
 proc associatedFlexBox*(this: FlexItem): ptr FlexBox {.header: juce_gui_basics, importcpp: "#.associatedFlexBox".}
+proc associatedFlexBox*(this: var FlexItem): var ptr FlexBox {.header: juce_gui_basics, importcpp: "#.associatedFlexBox".}
 proc `associatedFlexBox=`*(this: var FlexItem, value: ptr FlexBox) {.header: juce_gui_basics, importcpp: "#.associatedFlexBox = #".}
 proc order*(this: FlexItem): cint {.header: juce_gui_basics, importcpp: "#.order".}
+proc order*(this: var FlexItem): var cint {.header: juce_gui_basics, importcpp: "#.order".}
 proc `order=`*(this: var FlexItem, value: cint) {.header: juce_gui_basics, importcpp: "#.order = #".}
 proc flexGrow*(this: FlexItem): cfloat {.header: juce_gui_basics, importcpp: "#.flexGrow".}
+proc flexGrow*(this: var FlexItem): var cfloat {.header: juce_gui_basics, importcpp: "#.flexGrow".}
 proc `flexGrow=`*(this: var FlexItem, value: cfloat) {.header: juce_gui_basics, importcpp: "#.flexGrow = #".}
 proc flexShrink*(this: FlexItem): cfloat {.header: juce_gui_basics, importcpp: "#.flexShrink".}
+proc flexShrink*(this: var FlexItem): var cfloat {.header: juce_gui_basics, importcpp: "#.flexShrink".}
 proc `flexShrink=`*(this: var FlexItem, value: cfloat) {.header: juce_gui_basics, importcpp: "#.flexShrink = #".}
 proc flexBasis*(this: FlexItem): cfloat {.header: juce_gui_basics, importcpp: "#.flexBasis".}
+proc flexBasis*(this: var FlexItem): var cfloat {.header: juce_gui_basics, importcpp: "#.flexBasis".}
 proc `flexBasis=`*(this: var FlexItem, value: cfloat) {.header: juce_gui_basics, importcpp: "#.flexBasis = #".}
 proc alignSelf*(this: FlexItem): FlexItemAlignSelf {.header: juce_gui_basics, importcpp: "#.alignSelf".}
+proc alignSelf*(this: var FlexItem): var FlexItemAlignSelf {.header: juce_gui_basics, importcpp: "#.alignSelf".}
 proc `alignSelf=`*(this: var FlexItem, value: FlexItemAlignSelf) {.header: juce_gui_basics, importcpp: "#.alignSelf = #".}
 proc width*(this: FlexItem): cfloat {.header: juce_gui_basics, importcpp: "#.width".}
+proc width*(this: var FlexItem): var cfloat {.header: juce_gui_basics, importcpp: "#.width".}
 proc `width=`*(this: var FlexItem, value: cfloat) {.header: juce_gui_basics, importcpp: "#.width = #".}
 proc minWidth*(this: FlexItem): cfloat {.header: juce_gui_basics, importcpp: "#.minWidth".}
+proc minWidth*(this: var FlexItem): var cfloat {.header: juce_gui_basics, importcpp: "#.minWidth".}
 proc `minWidth=`*(this: var FlexItem, value: cfloat) {.header: juce_gui_basics, importcpp: "#.minWidth = #".}
 proc maxWidth*(this: FlexItem): cfloat {.header: juce_gui_basics, importcpp: "#.maxWidth".}
+proc maxWidth*(this: var FlexItem): var cfloat {.header: juce_gui_basics, importcpp: "#.maxWidth".}
 proc `maxWidth=`*(this: var FlexItem, value: cfloat) {.header: juce_gui_basics, importcpp: "#.maxWidth = #".}
 proc height*(this: FlexItem): cfloat {.header: juce_gui_basics, importcpp: "#.height".}
+proc height*(this: var FlexItem): var cfloat {.header: juce_gui_basics, importcpp: "#.height".}
 proc `height=`*(this: var FlexItem, value: cfloat) {.header: juce_gui_basics, importcpp: "#.height = #".}
 proc minHeight*(this: FlexItem): cfloat {.header: juce_gui_basics, importcpp: "#.minHeight".}
+proc minHeight*(this: var FlexItem): var cfloat {.header: juce_gui_basics, importcpp: "#.minHeight".}
 proc `minHeight=`*(this: var FlexItem, value: cfloat) {.header: juce_gui_basics, importcpp: "#.minHeight = #".}
 proc maxHeight*(this: FlexItem): cfloat {.header: juce_gui_basics, importcpp: "#.maxHeight".}
+proc maxHeight*(this: var FlexItem): var cfloat {.header: juce_gui_basics, importcpp: "#.maxHeight".}
 proc `maxHeight=`*(this: var FlexItem, value: cfloat) {.header: juce_gui_basics, importcpp: "#.maxHeight = #".}
 proc margin*(this: FlexItem): FlexItemMargin {.header: juce_gui_basics, importcpp: "#.margin".}
+proc margin*(this: var FlexItem): var FlexItemMargin {.header: juce_gui_basics, importcpp: "#.margin".}
 proc `margin=`*(this: var FlexItem, value: FlexItemMargin) {.header: juce_gui_basics, importcpp: "#.margin = #".}
 proc withFlex*(this: FlexItem, newFlexGrow: cfloat): FlexItem {.header: juce_gui_basics, importcpp: "#.withFlex(@)".}
 proc withFlex*(this: FlexItem, newFlexGrow: cfloat, newFlexShrink: cfloat): FlexItem {.header: juce_gui_basics, importcpp: "#.withFlex(@)".}
@@ -4852,12 +4991,16 @@ proc makeFlexItemMargin*(): FlexItemMargin {.header: juce_gui_basics, importcpp:
 proc makeFlexItemMargin*(size: cfloat): FlexItemMargin {.header: juce_gui_basics, importcpp: "juce::FlexItem::Margin(@)".}
 proc makeFlexItemMargin*(top: cfloat, right: cfloat, bottom: cfloat, left: cfloat): FlexItemMargin {.header: juce_gui_basics, importcpp: "juce::FlexItem::Margin(@)".}
 proc left*(this: FlexItemMargin): cfloat {.header: juce_gui_basics, importcpp: "#.left".}
+proc left*(this: var FlexItemMargin): var cfloat {.header: juce_gui_basics, importcpp: "#.left".}
 proc `left=`*(this: var FlexItemMargin, value: cfloat) {.header: juce_gui_basics, importcpp: "#.left = #".}
 proc right*(this: FlexItemMargin): cfloat {.header: juce_gui_basics, importcpp: "#.right".}
+proc right*(this: var FlexItemMargin): var cfloat {.header: juce_gui_basics, importcpp: "#.right".}
 proc `right=`*(this: var FlexItemMargin, value: cfloat) {.header: juce_gui_basics, importcpp: "#.right = #".}
 proc top*(this: FlexItemMargin): cfloat {.header: juce_gui_basics, importcpp: "#.top".}
+proc top*(this: var FlexItemMargin): var cfloat {.header: juce_gui_basics, importcpp: "#.top".}
 proc `top=`*(this: var FlexItemMargin, value: cfloat) {.header: juce_gui_basics, importcpp: "#.top = #".}
 proc bottom*(this: FlexItemMargin): cfloat {.header: juce_gui_basics, importcpp: "#.bottom".}
+proc bottom*(this: var FlexItemMargin): var cfloat {.header: juce_gui_basics, importcpp: "#.bottom".}
 proc `bottom=`*(this: var FlexItemMargin, value: cfloat) {.header: juce_gui_basics, importcpp: "#.bottom = #".}
 proc `==`*(this: FlexItemMargin, other: FlexItemMargin): bool {.error: "juce::FlexItem::Margin defines no operator==; compare a property instead".}
 
@@ -4865,16 +5008,22 @@ proc makeFlexBox*(): FlexBox {.header: juce_gui_basics, importcpp: "juce::FlexBo
 proc makeFlexBox*(arg1: FlexBoxDirection, arg2: FlexBoxWrap, arg3: FlexBoxAlignContent, arg4: FlexBoxAlignItems, arg5: FlexBoxJustifyContent): FlexBox {.header: juce_gui_basics, importcpp: "juce::FlexBox(@)".}
 proc makeFlexBox*(arg1: FlexBoxJustifyContent): FlexBox {.header: juce_gui_basics, importcpp: "juce::FlexBox(@)".}
 proc flexDirection*(this: FlexBox): FlexBoxDirection {.header: juce_gui_basics, importcpp: "#.flexDirection".}
+proc flexDirection*(this: var FlexBox): var FlexBoxDirection {.header: juce_gui_basics, importcpp: "#.flexDirection".}
 proc `flexDirection=`*(this: var FlexBox, value: FlexBoxDirection) {.header: juce_gui_basics, importcpp: "#.flexDirection = #".}
 proc flexWrap*(this: FlexBox): FlexBoxWrap {.header: juce_gui_basics, importcpp: "#.flexWrap".}
+proc flexWrap*(this: var FlexBox): var FlexBoxWrap {.header: juce_gui_basics, importcpp: "#.flexWrap".}
 proc `flexWrap=`*(this: var FlexBox, value: FlexBoxWrap) {.header: juce_gui_basics, importcpp: "#.flexWrap = #".}
 proc alignContent*(this: FlexBox): FlexBoxAlignContent {.header: juce_gui_basics, importcpp: "#.alignContent".}
+proc alignContent*(this: var FlexBox): var FlexBoxAlignContent {.header: juce_gui_basics, importcpp: "#.alignContent".}
 proc `alignContent=`*(this: var FlexBox, value: FlexBoxAlignContent) {.header: juce_gui_basics, importcpp: "#.alignContent = #".}
 proc alignItems*(this: FlexBox): FlexBoxAlignItems {.header: juce_gui_basics, importcpp: "#.alignItems".}
+proc alignItems*(this: var FlexBox): var FlexBoxAlignItems {.header: juce_gui_basics, importcpp: "#.alignItems".}
 proc `alignItems=`*(this: var FlexBox, value: FlexBoxAlignItems) {.header: juce_gui_basics, importcpp: "#.alignItems = #".}
 proc justifyContent*(this: FlexBox): FlexBoxJustifyContent {.header: juce_gui_basics, importcpp: "#.justifyContent".}
+proc justifyContent*(this: var FlexBox): var FlexBoxJustifyContent {.header: juce_gui_basics, importcpp: "#.justifyContent".}
 proc `justifyContent=`*(this: var FlexBox, value: FlexBoxJustifyContent) {.header: juce_gui_basics, importcpp: "#.justifyContent = #".}
 proc items*(this: FlexBox): Array[FlexItem] {.header: juce_gui_basics, importcpp: "#.items".}
+proc items*(this: var FlexBox): var Array[FlexItem] {.header: juce_gui_basics, importcpp: "#.items".}
 proc `items=`*(this: var FlexBox, value: Array[FlexItem]) {.header: juce_gui_basics, importcpp: "#.items = #".}
 proc performLayout*(this: var FlexBox, targetArea: Rectangle[cfloat]) {.header: juce_gui_basics, importcpp: "#.performLayout(@)".}
 proc performLayout*(this: var FlexBox, targetArea: Rectangle[cint]) {.header: juce_gui_basics, importcpp: "#.performLayout(@)".}
@@ -4884,34 +5033,49 @@ proc makeGridItem*(): GridItem {.header: juce_gui_basics, importcpp: "juce::Grid
 proc makeGridItem*(componentToUse: var Component): GridItem {.header: juce_gui_basics, importcpp: "juce::GridItem(@)".}
 proc makeGridItem*(componentToUse: ptr Component): GridItem {.header: juce_gui_basics, importcpp: "juce::GridItem(@)".}
 proc associatedComponent*(this: GridItem): ptr Component {.header: juce_gui_basics, importcpp: "#.associatedComponent".}
+proc associatedComponent*(this: var GridItem): var ptr Component {.header: juce_gui_basics, importcpp: "#.associatedComponent".}
 proc `associatedComponent=`*(this: var GridItem, value: ptr Component) {.header: juce_gui_basics, importcpp: "#.associatedComponent = #".}
 proc order*(this: GridItem): cint {.header: juce_gui_basics, importcpp: "#.order".}
+proc order*(this: var GridItem): var cint {.header: juce_gui_basics, importcpp: "#.order".}
 proc `order=`*(this: var GridItem, value: cint) {.header: juce_gui_basics, importcpp: "#.order = #".}
 proc justifySelf*(this: GridItem): GridItemJustifySelf {.header: juce_gui_basics, importcpp: "#.justifySelf".}
+proc justifySelf*(this: var GridItem): var GridItemJustifySelf {.header: juce_gui_basics, importcpp: "#.justifySelf".}
 proc `justifySelf=`*(this: var GridItem, value: GridItemJustifySelf) {.header: juce_gui_basics, importcpp: "#.justifySelf = #".}
 proc alignSelf*(this: GridItem): GridItemAlignSelf {.header: juce_gui_basics, importcpp: "#.alignSelf".}
+proc alignSelf*(this: var GridItem): var GridItemAlignSelf {.header: juce_gui_basics, importcpp: "#.alignSelf".}
 proc `alignSelf=`*(this: var GridItem, value: GridItemAlignSelf) {.header: juce_gui_basics, importcpp: "#.alignSelf = #".}
 proc column*(this: GridItem): GridItemStartAndEndProperty {.header: juce_gui_basics, importcpp: "#.column".}
+proc column*(this: var GridItem): var GridItemStartAndEndProperty {.header: juce_gui_basics, importcpp: "#.column".}
 proc `column=`*(this: var GridItem, value: GridItemStartAndEndProperty) {.header: juce_gui_basics, importcpp: "#.column = #".}
 proc row*(this: GridItem): GridItemStartAndEndProperty {.header: juce_gui_basics, importcpp: "#.row".}
+proc row*(this: var GridItem): var GridItemStartAndEndProperty {.header: juce_gui_basics, importcpp: "#.row".}
 proc `row=`*(this: var GridItem, value: GridItemStartAndEndProperty) {.header: juce_gui_basics, importcpp: "#.row = #".}
 proc area*(this: GridItem): String {.header: juce_gui_basics, importcpp: "#.area".}
+proc area*(this: var GridItem): var String {.header: juce_gui_basics, importcpp: "#.area".}
 proc `area=`*(this: var GridItem, value: String) {.header: juce_gui_basics, importcpp: "#.area = #".}
 proc width*(this: GridItem): cfloat {.header: juce_gui_basics, importcpp: "#.width".}
+proc width*(this: var GridItem): var cfloat {.header: juce_gui_basics, importcpp: "#.width".}
 proc `width=`*(this: var GridItem, value: cfloat) {.header: juce_gui_basics, importcpp: "#.width = #".}
 proc minWidth*(this: GridItem): cfloat {.header: juce_gui_basics, importcpp: "#.minWidth".}
+proc minWidth*(this: var GridItem): var cfloat {.header: juce_gui_basics, importcpp: "#.minWidth".}
 proc `minWidth=`*(this: var GridItem, value: cfloat) {.header: juce_gui_basics, importcpp: "#.minWidth = #".}
 proc maxWidth*(this: GridItem): cfloat {.header: juce_gui_basics, importcpp: "#.maxWidth".}
+proc maxWidth*(this: var GridItem): var cfloat {.header: juce_gui_basics, importcpp: "#.maxWidth".}
 proc `maxWidth=`*(this: var GridItem, value: cfloat) {.header: juce_gui_basics, importcpp: "#.maxWidth = #".}
 proc height*(this: GridItem): cfloat {.header: juce_gui_basics, importcpp: "#.height".}
+proc height*(this: var GridItem): var cfloat {.header: juce_gui_basics, importcpp: "#.height".}
 proc `height=`*(this: var GridItem, value: cfloat) {.header: juce_gui_basics, importcpp: "#.height = #".}
 proc minHeight*(this: GridItem): cfloat {.header: juce_gui_basics, importcpp: "#.minHeight".}
+proc minHeight*(this: var GridItem): var cfloat {.header: juce_gui_basics, importcpp: "#.minHeight".}
 proc `minHeight=`*(this: var GridItem, value: cfloat) {.header: juce_gui_basics, importcpp: "#.minHeight = #".}
 proc maxHeight*(this: GridItem): cfloat {.header: juce_gui_basics, importcpp: "#.maxHeight".}
+proc maxHeight*(this: var GridItem): var cfloat {.header: juce_gui_basics, importcpp: "#.maxHeight".}
 proc `maxHeight=`*(this: var GridItem, value: cfloat) {.header: juce_gui_basics, importcpp: "#.maxHeight = #".}
 proc margin*(this: GridItem): GridItemMargin {.header: juce_gui_basics, importcpp: "#.margin".}
+proc margin*(this: var GridItem): var GridItemMargin {.header: juce_gui_basics, importcpp: "#.margin".}
 proc `margin=`*(this: var GridItem, value: GridItemMargin) {.header: juce_gui_basics, importcpp: "#.margin = #".}
 proc currentBounds*(this: GridItem): Rectangle[cfloat] {.header: juce_gui_basics, importcpp: "#.currentBounds".}
+proc currentBounds*(this: var GridItem): var Rectangle[cfloat] {.header: juce_gui_basics, importcpp: "#.currentBounds".}
 proc `currentBounds=`*(this: var GridItem, value: Rectangle[cfloat]) {.header: juce_gui_basics, importcpp: "#.currentBounds = #".}
 proc setArea*(this: var GridItem, rowStart: GridItemProperty, columnStart: GridItemProperty, rowEnd: GridItemProperty, columnEnd: GridItemProperty) {.header: juce_gui_basics, importcpp: "#.setArea(@)".}
 proc setArea*(this: var GridItem, rowStart: GridItemProperty, columnStart: GridItemProperty) {.header: juce_gui_basics, importcpp: "#.setArea(@)".}
@@ -4934,8 +5098,10 @@ proc makeGridItemSpan*(numberToUse: cint): GridItemSpan {.header: juce_gui_basic
 proc makeGridItemSpan*(numberToUse: cint, nameToUse: String): GridItemSpan {.header: juce_gui_basics, importcpp: "juce::GridItem::Span(@)".}
 proc makeGridItemSpan*(nameToUse: String): GridItemSpan {.header: juce_gui_basics, importcpp: "juce::GridItem::Span(@)".}
 proc number*(this: GridItemSpan): cint {.header: juce_gui_basics, importcpp: "#.number".}
+proc number*(this: var GridItemSpan): var cint {.header: juce_gui_basics, importcpp: "#.number".}
 proc `number=`*(this: var GridItemSpan, value: cint) {.header: juce_gui_basics, importcpp: "#.number = #".}
 proc name*(this: GridItemSpan): String {.header: juce_gui_basics, importcpp: "#.name".}
+proc name*(this: var GridItemSpan): var String {.header: juce_gui_basics, importcpp: "#.name".}
 proc `name=`*(this: var GridItemSpan, value: String) {.header: juce_gui_basics, importcpp: "#.name = #".}
 proc `==`*(this: GridItemSpan, other: GridItemSpan): bool {.error: "juce::GridItem::Span defines no operator==; compare a property instead".}
 
@@ -4955,8 +5121,10 @@ proc getNumber*(this: GridItemProperty): cint {.header: juce_gui_basics, importc
 proc `==`*(this: GridItemProperty, other: GridItemProperty): bool {.error: "juce::GridItem::Property defines no operator==; compare a property instead".}
 
 proc start*(this: GridItemStartAndEndProperty): GridItemProperty {.header: juce_gui_basics, importcpp: "#.start".}
+proc start*(this: var GridItemStartAndEndProperty): var GridItemProperty {.header: juce_gui_basics, importcpp: "#.start".}
 proc `start=`*(this: var GridItemStartAndEndProperty, value: GridItemProperty) {.header: juce_gui_basics, importcpp: "#.start = #".}
 proc `end`*(this: GridItemStartAndEndProperty): GridItemProperty {.header: juce_gui_basics, importcpp: "#.end".}
+proc `end`*(this: var GridItemStartAndEndProperty): var GridItemProperty {.header: juce_gui_basics, importcpp: "#.end".}
 proc `end=`*(this: var GridItemStartAndEndProperty, value: GridItemProperty) {.header: juce_gui_basics, importcpp: "#.end = #".}
 proc `==`*(this: GridItemStartAndEndProperty, other: GridItemStartAndEndProperty): bool {.error: "juce::GridItem::StartAndEndProperty defines no operator==; compare a property instead".}
 
@@ -4965,41 +5133,58 @@ proc makeGridItemMargin*(size: cint): GridItemMargin {.header: juce_gui_basics, 
 proc makeGridItemMargin*(size: cfloat): GridItemMargin {.header: juce_gui_basics, importcpp: "juce::GridItem::Margin(@)".}
 proc makeGridItemMargin*(top: cfloat, right: cfloat, bottom: cfloat, left: cfloat): GridItemMargin {.header: juce_gui_basics, importcpp: "juce::GridItem::Margin(@)".}
 proc left*(this: GridItemMargin): cfloat {.header: juce_gui_basics, importcpp: "#.left".}
+proc left*(this: var GridItemMargin): var cfloat {.header: juce_gui_basics, importcpp: "#.left".}
 proc `left=`*(this: var GridItemMargin, value: cfloat) {.header: juce_gui_basics, importcpp: "#.left = #".}
 proc right*(this: GridItemMargin): cfloat {.header: juce_gui_basics, importcpp: "#.right".}
+proc right*(this: var GridItemMargin): var cfloat {.header: juce_gui_basics, importcpp: "#.right".}
 proc `right=`*(this: var GridItemMargin, value: cfloat) {.header: juce_gui_basics, importcpp: "#.right = #".}
 proc top*(this: GridItemMargin): cfloat {.header: juce_gui_basics, importcpp: "#.top".}
+proc top*(this: var GridItemMargin): var cfloat {.header: juce_gui_basics, importcpp: "#.top".}
 proc `top=`*(this: var GridItemMargin, value: cfloat) {.header: juce_gui_basics, importcpp: "#.top = #".}
 proc bottom*(this: GridItemMargin): cfloat {.header: juce_gui_basics, importcpp: "#.bottom".}
+proc bottom*(this: var GridItemMargin): var cfloat {.header: juce_gui_basics, importcpp: "#.bottom".}
 proc `bottom=`*(this: var GridItemMargin, value: cfloat) {.header: juce_gui_basics, importcpp: "#.bottom = #".}
 proc `==`*(this: GridItemMargin, other: GridItemMargin): bool {.error: "juce::GridItem::Margin defines no operator==; compare a property instead".}
 
 proc makeGrid*(): Grid {.header: juce_gui_basics, importcpp: "juce::Grid(@)".}
 proc justifyItems*(this: Grid): GridJustifyItems {.header: juce_gui_basics, importcpp: "#.justifyItems".}
+proc justifyItems*(this: var Grid): var GridJustifyItems {.header: juce_gui_basics, importcpp: "#.justifyItems".}
 proc `justifyItems=`*(this: var Grid, value: GridJustifyItems) {.header: juce_gui_basics, importcpp: "#.justifyItems = #".}
 proc alignItems*(this: Grid): GridAlignItems {.header: juce_gui_basics, importcpp: "#.alignItems".}
+proc alignItems*(this: var Grid): var GridAlignItems {.header: juce_gui_basics, importcpp: "#.alignItems".}
 proc `alignItems=`*(this: var Grid, value: GridAlignItems) {.header: juce_gui_basics, importcpp: "#.alignItems = #".}
 proc justifyContent*(this: Grid): GridJustifyContent {.header: juce_gui_basics, importcpp: "#.justifyContent".}
+proc justifyContent*(this: var Grid): var GridJustifyContent {.header: juce_gui_basics, importcpp: "#.justifyContent".}
 proc `justifyContent=`*(this: var Grid, value: GridJustifyContent) {.header: juce_gui_basics, importcpp: "#.justifyContent = #".}
 proc alignContent*(this: Grid): GridAlignContent {.header: juce_gui_basics, importcpp: "#.alignContent".}
+proc alignContent*(this: var Grid): var GridAlignContent {.header: juce_gui_basics, importcpp: "#.alignContent".}
 proc `alignContent=`*(this: var Grid, value: GridAlignContent) {.header: juce_gui_basics, importcpp: "#.alignContent = #".}
 proc autoFlow*(this: Grid): GridAutoFlow {.header: juce_gui_basics, importcpp: "#.autoFlow".}
+proc autoFlow*(this: var Grid): var GridAutoFlow {.header: juce_gui_basics, importcpp: "#.autoFlow".}
 proc `autoFlow=`*(this: var Grid, value: GridAutoFlow) {.header: juce_gui_basics, importcpp: "#.autoFlow = #".}
 proc templateColumns*(this: Grid): Array[GridTrackInfo] {.header: juce_gui_basics, importcpp: "#.templateColumns".}
+proc templateColumns*(this: var Grid): var Array[GridTrackInfo] {.header: juce_gui_basics, importcpp: "#.templateColumns".}
 proc `templateColumns=`*(this: var Grid, value: Array[GridTrackInfo]) {.header: juce_gui_basics, importcpp: "#.templateColumns = #".}
 proc templateRows*(this: Grid): Array[GridTrackInfo] {.header: juce_gui_basics, importcpp: "#.templateRows".}
+proc templateRows*(this: var Grid): var Array[GridTrackInfo] {.header: juce_gui_basics, importcpp: "#.templateRows".}
 proc `templateRows=`*(this: var Grid, value: Array[GridTrackInfo]) {.header: juce_gui_basics, importcpp: "#.templateRows = #".}
 proc templateAreas*(this: Grid): StringArray {.header: juce_gui_basics, importcpp: "#.templateAreas".}
+proc templateAreas*(this: var Grid): var StringArray {.header: juce_gui_basics, importcpp: "#.templateAreas".}
 proc `templateAreas=`*(this: var Grid, value: StringArray) {.header: juce_gui_basics, importcpp: "#.templateAreas = #".}
 proc autoRows*(this: Grid): GridTrackInfo {.header: juce_gui_basics, importcpp: "#.autoRows".}
+proc autoRows*(this: var Grid): var GridTrackInfo {.header: juce_gui_basics, importcpp: "#.autoRows".}
 proc `autoRows=`*(this: var Grid, value: GridTrackInfo) {.header: juce_gui_basics, importcpp: "#.autoRows = #".}
 proc autoColumns*(this: Grid): GridTrackInfo {.header: juce_gui_basics, importcpp: "#.autoColumns".}
+proc autoColumns*(this: var Grid): var GridTrackInfo {.header: juce_gui_basics, importcpp: "#.autoColumns".}
 proc `autoColumns=`*(this: var Grid, value: GridTrackInfo) {.header: juce_gui_basics, importcpp: "#.autoColumns = #".}
 proc columnGap*(this: Grid): GridPx {.header: juce_gui_basics, importcpp: "#.columnGap".}
+proc columnGap*(this: var Grid): var GridPx {.header: juce_gui_basics, importcpp: "#.columnGap".}
 proc `columnGap=`*(this: var Grid, value: GridPx) {.header: juce_gui_basics, importcpp: "#.columnGap = #".}
 proc rowGap*(this: Grid): GridPx {.header: juce_gui_basics, importcpp: "#.rowGap".}
+proc rowGap*(this: var Grid): var GridPx {.header: juce_gui_basics, importcpp: "#.rowGap".}
 proc `rowGap=`*(this: var Grid, value: GridPx) {.header: juce_gui_basics, importcpp: "#.rowGap = #".}
 proc items*(this: Grid): Array[GridItem] {.header: juce_gui_basics, importcpp: "#.items".}
+proc items*(this: var Grid): var Array[GridItem] {.header: juce_gui_basics, importcpp: "#.items".}
 proc `items=`*(this: var Grid, value: Array[GridItem]) {.header: juce_gui_basics, importcpp: "#.items = #".}
 proc setGap*(this: var Grid, sizeInPixels: GridPx) {.header: juce_gui_basics, importcpp: "#.setGap(@)".}
 proc performLayout*(this: var Grid, arg1: Rectangle[cint]) {.header: juce_gui_basics, importcpp: "#.performLayout(@)".}
@@ -5012,12 +5197,14 @@ proc makeGridPx*(p: cint): GridPx {.header: juce_gui_basics, importcpp: "juce::G
 # proc makeGridPx*(p: long double): GridPx {.header: juce_gui_basics, importcpp: "juce::Grid::Px(@)".}  # a long double parameter, which Nim has no type for; the other overloads take a float or an int
 proc makeGridPx*(p: uint64): GridPx {.header: juce_gui_basics, importcpp: "juce::Grid::Px(@)".}
 # proc pixels*(this: GridPx): long double {.header: juce_gui_basics, importcpp: "#.pixels".}  # a long double parameter, which Nim has no type for; the other overloads take a float or an int
+# proc pixels*(this: var GridPx): var long double {.header: juce_gui_basics, importcpp: "#.pixels".}  # a long double parameter, which Nim has no type for; the other overloads take a float or an int
 # proc `pixels=`*(this: var GridPx, value: long double) {.header: juce_gui_basics, importcpp: "#.pixels = #".}  # a long double parameter, which Nim has no type for; the other overloads take a float or an int
 proc `==`*(this: GridPx, other: GridPx): bool {.error: "juce::Grid::Px defines no operator==; compare a property instead".}
 
 proc makeGridFr*(f: cint): GridFr {.header: juce_gui_basics, importcpp: "juce::Grid::Fr(@)".}
 proc makeGridFr*(p: uint64): GridFr {.header: juce_gui_basics, importcpp: "juce::Grid::Fr(@)".}
 proc fraction*(this: GridFr): uint64 {.header: juce_gui_basics, importcpp: "#.fraction".}
+proc fraction*(this: var GridFr): var uint64 {.header: juce_gui_basics, importcpp: "#.fraction".}
 proc `fraction=`*(this: var GridFr, value: uint64) {.header: juce_gui_basics, importcpp: "#.fraction = #".}
 proc `==`*(this: GridFr, other: GridFr): bool {.error: "juce::Grid::Fr defines no operator==; compare a property instead".}
 

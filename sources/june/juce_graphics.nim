@@ -172,16 +172,22 @@ proc makeAffineTransform*(): AffineTransform {.header: juce_graphics, importcpp:
 proc makeAffineTransform*(mat00: cfloat, mat01: cfloat, mat02: cfloat, mat10: cfloat, mat11: cfloat, mat12: cfloat): AffineTransform {.header: juce_graphics, importcpp: "juce::AffineTransform(@)".}
 proc identity*(this: typedesc[AffineTransform]): AffineTransform {.header: juce_graphics, importcpp: "(juce::AffineTransform::identity)".}
 proc mat00*(this: AffineTransform): cfloat {.header: juce_graphics, importcpp: "#.mat00".}
+proc mat00*(this: var AffineTransform): var cfloat {.header: juce_graphics, importcpp: "#.mat00".}
 proc `mat00=`*(this: var AffineTransform, value: cfloat) {.header: juce_graphics, importcpp: "#.mat00 = #".}
 proc mat01*(this: AffineTransform): cfloat {.header: juce_graphics, importcpp: "#.mat01".}
+proc mat01*(this: var AffineTransform): var cfloat {.header: juce_graphics, importcpp: "#.mat01".}
 proc `mat01=`*(this: var AffineTransform, value: cfloat) {.header: juce_graphics, importcpp: "#.mat01 = #".}
 proc mat02*(this: AffineTransform): cfloat {.header: juce_graphics, importcpp: "#.mat02".}
+proc mat02*(this: var AffineTransform): var cfloat {.header: juce_graphics, importcpp: "#.mat02".}
 proc `mat02=`*(this: var AffineTransform, value: cfloat) {.header: juce_graphics, importcpp: "#.mat02 = #".}
 proc mat10*(this: AffineTransform): cfloat {.header: juce_graphics, importcpp: "#.mat10".}
+proc mat10*(this: var AffineTransform): var cfloat {.header: juce_graphics, importcpp: "#.mat10".}
 proc `mat10=`*(this: var AffineTransform, value: cfloat) {.header: juce_graphics, importcpp: "#.mat10 = #".}
 proc mat11*(this: AffineTransform): cfloat {.header: juce_graphics, importcpp: "#.mat11".}
+proc mat11*(this: var AffineTransform): var cfloat {.header: juce_graphics, importcpp: "#.mat11".}
 proc `mat11=`*(this: var AffineTransform, value: cfloat) {.header: juce_graphics, importcpp: "#.mat11 = #".}
 proc mat12*(this: AffineTransform): cfloat {.header: juce_graphics, importcpp: "#.mat12".}
+proc mat12*(this: var AffineTransform): var cfloat {.header: juce_graphics, importcpp: "#.mat12".}
 proc `mat12=`*(this: var AffineTransform, value: cfloat) {.header: juce_graphics, importcpp: "#.mat12 = #".}
 proc `AffineTransform=`*(this: var AffineTransform, arg1: AffineTransform): var AffineTransform {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc `==`*(this: AffineTransform, other: AffineTransform): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
@@ -289,18 +295,25 @@ proc restoreFromString*(this: var Path, stringVersion: StringRef) {.header: juce
 
 proc makePathIterator*(path: Path): PathIterator {.header: juce_graphics, importcpp: "juce::Path::Iterator(@)".}
 proc elementType*(this: PathIterator): PathIteratorPathElementType {.header: juce_graphics, importcpp: "#.elementType".}
+proc elementType*(this: var PathIterator): var PathIteratorPathElementType {.header: juce_graphics, importcpp: "#.elementType".}
 proc `elementType=`*(this: var PathIterator, value: PathIteratorPathElementType) {.header: juce_graphics, importcpp: "#.elementType = #".}
 proc x1*(this: PathIterator): cfloat {.header: juce_graphics, importcpp: "#.x1".}
+proc x1*(this: var PathIterator): var cfloat {.header: juce_graphics, importcpp: "#.x1".}
 proc `x1=`*(this: var PathIterator, value: cfloat) {.header: juce_graphics, importcpp: "#.x1 = #".}
 proc y1*(this: PathIterator): cfloat {.header: juce_graphics, importcpp: "#.y1".}
+proc y1*(this: var PathIterator): var cfloat {.header: juce_graphics, importcpp: "#.y1".}
 proc `y1=`*(this: var PathIterator, value: cfloat) {.header: juce_graphics, importcpp: "#.y1 = #".}
 proc x2*(this: PathIterator): cfloat {.header: juce_graphics, importcpp: "#.x2".}
+proc x2*(this: var PathIterator): var cfloat {.header: juce_graphics, importcpp: "#.x2".}
 proc `x2=`*(this: var PathIterator, value: cfloat) {.header: juce_graphics, importcpp: "#.x2 = #".}
 proc y2*(this: PathIterator): cfloat {.header: juce_graphics, importcpp: "#.y2".}
+proc y2*(this: var PathIterator): var cfloat {.header: juce_graphics, importcpp: "#.y2".}
 proc `y2=`*(this: var PathIterator, value: cfloat) {.header: juce_graphics, importcpp: "#.y2 = #".}
 proc x3*(this: PathIterator): cfloat {.header: juce_graphics, importcpp: "#.x3".}
+proc x3*(this: var PathIterator): var cfloat {.header: juce_graphics, importcpp: "#.x3".}
 proc `x3=`*(this: var PathIterator, value: cfloat) {.header: juce_graphics, importcpp: "#.x3 = #".}
 proc y3*(this: PathIterator): cfloat {.header: juce_graphics, importcpp: "#.y3".}
+proc y3*(this: var PathIterator): var cfloat {.header: juce_graphics, importcpp: "#.y3".}
 proc `y3=`*(this: var PathIterator, value: cfloat) {.header: juce_graphics, importcpp: "#.y3 = #".}
 proc next*(this: var PathIterator): bool {.header: juce_graphics, importcpp: "#.next()".}
 proc `==`*(this: PathIterator, other: PathIterator): bool {.error: "juce::Path::Iterator defines no operator==; compare a property instead".}
@@ -436,10 +449,13 @@ proc makeColourGradient*(): ColourGradient {.header: juce_graphics, importcpp: "
 proc makeColourGradient*(colour1: Colour, x1: cfloat, y1: cfloat, colour2: Colour, x2: cfloat, y2: cfloat, isRadial: bool): ColourGradient {.header: juce_graphics, importcpp: "juce::ColourGradient(@)".}
 proc makeColourGradient*(colour1: Colour, point1: Point[cfloat], colour2: Colour, point2: Point[cfloat], isRadial: bool): ColourGradient {.header: juce_graphics, importcpp: "juce::ColourGradient(@)".}
 proc point1*(this: ColourGradient): Point[cfloat] {.header: juce_graphics, importcpp: "#.point1".}
+proc point1*(this: var ColourGradient): var Point[cfloat] {.header: juce_graphics, importcpp: "#.point1".}
 proc `point1=`*(this: var ColourGradient, value: Point[cfloat]) {.header: juce_graphics, importcpp: "#.point1 = #".}
 proc point2*(this: ColourGradient): Point[cfloat] {.header: juce_graphics, importcpp: "#.point2".}
+proc point2*(this: var ColourGradient): var Point[cfloat] {.header: juce_graphics, importcpp: "#.point2".}
 proc `point2=`*(this: var ColourGradient, value: Point[cfloat]) {.header: juce_graphics, importcpp: "#.point2 = #".}
 proc isRadial*(this: ColourGradient): bool {.header: juce_graphics, importcpp: "#.isRadial".}
+proc isRadial*(this: var ColourGradient): var bool {.header: juce_graphics, importcpp: "#.isRadial".}
 proc `isRadial=`*(this: var ColourGradient, value: bool) {.header: juce_graphics, importcpp: "#.isRadial = #".}
 proc `ColourGradient=`*(this: var ColourGradient, arg1: ColourGradient): var ColourGradient {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc vertical*(this: typedesc[ColourGradient], colour1: Colour, y1: cfloat, colour2: Colour, y2: cfloat): ColourGradient {.header: juce_graphics, importcpp: "juce::ColourGradient::vertical(@)".}
@@ -482,16 +498,22 @@ proc `==`*(this: EdgeTable, other: EdgeTable): bool {.error: "juce::EdgeTable de
 
 proc makePathFlatteningIterator*(path: Path, transform: AffineTransform, tolerance: cfloat): PathFlatteningIterator {.header: juce_graphics, importcpp: "juce::PathFlatteningIterator(@)".}
 proc x1*(this: PathFlatteningIterator): cfloat {.header: juce_graphics, importcpp: "#.x1".}
+proc x1*(this: var PathFlatteningIterator): var cfloat {.header: juce_graphics, importcpp: "#.x1".}
 proc `x1=`*(this: var PathFlatteningIterator, value: cfloat) {.header: juce_graphics, importcpp: "#.x1 = #".}
 proc y1*(this: PathFlatteningIterator): cfloat {.header: juce_graphics, importcpp: "#.y1".}
+proc y1*(this: var PathFlatteningIterator): var cfloat {.header: juce_graphics, importcpp: "#.y1".}
 proc `y1=`*(this: var PathFlatteningIterator, value: cfloat) {.header: juce_graphics, importcpp: "#.y1 = #".}
 proc x2*(this: PathFlatteningIterator): cfloat {.header: juce_graphics, importcpp: "#.x2".}
+proc x2*(this: var PathFlatteningIterator): var cfloat {.header: juce_graphics, importcpp: "#.x2".}
 proc `x2=`*(this: var PathFlatteningIterator, value: cfloat) {.header: juce_graphics, importcpp: "#.x2 = #".}
 proc y2*(this: PathFlatteningIterator): cfloat {.header: juce_graphics, importcpp: "#.y2".}
+proc y2*(this: var PathFlatteningIterator): var cfloat {.header: juce_graphics, importcpp: "#.y2".}
 proc `y2=`*(this: var PathFlatteningIterator, value: cfloat) {.header: juce_graphics, importcpp: "#.y2 = #".}
 proc closesSubPath*(this: PathFlatteningIterator): bool {.header: juce_graphics, importcpp: "#.closesSubPath".}
+proc closesSubPath*(this: var PathFlatteningIterator): var bool {.header: juce_graphics, importcpp: "#.closesSubPath".}
 proc `closesSubPath=`*(this: var PathFlatteningIterator, value: bool) {.header: juce_graphics, importcpp: "#.closesSubPath = #".}
 proc subPathIndex*(this: PathFlatteningIterator): cint {.header: juce_graphics, importcpp: "#.subPathIndex".}
+proc subPathIndex*(this: var PathFlatteningIterator): var cint {.header: juce_graphics, importcpp: "#.subPathIndex".}
 proc `subPathIndex=`*(this: var PathFlatteningIterator, value: cint) {.header: juce_graphics, importcpp: "#.subPathIndex = #".}
 proc next*(this: var PathFlatteningIterator): bool {.header: juce_graphics, importcpp: "#.next()".}
 proc isLastInSubpath*(this: PathFlatteningIterator): bool {.header: juce_graphics, importcpp: "#.isLastInSubpath()".}
@@ -709,20 +731,28 @@ proc makeImageBitmapData*(image: Image, arg2: Rectangle[cint], mode: ImageBitmap
 proc makeImageBitmapData*(image: Image, x: cint, y: cint, w: cint, h: cint): ImageBitmapData {.header: juce_graphics, importcpp: "juce::Image::BitmapData(@)".}
 proc makeImageBitmapData*(image: Image, mode: ImageBitmapDataReadWriteMode): ImageBitmapData {.header: juce_graphics, importcpp: "juce::Image::BitmapData(@)".}
 proc data*(this: ImageBitmapData): ptr uint8 {.header: juce_graphics, importcpp: "#.data".}
+proc data*(this: var ImageBitmapData): var ptr uint8 {.header: juce_graphics, importcpp: "#.data".}
 proc `data=`*(this: var ImageBitmapData, value: ptr uint8) {.header: juce_graphics, importcpp: "#.data = #".}
 proc size*(this: ImageBitmapData): uint64 {.header: juce_graphics, importcpp: "#.size".}
+proc size*(this: var ImageBitmapData): var uint64 {.header: juce_graphics, importcpp: "#.size".}
 proc `size=`*(this: var ImageBitmapData, value: uint64) {.header: juce_graphics, importcpp: "#.size = #".}
 proc pixelFormat*(this: ImageBitmapData): ImagePixelFormat {.header: juce_graphics, importcpp: "#.pixelFormat".}
+proc pixelFormat*(this: var ImageBitmapData): var ImagePixelFormat {.header: juce_graphics, importcpp: "#.pixelFormat".}
 proc `pixelFormat=`*(this: var ImageBitmapData, value: ImagePixelFormat) {.header: juce_graphics, importcpp: "#.pixelFormat = #".}
 proc lineStride*(this: ImageBitmapData): cint {.header: juce_graphics, importcpp: "#.lineStride".}
+proc lineStride*(this: var ImageBitmapData): var cint {.header: juce_graphics, importcpp: "#.lineStride".}
 proc `lineStride=`*(this: var ImageBitmapData, value: cint) {.header: juce_graphics, importcpp: "#.lineStride = #".}
 proc pixelStride*(this: ImageBitmapData): cint {.header: juce_graphics, importcpp: "#.pixelStride".}
+proc pixelStride*(this: var ImageBitmapData): var cint {.header: juce_graphics, importcpp: "#.pixelStride".}
 proc `pixelStride=`*(this: var ImageBitmapData, value: cint) {.header: juce_graphics, importcpp: "#.pixelStride = #".}
 proc width*(this: ImageBitmapData): cint {.header: juce_graphics, importcpp: "#.width".}
+proc width*(this: var ImageBitmapData): var cint {.header: juce_graphics, importcpp: "#.width".}
 proc `width=`*(this: var ImageBitmapData, value: cint) {.header: juce_graphics, importcpp: "#.width = #".}
 proc height*(this: ImageBitmapData): cint {.header: juce_graphics, importcpp: "#.height".}
+proc height*(this: var ImageBitmapData): var cint {.header: juce_graphics, importcpp: "#.height".}
 proc `height=`*(this: var ImageBitmapData, value: cint) {.header: juce_graphics, importcpp: "#.height = #".}
 proc dataReleaser*(this: ImageBitmapData): UniquePtr[ImageBitmapDataBitmapDataReleaser] {.header: juce_graphics, importcpp: "#.dataReleaser".}
+proc dataReleaser*(this: var ImageBitmapData): var UniquePtr[ImageBitmapDataBitmapDataReleaser] {.header: juce_graphics, importcpp: "#.dataReleaser".}
 proc `dataReleaser=`*(this: var ImageBitmapData, value: UniquePtr[ImageBitmapDataBitmapDataReleaser]) {.header: juce_graphics, importcpp: "#.dataReleaser = #".}
 proc getLinePointer*(this: ImageBitmapData, y: cint): ptr uint8 {.header: juce_graphics, importcpp: "#.getLinePointer(@)".}
 proc getPixelPointer*(this: ImageBitmapData, x: cint, y: cint): ptr uint8 {.header: juce_graphics, importcpp: "#.getPixelPointer(@)".}
@@ -746,8 +776,10 @@ proc pixelFormat*(this: ImagePixelData): ImagePixelFormat {.header: juce_graphic
 proc width*(this: ImagePixelData): cint {.header: juce_graphics, importcpp: "#.width".}
 proc height*(this: ImagePixelData): cint {.header: juce_graphics, importcpp: "#.height".}
 proc userData*(this: ImagePixelData): NamedValueSet {.header: juce_graphics, importcpp: "#.userData".}
+proc userData*(this: var ImagePixelData): var NamedValueSet {.header: juce_graphics, importcpp: "#.userData".}
 proc `userData=`*(this: var ImagePixelData, value: NamedValueSet) {.header: juce_graphics, importcpp: "#.userData = #".}
 # proc listeners*(this: ImagePixelData): ListenerList<Listener> {.header: juce_graphics, importcpp: "#.listeners".}  # a type that cannot be spelled in Nim
+# proc listeners*(this: var ImagePixelData): var ListenerList<Listener> {.header: juce_graphics, importcpp: "#.listeners".}  # a type that cannot be spelled in Nim
 # proc `listeners=`*(this: var ImagePixelData, value: ListenerList<Listener>) {.header: juce_graphics, importcpp: "#.listeners = #".}  # a type that cannot be spelled in Nim
 proc createLowLevelContext*(this: var ImagePixelData): UniquePtr[LowLevelGraphicsContext] {.header: juce_graphics, importcpp: "#.createLowLevelContext()".}
 proc clone*(this: var ImagePixelData): ReferenceCountedObjectPtr[ImagePixelData] {.header: juce_graphics, importcpp: "#.clone()".}
@@ -794,12 +826,16 @@ proc makeFillType*(colour: Colour): FillType {.header: juce_graphics, importcpp:
 proc makeFillType*(gradient: ColourGradient): FillType {.header: juce_graphics, importcpp: "juce::FillType(@)".}
 proc makeFillType*(image: Image, transform: AffineTransform): FillType {.header: juce_graphics, importcpp: "juce::FillType(@)".}
 proc colour*(this: FillType): Colour {.header: juce_graphics, importcpp: "#.colour".}
+proc colour*(this: var FillType): var Colour {.header: juce_graphics, importcpp: "#.colour".}
 proc `colour=`*(this: var FillType, value: Colour) {.header: juce_graphics, importcpp: "#.colour = #".}
 proc gradient*(this: FillType): UniquePtr[ColourGradient] {.header: juce_graphics, importcpp: "#.gradient".}
+proc gradient*(this: var FillType): var UniquePtr[ColourGradient] {.header: juce_graphics, importcpp: "#.gradient".}
 proc `gradient=`*(this: var FillType, value: UniquePtr[ColourGradient]) {.header: juce_graphics, importcpp: "#.gradient = #".}
 proc image*(this: FillType): Image {.header: juce_graphics, importcpp: "#.image".}
+proc image*(this: var FillType): var Image {.header: juce_graphics, importcpp: "#.image".}
 proc `image=`*(this: var FillType, value: Image) {.header: juce_graphics, importcpp: "#.image = #".}
 proc transform*(this: FillType): AffineTransform {.header: juce_graphics, importcpp: "#.transform".}
+proc transform*(this: var FillType): var AffineTransform {.header: juce_graphics, importcpp: "#.transform".}
 proc `transform=`*(this: var FillType, value: AffineTransform) {.header: juce_graphics, importcpp: "#.transform = #".}
 proc `FillType=`*(this: var FillType, arg1: FillType): var FillType {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc isColour*(this: FillType): bool {.header: juce_graphics, importcpp: "#.isColour()".}
@@ -831,8 +867,10 @@ proc makeFontFeatureSetting*(featureTag: FontFeatureTag, featureValue: uint32): 
 proc featureEnabled*(this: typedesc[FontFeatureSetting]): cint {.header: juce_graphics, importcpp: "(juce::FontFeatureSetting::featureEnabled)".}
 proc featureDisabled*(this: typedesc[FontFeatureSetting]): cint {.header: juce_graphics, importcpp: "(juce::FontFeatureSetting::featureDisabled)".}
 proc tag*(this: FontFeatureSetting): FontFeatureTag {.header: juce_graphics, importcpp: "#.tag".}
+proc tag*(this: var FontFeatureSetting): var FontFeatureTag {.header: juce_graphics, importcpp: "#.tag".}
 proc `tag=`*(this: var FontFeatureSetting, value: FontFeatureTag) {.header: juce_graphics, importcpp: "#.tag = #".}
 proc value*(this: FontFeatureSetting): uint32 {.header: juce_graphics, importcpp: "#.value".}
+proc value*(this: var FontFeatureSetting): var uint32 {.header: juce_graphics, importcpp: "#.value".}
 proc `value=`*(this: var FontFeatureSetting, value: uint32) {.header: juce_graphics, importcpp: "#.value = #".}
 proc `<`*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator<(@)".}
 proc `<=`*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator<=(@)".}
@@ -842,24 +880,31 @@ proc `==`*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: 
 # proc operator!=*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 
 proc clip*(this: ColourLayer): EdgeTable {.header: juce_graphics, importcpp: "#.clip".}
+proc clip*(this: var ColourLayer): var EdgeTable {.header: juce_graphics, importcpp: "#.clip".}
 proc `clip=`*(this: var ColourLayer, value: EdgeTable) {.header: juce_graphics, importcpp: "#.clip = #".}
 proc colour*(this: ColourLayer): CppOptional[Colour] {.header: juce_graphics, importcpp: "#.colour".}
+proc colour*(this: var ColourLayer): var CppOptional[Colour] {.header: juce_graphics, importcpp: "#.colour".}
 proc `colour=`*(this: var ColourLayer, value: CppOptional[Colour]) {.header: juce_graphics, importcpp: "#.colour = #".}
 proc `==`*(this: ColourLayer, other: ColourLayer): bool {.error: "juce::ColourLayer defines no operator==; compare a property instead".}
 
 proc image*(this: ImageLayer): Image {.header: juce_graphics, importcpp: "#.image".}
+proc image*(this: var ImageLayer): var Image {.header: juce_graphics, importcpp: "#.image".}
 proc `image=`*(this: var ImageLayer, value: Image) {.header: juce_graphics, importcpp: "#.image = #".}
 proc transform*(this: ImageLayer): AffineTransform {.header: juce_graphics, importcpp: "#.transform".}
+proc transform*(this: var ImageLayer): var AffineTransform {.header: juce_graphics, importcpp: "#.transform".}
 proc `transform=`*(this: var ImageLayer, value: AffineTransform) {.header: juce_graphics, importcpp: "#.transform = #".}
 proc `==`*(this: ImageLayer, other: ImageLayer): bool {.error: "juce::ImageLayer defines no operator==; compare a property instead".}
 
 # proc layer*(this: GlyphLayer): std::variant<ColourLayer, ImageLayer> {.header: juce_graphics, importcpp: "#.layer".}  # a type that cannot be spelled in Nim
+# proc layer*(this: var GlyphLayer): var std::variant<ColourLayer, ImageLayer> {.header: juce_graphics, importcpp: "#.layer".}  # a type that cannot be spelled in Nim
 # proc `layer=`*(this: var GlyphLayer, value: std::variant<ColourLayer, ImageLayer>) {.header: juce_graphics, importcpp: "#.layer = #".}  # a type that cannot be spelled in Nim
 proc `==`*(this: GlyphLayer, other: GlyphLayer): bool {.error: "juce::GlyphLayer defines no operator==; compare a property instead".}
 
 proc ascent*(this: TypefaceMetrics): cfloat {.header: juce_graphics, importcpp: "#.ascent".}
+proc ascent*(this: var TypefaceMetrics): var cfloat {.header: juce_graphics, importcpp: "#.ascent".}
 proc `ascent=`*(this: var TypefaceMetrics, value: cfloat) {.header: juce_graphics, importcpp: "#.ascent = #".}
 proc heightToPoints*(this: TypefaceMetrics): cfloat {.header: juce_graphics, importcpp: "#.heightToPoints".}
+proc heightToPoints*(this: var TypefaceMetrics): var cfloat {.header: juce_graphics, importcpp: "#.heightToPoints".}
 proc `heightToPoints=`*(this: var TypefaceMetrics, value: cfloat) {.header: juce_graphics, importcpp: "#.heightToPoints = #".}
 proc `==`*(this: TypefaceMetrics, other: TypefaceMetrics): bool {.error: "juce::TypefaceMetrics defines no operator==; compare a property instead".}
 
@@ -1037,10 +1082,13 @@ proc `==`*(this: AttributedString, other: AttributedString): bool {.error: "juce
 proc makeAttributedStringAttribute*(): AttributedStringAttribute {.header: juce_graphics, importcpp: "juce::AttributedString::Attribute(@)".}
 proc makeAttributedStringAttribute*(range: Range[cint], font: Font, colour: Colour): AttributedStringAttribute {.header: juce_graphics, importcpp: "juce::AttributedString::Attribute(@)".}
 proc range*(this: AttributedStringAttribute): Range[cint] {.header: juce_graphics, importcpp: "#.range".}
+proc range*(this: var AttributedStringAttribute): var Range[cint] {.header: juce_graphics, importcpp: "#.range".}
 proc `range=`*(this: var AttributedStringAttribute, value: Range[cint]) {.header: juce_graphics, importcpp: "#.range = #".}
 proc font*(this: AttributedStringAttribute): Font {.header: juce_graphics, importcpp: "#.font".}
+proc font*(this: var AttributedStringAttribute): var Font {.header: juce_graphics, importcpp: "#.font".}
 proc `font=`*(this: var AttributedStringAttribute, value: Font) {.header: juce_graphics, importcpp: "#.font = #".}
 proc colour*(this: AttributedStringAttribute): Colour {.header: juce_graphics, importcpp: "#.colour".}
+proc colour*(this: var AttributedStringAttribute): var Colour {.header: juce_graphics, importcpp: "#.colour".}
 proc `colour=`*(this: var AttributedStringAttribute, value: Colour) {.header: juce_graphics, importcpp: "#.colour = #".}
 proc `AttributedStringAttribute=`*(this: var AttributedStringAttribute, arg1: AttributedStringAttribute): var AttributedStringAttribute {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc `AttributedStringAttribute=`*(this: var AttributedStringAttribute, arg1: var AttributedStringAttribute): var AttributedStringAttribute {.header: juce_graphics, importcpp: "#.operator=(@)".}
@@ -1119,22 +1167,29 @@ proc `==`*(this: TextLayout, other: TextLayout): bool {.error: "juce::TextLayout
 
 proc makeTextLayoutGlyph*(glyphCode: cint, anchor: Point[cfloat], width: cfloat): TextLayoutGlyph {.header: juce_graphics, importcpp: "juce::TextLayout::Glyph(@)".}
 proc glyphCode*(this: TextLayoutGlyph): cint {.header: juce_graphics, importcpp: "#.glyphCode".}
+proc glyphCode*(this: var TextLayoutGlyph): var cint {.header: juce_graphics, importcpp: "#.glyphCode".}
 proc `glyphCode=`*(this: var TextLayoutGlyph, value: cint) {.header: juce_graphics, importcpp: "#.glyphCode = #".}
 proc anchor*(this: TextLayoutGlyph): Point[cfloat] {.header: juce_graphics, importcpp: "#.anchor".}
+proc anchor*(this: var TextLayoutGlyph): var Point[cfloat] {.header: juce_graphics, importcpp: "#.anchor".}
 proc `anchor=`*(this: var TextLayoutGlyph, value: Point[cfloat]) {.header: juce_graphics, importcpp: "#.anchor = #".}
 proc width*(this: TextLayoutGlyph): cfloat {.header: juce_graphics, importcpp: "#.width".}
+proc width*(this: var TextLayoutGlyph): var cfloat {.header: juce_graphics, importcpp: "#.width".}
 proc `width=`*(this: var TextLayoutGlyph, value: cfloat) {.header: juce_graphics, importcpp: "#.width = #".}
 proc `==`*(this: TextLayoutGlyph, other: TextLayoutGlyph): bool {.error: "juce::TextLayout::Glyph defines no operator==; compare a property instead".}
 
 proc makeTextLayoutRun*(): TextLayoutRun {.header: juce_graphics, importcpp: "juce::TextLayout::Run(@)".}
 proc makeTextLayoutRun*(stringRange: Range[cint], numGlyphsToPreallocate: cint): TextLayoutRun {.header: juce_graphics, importcpp: "juce::TextLayout::Run(@)".}
 proc font*(this: TextLayoutRun): Font {.header: juce_graphics, importcpp: "#.font".}
+proc font*(this: var TextLayoutRun): var Font {.header: juce_graphics, importcpp: "#.font".}
 proc `font=`*(this: var TextLayoutRun, value: Font) {.header: juce_graphics, importcpp: "#.font = #".}
 proc colour*(this: TextLayoutRun): Colour {.header: juce_graphics, importcpp: "#.colour".}
+proc colour*(this: var TextLayoutRun): var Colour {.header: juce_graphics, importcpp: "#.colour".}
 proc `colour=`*(this: var TextLayoutRun, value: Colour) {.header: juce_graphics, importcpp: "#.colour = #".}
 proc glyphs*(this: TextLayoutRun): Array[TextLayoutGlyph] {.header: juce_graphics, importcpp: "#.glyphs".}
+proc glyphs*(this: var TextLayoutRun): var Array[TextLayoutGlyph] {.header: juce_graphics, importcpp: "#.glyphs".}
 proc `glyphs=`*(this: var TextLayoutRun, value: Array[TextLayoutGlyph]) {.header: juce_graphics, importcpp: "#.glyphs = #".}
 proc stringRange*(this: TextLayoutRun): Range[cint] {.header: juce_graphics, importcpp: "#.stringRange".}
+proc stringRange*(this: var TextLayoutRun): var Range[cint] {.header: juce_graphics, importcpp: "#.stringRange".}
 proc `stringRange=`*(this: var TextLayoutRun, value: Range[cint]) {.header: juce_graphics, importcpp: "#.stringRange = #".}
 proc getRunBoundsX*(this: TextLayoutRun): Range[cfloat] {.header: juce_graphics, importcpp: "#.getRunBoundsX()".}
 proc `==`*(this: TextLayoutRun, other: TextLayoutRun): bool {.error: "juce::TextLayout::Run defines no operator==; compare a property instead".}
@@ -1142,16 +1197,22 @@ proc `==`*(this: TextLayoutRun, other: TextLayoutRun): bool {.error: "juce::Text
 proc makeTextLayoutLine*(): TextLayoutLine {.header: juce_graphics, importcpp: "juce::TextLayout::Line(@)".}
 proc makeTextLayoutLine*(stringRange: Range[cint], lineOrigin: Point[cfloat], ascent: cfloat, descent: cfloat, leading: cfloat, numRunsToPreallocate: cint): TextLayoutLine {.header: juce_graphics, importcpp: "juce::TextLayout::Line(@)".}
 proc runs*(this: TextLayoutLine): OwnedArray[TextLayoutRun] {.header: juce_graphics, importcpp: "#.runs".}
+proc runs*(this: var TextLayoutLine): var OwnedArray[TextLayoutRun] {.header: juce_graphics, importcpp: "#.runs".}
 proc `runs=`*(this: var TextLayoutLine, value: OwnedArray[TextLayoutRun]) {.header: juce_graphics, importcpp: "#.runs = #".}
 proc stringRange*(this: TextLayoutLine): Range[cint] {.header: juce_graphics, importcpp: "#.stringRange".}
+proc stringRange*(this: var TextLayoutLine): var Range[cint] {.header: juce_graphics, importcpp: "#.stringRange".}
 proc `stringRange=`*(this: var TextLayoutLine, value: Range[cint]) {.header: juce_graphics, importcpp: "#.stringRange = #".}
 proc lineOrigin*(this: TextLayoutLine): Point[cfloat] {.header: juce_graphics, importcpp: "#.lineOrigin".}
+proc lineOrigin*(this: var TextLayoutLine): var Point[cfloat] {.header: juce_graphics, importcpp: "#.lineOrigin".}
 proc `lineOrigin=`*(this: var TextLayoutLine, value: Point[cfloat]) {.header: juce_graphics, importcpp: "#.lineOrigin = #".}
 proc ascent*(this: TextLayoutLine): cfloat {.header: juce_graphics, importcpp: "#.ascent".}
+proc ascent*(this: var TextLayoutLine): var cfloat {.header: juce_graphics, importcpp: "#.ascent".}
 proc `ascent=`*(this: var TextLayoutLine, value: cfloat) {.header: juce_graphics, importcpp: "#.ascent = #".}
 proc descent*(this: TextLayoutLine): cfloat {.header: juce_graphics, importcpp: "#.descent".}
+proc descent*(this: var TextLayoutLine): var cfloat {.header: juce_graphics, importcpp: "#.descent".}
 proc `descent=`*(this: var TextLayoutLine, value: cfloat) {.header: juce_graphics, importcpp: "#.descent = #".}
 proc leading*(this: TextLayoutLine): cfloat {.header: juce_graphics, importcpp: "#.leading".}
+proc leading*(this: var TextLayoutLine): var cfloat {.header: juce_graphics, importcpp: "#.leading".}
 proc `leading=`*(this: var TextLayoutLine, value: cfloat) {.header: juce_graphics, importcpp: "#.leading = #".}
 proc `TextLayoutLine=`*(this: var TextLayoutLine, arg1: TextLayoutLine): var TextLayoutLine {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc `TextLayoutLine=`*(this: var TextLayoutLine, arg1: var TextLayoutLine): var TextLayoutLine {.header: juce_graphics, importcpp: "#.operator=(@)".}
@@ -1249,10 +1310,13 @@ proc `==`*(this: ImageEffectFilter, other: ImageEffectFilter): bool {.error: "ju
 proc makeDropShadow*(): DropShadow {.header: juce_graphics, importcpp: "juce::DropShadow(@)".}
 proc makeDropShadow*(shadowColour: Colour, radius: cint, offset: Point[cint]): DropShadow {.header: juce_graphics, importcpp: "juce::DropShadow(@)".}
 proc colour*(this: DropShadow): Colour {.header: juce_graphics, importcpp: "#.colour".}
+proc colour*(this: var DropShadow): var Colour {.header: juce_graphics, importcpp: "#.colour".}
 proc `colour=`*(this: var DropShadow, value: Colour) {.header: juce_graphics, importcpp: "#.colour = #".}
 proc radius*(this: DropShadow): cint {.header: juce_graphics, importcpp: "#.radius".}
+proc radius*(this: var DropShadow): var cint {.header: juce_graphics, importcpp: "#.radius".}
 proc `radius=`*(this: var DropShadow, value: cint) {.header: juce_graphics, importcpp: "#.radius = #".}
 proc offset*(this: DropShadow): Point[cint] {.header: juce_graphics, importcpp: "#.offset".}
+proc offset*(this: var DropShadow): var Point[cint] {.header: juce_graphics, importcpp: "#.offset".}
 proc `offset=`*(this: var DropShadow, value: Point[cint]) {.header: juce_graphics, importcpp: "#.offset = #".}
 proc drawForImage*(this: DropShadow, g: var Graphics, srcImage: Image) {.header: juce_graphics, importcpp: "#.drawForImage(@)".}
 proc drawForPath*(this: DropShadow, g: var Graphics, path: Path) {.header: juce_graphics, importcpp: "#.drawForPath(@)".}
