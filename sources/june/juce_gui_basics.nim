@@ -99,6 +99,7 @@ type
   AccessibilityTextInterface* {.header: juce_gui_basics, importcpp: "juce::AccessibilityTextInterface", inheritable, pure.} = object
   AccessibilityValueInterface* {.header: juce_gui_basics, importcpp: "juce::AccessibilityValueInterface", inheritable, pure.} = object
   AccessibilityValueInterfaceAccessibleValueRange* {.header: juce_gui_basics, importcpp: "juce::AccessibilityValueInterface::AccessibleValueRange", inheritable, pure.} = object
+  AccessibilityValueInterfaceAccessibleValueRangeMinAndMax* {.header: juce_gui_basics, importcpp: "juce::AccessibilityValueInterface::AccessibleValueRange::MinAndMax", inheritable, pure.} = object
   AccessibilityTextValueInterface* {.header: juce_gui_basics, importcpp: "juce::AccessibilityTextValueInterface", inheritable, pure.} = object of AccessibilityValueInterface
   AccessibilityNumericValueInterface* {.header: juce_gui_basics, importcpp: "juce::AccessibilityNumericValueInterface", inheritable, pure.} = object of AccessibilityValueInterface
   AccessibilityRangedNumericValueInterface* {.header: juce_gui_basics, importcpp: "juce::AccessibilityRangedNumericValueInterface", inheritable, pure.} = object of AccessibilityValueInterface
@@ -2030,12 +2031,14 @@ proc getRange*(this: AccessibilityValueInterface): AccessibilityValueInterfaceAc
 proc `==`*(this: AccessibilityValueInterface, other: AccessibilityValueInterface): bool {.error: "juce::AccessibilityValueInterface defines no operator==; compare a property instead".}
 
 proc makeAccessibilityValueInterfaceAccessibleValueRange*(): AccessibilityValueInterfaceAccessibleValueRange {.header: juce_gui_basics, importcpp: "juce::AccessibilityValueInterface::AccessibleValueRange(@)".}
-# proc makeAccessibilityValueInterfaceAccessibleValueRange*(valueRange: MinAndMax, interval: float64): AccessibilityValueInterfaceAccessibleValueRange {.header: juce_gui_basics, importcpp: "juce::AccessibilityValueInterface::AccessibleValueRange(@)".}  # a type that cannot be spelled in Nim
+proc makeAccessibilityValueInterfaceAccessibleValueRange*(valueRange: AccessibilityValueInterfaceAccessibleValueRangeMinAndMax, interval: float64): AccessibilityValueInterfaceAccessibleValueRange {.header: juce_gui_basics, importcpp: "juce::AccessibilityValueInterface::AccessibleValueRange(@)".}
 proc isValid*(this: AccessibilityValueInterfaceAccessibleValueRange): bool {.header: juce_gui_basics, importcpp: "#.isValid()".}
 proc getMinimumValue*(this: AccessibilityValueInterfaceAccessibleValueRange): float64 {.header: juce_gui_basics, importcpp: "#.getMinimumValue()".}
 proc getMaximumValue*(this: AccessibilityValueInterfaceAccessibleValueRange): float64 {.header: juce_gui_basics, importcpp: "#.getMaximumValue()".}
 proc getInterval*(this: AccessibilityValueInterfaceAccessibleValueRange): float64 {.header: juce_gui_basics, importcpp: "#.getInterval()".}
 proc `==`*(this: AccessibilityValueInterfaceAccessibleValueRange, other: AccessibilityValueInterfaceAccessibleValueRange): bool {.error: "juce::AccessibilityValueInterface::AccessibleValueRange defines no operator==; compare a property instead".}
+
+proc `==`*(this: AccessibilityValueInterfaceAccessibleValueRangeMinAndMax, other: AccessibilityValueInterfaceAccessibleValueRangeMinAndMax): bool {.error: "juce::AccessibilityValueInterface::AccessibleValueRange::MinAndMax defines no operator==; compare a property instead".}
 
 proc isReadOnly*(this: AccessibilityTextValueInterface): bool {.header: juce_gui_basics, importcpp: "#.isReadOnly()".}
 proc getCurrentValueAsString*(this: AccessibilityTextValueInterface): String {.header: juce_gui_basics, importcpp: "#.getCurrentValueAsString()".}
@@ -2435,7 +2438,7 @@ proc `==`*(this: RelativeCoordinatePositionerBase, other: RelativeCoordinatePosi
 
 proc makeRelativeCoordinatePositionerBaseComponentScope*(arg1: var Component): RelativeCoordinatePositionerBaseComponentScope {.header: juce_gui_basics, importcpp: "juce::RelativeCoordinatePositionerBase::ComponentScope(@)".}
 proc getSymbolValue*(this: RelativeCoordinatePositionerBaseComponentScope, symbol: String): Expression {.header: juce_gui_basics, importcpp: "#.getSymbolValue(@)".}
-# proc visitRelativeScope*(this: RelativeCoordinatePositionerBaseComponentScope, scopeName: String, arg2: var Visitor) {.header: juce_gui_basics, importcpp: "#.visitRelativeScope(@)".}  # a type that cannot be spelled in Nim
+proc visitRelativeScope*(this: RelativeCoordinatePositionerBaseComponentScope, scopeName: String, arg2: var ExpressionScopeVisitor) {.header: juce_gui_basics, importcpp: "#.visitRelativeScope(@)".}
 proc getScopeUID*(this: RelativeCoordinatePositionerBaseComponentScope): String {.header: juce_gui_basics, importcpp: "#.getScopeUID()".}
 proc `==`*(this: RelativeCoordinatePositionerBaseComponentScope, other: RelativeCoordinatePositionerBaseComponentScope): bool {.error: "juce::RelativeCoordinatePositionerBase::ComponentScope defines no operator==; compare a property instead".}
 
@@ -4415,7 +4418,7 @@ proc `==`*(this: Grid, other: Grid): bool {.error: "juce::Grid defines no operat
 
 proc makeGridPx*(p: cfloat): GridPx {.header: juce_gui_basics, importcpp: "juce::Grid::Px(@)".}
 proc makeGridPx*(p: cint): GridPx {.header: juce_gui_basics, importcpp: "juce::Grid::Px(@)".}
-# proc makeGridPx*(p: long double): GridPx {.header: juce_gui_basics, importcpp: "juce::Grid::Px(@)".}  # a type that cannot be spelled in Nim
+# proc makeGridPx*(p: long double): GridPx {.header: juce_gui_basics, importcpp: "juce::Grid::Px(@)".}  # a long double parameter, which Nim has no type for; the other overloads take a float or an int
 proc makeGridPx*(p: uint64): GridPx {.header: juce_gui_basics, importcpp: "juce::Grid::Px(@)".}
 proc `==`*(this: GridPx, other: GridPx): bool {.error: "juce::Grid::Px defines no operator==; compare a property instead".}
 

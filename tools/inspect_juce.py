@@ -518,11 +518,33 @@ def unbound_type_reason(rendered):
     if "initializer_list" in rendered:
         return ("a std::initializer_list parameter, which Nim cannot spell; "
                 "build the value with the incremental API instead")
+    if "long double" in rendered:
+        return ("a long double parameter, which Nim has no type for; the other "
+                "overloads take a float or an int")
     if "detail::" in rendered:
         return ("takes a type from juce::detail, which is JUCE's own "
                 "implementation; the class is obtained from the API that "
                 "creates it")
     return "a type that cannot be spelled in Nim"
+
+def nested_class_descendants(cursor, nim_prefix, cpp_prefix):
+    """Every public class nested under a cursor, at any depth.
+
+    A nested class can itself hold one - Expression::Scope::Visitor is three
+    deep - and stopping at the first level left those with no Nim spelling and
+    no methods. Each is yielded with the concatenated Nim name its type carries
+    and the full C++ path to name it by.
+    """
+    for child in cursor.get_children():
+        if (child.kind not in (CursorKind.CLASS_DECL, CursorKind.STRUCT_DECL)
+                or child.access_specifier != AccessSpecifier.PUBLIC
+                or not child.spelling):
+            continue
+        nim_name = f"{nim_prefix}{child.spelling}"
+        cpp_name = f"{cpp_prefix}::{child.spelling}"
+        yield child, nim_name, cpp_name
+        yield from nested_class_descendants(child, nim_name, cpp_name)
+
 
 def is_anonymous_enum(cursor):
     """libclang names an anonymous enum "(unnamed enum at path:line:col)"."""
@@ -928,14 +950,14 @@ def run_main(juce_module_name, juce_class_name_to_export):
             "export": "*" if class_is_exported(c.spelling) else "",
             "base": f" of {base}" if base else "" }))
 
-        for ic in class_inner[c.spelling]:
-            inner_name = f"{remap_class_name(c.spelling)}{ic.spelling}"
+        for _, inner_name, inner_path in nested_class_descendants(
+                c, remap_class_name(c.spelling), f"juce::{c.spelling}"):
             if inner_name in emitted_types:
                 continue
             emitted_types.add(inner_name)
             all_class_decls.append(nim_class_def.format(**{
                 "class_name": inner_name,
-                "spelling": f"juce::{c.spelling}::{ic.spelling}",
+                "spelling": inner_path,
                 "juce_module_name": juce_module_name,
                 "export": "*",
                 "base": "" }))
@@ -1005,8 +1027,9 @@ def run_main(juce_module_name, juce_class_name_to_export):
 
     for c in all_classes:
         declared_type_names.add(remap_exported_class_name(c.spelling))
-        for ic in class_inner[c.spelling]:
-            declared_type_names.add(f"{remap_class_name(c.spelling)}{ic.spelling}")
+        for _, inner_name, _ in nested_class_descendants(
+                c, remap_class_name(c.spelling), f"juce::{c.spelling}"):
+            declared_type_names.add(inner_name)
 
     # Enums from every module in the translation unit, not only this one. They
     # are declared by whichever module owns them and june.nim includes them all,
@@ -1027,8 +1050,9 @@ def run_main(juce_module_name, juce_class_name_to_export):
     # class resolves to that class's, and nothing is matched by spelling alone -
     # several classes have an Options, and a bare-name table would have to guess.
     for c in class_map.values():
-        for ic in class_inner.get(c.spelling, []):
-            global_nested_remap[f"juce::{c.spelling}::{ic.spelling}"] = f"{remap_class_name(c.spelling)}{ic.spelling}"
+        for _, inner_name, inner_path in nested_class_descendants(
+                c, remap_class_name(c.spelling), f"juce::{c.spelling}"):
+            global_nested_remap[inner_path] = inner_name
         for node in c.get_children():
             if (node.kind == CursorKind.ENUM_DECL and not is_anonymous_enum(node)
                     and node.access_specifier == AccessSpecifier.PUBLIC):
@@ -1057,12 +1081,11 @@ def run_main(juce_module_name, juce_class_name_to_export):
     top_level_names = {remap_exported_class_name(x.spelling) for x in all_classes}
     for c in module_classes:
         emission_targets.append((c, remap_exported_class_name(c.spelling), f"juce::{c.spelling}"))
-        for ic in class_inner.get(c.spelling, []):
-            inner_name = f"{remap_class_name(c.spelling)}{ic.spelling}"
+        for ic, inner_name, inner_path in nested_class_descendants(
+                c, remap_class_name(c.spelling), f"juce::{c.spelling}"):
             if inner_name in top_level_names:
                 continue
-            emission_targets.append(
-                (ic, inner_name, f"juce::{c.spelling}::{ic.spelling}"))
+            emission_targets.append((ic, inner_name, inner_path))
 
     for c, class_name, qualified_name in emission_targets:
         if juce_class_name_to_export is not None and c.spelling != juce_class_name_to_export:

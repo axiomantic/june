@@ -87,6 +87,7 @@ type
   BigInteger* {.header: juce_core, importcpp: "juce::BigInteger", inheritable, pure.} = object
   Expression* {.header: juce_core, importcpp: "juce::Expression", inheritable, pure.} = object
   ExpressionScope* {.header: juce_core, importcpp: "juce::Expression::Scope", inheritable, pure.} = object
+  ExpressionScopeVisitor* {.header: juce_core, importcpp: "juce::Expression::Scope::Visitor", inheritable, pure.} = object
   ExpressionSymbol* {.header: juce_core, importcpp: "juce::Expression::Symbol", inheritable, pure.} = object
   Random* {.header: juce_core, importcpp: "juce::Random", inheritable, pure.} = object
   RuntimePermissions* {.header: juce_core, importcpp: "juce::RuntimePermissions", inheritable, pure.} = object
@@ -1577,8 +1578,11 @@ proc makeExpressionScope*(): ExpressionScope {.header: juce_core, importcpp: "ju
 proc getScopeUID*(this: ExpressionScope): String {.header: juce_core, importcpp: "#.getScopeUID()".}
 proc getSymbolValue*(this: ExpressionScope, symbol: String): Expression {.header: juce_core, importcpp: "#.getSymbolValue(@)".}
 proc evaluateFunction*(this: ExpressionScope, functionName: String, parameters: ptr float64, numParameters: cint): float64 {.header: juce_core, importcpp: "#.evaluateFunction(@)".}
-# proc visitRelativeScope*(this: ExpressionScope, scopeName: String, visitor: var Visitor) {.header: juce_core, importcpp: "#.visitRelativeScope(@)".}  # a type that cannot be spelled in Nim
+proc visitRelativeScope*(this: ExpressionScope, scopeName: String, visitor: var ExpressionScopeVisitor) {.header: juce_core, importcpp: "#.visitRelativeScope(@)".}
 proc `==`*(this: ExpressionScope, other: ExpressionScope): bool {.error: "juce::Expression::Scope defines no operator==; compare a property instead".}
+
+proc visit*(this: var ExpressionScopeVisitor, arg1: ExpressionScope) {.header: juce_core, importcpp: "#.visit(@)".}
+proc `==`*(this: ExpressionScopeVisitor, other: ExpressionScopeVisitor): bool {.error: "juce::Expression::Scope::Visitor defines no operator==; compare a property instead".}
 
 proc makeExpressionSymbol*(scopeUID: String, symbolName: String): ExpressionSymbol {.header: juce_core, importcpp: "juce::Expression::Symbol(@)".}
 proc `==`*(this: ExpressionSymbol, arg1: ExpressionSymbol): bool {.header: juce_core, importcpp: "#.operator==(@)".}
