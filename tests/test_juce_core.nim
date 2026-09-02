@@ -747,3 +747,29 @@ proc testComparisonOperators() =
   doAssert small == small, "Rectangle == on itself"
 
 testComparisonOperators()
+
+# String operators ============================================================
+#
+# String is the type three converters feed - from a Nim string, and on to
+# StringRef both ways - so it is where an overload set is most likely to become
+# ambiguous. That is what went wrong with <=. Every operator bound for String
+# is exercised here with a String on the right and again with a literal.
+
+proc testStringOperators() =
+  let a = makeString("aa")
+  let b = makeString("bb")
+
+  doAssert $(a + b) == "aabb", "String + String gave " & $(a + b)
+  doAssert $(a + "lit") == "aalit", "String + literal gave " & $(a + "lit")
+
+  var appended = makeString("mm")
+  appended += b
+  doAssert $appended == "mmbb", "String += String gave " & $appended
+  appended += "lit"
+  doAssert $appended == "mmbblit", "String += literal gave " & $appended
+
+  doAssert a[0.cint] == uint16('a'), "String [] gave " & $a[0.cint]
+  doAssert a == makeString("aa"), "String == String"
+  doAssert a == "aa", "String == literal"
+
+testStringOperators()
