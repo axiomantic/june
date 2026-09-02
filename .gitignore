@@ -24,3 +24,4 @@ tests/test_juce_gui_basics
 examples/custom_component
 examples/rotary_panel
 examples/test_app
+.venv/
