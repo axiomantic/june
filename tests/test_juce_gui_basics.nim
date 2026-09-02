@@ -1584,3 +1584,40 @@ proc testPropertyPanel() =
 
 testDialogWindowLaunchOptions()
 testPropertyPanel()
+
+# LookAndFeel_V1 =============================================================
+#
+# The oldest look and feel, checked at the pixels like the other two.
+#
+# MultiDocumentPanel would belong here too, but it is abstract and is one of the
+# five classes tools/generate_subclasses.py withholds: tryToCloseDocumentAsync
+# takes a std::function<void (bool)>, which has no Nim spelling. With no
+# CustomMultiDocumentPanel to build, there is nothing a test can construct.
+
+proc testLookAndFeelV1Draws() =
+    initialiseJuce_GUI()
+
+    block:
+        var feel = makeLookAndFeel_V1()
+        var owner = newCustomComponent()
+        owner[].setBounds(makeRectangle(0.cint, 0.cint, 60.cint, 20.cint))
+
+        let image = makeImage(ImagePixelFormat_ARGB, 60.cint, 20.cint, true)
+        var context = makeGraphics(image)
+
+        # drawTickBox takes its area as four numbers, so it can be given the
+        # left third and checked for staying there.
+        feel.drawTickBox(context, cast[ptr Component](owner)[],
+                         0.0'f32, 0.0'f32, 20.0'f32, 20.0'f32,
+                         true, true, false, false)
+
+        doAssert image.getPixelAt(10.cint, 10.cint).getAlpha() > 0,
+                 "the tick box left its own area transparent"
+        doAssert image.getPixelAt(50.cint, 10.cint).getAlpha() == 0,
+                 "the tick box drew outside the area it was given"
+
+        cdelete owner
+
+    shutdownJuce_GUI()
+
+testLookAndFeelV1Draws()

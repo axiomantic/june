@@ -810,7 +810,7 @@ proc needsBackup*(this: ImagePixelDataBackupExtensions): bool {.header: juce_gra
 proc canBackup*(this: ImagePixelDataBackupExtensions): bool {.header: juce_graphics, importcpp: "#.canBackup()".}
 proc `==`*(this: ImagePixelDataBackupExtensions, other: ImagePixelDataBackupExtensions): bool {.error: "juce::ImagePixelDataBackupExtensions defines no operator==; compare a property instead".}
 
-proc makeImagePixelData*(arg1: ImagePixelFormat, width: cint, height: cint): ImagePixelData {.header: juce_graphics, importcpp: "juce::ImagePixelData(@)".}
+# proc makeImagePixelData*(arg1: ImagePixelFormat, width: cint, height: cint): ImagePixelData {.header: juce_graphics, importcpp: "juce::ImagePixelData(@)".}  # ImagePixelData is abstract; build a CustomImagePixelData instead
 proc pixelFormat*(this: ImagePixelData): ImagePixelFormat {.header: juce_graphics, importcpp: "#.pixelFormat".}
 proc width*(this: ImagePixelData): cint {.header: juce_graphics, importcpp: "#.width".}
 proc height*(this: ImagePixelData): cint {.header: juce_graphics, importcpp: "#.height".}
@@ -844,7 +844,7 @@ proc imageDataChanged*(this: var ImagePixelDataListener, arg1: ptr ImagePixelDat
 proc imageDataBeingDeleted*(this: var ImagePixelDataListener, arg1: ptr ImagePixelData) {.header: juce_graphics, importcpp: "#.imageDataBeingDeleted(@)".}
 proc `==`*(this: ImagePixelDataListener, other: ImagePixelDataListener): bool {.error: "juce::ImagePixelData::Listener defines no operator==; compare a property instead".}
 
-proc makeImageType*(): ImageType {.header: juce_graphics, importcpp: "juce::ImageType(@)".}
+# proc makeImageType*(): ImageType {.header: juce_graphics, importcpp: "juce::ImageType(@)".}  # ImageType is abstract; build a CustomImageType instead
 proc create*(this: ImageType, arg1: ImagePixelFormat, width: cint, height: cint, shouldClearImage: bool): ReferenceCountedObjectPtr[ImagePixelData] {.header: juce_graphics, importcpp: "#.create(@)".}
 proc getTypeID*(this: ImageType): cint {.header: juce_graphics, importcpp: "#.getTypeID()".}
 proc convert*(this: ImageType, source: Image): Image {.header: juce_graphics, importcpp: "#.convert(@)".}

@@ -78,11 +78,11 @@ proc addListener*(this: var Value, listener: ptr ValueListener) {.header: juce_d
 proc removeListener*(this: var Value, listener: ptr ValueListener) {.header: juce_data_structures, importcpp: "#.removeListener(@)".}
 proc getValueSource*(this: var Value): var ValueValueSource {.header: juce_data_structures, importcpp: "#.getValueSource()".}
 
-proc makeValueListener*(): ValueListener {.header: juce_data_structures, importcpp: "juce::Value::Listener(@)".}
+# proc makeValueListener*(): ValueListener {.header: juce_data_structures, importcpp: "juce::Value::Listener(@)".}  # ValueListener is abstract; build a CustomValueListener instead
 proc valueChanged*(this: var ValueListener, value: var Value) {.header: juce_data_structures, importcpp: "#.valueChanged(@)".}
 proc `==`*(this: ValueListener, other: ValueListener): bool {.error: "juce::Value::Listener defines no operator==; compare a property instead".}
 
-proc makeValueValueSource*(): ValueValueSource {.header: juce_data_structures, importcpp: "juce::Value::ValueSource(@)".}
+# proc makeValueValueSource*(): ValueValueSource {.header: juce_data_structures, importcpp: "juce::Value::ValueSource(@)".}  # ValueValueSource is abstract; build a CustomValueValueSource instead
 proc getValue*(this: ValueValueSource): juce_var {.header: juce_data_structures, importcpp: "#.getValue()".}
 proc setValue*(this: var ValueValueSource, newValue: juce_var) {.header: juce_data_structures, importcpp: "#.setValue(@)".}
 proc sendChangeMessage*(this: var ValueValueSource, dispatchSynchronously: bool) {.header: juce_data_structures, importcpp: "#.sendChangeMessage(@)".}
@@ -158,7 +158,7 @@ proc valueTreeParentChanged*(this: var ValueTreeListener, treeWhoseParentHasChan
 proc valueTreeRedirected*(this: var ValueTreeListener, treeWhichHasBeenChanged: var ValueTree) {.header: juce_data_structures, importcpp: "#.valueTreeRedirected(@)".}
 proc `==`*(this: ValueTreeListener, other: ValueTreeListener): bool {.error: "juce::ValueTree::Listener defines no operator==; compare a property instead".}
 
-proc makeValueTreeSynchroniser*(tree: ValueTree): ValueTreeSynchroniser {.header: juce_data_structures, importcpp: "juce::ValueTreeSynchroniser(@)".}
+# proc makeValueTreeSynchroniser*(tree: ValueTree): ValueTreeSynchroniser {.header: juce_data_structures, importcpp: "juce::ValueTreeSynchroniser(@)".}  # ValueTreeSynchroniser is abstract; build a CustomValueTreeSynchroniser instead
 proc stateChanged*(this: var ValueTreeSynchroniser, encodedChange: constPointer, encodedChangeSize: uint64) {.header: juce_data_structures, importcpp: "#.stateChanged(@)".}
 proc sendFullSyncCallback*(this: var ValueTreeSynchroniser) {.header: juce_data_structures, importcpp: "#.sendFullSyncCallback()".}
 proc applyChange*(this: typedesc[ValueTreeSynchroniser], target: var ValueTree, encodedChangeData: constPointer, encodedChangeDataSize: uint64, undoManager: ptr UndoManager): bool {.header: juce_data_structures, importcpp: "juce::ValueTreeSynchroniser::applyChange(@)".}
