@@ -1770,4 +1770,55 @@ proc testApplicationCommandManager() =
 
 testLookAndFeelV1Draws()
 testComponentBoundsConstrainer()
+# The primary display ==========================================================
+#
+# getPrimaryDisplay returns a const Displays::Display*, one of the pointers the
+# ConstPtr change made callable. The two platforms answer differently - macOS
+# reports one display, the headless Linux container reports none and a nil
+# primary - so the assertions tie the two answers to each other rather than to
+# any hardware: no displays means no primary, and a primary means it is one of
+# the displays and says so itself. Each platform takes one branch.
+
+proc testPrimaryDisplay() =
+    initialiseJuce_GUI()
+
+    block:
+        # Inline, not through a local: getInstance returns a var Desktop and
+        # Desktop is non-copyable, so binding it to a name copies and does not
+        # compile.
+        let displays = Desktop.getInstance().getDisplays()
+        let all = displays.displays()
+        let primary = displays.getPrimaryDisplay()
+
+        if all.size() == 0:
+            doAssert primary.isNil(),
+                     "there are no displays and yet one of them is primary"
+        else:
+            doAssert not primary.isNil(),
+                     "there are " & $all.size() & " displays and no primary"
+            doAssert primary[].isMain(),
+                     "the primary display does not report itself as the main one"
+            doAssert not primary[].totalArea().isEmpty(),
+                     "the primary display has an empty total area"
+            doAssert primary[].scale() > 0.0,
+                     "the primary display has a scale of " & $primary[].scale()
+
+            # Exactly one display is the main one.
+            var mains = 0
+            for display in all:
+                if display.isMain(): mains += 1
+            doAssert mains == 1,
+                     $mains & " of " & $all.size() & " displays are main"
+
+            # A point inside the primary display has to resolve back to a
+            # display, which is what getDisplayForPoint is for.
+            let centre = primary[].totalArea().getCentre()
+            let found = displays.getDisplayForPoint(centre)
+            doAssert not found.isNil(),
+                     "the centre of the primary display belongs to no display"
+
+    shutdownJuce_GUI()
+
+
 testApplicationCommandManager()
+testPrimaryDisplay()
