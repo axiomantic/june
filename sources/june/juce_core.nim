@@ -368,6 +368,7 @@ proc compareIgnoreCase*(this: typedesc[CharacterFunctions], char1: uint16, char2
 proc `==`*(this: CharacterFunctions, other: CharacterFunctions): bool {.error: "juce::CharacterFunctions defines no operator==; compare a property instead".}
 
 proc makeCharPointer_UTF8*(rawPointer: ptr char): CharPointer_UTF8 {.header: juce_core, importcpp: "juce::CharPointer_UTF8(@)".}
+proc toChar*(this: CharPointer_UTF8): ptr char {.header: juce_core, importcpp: "static_cast<const char *>(#)".}
 proc `CharPointer_UTF8=`*(this: var CharPointer_UTF8, other: CharPointer_UTF8): var CharPointer_UTF8 {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `CharPointer_UTF8=`*(this: var CharPointer_UTF8, text: ptr char): var CharPointer_UTF8 {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `==`*(this: CharPointer_UTF8, other: CharPointer_UTF8): bool {.header: juce_core, importcpp: "#.operator==(@)".}
@@ -420,6 +421,7 @@ proc atomicSwap*(this: var CharPointer_UTF8, newValue: CharPointer_UTF8): CharPo
 proc isByteOrderMark*(this: typedesc[CharPointer_UTF8], possibleByteOrder: constPointer): bool {.header: juce_core, importcpp: "juce::CharPointer_UTF8::isByteOrderMark(@)".}
 
 proc makeCharPointer_UTF16*(rawPointer: ptr int16): CharPointer_UTF16 {.header: juce_core, importcpp: "juce::CharPointer_UTF16(@)".}
+proc toInt16*(this: CharPointer_UTF16): ptr int16 {.header: juce_core, importcpp: "static_cast<const short *>(#)".}
 proc `CharPointer_UTF16=`*(this: var CharPointer_UTF16, other: CharPointer_UTF16): var CharPointer_UTF16 {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `CharPointer_UTF16=`*(this: var CharPointer_UTF16, text: ptr int16): var CharPointer_UTF16 {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `==`*(this: CharPointer_UTF16, other: CharPointer_UTF16): bool {.header: juce_core, importcpp: "#.operator==(@)".}
@@ -472,6 +474,7 @@ proc isByteOrderMarkBigEndian*(this: typedesc[CharPointer_UTF16], possibleByteOr
 proc isByteOrderMarkLittleEndian*(this: typedesc[CharPointer_UTF16], possibleByteOrder: constPointer): bool {.header: juce_core, importcpp: "juce::CharPointer_UTF16::isByteOrderMarkLittleEndian(@)".}
 
 proc makeCharPointer_UTF32*(rawPointer: ptr uint16): CharPointer_UTF32 {.header: juce_core, importcpp: "juce::CharPointer_UTF32(@)".}
+proc toUint16*(this: CharPointer_UTF32): ptr uint16 {.header: juce_core, importcpp: "static_cast<const wchar_t *>(#)".}
 proc `CharPointer_UTF32=`*(this: var CharPointer_UTF32, other: CharPointer_UTF32): var CharPointer_UTF32 {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `CharPointer_UTF32=`*(this: var CharPointer_UTF32, text: ptr uint16): var CharPointer_UTF32 {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `==`*(this: CharPointer_UTF32, other: CharPointer_UTF32): bool {.header: juce_core, importcpp: "#.operator==(@)".}
@@ -524,6 +527,7 @@ proc isValidString*(this: typedesc[CharPointer_UTF32], codeUnits: ptr uint16, ma
 proc atomicSwap*(this: var CharPointer_UTF32, newValue: CharPointer_UTF32): CharPointer_UTF32 {.header: juce_core, importcpp: "#.atomicSwap(@)".}
 
 proc makeCharPointer_ASCII*(rawPointer: ptr char): CharPointer_ASCII {.header: juce_core, importcpp: "juce::CharPointer_ASCII(@)".}
+proc toChar*(this: CharPointer_ASCII): ptr char {.header: juce_core, importcpp: "static_cast<const char *>(#)".}
 proc `CharPointer_ASCII=`*(this: var CharPointer_ASCII, other: CharPointer_ASCII): var CharPointer_ASCII {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `CharPointer_ASCII=`*(this: var CharPointer_ASCII, text: ptr char): var CharPointer_ASCII {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `==`*(this: CharPointer_ASCII, other: CharPointer_ASCII): bool {.header: juce_core, importcpp: "#.operator==(@)".}
@@ -728,6 +732,8 @@ proc makeStringRef*(stringLiteral: CharPointer_UTF8): StringRef {.header: juce_c
 proc makeStringRef*(string: String): StringRef {.header: juce_core, importcpp: "juce::StringRef(@)".}
 proc makeStringRef*(string: CppString): StringRef {.header: juce_core, importcpp: "juce::StringRef(@)".}
 proc makeStringRef*(): StringRef {.header: juce_core, importcpp: "juce::StringRef(@)".}
+proc toChar*(this: StringRef): ptr char {.header: juce_core, importcpp: "static_cast<const char *>(#)".}
+proc toCharPointer_UTF8*(this: StringRef): CharPointer_UTF8 {.header: juce_core, importcpp: "static_cast<juce::CharPointer_UTF8>(#)".}
 proc text*(this: StringRef): CharPointer_UTF8 {.header: juce_core, importcpp: "#.text".}
 proc `text=`*(this: var StringRef, value: CharPointer_UTF8) {.header: juce_core, importcpp: "#.text = #".}
 proc isEmpty*(this: StringRef): bool {.header: juce_core, importcpp: "#.isEmpty()".}
@@ -842,6 +848,8 @@ proc write*(this: var SingleThreadedAbstractFifo, num: cint): CppArray[Range[cin
 proc read*(this: var SingleThreadedAbstractFifo, num: cint): CppArray[Range[cint], 2] {.header: juce_core, importcpp: "#.read(@)".}
 proc `==`*(this: SingleThreadedAbstractFifo, other: SingleThreadedAbstractFifo): bool {.error: "juce::SingleThreadedAbstractFifo defines no operator==; compare a property instead".}
 
+proc toString*(this: NewLine): String {.header: juce_core, importcpp: "static_cast<juce::String>(#)".}
+proc toStringRef*(this: NewLine): StringRef {.header: juce_core, importcpp: "static_cast<juce::StringRef>(#)".}
 proc getDefault*(this: typedesc[NewLine]): constChar {.header: juce_core, importcpp: "juce::NewLine::getDefault()".}
 proc `==`*(this: NewLine, other: NewLine): bool {.error: "juce::NewLine defines no operator==; compare a property instead".}
 
@@ -858,6 +866,8 @@ proc makeIdentifier*(): Identifier {.header: juce_core, importcpp: "juce::Identi
 # proc makeIdentifier*(name: constChar): Identifier {.header: juce_core, importcpp: "juce::Identifier(@)".}  # redundant with the String overload, which a string also reaches
 proc makeIdentifier*(name: String): Identifier {.header: juce_core, importcpp: "juce::Identifier(@)".}
 proc makeIdentifier*(nameStart: CharPointer_UTF8, nameEnd: CharPointer_UTF8): Identifier {.header: juce_core, importcpp: "juce::Identifier(@)".}
+proc toCharPointer_UTF8*(this: Identifier): CharPointer_UTF8 {.header: juce_core, importcpp: "static_cast<juce::CharPointer_UTF8>(#)".}
+proc toStringRef*(this: Identifier): StringRef {.header: juce_core, importcpp: "static_cast<juce::StringRef>(#)".}
 proc null*(this: typedesc[Identifier]): Identifier {.header: juce_core, importcpp: "(juce::Identifier::null)".}
 proc `Identifier=`*(this: var Identifier, other: Identifier): var Identifier {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `==`*(this: Identifier, other: Identifier): bool {.header: juce_core, importcpp: "#.operator==(@)".}
@@ -1041,6 +1051,7 @@ proc toBase64*(this: typedesc[Base64], sourceData: constPointer, sourceDataSize:
 proc toBase64*(this: typedesc[Base64], textToEncode: String): String {.header: juce_core, importcpp: "juce::Base64::toBase64(@)".}
 proc `==`*(this: Base64, other: Base64): bool {.error: "juce::Base64 defines no operator==; compare a property instead".}
 
+proc toBool*(this: Result): bool {.header: juce_core, importcpp: "static_cast<bool>(#)".}
 proc ok*(this: typedesc[Result]): Result {.header: juce_core, importcpp: "juce::Result::ok()".}
 proc fail*(this: typedesc[Result], errorMessage: String): Result {.header: juce_core, importcpp: "juce::Result::fail(@)".}
 proc wasOk*(this: Result): bool {.header: juce_core, importcpp: "#.wasOk()".}
@@ -1155,6 +1166,11 @@ proc makejuce_var*(`object`: ptr ReferenceCountedObject): juce_var {.header: juc
 proc makejuce_var*(`method`: CppFunctionObjectR1Ref[juce_var, juce_varNativeFunctionArgs]): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
 proc makejuce_var*(binaryData: constPointer, dataSize: uint64): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
 proc makejuce_var*(binaryData: MemoryBlock): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
+proc toInt*(this: juce_var): cint {.header: juce_core, importcpp: "static_cast<int>(#)".}
+proc toInt64*(this: juce_var): int64 {.header: juce_core, importcpp: "static_cast<long long>(#)".}
+proc toBool*(this: juce_var): bool {.header: juce_core, importcpp: "static_cast<bool>(#)".}
+proc toFloat*(this: juce_var): cfloat {.header: juce_core, importcpp: "static_cast<float>(#)".}
+proc toFloat64*(this: juce_var): float64 {.header: juce_core, importcpp: "static_cast<double>(#)".}
 proc `juce_var=`*(this: var juce_var, valueToCopy: juce_var): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `juce_var=`*(this: var juce_var, value: cint): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `juce_var=`*(this: var juce_var, value: int64): var juce_var {.header: juce_core, importcpp: "#.operator=(@)".}
@@ -2570,6 +2586,7 @@ proc getPersistedPermissions*(this: typedesc[AndroidDocumentPermission]): CppVec
 proc `==`*(this: AndroidDocumentPermission, other: AndroidDocumentPermission): bool {.error: "juce::AndroidDocumentPermission defines no operator==; compare a property instead".}
 
 proc makeAndroidDocument*(): AndroidDocument {.header: juce_core, importcpp: "juce::AndroidDocument(@)".}
+proc toBool*(this: AndroidDocument): bool {.header: juce_core, importcpp: "static_cast<bool>(#)".}
 proc fromFile*(this: typedesc[AndroidDocument], filePath: File): AndroidDocument {.header: juce_core, importcpp: "juce::AndroidDocument::fromFile(@)".}
 proc fromDocument*(this: typedesc[AndroidDocument], documentUrl: URL): AndroidDocument {.header: juce_core, importcpp: "juce::AndroidDocument::fromDocument(@)".}
 proc fromTree*(this: typedesc[AndroidDocument], treeUrl: URL): AndroidDocument {.header: juce_core, importcpp: "juce::AndroidDocument::fromTree(@)".}

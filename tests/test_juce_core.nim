@@ -413,3 +413,23 @@ proc testCrashHandlerBinding() =
   doAssert compiles(SystemStats.setApplicationCrashHandler(onCrash))
 
 testCrashHandlerBinding()
+
+# A conversion operator was not bound at all, which left juce::var with no way
+# out but toString: the int, the double and the bool it holds were unreachable.
+proc testConversionOperators() =
+  let number = makejuce_var(42.cint)
+  doAssert number.toInt() == 42, "the int came back as " & $number.toInt()
+  doAssert number.toInt64() == 42'i64
+  doAssert number.toBool()
+
+  let fraction = makejuce_var(2.5'f64)
+  doAssert fraction.toFloat64() == 2.5'f64, "the double came back as " & $fraction.toFloat64()
+  doAssert fraction.toInt() == 2, "truncation gave " & $fraction.toInt()
+
+  doAssert not makejuce_var(0.cint).toBool()
+
+  # Result converts to bool, which is how a caller checks one.
+  doAssert Result.ok().toBool()
+  doAssert not Result.fail(makeString("no")).toBool()
+
+testConversionOperators()

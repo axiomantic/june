@@ -3963,6 +3963,7 @@ proc `==`*(this: ComponentPeer, other: ComponentPeer): bool {.error: "juce::Comp
 
 proc makeComponentPeerOptionalBorderSize*(): ComponentPeerOptionalBorderSize {.header: juce_gui_basics, importcpp: "juce::ComponentPeer::OptionalBorderSize(@)".}
 proc makeComponentPeerOptionalBorderSize*(size: BorderSize[cint]): ComponentPeerOptionalBorderSize {.header: juce_gui_basics, importcpp: "juce::ComponentPeer::OptionalBorderSize(@)".}
+proc toBool*(this: ComponentPeerOptionalBorderSize): bool {.header: juce_gui_basics, importcpp: "static_cast<bool>(#)".}
 proc `*`*(this: ComponentPeerOptionalBorderSize): BorderSize[cint] {.header: juce_gui_basics, importcpp: "#.operator*()".}
 # proc operator->*(this: ComponentPeerOptionalBorderSize): ptr BorderSize[cint] {.header: juce_gui_basics, importcpp: "#.operator->()".}  # an operator with no Nim spelling
 proc `==`*(this: ComponentPeerOptionalBorderSize, other: ComponentPeerOptionalBorderSize): bool {.error: "juce::ComponentPeer::OptionalBorderSize defines no operator==; compare a property instead".}

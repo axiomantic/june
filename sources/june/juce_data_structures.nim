@@ -64,6 +64,7 @@ proc `==`*(this: UndoManager, other: UndoManager): bool {.error: "juce::UndoMana
 proc makeValue*(): Value {.header: juce_data_structures, importcpp: "juce::Value(@)".}
 proc makeValue*(initialValue: juce_var): Value {.header: juce_data_structures, importcpp: "juce::Value(@)".}
 proc makeValue*(valueSource: ptr ValueValueSource): Value {.header: juce_data_structures, importcpp: "juce::Value(@)".}
+proc toJuce_var*(this: Value): juce_var {.header: juce_data_structures, importcpp: "static_cast<juce::var>(#)".}
 proc getValue*(this: Value): juce_var {.header: juce_data_structures, importcpp: "#.getValue()".}
 proc toString*(this: Value): String {.header: juce_data_structures, importcpp: "#.toString()".}
 proc setValue*(this: var Value, newValue: juce_var) {.header: juce_data_structures, importcpp: "#.setValue(@)".}
