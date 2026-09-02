@@ -85,6 +85,27 @@ proc newCustomLogger*(): ptr CustomLogger {.importcpp: "(new june::CustomLogger)
 proc setLogMessageHandler*(this: var CustomLogger, handler: proc(message: ptr String) {.closure.}) =
     this.onLogMessage = bindClosure(handler)
 
+defineCppClassInternal CustomOutputStream of OutputStream:
+    include "juce_core/juce_core.h"
+    proc flush() = discard
+    proc setPosition(newPosition: int64): bool = discard
+    proc getPosition(): int64 = discard
+    proc write(dataToWrite: constrawptr[pointer], numberOfBytes: csize_t): bool = discard
+
+proc newCustomOutputStream*(): ptr CustomOutputStream {.importcpp: "(new june::CustomOutputStream)".}
+
+proc setFlushHandler*(this: var CustomOutputStream, handler: proc() {.closure.}) =
+    this.onFlush = bindClosure(handler)
+
+proc setSetPositionHandler*(this: var CustomOutputStream, handler: proc(newPosition: int64): bool {.closure.}) =
+    this.onSetPosition = bindClosure(handler)
+
+proc setGetPositionHandler*(this: var CustomOutputStream, handler: proc(): int64 {.closure.}) =
+    this.onGetPosition = bindClosure(handler)
+
+proc setWriteHandler*(this: var CustomOutputStream, handler: proc(dataToWrite: pointer, numberOfBytes: csize_t): bool {.closure.}) =
+    this.onWrite = bindClosure(handler)
+
 defineCppClassInternal CustomThread of Thread:
     include "juce_core/juce_core.h"
     proc run() = discard
@@ -122,5 +143,3 @@ proc newCustomUnitTest*(name: String, category: String): ptr CustomUnitTest {.im
 proc setRunTestHandler*(this: var CustomUnitTest, handler: proc() {.closure.}) =
     this.onRunTest = bindClosure(handler)
 
-# Withheld, with the reason:
-#   OutputStream: const void * in write has no Nim spelling

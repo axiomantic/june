@@ -12,6 +12,19 @@
 # bound. Each of these is that subclass: a std::function per override, set
 # through the matching handler setter.
 
+defineCppClassInternal CustomAccessibilityCellInterface of AccessibilityCellInterface:
+    include "juce_gui_basics/juce_gui_basics.h"
+    proc getDisclosureLevel(): cint {.cppconst.} = discard
+    proc getTableHandler(): constrawptr[AccessibilityHandler] {.cppconst.} = discard
+
+proc newCustomAccessibilityCellInterface*(): ptr CustomAccessibilityCellInterface {.importcpp: "(new june::CustomAccessibilityCellInterface)".}
+
+proc setGetDisclosureLevelHandler*(this: var CustomAccessibilityCellInterface, handler: proc(): cint {.closure.}) =
+    this.onGetDisclosureLevel = bindClosure(handler)
+
+proc setGetTableHandlerHandler*(this: var CustomAccessibilityCellInterface, handler: proc(): ptr AccessibilityHandler {.closure.}) =
+    this.onGetTableHandler = bindClosure(handler)
+
 defineCppClassInternal CustomAccessibilityNumericValueInterface of AccessibilityNumericValueInterface:
     include "juce_gui_basics/juce_gui_basics.h"
     proc isReadOnly(): bool {.cppconst.} = discard
@@ -540,8 +553,7 @@ proc setMightContainSubItemsHandler*(this: var CustomTreeViewItem, handler: proc
     this.onMightContainSubItems = bindClosure(handler)
 
 # Withheld, with the reason:
-#   AccessibilityCellInterface: const AccessibilityHandler * returned by getTableHandler has no Nim spelling
-#   AccessibilityTableInterface: const AccessibilityHandler * returned by getCellHandler has no Nim spelling
+#   AccessibilityTableInterface: Optional<Span> returned by getRowSpan has no Nim spelling
 #   ApplicationCommandTarget: Array<CommandID> & in getAllCommands has no Nim spelling
 #   ComponentPeer: a pure virtual is private, so no subclass can implement it
 #   ComponentTraverser: std::vector<Component *> returned by getAllComponents has no Nim spelling

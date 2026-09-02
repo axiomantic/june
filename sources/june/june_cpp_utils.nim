@@ -149,6 +149,22 @@ proc makeCppType(node: NimNode, aliases: seq[(string, string)] = @[]): CppType {
       result.isConst = true
       result.isReference = true
       result.passAsPointer = true
+    elif ($realNode[0] == "constrawptr"):
+      # A parameter that is already a const pointer in C++, rather than a const
+      # reference. The override has to keep the const to match the virtual it
+      # overrides, and Nim has no const pointer, so the callback receives a
+      # mutable one and the forwarder casts. `constrawptr[pointer]` is the
+      # const void* form.
+      if $realNode[1] == "pointer":
+        result.nim = newIdentNode("pointer")
+        result.cpp = "void"
+      else:
+        result.nim = nnkPtrTy.newTree(realNode[1])
+        result.cpp = cppTypeSpelling(realNode[1], aliases)
+      result.isConst = true
+      result.isPointer = true
+      result.passAsPointer = true
+
     elif ($realNode[0] == "varref"):
       # A mutable reference. Overriding a virtual whose parameter is not const
       # needs one: Component::paint takes a Graphics&, and declaring the
@@ -303,7 +319,10 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
         let passAsPointer = argType.passAsPointer
 
         # Nim codegen arguments
-        if passAsPointer:
+        if passAsPointer and argType.isPointer:
+          # constrawptr's nim node is already the pointer, or `pointer` itself.
+          nimFunctionMemberType.add argType.nim
+        elif passAsPointer:
           nimFunctionMemberType.add nnkPtrTy.newTree(argType.nim)
         else:
           nimFunctionMemberType.add argType.nim
@@ -315,7 +334,10 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
         cppFuncPointerSignature &= (if passAsPointer: argType.cpp & "*" else: toCppValueString(argType))
         cppFuncSignature &= toCppString(argType) & " " & $param[0]
         cppFuncPointerCallArgs &= (
-          if passAsPointer and argType.isConst: "const_cast<" & argType.cpp & "*>(&" & $param[0] & ")"
+          if passAsPointer and argType.isConst and argType.isPointer:
+            # Already a pointer, so it is cast rather than addressed.
+            "const_cast<" & argType.cpp & "*>(" & $param[0] & ")"
+          elif passAsPointer and argType.isConst: "const_cast<" & argType.cpp & "*>(&" & $param[0] & ")"
           elif passAsPointer: "&" & $param[0]
           else: $param[0])
 
