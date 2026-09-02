@@ -1512,3 +1512,22 @@ proc testImplicitDefaultConstructors() =
         discard makeNamedValue()
 
 testImplicitDefaultConstructors()
+
+# The remaining generated subclasses ==========================================
+#
+# A subclass whose constructor nothing calls is never compiled: the C++ class
+# is written into a header the type carries, and Nim includes that header only
+# where the type itself is used. Discarding the returned pointer is not enough,
+# which is how these went unnoticed.
+
+proc testRemainingCoreSubclasses() =
+    block:
+        var job = newCustomThreadPoolJob(makeString("job"))
+        doAssert not job.isNil(), "the job was not built"
+        cdelete job
+
+        var unitTest = newCustomUnitTest(makeString("name"), makeString("category"))
+        doAssert not unitTest.isNil(), "the unit test was not built"
+        cdelete unitTest
+
+testRemainingCoreSubclasses()

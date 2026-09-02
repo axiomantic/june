@@ -80,6 +80,68 @@ implicit_default = re.compile(
     r'proc (make\w+)\*\(\): \w+ \{[^}]*\}\s*# implicit default constructor')
 
 
+subclass_constructor = re.compile(r'proc (newCustom\w+)\*\(')
+
+# A generated subclass a test cannot build. The reason has to be why a test
+# cannot, not that nobody has yet.
+unbuildable_subclasses = {
+    "newCustomJUCEApplicationBase":
+        "trips JUCE's assertion that the process has a single application "
+        "instance, the same as newApplication",
+    "newCustomThreadWithProgressWindow":
+        "is a top-level window, and building one on a headless Linux "
+        "container segfaults, the same as AlertWindow",
+}
+
+
+def check_subclasses():
+    """Every generated subclass is built by a test.
+
+    The C++ class lives in a header the Nim type carries, and Nim includes it
+    only where the type is used - so a constructor nothing calls is never
+    compiled, and neither is the class. Two real defects were sitting behind
+    that: an ImagePixelData::clone override typed against the wrong class's
+    Ptr, and a ComponentMovementWatcher subclass that overrode one of three
+    pure virtuals and was still abstract.
+
+    Discarding the returned pointer does not count, because the type never
+    enters the translation unit. The names here are matched textually, so a
+    test has to name the constructor - which it does by using what it returns.
+    """
+    emitted = set()
+    for path in (glob.glob("sources/june/*_subclasses.nim")
+                 + glob.glob("sources/june/*_lifting.nim")):
+        emitted.update(subclass_constructor.findall(open(path).read()))
+
+    used = ""
+    for pattern in ("tests/test_juce_*.nim", "examples/*.nim"):
+        for path in glob.glob(pattern):
+            used += open(path).read()
+
+    uncalled = sorted(name for name in emitted
+                      if name not in unbuildable_subclasses
+                      and not re.search(r"\b" + name + r"\b", used))
+    stale = sorted(name for name in unbuildable_subclasses
+                   if name not in emitted)
+
+    if uncalled:
+        print("These generated subclasses are never built by a test, so "
+              "nothing compiles the C++ class:", file=sys.stderr)
+        for name in uncalled:
+            print(f"  {name}", file=sys.stderr)
+    if stale:
+        print("These are listed as unbuildable but no longer exist:",
+              file=sys.stderr)
+        for name in stale:
+            print(f"  {name}", file=sys.stderr)
+
+    if not (uncalled or stale):
+        print(f"all {len(emitted) - len(unbuildable_subclasses)} generated "
+              f"subclasses are built by a test "
+              f"({len(unbuildable_subclasses)} listed as unbuildable)")
+    return not (uncalled or stale)
+
+
 def check_implicit_defaults():
     """Every aggregate given an implicit default constructor is built by a test.
 
@@ -244,8 +306,13 @@ def main():
     licences_ok = check_licence_headers()
     iterators_ok = check_iterator_promises()
     defaults_ok = check_implicit_defaults()
+    subclasses_ok = check_subclasses()
 
-    if uncovered or stale or not licences_ok or not iterators_ok or not defaults_ok:
+    if (uncovered or stale
+            or not licences_ok
+            or not iterators_ok
+            or not defaults_ok
+            or not subclasses_ok):
         sys.exit(1)
 
     shared = len(declarations) - len(declared)
