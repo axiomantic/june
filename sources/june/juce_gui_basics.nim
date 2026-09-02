@@ -456,6 +456,22 @@ proc `==`*(a: GridJustifyContent, b: GridJustifyContent): bool {.borrow.}
 proc `==`*(a: GridAlignContent, b: GridAlignContent): bool {.borrow.}
 proc `==`*(a: GridAutoFlow, b: GridAutoFlow): bool {.borrow.}
 
+# Bitwise operators for the flag sets among them.
+proc `or`*(a: ModifierKeysFlags, b: ModifierKeysFlags): ModifierKeysFlags {.borrow.}
+proc `and`*(a: ModifierKeysFlags, b: ModifierKeysFlags): ModifierKeysFlags {.borrow.}
+proc `or`*(a: ApplicationCommandInfoCommandFlags, b: ApplicationCommandInfoCommandFlags): ApplicationCommandInfoCommandFlags {.borrow.}
+proc `and`*(a: ApplicationCommandInfoCommandFlags, b: ApplicationCommandInfoCommandFlags): ApplicationCommandInfoCommandFlags {.borrow.}
+proc `or`*(a: ButtonConnectedEdgeFlags, b: ButtonConnectedEdgeFlags): ButtonConnectedEdgeFlags {.borrow.}
+proc `and`*(a: ButtonConnectedEdgeFlags, b: ButtonConnectedEdgeFlags): ButtonConnectedEdgeFlags {.borrow.}
+proc `or`*(a: TableHeaderComponentColumnPropertyFlags, b: TableHeaderComponentColumnPropertyFlags): TableHeaderComponentColumnPropertyFlags {.borrow.}
+proc `and`*(a: TableHeaderComponentColumnPropertyFlags, b: TableHeaderComponentColumnPropertyFlags): TableHeaderComponentColumnPropertyFlags {.borrow.}
+proc `or`*(a: ToolbarCustomisationFlags, b: ToolbarCustomisationFlags): ToolbarCustomisationFlags {.borrow.}
+proc `and`*(a: ToolbarCustomisationFlags, b: ToolbarCustomisationFlags): ToolbarCustomisationFlags {.borrow.}
+proc `or`*(a: ComponentPeerStyleFlags, b: ComponentPeerStyleFlags): ComponentPeerStyleFlags {.borrow.}
+proc `and`*(a: ComponentPeerStyleFlags, b: ComponentPeerStyleFlags): ComponentPeerStyleFlags {.borrow.}
+proc `or`*(a: FileBrowserComponentFileChooserFlags, b: FileBrowserComponentFileChooserFlags): FileBrowserComponentFileChooserFlags {.borrow.}
+proc `and`*(a: FileBrowserComponentFileChooserFlags, b: FileBrowserComponentFileChooserFlags): FileBrowserComponentFileChooserFlags {.borrow.}
+
 let AccessibilityActionType_press* {.header: juce_gui_basics, importcpp: "juce::AccessibilityActionType::press".}: AccessibilityActionType
 let AccessibilityActionType_toggle* {.header: juce_gui_basics, importcpp: "juce::AccessibilityActionType::toggle".}: AccessibilityActionType
 let AccessibilityActionType_focus* {.header: juce_gui_basics, importcpp: "juce::AccessibilityActionType::focus".}: AccessibilityActionType
