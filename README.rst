@@ -429,6 +429,22 @@ in a module, and is run the same way::
     PYTHONPATH=tools .venv/bin/python tools/generate_subclasses.py --module "$module" > "sources/june/${module}_subclasses.nim"
   done
 
+A method returning ``const T*`` is bound as ``ConstPtr[T]``, not ``ptr T``. Nim
+has no const pointer, and C++ does not convert ``const T*`` to ``T*``, so the
+plain ``ptr`` spelling produced 31 procs that could not be called at all --
+``ZipFile.getEntry``, ``ValueTree.getPropertyPointer``,
+``Displays.getPrimaryDisplay``, ``ApplicationCommandManager.getCommandForID``
+and the rest. ``ConstPtr`` has ``isNil`` and ``[]``, and ``[]`` yields the value
+for reading::
+
+  let info = manager.getCommandForID(commandID)
+  if not info.isNil():
+    echo info[].shortName()
+
+Passing ``info[]`` to anything taking a ``var`` is a compile error, which is what
+the C++ ``const`` means. A ``const T*`` *parameter* stays a plain ``ptr T``,
+because that is the conversion C++ does make.
+
 Both generators read the platform's headers, and JUCE hides some classes behind
 ``JUCE_MAC`` or ``JUCE_WINDOWS``, so the committed files are the macOS output
 and CI checks them there. A ``generated files are current`` job regenerates and

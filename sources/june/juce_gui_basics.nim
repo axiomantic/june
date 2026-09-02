@@ -1778,10 +1778,10 @@ proc physicalToLogical*(this: Displays, physicalPoint: Point[cfloat], useScaleFa
 proc physicalToLogical*(this: Displays, physicalPoint: Point[cint], display: ptr DisplaysDisplay = nil): Point[cint] {.header: juce_gui_basics, importcpp: "#.physicalToLogical(@)".}
 proc logicalToPhysical*(this: Displays, logicalPoint: Point[cfloat], useScaleFactorOfDisplay: ptr DisplaysDisplay = nil): Point[cfloat] {.header: juce_gui_basics, importcpp: "#.logicalToPhysical(@)".}
 proc logicalToPhysical*(this: Displays, physicalPoint: Point[cint], display: ptr DisplaysDisplay = nil): Point[cint] {.header: juce_gui_basics, importcpp: "#.logicalToPhysical(@)".}
-proc getDisplayForRect*(this: Displays, rect: Rectangle[cint], isPhysical: bool = false): ptr DisplaysDisplay {.header: juce_gui_basics, importcpp: "#.getDisplayForRect(@)".}
-proc getDisplayForPoint*(this: Displays, point: Point[cint], isPhysical: bool = false): ptr DisplaysDisplay {.header: juce_gui_basics, importcpp: "#.getDisplayForPoint(@)".}
-proc getDisplayForPoint*(this: Displays, point: Point[cfloat], isPhysical: bool = false): ptr DisplaysDisplay {.header: juce_gui_basics, importcpp: "#.getDisplayForPoint(@)".}
-proc getPrimaryDisplay*(this: Displays): ptr DisplaysDisplay {.header: juce_gui_basics, importcpp: "#.getPrimaryDisplay()".}
+proc getDisplayForRect*(this: Displays, rect: Rectangle[cint], isPhysical: bool = false): ConstPtr[DisplaysDisplay] {.header: juce_gui_basics, importcpp: "#.getDisplayForRect(@)".}
+proc getDisplayForPoint*(this: Displays, point: Point[cint], isPhysical: bool = false): ConstPtr[DisplaysDisplay] {.header: juce_gui_basics, importcpp: "#.getDisplayForPoint(@)".}
+proc getDisplayForPoint*(this: Displays, point: Point[cfloat], isPhysical: bool = false): ConstPtr[DisplaysDisplay] {.header: juce_gui_basics, importcpp: "#.getDisplayForPoint(@)".}
+proc getPrimaryDisplay*(this: Displays): ConstPtr[DisplaysDisplay] {.header: juce_gui_basics, importcpp: "#.getPrimaryDisplay()".}
 proc getRectangleList*(this: Displays, userAreasOnly: bool): RectangleList[cint] {.header: juce_gui_basics, importcpp: "#.getRectangleList(@)".}
 proc getTotalBounds*(this: Displays, userAreasOnly: bool): Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.getTotalBounds(@)".}
 proc refresh*(this: var Displays) {.header: juce_gui_basics, importcpp: "#.refresh()".}
@@ -2037,8 +2037,8 @@ proc registerAllCommandsForTarget*(this: var ApplicationCommandManager, target: 
 proc removeCommand*(this: var ApplicationCommandManager, commandID: cint) {.header: juce_gui_basics, importcpp: "#.removeCommand(@)".}
 proc commandStatusChanged*(this: var ApplicationCommandManager) {.header: juce_gui_basics, importcpp: "#.commandStatusChanged()".}
 proc getNumCommands*(this: ApplicationCommandManager): cint {.header: juce_gui_basics, importcpp: "#.getNumCommands()".}
-proc getCommandForIndex*(this: ApplicationCommandManager, index: cint): ptr ApplicationCommandInfo {.header: juce_gui_basics, importcpp: "#.getCommandForIndex(@)".}
-proc getCommandForID*(this: ApplicationCommandManager, commandID: cint): ptr ApplicationCommandInfo {.header: juce_gui_basics, importcpp: "#.getCommandForID(@)".}
+proc getCommandForIndex*(this: ApplicationCommandManager, index: cint): ConstPtr[ApplicationCommandInfo] {.header: juce_gui_basics, importcpp: "#.getCommandForIndex(@)".}
+proc getCommandForID*(this: ApplicationCommandManager, commandID: cint): ConstPtr[ApplicationCommandInfo] {.header: juce_gui_basics, importcpp: "#.getCommandForID(@)".}
 proc getNameOfCommand*(this: ApplicationCommandManager, commandID: cint): String {.header: juce_gui_basics, importcpp: "#.getNameOfCommand(@)".}
 proc getDescriptionOfCommand*(this: ApplicationCommandManager, commandID: cint): String {.header: juce_gui_basics, importcpp: "#.getDescriptionOfCommand(@)".}
 proc getCommandCategories*(this: ApplicationCommandManager): StringArray {.header: juce_gui_basics, importcpp: "#.getCommandCategories()".}
@@ -2474,15 +2474,15 @@ proc createAccessibilityHandler*(this: var TabbedComponent): UniquePtr[Accessibi
 proc `==`*(this: TabbedComponent, other: TabbedComponent): bool {.error: "juce::TabbedComponent defines no operator==; compare a property instead".}
 
 proc getDisclosureLevel*(this: AccessibilityCellInterface): cint {.header: juce_gui_basics, importcpp: "#.getDisclosureLevel()".}
-proc getTableHandler*(this: AccessibilityCellInterface): ptr AccessibilityHandler {.header: juce_gui_basics, importcpp: "#.getTableHandler()".}
+proc getTableHandler*(this: AccessibilityCellInterface): ConstPtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.getTableHandler()".}
 proc getDisclosedRows*(this: AccessibilityCellInterface): CppVector[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.getDisclosedRows()".}
 proc `==`*(this: AccessibilityCellInterface, other: AccessibilityCellInterface): bool {.error: "juce::AccessibilityCellInterface defines no operator==; compare a property instead".}
 
 proc getNumRows*(this: AccessibilityTableInterface): cint {.header: juce_gui_basics, importcpp: "#.getNumRows()".}
 proc getNumColumns*(this: AccessibilityTableInterface): cint {.header: juce_gui_basics, importcpp: "#.getNumColumns()".}
-proc getCellHandler*(this: AccessibilityTableInterface, row: cint, column: cint): ptr AccessibilityHandler {.header: juce_gui_basics, importcpp: "#.getCellHandler(@)".}
-proc getRowHandler*(this: AccessibilityTableInterface, row: cint): ptr AccessibilityHandler {.header: juce_gui_basics, importcpp: "#.getRowHandler(@)".}
-proc getHeaderHandler*(this: AccessibilityTableInterface): ptr AccessibilityHandler {.header: juce_gui_basics, importcpp: "#.getHeaderHandler()".}
+proc getCellHandler*(this: AccessibilityTableInterface, row: cint, column: cint): ConstPtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.getCellHandler(@)".}
+proc getRowHandler*(this: AccessibilityTableInterface, row: cint): ConstPtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.getRowHandler(@)".}
+proc getHeaderHandler*(this: AccessibilityTableInterface): ConstPtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.getHeaderHandler()".}
 proc getRowSpan*(this: AccessibilityTableInterface, arg1: AccessibilityHandler): Optional[AccessibilityTableInterfaceSpan] {.header: juce_gui_basics, importcpp: "#.getRowSpan(@)".}
 proc getColumnSpan*(this: AccessibilityTableInterface, arg1: AccessibilityHandler): Optional[AccessibilityTableInterfaceSpan] {.header: juce_gui_basics, importcpp: "#.getColumnSpan(@)".}
 proc showCell*(this: AccessibilityTableInterface, arg1: AccessibilityHandler) {.header: juce_gui_basics, importcpp: "#.showCell(@)".}
@@ -2876,7 +2876,7 @@ proc menuItemSelected*(this: var MenuBarModel, menuItemID: cint, topLevelMenuInd
 proc menuBarActivated*(this: var MenuBarModel, isActive: bool) {.header: juce_gui_basics, importcpp: "#.menuBarActivated(@)".}
 proc setMacMainMenu*(this: typedesc[MenuBarModel], newMenuBarModel: ptr MenuBarModel, extraAppleMenuItems: ptr PopupMenu = nil, recentItemsMenuName: String) {.header: juce_gui_basics, importcpp: "juce::MenuBarModel::setMacMainMenu(@)".}
 proc getMacMainMenu*(this: typedesc[MenuBarModel]): ptr MenuBarModel {.header: juce_gui_basics, importcpp: "juce::MenuBarModel::getMacMainMenu()".}
-proc getMacExtraAppleItemsMenu*(this: typedesc[MenuBarModel]): ptr PopupMenu {.header: juce_gui_basics, importcpp: "juce::MenuBarModel::getMacExtraAppleItemsMenu()".}
+proc getMacExtraAppleItemsMenu*(this: typedesc[MenuBarModel]): ConstPtr[PopupMenu] {.header: juce_gui_basics, importcpp: "juce::MenuBarModel::getMacExtraAppleItemsMenu()".}
 proc applicationCommandInvoked*(this: var MenuBarModel, arg1: ApplicationCommandTargetInvocationInfo) {.header: juce_gui_basics, importcpp: "#.applicationCommandInvoked(@)".}
 proc applicationCommandListChanged*(this: var MenuBarModel) {.header: juce_gui_basics, importcpp: "#.applicationCommandListChanged()".}
 proc handleAsyncUpdate*(this: var MenuBarModel) {.header: juce_gui_basics, importcpp: "#.handleAsyncUpdate()".}
@@ -2939,8 +2939,8 @@ proc `==`*(this: RelativeCoordinateStandardStrings, other: RelativeCoordinateSta
 proc makeMarkerList*(): MarkerList {.header: juce_gui_basics, importcpp: "juce::MarkerList(@)".}
 proc `MarkerList=`*(this: var MarkerList, arg1: MarkerList): var MarkerList {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
 proc getNumMarkers*(this: MarkerList): cint {.header: juce_gui_basics, importcpp: "#.getNumMarkers()".}
-proc getMarker*(this: MarkerList, index: cint): ptr MarkerListMarker {.header: juce_gui_basics, importcpp: "#.getMarker(@)".}
-proc getMarker*(this: MarkerList, name: String): ptr MarkerListMarker {.header: juce_gui_basics, importcpp: "#.getMarker(@)".}
+proc getMarker*(this: MarkerList, index: cint): ConstPtr[MarkerListMarker] {.header: juce_gui_basics, importcpp: "#.getMarker(@)".}
+proc getMarker*(this: MarkerList, name: String): ConstPtr[MarkerListMarker] {.header: juce_gui_basics, importcpp: "#.getMarker(@)".}
 proc getMarkerPosition*(this: MarkerList, marker: MarkerListMarker, parentComponent: ptr Component): float64 {.header: juce_gui_basics, importcpp: "#.getMarkerPosition(@)".}
 proc setMarker*(this: var MarkerList, name: String, position: RelativeCoordinate) {.header: juce_gui_basics, importcpp: "#.setMarker(@)".}
 proc removeMarker*(this: var MarkerList, index: cint) {.header: juce_gui_basics, importcpp: "#.removeMarker(@)".}
@@ -3455,7 +3455,7 @@ proc showPopup*(this: var ComboBox) {.header: juce_gui_basics, importcpp: "#.sho
 proc hidePopup*(this: var ComboBox) {.header: juce_gui_basics, importcpp: "#.hidePopup()".}
 proc isPopupActive*(this: ComboBox): bool {.header: juce_gui_basics, importcpp: "#.isPopupActive()".}
 proc getRootMenu*(this: var ComboBox): ptr PopupMenu {.header: juce_gui_basics, importcpp: "#.getRootMenu()".}
-proc getRootMenu*(this: ComboBox): ptr PopupMenu {.header: juce_gui_basics, importcpp: "#.getRootMenu()".}
+proc getRootMenu*(this: ComboBox): ConstPtr[PopupMenu] {.header: juce_gui_basics, importcpp: "#.getRootMenu()".}
 proc addListener*(this: var ComboBox, listener: ptr ComboBoxListener) {.header: juce_gui_basics, importcpp: "#.addListener(@)".}
 proc removeListener*(this: var ComboBox, listener: ptr ComboBoxListener) {.header: juce_gui_basics, importcpp: "#.removeListener(@)".}
 proc setTextWhenNothingSelected*(this: var ComboBox, newMessage: String) {.header: juce_gui_basics, importcpp: "#.setTextWhenNothingSelected(@)".}
@@ -4272,7 +4272,7 @@ proc makeComponentPeerOptionalBorderSize*(): ComponentPeerOptionalBorderSize {.h
 proc makeComponentPeerOptionalBorderSize*(size: BorderSize[cint]): ComponentPeerOptionalBorderSize {.header: juce_gui_basics, importcpp: "juce::ComponentPeer::OptionalBorderSize(@)".}
 proc toBool*(this: ComponentPeerOptionalBorderSize): bool {.header: juce_gui_basics, importcpp: "static_cast<bool>(#)".}
 proc `*`*(this: ComponentPeerOptionalBorderSize): BorderSize[cint] {.header: juce_gui_basics, importcpp: "#.operator*()".}
-# proc operator->*(this: ComponentPeerOptionalBorderSize): ptr BorderSize[cint] {.header: juce_gui_basics, importcpp: "#.operator->()".}  # an operator with no Nim spelling
+# proc operator->*(this: ComponentPeerOptionalBorderSize): ConstPtr[BorderSize[cint]] {.header: juce_gui_basics, importcpp: "#.operator->()".}  # an operator with no Nim spelling
 proc `==`*(this: ComponentPeerOptionalBorderSize, other: ComponentPeerOptionalBorderSize): bool {.error: "juce::ComponentPeer::OptionalBorderSize defines no operator==; compare a property instead".}
 
 proc files*(this: ComponentPeerDragInfo): StringArray {.header: juce_gui_basics, importcpp: "#.files".}
@@ -4532,7 +4532,7 @@ proc setFileFilter*(this: var DirectoryContentsList, newFileFilter: ptr FileFilt
 proc getNumFiles*(this: DirectoryContentsList): cint {.header: juce_gui_basics, importcpp: "#.getNumFiles()".}
 proc getFileInfo*(this: DirectoryContentsList, index: cint, resultInfo: var DirectoryContentsListFileInfo): bool {.header: juce_gui_basics, importcpp: "#.getFileInfo(@)".}
 proc getFile*(this: DirectoryContentsList, index: cint): File {.header: juce_gui_basics, importcpp: "#.getFile(@)".}
-proc getFilter*(this: DirectoryContentsList): ptr FileFilter {.header: juce_gui_basics, importcpp: "#.getFilter()".}
+proc getFilter*(this: DirectoryContentsList): ConstPtr[FileFilter] {.header: juce_gui_basics, importcpp: "#.getFilter()".}
 proc contains*(this: DirectoryContentsList, arg1: File): bool {.header: juce_gui_basics, importcpp: "#.contains(@)".}
 proc getTimeSliceThread*(this: DirectoryContentsList): var TimeSliceThread {.header: juce_gui_basics, importcpp: "#.getTimeSliceThread()".}
 proc `==`*(this: DirectoryContentsList, other: DirectoryContentsList): bool {.error: "juce::DirectoryContentsList defines no operator==; compare a property instead".}
@@ -4603,8 +4603,8 @@ proc getDisplayComponent*(this: FileBrowserComponent): ptr DirectoryContentsDisp
 proc createAccessibilityHandler*(this: var FileBrowserComponent): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
 proc `==`*(this: FileBrowserComponent, other: FileBrowserComponent): bool {.error: "juce::FileBrowserComponent defines no operator==; compare a property instead".}
 
-proc getDefaultFolderImage*(this: var FileBrowserComponentLookAndFeelMethods): ptr Drawable {.header: juce_gui_basics, importcpp: "#.getDefaultFolderImage()".}
-proc getDefaultDocumentFileImage*(this: var FileBrowserComponentLookAndFeelMethods): ptr Drawable {.header: juce_gui_basics, importcpp: "#.getDefaultDocumentFileImage()".}
+proc getDefaultFolderImage*(this: var FileBrowserComponentLookAndFeelMethods): ConstPtr[Drawable] {.header: juce_gui_basics, importcpp: "#.getDefaultFolderImage()".}
+proc getDefaultDocumentFileImage*(this: var FileBrowserComponentLookAndFeelMethods): ConstPtr[Drawable] {.header: juce_gui_basics, importcpp: "#.getDefaultDocumentFileImage()".}
 proc createFileChooserHeaderText*(this: var FileBrowserComponentLookAndFeelMethods, title: String, instructions: String): AttributedString {.header: juce_gui_basics, importcpp: "#.createFileChooserHeaderText(@)".}
 proc drawFileBrowserRow*(this: var FileBrowserComponentLookAndFeelMethods, arg1: var Graphics, width: cint, height: cint, file: File, filename: String, optionalIcon: ptr Image, fileSizeDescription: String, fileTimeDescription: String, isDirectory: bool, isItemSelected: bool, itemIndex: cint, arg12: var DirectoryContentsDisplayComponent) {.header: juce_gui_basics, importcpp: "#.drawFileBrowserRow(@)".}
 proc createFileBrowserGoUpButton*(this: var FileBrowserComponentLookAndFeelMethods): ptr Button {.header: juce_gui_basics, importcpp: "#.createFileBrowserGoUpButton()".}
@@ -4907,8 +4907,8 @@ proc getTreeViewIndentSize*(this: var LookAndFeel_V2, arg1: var TreeView): cint 
 proc fillTextEditorBackground*(this: var LookAndFeel_V2, arg1: var Graphics, width: cint, height: cint, arg4: var TextEditor) {.header: juce_gui_basics, importcpp: "#.fillTextEditorBackground(@)".}
 proc drawTextEditorOutline*(this: var LookAndFeel_V2, arg1: var Graphics, width: cint, height: cint, arg4: var TextEditor) {.header: juce_gui_basics, importcpp: "#.drawTextEditorOutline(@)".}
 proc createCaretComponent*(this: var LookAndFeel_V2, keyFocusOwner: ptr Component): ptr CaretComponent {.header: juce_gui_basics, importcpp: "#.createCaretComponent(@)".}
-proc getDefaultFolderImage*(this: var LookAndFeel_V2): ptr Drawable {.header: juce_gui_basics, importcpp: "#.getDefaultFolderImage()".}
-proc getDefaultDocumentFileImage*(this: var LookAndFeel_V2): ptr Drawable {.header: juce_gui_basics, importcpp: "#.getDefaultDocumentFileImage()".}
+proc getDefaultFolderImage*(this: var LookAndFeel_V2): ConstPtr[Drawable] {.header: juce_gui_basics, importcpp: "#.getDefaultFolderImage()".}
+proc getDefaultDocumentFileImage*(this: var LookAndFeel_V2): ConstPtr[Drawable] {.header: juce_gui_basics, importcpp: "#.getDefaultDocumentFileImage()".}
 proc createFileChooserHeaderText*(this: var LookAndFeel_V2, title: String, instructions: String): AttributedString {.header: juce_gui_basics, importcpp: "#.createFileChooserHeaderText(@)".}
 proc drawFileBrowserRow*(this: var LookAndFeel_V2, arg1: var Graphics, width: cint, height: cint, file: File, filename: String, icon: ptr Image, fileSizeDescription: String, fileTimeDescription: String, isDirectory: bool, isItemSelected: bool, itemIndex: cint, arg12: var DirectoryContentsDisplayComponent) {.header: juce_gui_basics, importcpp: "#.drawFileBrowserRow(@)".}
 proc createFileBrowserGoUpButton*(this: var LookAndFeel_V2): ptr Button {.header: juce_gui_basics, importcpp: "#.createFileBrowserGoUpButton()".}
