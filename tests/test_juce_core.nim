@@ -801,3 +801,24 @@ proc testConverterComparisons() =
   doAssert one <= two, "var <="
 
 testConverterComparisons()
+
+# StringRef through a converter ===============================================
+#
+# The README says a Nim string passed straight to a StringRef parameter is
+# safe, because the converter's temporary lives for the duration of the call,
+# while a StringRef bound to a name outlives the String it came from and reads
+# freed memory. This is the safe half, asserted rather than claimed.
+
+proc testStringRefParameters() =
+  var pairs = makeStringPairArray(true)
+  pairs.set(makeString("alpha"), makeString("1"))
+
+  doAssert pairs.containsKey("alpha"), "a literal did not reach the StringRef parameter"
+  doAssert not pairs.containsKey("beta"), "a missing key was reported present"
+  doAssert $pairs.getValue("alpha", makeString("none")) == "1",
+           "getValue gave " & $pairs.getValue("alpha", makeString("none"))
+
+  let key = makeString("alpha")
+  doAssert pairs.containsKey(key), "a String did not reach the StringRef parameter"
+
+testStringRefParameters()
