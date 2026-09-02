@@ -167,14 +167,10 @@ is a reference and a ``std::function`` cannot take one by value -- ``Graphics``
 is not copyable and ``MouseEvent`` is not assignable.
 
 Set those through ``setPaintHandler`` and ``setMouseDownHandler`` and the rest,
-rather than assigning ``onPaint`` or ``onMouseDown``: Nim emits the importcpp
-pattern unsubstituted when a ``bindClosure`` call is assigned straight to one of
-those fields. The setters do the binding through a typed temporary, which does
-not hit it.
+which take a plain Nim closure and name the field's type for you. Assigning the
+field directly works too::
 
-The no-argument overrides -- ``onResized``, ``onMoved``, ``onVisibilityChanged``,
-``onParentHierarchyChanged``, ``onChildrenChanged`` -- are assigned directly with
-``bindClosure``.
+  component[].onResized = bindClosure(proc() = discard)
 
 Where the C++ base is named through an alias, name it with ``cppParent``: the
 generated subclass has to derive from a spelling C++ accepts, and
