@@ -102,7 +102,15 @@ primitive_map = {
     "juce::int64": "int64", "juce::uint32": "uint32", "juce::int32": "cint",
     "juce::uint8": "uint8", "juce::uint16": "uint16", "juce::int8": "int8",
     "std::size_t": "csize_t",
+    # The <cstdint> spellings, which libclang uses wherever the header does.
+    "int8_t": "int8", "uint8_t": "uint8", "int16_t": "int16",
+    "uint16_t": "uint16", "int32_t": "cint", "uint32_t": "uint32",
+    "int64_t": "int64", "uint64_t": "uint64",
 }
+
+# name -> what it stands for, for typedefs reached where no declaration cursor
+# is to hand, such as a template argument known only by its spelling.
+typedef_names = {}
 
 
 def strip_namespace(name):
@@ -221,6 +229,11 @@ def map_type(type_spelling, declared, is_return, declaration=None, aliases=None)
         return f"ptr {name}" if name else None
 
     if bare.endswith("&"):
+        if is_return:
+            # The forwarder would return the std::function's result, which is a
+            # value, where the virtual promises a reference - a reference to a
+            # temporary that dies with the call.
+            return None
         pointee = bare[:-1].strip()
         if pointee in primitive_map:
             name = primitive_map[pointee] or None
@@ -237,6 +250,13 @@ def map_type(type_spelling, declared, is_return, declaration=None, aliases=None)
 
     if bare.endswith(">") and "<" in bare:
         return map_template(bare, declared, aliases)
+
+    simple = strip_namespace(bare).strip()
+    if simple in typedef_names and typedef_names[simple] != bare:
+        resolved = map_type(typedef_names[simple], declared, is_return,
+                            aliases=aliases)
+        if resolved is not None:
+            return resolved
 
     name = nim_name(bare, declared, declaration, aliases)
     if name:
@@ -276,11 +296,25 @@ def split_template_arguments(text):
     return arguments
 
 
+def map_std_function(bare, declared, aliases):
+    """Withheld.
+
+    The Nim binding for std::function<void(bool)> is CppFunctionObjectN1[bool],
+    and the macro renders a bracket type by substituting the head, which would
+    give CppFunctionObjectN1<bool>. The two are different shapes rather than
+    different names, so there is nothing for cppTypeName to pair.
+    """
+    return None
+
+
 def map_template(bare, declared, aliases=None):
     """`Point<int>` -> `Point[cint]`, and std::unique_ptr to UniquePtr."""
     head, _, rest = bare.partition("<")
     head = strip_namespace(head).strip()
     inner = rest[:-1]
+
+    if head in ("std::function", "function"):
+        return map_std_function(bare, declared, aliases)
 
     template_map = {"std::unique_ptr": "UniquePtr", "unique_ptr": "UniquePtr",
                     "std::shared_ptr": "SharedPtr", "shared_ptr": "SharedPtr",
@@ -347,6 +381,25 @@ def parse(module, base_path):
             print(f"error: {diagnostic.spelling}", file=sys.stderr)
         sys.exit(1)
     return unit
+
+
+def collect_typedefs(unit):
+    """Every typedef in the module, by name.
+
+    A template argument arrives as a bare spelling with no declaration cursor
+    behind it - Array<CommandID> - so the only way to learn that CommandID is
+    an int is to have recorded it while walking.
+    """
+
+    def walk(cursor):
+        for child in cursor.get_children():
+            if child.kind in (CursorKind.TYPEDEF_DECL, CursorKind.TYPE_ALIAS_DECL):
+                underlying = child.underlying_typedef_type
+                if underlying is not None and underlying.spelling != child.spelling:
+                    typedef_names.setdefault(child.spelling, underlying.spelling)
+            walk(child)
+
+    walk(unit.cursor)
 
 
 def abstract_classes(unit):
@@ -589,6 +642,7 @@ def main():
     all_names = declared[0]
     hand_parents, hand_names = hand_written_subclasses()
     unit = parse(options.module, base_path)
+    collect_typedefs(unit)
 
     emitted, withheld = [], []
     for name, cursor in sorted(abstract_classes(unit).items()):

@@ -870,6 +870,11 @@ proc testGeneratedSubclassesConstruct() =
         cdelete value
 
     block:
+        let value = newCustomApplicationCommandTarget()
+        doAssert not value.isNil, "newCustomApplicationCommandTarget returned nil"
+        cdelete value
+
+    block:
         let value = newCustomBorderedComponentBoundsConstrainer()
         doAssert not value.isNil, "newCustomBorderedComponentBoundsConstrainer returned nil"
         cdelete value

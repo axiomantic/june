@@ -170,6 +170,28 @@ proc setApplicationCommandInvokedHandler*(this: var CustomApplicationCommandMana
 proc setApplicationCommandListChangedHandler*(this: var CustomApplicationCommandManagerListener, handler: proc() {.closure.}) =
     this.onApplicationCommandListChanged = bindClosure(handler)
 
+defineCppClassInternal CustomApplicationCommandTarget of ApplicationCommandTarget:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppTypeName ApplicationCommandTargetInvocationInfo, "ApplicationCommandTarget::InvocationInfo"
+    proc getNextCommandTarget(): ptr ApplicationCommandTarget = discard
+    proc getAllCommands(commands: varref[Array[cint]]) = discard
+    proc getCommandInfo(commandID: cint, result: varref[ApplicationCommandInfo]) = discard
+    proc perform(info: constptr[ApplicationCommandTargetInvocationInfo]): bool = discard
+
+proc newCustomApplicationCommandTarget*(): ptr CustomApplicationCommandTarget {.importcpp: "(new june::CustomApplicationCommandTarget)".}
+
+proc setGetNextCommandTargetHandler*(this: var CustomApplicationCommandTarget, handler: proc(): ptr ApplicationCommandTarget {.closure.}) =
+    this.onGetNextCommandTarget = bindClosure(handler)
+
+proc setGetAllCommandsHandler*(this: var CustomApplicationCommandTarget, handler: proc(commands: ptr Array[cint]) {.closure.}) =
+    this.onGetAllCommands = bindClosure(handler)
+
+proc setGetCommandInfoHandler*(this: var CustomApplicationCommandTarget, handler: proc(commandID: cint, result: ptr ApplicationCommandInfo) {.closure.}) =
+    this.onGetCommandInfo = bindClosure(handler)
+
+proc setPerformHandler*(this: var CustomApplicationCommandTarget, handler: proc(info: ptr ApplicationCommandTargetInvocationInfo): bool {.closure.}) =
+    this.onPerform = bindClosure(handler)
+
 defineCppClassInternal CustomBorderedComponentBoundsConstrainer of BorderedComponentBoundsConstrainer:
     include "juce_gui_basics/juce_gui_basics.h"
     proc getWrappedConstrainer(): ptr ComponentBoundsConstrainer {.cppconst.} = discard
@@ -589,6 +611,5 @@ proc setMightContainSubItemsHandler*(this: var CustomTreeViewItem, handler: proc
 
 # Withheld, with the reason:
 #   AccessibilityTableInterface: Optional<Span> returned by getRowSpan has no Nim spelling
-#   ApplicationCommandTarget: Array<CommandID> & in getAllCommands has no Nim spelling
 #   ComponentPeer: a pure virtual is private, so no subclass can implement it
 #   MultiDocumentPanel: std::function<void (bool)> in tryToCloseDocumentAsync has no Nim spelling
