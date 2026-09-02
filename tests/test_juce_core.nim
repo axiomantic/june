@@ -593,3 +593,38 @@ proc testGeneratedThreadRuns() =
   cdelete thread
 
 testGeneratedThreadRuns()
+
+# Time ========================================================================
+#
+# A value type over a millisecond count. The field accessors report LOCAL time
+# whatever the constructor was given, so this builds its instant with
+# useLocalTime set and compares round trips rather than absolute values, and
+# depends on neither the clock nor the host's time zone.
+
+proc testTime() =
+  let moment = makeTime(2001.cint, 0.cint, 15.cint, 6.cint, 30.cint, 45.cint,
+                        0.cint, true)
+  doAssert moment.getYear() == 2001, "year was " & $moment.getYear()
+  doAssert moment.getMonth() == 0, "month was " & $moment.getMonth()
+  doAssert moment.getDayOfMonth() == 15, "day was " & $moment.getDayOfMonth()
+  doAssert moment.getHours() == 6, "hours were " & $moment.getHours()
+  doAssert moment.getMinutes() == 30, "minutes were " & $moment.getMinutes()
+  doAssert moment.getSeconds() == 45, "seconds were " & $moment.getSeconds()
+
+  # The millisecond count round-trips through the constructor that takes one.
+  let copy = makeTime(moment.toMilliseconds())
+  doAssert copy.toMilliseconds() == moment.toMilliseconds(),
+           "the epoch millisecond count did not survive"
+  doAssert copy.getYear() == 2001, "the round trip lost the year"
+  doAssert copy.getHours() == 6, "the round trip lost the hour"
+
+  # And so does the ISO 8601 form. Its text is UTC, so only the instant is
+  # compared and not the digits.
+  let parsed = Time.fromISO8601(makeStringRef(moment.toISO8601(true)))
+  doAssert parsed.toMilliseconds() == moment.toMilliseconds(),
+           "ISO 8601 round trip gave " & $parsed.toISO8601(true)
+
+  # The epoch itself is zero.
+  doAssert makeTime(0.int64).toMilliseconds() == 0, "the epoch was not zero"
+
+testTime()

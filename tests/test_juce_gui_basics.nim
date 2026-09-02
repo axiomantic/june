@@ -988,3 +988,49 @@ proc testGeneratedSubclassesConstruct() =
     shutdownJuce_GUI()
 
 testGeneratedSubclassesConstruct()
+
+# TreeViewItem ================================================================
+#
+# mightContainSubItems is pure virtual, so a tree could not be populated from
+# Nim at all. JUCE itself only asks it while painting or handling a click, both
+# of which need an owner view on screen, so the call here is made through the
+# binding: Nim calls the C++ virtual, which calls the std::function, which
+# calls back into Nim. That is the whole path the override exists for.
+#
+# The items are not attached to a TreeView on purpose: a visible one builds an
+# ItemComponent per row and, with no message loop running to tear them down,
+# the leak detector reports them at exit.
+
+proc testTreeViewItem() =
+    initialiseJuce_GUI()
+
+    block:
+        var asked = 0
+        var root = newCustomTreeViewItem()
+        root[].setMightContainSubItemsHandler(proc(): bool =
+            asked += 1
+            true)
+
+        var leaf = newCustomTreeViewItem()
+        leaf[].setMightContainSubItemsHandler(proc(): bool = false)
+
+        doAssert root[].mightContainSubItems(), "the root's handler did not answer"
+        doAssert asked == 1, "the handler ran " & $asked & " times"
+        doAssert not leaf[].mightContainSubItems(), "the leaf's handler did not answer"
+
+        # The tree itself: a sub item is owned by the item it is added to.
+        root[].addSubItem(cast[ptr TreeViewItem](leaf), -1.cint)
+        doAssert root[].getNumSubItems() == 1,
+                 "the root holds " & $root[].getNumSubItems() & " items"
+        doAssert root[].getSubItem(0.cint) == cast[ptr TreeViewItem](leaf),
+                 "the sub item is not the one that was added"
+
+        root[].setOpen(true)
+        doAssert root[].isOpen(), "the root did not open"
+
+        # Deleting the root takes the sub item with it.
+        cdelete root
+
+    shutdownJuce_GUI()
+
+testTreeViewItem()
