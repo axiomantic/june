@@ -2471,4 +2471,89 @@ proc testRemainingGuiHandlers() =
 
 
 testAccessibilityAndInputSubclasses()
+# The relative coordinate types ===============================================
+#
+# JUCE's layout expressions. A coordinate built from a plain number is not
+# dynamic and resolves to itself with no scope at all, which makes the whole
+# family checkable without a component tree.
+
+proc testRelativeGeometry() =
+    block:
+        let fixed = makeRelativeCoordinate(12.5)
+        doAssert not fixed.isDynamic(), "a plain number called itself dynamic"
+        doAssert fixed.resolve(nil) == 12.5,
+                 "the coordinate resolved to " & $fixed.resolve(nil)
+        doAssert fixed == makeRelativeCoordinate(12.5),
+                 "two coordinates of the same number are not equal"
+        doAssert fixed != makeRelativeCoordinate(13.0),
+                 "coordinates of different numbers are equal"
+
+        # A coordinate written as an expression that names another coordinate is
+        # dynamic, because it cannot be resolved without a scope.
+        let named = makeRelativeCoordinate(makeString("parent.width / 2"))
+        doAssert named.isDynamic(), "an expression naming a coordinate is not dynamic"
+        # references() is withheld by the generator: JUCE 8.0.15 declares
+        # RelativeCoordinate::references in the header and defines it nowhere,
+        # so the binding compiled and the call failed to link. toString is the
+        # reachable way to see what the expression names.
+        doAssert "parent.width" in $named.toString(),
+                 "the expression reads " & $named.toString()
+
+    block:
+        let point = makeRelativePoint(3.0'f32, 4.0'f32)
+        doAssert not point.isDynamic(), "an absolute point called itself dynamic"
+        let resolved = point.resolve(nil)
+        doAssert resolved.getX() == 3.0'f32, "the point resolved x to " & $resolved.getX()
+        doAssert resolved.getY() == 4.0'f32, "the point resolved y to " & $resolved.getY()
+
+        # A point survives the round trip through its own string form, which is
+        # what a stored layout is.
+        let restored = makeRelativePoint(point.toString())
+        doAssert restored.resolve(nil).getX() == 3.0'f32,
+                 "the restored point has x " & $restored.resolve(nil).getX()
+        doAssert restored.resolve(nil).getY() == 4.0'f32,
+                 "the restored point has y " & $restored.resolve(nil).getY()
+
+    block:
+        let area = makeRectangle(1.0'f32, 2.0'f32, 30.0'f32, 40.0'f32)
+        let relative = makeRelativeRectangle(area)
+        doAssert not relative.isDynamic(), "an absolute rectangle called itself dynamic"
+
+        let back = relative.resolve(nil)
+        doAssert back.getX() == 1.0'f32, "the rectangle resolved x to " & $back.getX()
+        doAssert back.getY() == 2.0'f32, "the rectangle resolved y to " & $back.getY()
+        doAssert back.getWidth() == 30.0'f32,
+                 "the rectangle resolved width to " & $back.getWidth()
+        doAssert back.getHeight() == 40.0'f32,
+                 "the rectangle resolved height to " & $back.getHeight()
+
+        # left/right/top/bottom are the coordinates it is made of. JUCE stores
+        # the far edges as expressions over the near ones - right is
+        # `left + width` - so left resolves on its own and right does not; it
+        # names left, and only resolve() on the whole rectangle builds the
+        # scope that gives it a value.
+        doAssert relative.left().resolve(nil) == 1.0,
+                 "the left edge is at " & $relative.left().resolve(nil)
+        doAssert "left" in $relative.right().toString(),
+                 "the right edge reads " & $relative.right().toString()
+        doAssert relative.right().isDynamic(),
+                 "the right edge does not need a scope"
+
+        let restored = makeRelativeRectangle(relative.toString())
+        doAssert restored.resolve(nil).getWidth() == 30.0'f32,
+                 "the restored rectangle is " & $restored.resolve(nil).getWidth() & " wide"
+
+    block:
+        let shape = makeRelativeParallelogram(
+            makeRectangle(0.0'f32, 0.0'f32, 10.0'f32, 5.0'f32))
+        doAssert not shape.isDynamic(), "an absolute parallelogram called itself dynamic"
+        doAssert shape.topLeft().resolve(nil).getX() == 0.0'f32,
+                 "the top left is at x " & $shape.topLeft().resolve(nil).getX()
+        doAssert shape.topRight().resolve(nil).getX() == 10.0'f32,
+                 "the top right is at x " & $shape.topRight().resolve(nil).getX()
+        doAssert shape.bottomLeft().resolve(nil).getY() == 5.0'f32,
+                 "the bottom left is at y " & $shape.bottomLeft().resolve(nil).getY()
+
+
 testRemainingGuiHandlers()
+testRelativeGeometry()
