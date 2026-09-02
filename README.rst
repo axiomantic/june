@@ -308,11 +308,13 @@ because the Nim iterator replaces it, one of a pair of string-like overloads
 because a Nim string reaches the other just as well and the call would be
 ambiguous, a C array or ``std::initializer_list`` parameter because the same
 class takes a String, a value or the incremental API instead, and others
-because the generator excludes them on purpose. Only the eight marked as a type
+because the generator excludes them on purpose. Only the ones marked as a type
 that cannot be spelled in Nim are missing capability, and each of those is a
 C++ shape with no Nim equivalent: an owning ``HeapBlock``, a ``std::type_index``,
 a raw function-pointer typedef, a listener that is a class template, and the
-internal image and window backends.
+internal image and window backends. Count them with::
+
+  grep -c 'cannot be spelled' sources/june/juce_*.nim
 
 ``$`` uses JUCE's ``toString`` where there is one. Nim's own ``$`` prints
 ``()`` for these, because an ``importcpp`` object declares no fields and there
