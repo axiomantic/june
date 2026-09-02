@@ -1454,4 +1454,11 @@ proc testEnumEquality() =
   doAssert not (ImagePixelFormat_ARGB != ImagePixelFormat_ARGB),
            "the derived != disagreed with =="
 
+  # And $ so a value can go in a message. It prints the number, not the name:
+  # the binding holds the C++ enumerator and there is no table of names here.
+  doAssert $ImagePixelFormat_ARGB == $ImagePixelFormat_ARGB,
+           "printing disagreed with itself"
+  doAssert $ImagePixelFormat_ARGB != $ImagePixelFormat_RGB,
+           "two different formats printed the same"
+
 testEnumEquality()
