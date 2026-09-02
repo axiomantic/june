@@ -64,6 +64,40 @@ no_iterator_possible = {
 }
 
 
+implicit_default = re.compile(
+    r'proc (make\w+)\*\(\): \w+ \{[^}]*\}\s*# implicit default constructor')
+
+
+def check_implicit_defaults():
+    """Every aggregate given an implicit default constructor is built by a test.
+
+    libclang reports no constructor for a struct that declares none, and it
+    does not report that C++ deleted the implicit one because a member has no
+    default either. ColourLayer and GlyphLayer are both that case. Only a call
+    tells them apart, so each of these has to be called.
+    """
+    emitted = set()
+    for path in glob.glob("sources/june/juce_*.nim"):
+        emitted.update(implicit_default.findall(open(path).read()))
+
+    used = ""
+    for pattern in ("tests/test_juce_*.nim", "examples/*.nim"):
+        for path in glob.glob(pattern):
+            used += open(path).read()
+
+    uncalled = sorted(name for name in emitted
+                      if not re.search(r"\b" + name + r"\b", used))
+    if uncalled:
+        print("These aggregates get an implicit default constructor that no "
+              "test builds, so nothing compiles it:", file=sys.stderr)
+        for name in uncalled:
+            print(f"  {name}", file=sys.stderr)
+        return False
+
+    print(f"all {len(emitted)} implicit default constructors are built by a test")
+    return True
+
+
 def check_iterator_promises():
     """Every class whose begin() was withheld naming a Nim iterator has one."""
     promised = set()
@@ -134,8 +168,9 @@ def main():
               "a test cannot.", file=sys.stderr)
 
     iterators_ok = check_iterator_promises()
+    defaults_ok = check_implicit_defaults()
 
-    if uncovered or stale or not iterators_ok:
+    if uncovered or stale or not iterators_ok or not defaults_ok:
         sys.exit(1)
 
     print(f"all {len(declared)} hand-written binding names are called "

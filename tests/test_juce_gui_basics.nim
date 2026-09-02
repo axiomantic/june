@@ -1889,4 +1889,124 @@ proc testKeyPressMappingSet() =
 
 
 testPrimaryDisplay()
+# DirectoryContentsList =======================================================
+#
+# JUCE scans the directory on a background thread, so the test has to wait for
+# the scan rather than read the count straight away. getFilter is one of the
+# procs the ConstPtr change made callable.
+
+proc testDirectoryContentsList() =
+    initialiseJuce_GUI()
+
+    block:
+        # june.File, not File: Nim's system module has a File of its own.
+        let root = june.File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                       .getNonexistentChildFile(makeString("june-dcl"), makeString(""))
+        doAssert root.createDirectory().wasOk(), "could not make the temp directory"
+
+        doAssert root.getChildFile(makeStringRef("one.txt"))
+                     .replaceWithText(makeString("first")), "could not write one.txt"
+        doAssert root.getChildFile(makeStringRef("two.txt"))
+                     .replaceWithText(makeString("second")), "could not write two.txt"
+        doAssert root.getChildFile(makeStringRef("three.dat"))
+                     .replaceWithText(makeString("third")), "could not write three.dat"
+
+        var filter = newCustomFileFilter(makeString("text files"))
+        filter[].setIsFileSuitableHandler(proc(file: ptr june.File): bool =
+            $file[].getFileName() != "three.dat")
+
+        var scanner = makeTimeSliceThread(makeString("june-dcl-scan"))
+        doAssert scanner.startThread(), "the scanning thread did not start"
+
+        var listing = makeDirectoryContentsList(cast[ptr FileFilter](filter), scanner)
+        listing.setDirectory(root, true, true)
+        doAssert listing.getDirectory() == root, "the listing is for another directory"
+        doAssert listing.isFindingFiles(), "the listing was told to find files and does not"
+        doAssert listing.isFindingDirectories(),
+                 "the listing was told to find directories and does not"
+
+        listing.refresh()
+
+        # Bounded, so a scan that never finishes fails the test rather than
+        # hanging the suite.
+        var waited = 0
+        while listing.isStillLoading() and waited < 5000:
+            Thread.sleep(10.cint)
+            waited += 10
+        doAssert not listing.isStillLoading(),
+                 "the scan was still running after " & $waited & "ms"
+
+        doAssert listing.getNumFiles() == 2,
+                 "the listing holds " & $listing.getNumFiles() & " files"
+        doAssert listing.contains(root.getChildFile(makeStringRef("one.txt"))),
+                 "one.txt is not in the listing"
+        doAssert not listing.contains(root.getChildFile(makeStringRef("three.dat"))),
+                 "three.dat passed a filter that rejects it"
+
+        var info = makeDirectoryContentsListFileInfo()
+        doAssert listing.getFileInfo(0.cint, info), "there is no info for the first entry"
+        doAssert $info.filename() in ["one.txt", "two.txt"],
+                 "the first entry is named " & $info.filename()
+
+        # getFilter returns a const FileFilter*, so it comes back as a ConstPtr.
+        doAssert not listing.getFilter().isNil(), "the listing reports no filter"
+
+        listing.clear()
+        doAssert listing.getNumFiles() == 0,
+                 "after clearing the listing holds " & $listing.getNumFiles()
+
+        doAssert scanner.stopThread(2000.cint), "the scanning thread did not stop"
+        cdelete filter
+        doAssert root.deleteRecursively(), "could not remove the temp directory"
+
+    shutdownJuce_GUI()
+
+
 testKeyPressMappingSet()
+# Aggregates with an implicit default constructor =============================
+#
+# Plain structs JUCE declares with no constructor of their own. libclang
+# reports none, so the generator emitted none, and the type was declared with
+# readable and writable fields and no way to build one.
+
+proc testGuiAggregates() =
+    block:
+        var wheel = makeMouseWheelDetails()
+        wheel.deltaX = 0.5'f32
+        wheel.deltaY = -0.25'f32
+        doAssert wheel.deltaX() == 0.5'f32, "the wheel holds " & $wheel.deltaX()
+        doAssert wheel.deltaY() == -0.25'f32, "the wheel holds " & $wheel.deltaY()
+
+        var pen = makePenDetails()
+        pen.rotation = 1.5'f32
+        doAssert pen.rotation() == 1.5'f32, "the pen holds " & $pen.rotation()
+
+        var diagnostics = makeComponentPaintDiagnostics()
+        diagnostics.wroteToCache = true
+        doAssert diagnostics.wroteToCache(), "the diagnostics did not keep the flag"
+
+        var span = makeAccessibilityTableInterfaceSpan()
+        span.begin = 3.cint
+        doAssert span.begin() == 3, "the span begins at " & $span.begin()
+
+        var range = makeAccessibilityValueInterfaceAccessibleValueRangeMinAndMax()
+        range.min = -1.0
+        doAssert range.min() == -1.0, "the range starts at " & $range.min()
+
+        var rotary = makeSliderRotaryParameters()
+        rotary.startAngleRadians = 0.25'f32
+        doAssert rotary.startAngleRadians() == 0.25'f32,
+                 "the parameters hold " & $rotary.startAngleRadians()
+
+        var drag = makeComponentPeerDragInfo()
+        drag.text = makeString("dropped")
+        doAssert $drag.text() == "dropped", "the drag holds " & $drag.text()
+
+        # These two carry only fields whose types are not simple enough to
+        # write here, so building them is the check.
+        discard makeSliderSliderLayout()
+        discard makeGridItemStartAndEndProperty()
+
+
+testDirectoryContentsList()
+testGuiAggregates()

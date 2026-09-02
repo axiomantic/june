@@ -497,6 +497,17 @@ def is_c_array(rendered):
     a number and are never empty, so the two cannot be confused."""
     return re.search(r"\[\s*\d*\s*\]", rendered) is not None
 
+# A class with no declared constructor still has no usable default one when a
+# member of its own has none: C++ deletes it, and libclang reports neither the
+# deletion nor the reason. The suite constructs every aggregate the generator
+# emits a default constructor for, so a class that belongs here and is missing
+# fails the build rather than sitting uncompiled.
+no_implicit_default = {
+    "ColourLayer": "holds an EdgeTable, which has no default constructor",
+    "GlyphLayer": ("holds a std::variant whose first alternative is "
+                   "ColourLayer, so its own default is deleted too"),
+}
+
 def unbound_type_reason(rendered, member=False):
     """Why a rendered signature could not be bound.
 
@@ -1263,6 +1274,34 @@ def run_main(juce_module_name, juce_class_name_to_export):
             class_is_abstract = c.is_abstract_record()
         except AttributeError:
             class_is_abstract = False
+
+        # A class that declares no constructor at all still has C++'s implicit
+        # default one, and the generator emitted nothing for it: 16 types were
+        # declared with readable and writable fields and no way to build one -
+        # ZipFile::ZipEntry, MouseWheelDetails, DirectoryContentsList::FileInfo,
+        # ThreadPool::Options and the rest. A class with a private or protected
+        # constructor is a different case and stays out, because it names one.
+        all_constructors = [x for x in c.get_children()
+                            if x.kind == CursorKind.CONSTRUCTOR]
+        has_public_field = any(x.kind == CursorKind.FIELD_DECL
+                               and x.access_specifier == AccessSpecifier.PUBLIC
+                               for x in c.get_children())
+        if (not all_constructors and not class_is_abstract and has_public_field
+                and c.spelling not in no_implicit_default):
+            declaration = nim_constructor_def.format(**{
+                "comment": "", "class_name": class_name, "method_args": "",
+                "juce_module_name": juce_module_name,
+                "spelling": qualified_name, "juce_args": "@",
+                # Marked, so check_handwritten_covered.py can require a test to
+                # build each one. Two of these turned out to have a default
+                # constructor C++ deletes, which only a call reveals.
+                "reason": "  # implicit default constructor"})
+            signature = (f"make{class_name}", ())
+            if (declaration not in emitted_declarations
+                    and signature not in emitted_signatures):
+                emitted_declarations.add(declaration)
+                emitted_signatures.add(signature)
+                print(declaration)
 
         for ctor in public_constructors:
             ctor_args, ctor_types, ctor_comment = [], [], ""
