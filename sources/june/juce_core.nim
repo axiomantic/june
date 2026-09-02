@@ -167,28 +167,52 @@ type
   ZipFileOverwriteFiles* {.header: juce_core, importcpp: "juce::ZipFile::OverwriteFiles".} = distinct cint
   ZipFileFollowSymlinks* {.header: juce_core, importcpp: "juce::ZipFile::FollowSymlinks".} = distinct cint
 
-# Comparison for the enums above, taken from their base type.
+# Comparison for the enums above, taken from their base type,
+# and $ so a value can appear in a message. $ prints the number
+# rather than the name: the binding holds the C++ enumerator and
+# there is no table of names on this side to look one up in.
 proc `==`*(a: IncrementRef, b: IncrementRef): bool {.borrow.}
+proc `$`*(value: IncrementRef): string {.borrow.}
 proc `==`*(a: SystemStatsOperatingSystemType, b: SystemStatsOperatingSystemType): bool {.borrow.}
+proc `$`*(value: SystemStatsOperatingSystemType): string {.borrow.}
 proc `==`*(a: SystemStatsMachineIdFlags, b: SystemStatsMachineIdFlags): bool {.borrow.}
+proc `$`*(value: SystemStatsMachineIdFlags): string {.borrow.}
 proc `==`*(a: JSONSpacing, b: JSONSpacing): bool {.borrow.}
+proc `$`*(value: JSONSpacing): string {.borrow.}
 proc `==`*(a: JSONEncoding, b: JSONEncoding): bool {.borrow.}
+proc `$`*(value: JSONEncoding): string {.borrow.}
 proc `==`*(a: FileTypesOfFileToFind, b: FileTypesOfFileToFind): bool {.borrow.}
+proc `$`*(value: FileTypesOfFileToFind): string {.borrow.}
 proc `==`*(a: FileFollowSymlinks, b: FileFollowSymlinks): bool {.borrow.}
+proc `$`*(value: FileFollowSymlinks): string {.borrow.}
 proc `==`*(a: FileSpecialLocationType, b: FileSpecialLocationType): bool {.borrow.}
+proc `$`*(value: FileSpecialLocationType): string {.borrow.}
 proc `==`*(a: MemoryMappedFileAccessMode, b: MemoryMappedFileAccessMode): bool {.borrow.}
+proc `$`*(value: MemoryMappedFileAccessMode): string {.borrow.}
 proc `==`*(a: TemporaryFileOptionFlags, b: TemporaryFileOptionFlags): bool {.borrow.}
+proc `$`*(value: TemporaryFileOptionFlags): string {.borrow.}
 proc `==`*(a: ExpressionType, b: ExpressionType): bool {.borrow.}
+proc `$`*(value: ExpressionType): string {.borrow.}
 proc `==`*(a: RuntimePermissionsPermissionID, b: RuntimePermissionsPermissionID): bool {.borrow.}
+proc `$`*(value: RuntimePermissionsPermissionID): string {.borrow.}
 proc `==`*(a: ChildProcessStreamFlags, b: ChildProcessStreamFlags): bool {.borrow.}
+proc `$`*(value: ChildProcessStreamFlags): string {.borrow.}
 proc `==`*(a: ProcessProcessPriority, b: ProcessProcessPriority): bool {.borrow.}
+proc `$`*(value: ProcessProcessPriority): string {.borrow.}
 proc `==`*(a: ThreadPriority, b: ThreadPriority): bool {.borrow.}
+proc `$`*(value: ThreadPriority): string {.borrow.}
 proc `==`*(a: ThreadPoolJobJobStatus, b: ThreadPoolJobJobStatus): bool {.borrow.}
+proc `$`*(value: ThreadPoolJobJobStatus): string {.borrow.}
 proc `==`*(a: URLParameterHandling, b: URLParameterHandling): bool {.borrow.}
+proc `$`*(value: URLParameterHandling): string {.borrow.}
 proc `==`*(a: GZIPCompressorOutputStreamWindowBitsValues, b: GZIPCompressorOutputStreamWindowBitsValues): bool {.borrow.}
+proc `$`*(value: GZIPCompressorOutputStreamWindowBitsValues): string {.borrow.}
 proc `==`*(a: GZIPDecompressorInputStreamFormat, b: GZIPDecompressorInputStreamFormat): bool {.borrow.}
+proc `$`*(value: GZIPDecompressorInputStreamFormat): string {.borrow.}
 proc `==`*(a: ZipFileOverwriteFiles, b: ZipFileOverwriteFiles): bool {.borrow.}
+proc `$`*(value: ZipFileOverwriteFiles): string {.borrow.}
 proc `==`*(a: ZipFileFollowSymlinks, b: ZipFileFollowSymlinks): bool {.borrow.}
+proc `$`*(value: ZipFileFollowSymlinks): string {.borrow.}
 
 # Bitwise operators for the flag sets among them.
 proc `or`*(a: SystemStatsMachineIdFlags, b: SystemStatsMachineIdFlags): SystemStatsMachineIdFlags {.borrow.}

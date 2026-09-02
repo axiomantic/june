@@ -18,8 +18,12 @@ type
   ApplicationProperties* {.header: juce_data_structures, importcpp: "juce::ApplicationProperties", inheritable, pure.} = object
   PropertiesFileStorageFormat* {.header: juce_data_structures, importcpp: "juce::PropertiesFile::StorageFormat".} = distinct cint
 
-# Comparison for the enums above, taken from their base type.
+# Comparison for the enums above, taken from their base type,
+# and $ so a value can appear in a message. $ prints the number
+# rather than the name: the binding holds the C++ enumerator and
+# there is no table of names on this side to look one up in.
 proc `==`*(a: PropertiesFileStorageFormat, b: PropertiesFileStorageFormat): bool {.borrow.}
+proc `$`*(value: PropertiesFileStorageFormat): string {.borrow.}
 
 let PropertiesFileStorageFormat_storeAsBinary* {.header: juce_data_structures, importcpp: "juce::PropertiesFile::storeAsBinary".}: PropertiesFileStorageFormat
 let PropertiesFileStorageFormat_storeAsCompressedBinary* {.header: juce_data_structures, importcpp: "juce::PropertiesFile::storeAsCompressedBinary".}: PropertiesFileStorageFormat

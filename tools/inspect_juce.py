@@ -1054,9 +1054,13 @@ def run_main(juce_module_name, juce_class_name_to_export):
         # cast on both sides, which is what every caller would end up writing.
         # `borrow` takes the base type's == rather than binding a C++ one,
         # because the values are already the C++ enumerators.
-        print("# Comparison for the enums above, taken from their base type.")
+        print("# Comparison for the enums above, taken from their base type,")
+        print("# and $ so a value can appear in a message. $ prints the number")
+        print("# rather than the name: the binding holds the C++ enumerator and")
+        print("# there is no table of names on this side to look one up in.")
         for enum_name in emitted_enum_names:
             print(f"proc `==`*(a: {enum_name}, b: {enum_name}): bool {{.borrow.}}")
+            print(f"proc `$`*(value: {enum_name}): string {{.borrow.}}")
         print()
 
         # JUCE spells a flag set as a nested enum called Flags, which this
