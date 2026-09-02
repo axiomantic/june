@@ -862,7 +862,7 @@ proc getName*(this: Typeface): String {.header: juce_graphics, importcpp: "#.get
 proc getStyle*(this: Typeface): String {.header: juce_graphics, importcpp: "#.getStyle()".}
 proc createSystemTypefaceFor*(this: typedesc[Typeface], font: Font): ReferenceCountedObjectPtr[Typeface] {.header: juce_graphics, importcpp: "juce::Typeface::createSystemTypefaceFor(@)".}
 proc createSystemTypefaceFor*(this: typedesc[Typeface], fontFileData: constPointer, fontFileDataSize: uint64): ReferenceCountedObjectPtr[Typeface] {.header: juce_graphics, importcpp: "juce::Typeface::createSystemTypefaceFor(@)".}
-# proc createSystemTypefaceFor*(this: typedesc[Typeface], arg1: Span[stdbyte]): ReferenceCountedObjectPtr[Typeface] {.header: juce_graphics, importcpp: "juce::Typeface::createSystemTypefaceFor(@)".}  # a type that cannot be spelled in Nim
+proc createSystemTypefaceFor*(this: typedesc[Typeface], arg1: Span[CppByte]): ReferenceCountedObjectPtr[Typeface] {.header: juce_graphics, importcpp: "juce::Typeface::createSystemTypefaceFor(@)".}
 proc getMetrics*(this: Typeface, arg1: TypefaceMetricsKind): TypefaceMetrics {.header: juce_graphics, importcpp: "#.getMetrics(@)".}
 proc getOutlineForGlyph*(this: Typeface, glyphNumber: cint, path: var Path) {.header: juce_graphics, importcpp: "#.getOutlineForGlyph(@)".}
 proc getGlyphBounds*(this: Typeface, glyphNumber: cint): Rectangle[cfloat] {.header: juce_graphics, importcpp: "#.getGlyphBounds(@)".}

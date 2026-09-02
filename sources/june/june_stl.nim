@@ -21,6 +21,9 @@ type
   # Opaque: the only things C++ offers on one are comparison and a name whose
   # spelling is implementation defined.
   CppTypeIndex* {.header: "<typeindex>", importcpp: "std::type_index", bycopy.} = object
+  # std::byte is a distinct type in C++ rather than an alias for a character,
+  # so it needs its own binding: a Nim uint8 does not convert to one.
+  CppByte* {.header: "<cstddef>", importcpp: "std::byte".} = distinct uint8
   CppMap*[K, V] {.header: "<map>", importcpp: "std::map<'0, '1>", bycopy.} = object
   CppUnorderedMap*[K, V] {.header: "<unordered_map>", importcpp: "std::unordered_map<'0, '1>", bycopy.} = object
   # The size is a value rather than a type, so it is a static parameter: Nim
@@ -57,6 +60,9 @@ proc what*(this: CppException): constChar {.importcpp: "#.what()".}
 proc `==`*(this: CppTypeIndex, other: CppTypeIndex): bool {.importcpp: "(# == #)".}
 proc `<`*(this: CppTypeIndex, other: CppTypeIndex): bool {.importcpp: "(# < #)".}
 proc name*(this: CppTypeIndex): constChar {.importcpp: "#.name()".}
+
+proc toCppByte*(value: uint8): CppByte {.importcpp: "std::byte{#}", header: "<cstddef>".}
+proc toUint8*(value: CppByte): uint8 {.importcpp: "std::to_integer<unsigned char>(#)", header: "<cstddef>".}
 
 proc size*[K, V](this: CppMap[K, V]): csize_t {.importcpp: "#.size()".}
 proc isEmpty*[K, V](this: CppMap[K, V]): bool {.importcpp: "#.empty()".}

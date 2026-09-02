@@ -189,3 +189,16 @@ proc testStaticMethods() =
   doAssert AffineTransform.rotation(0.0'f32).isIdentity()
 
 testStaticMethods()
+
+# std::byte is a distinct C++ type, not an alias for a character, so a Nim
+# uint8 does not convert to one. Binding it is what makes the Typeface overload
+# that loads a font from raw memory nameable.
+proc testCppByte() =
+  let value = 200'u8.toCppByte()
+  doAssert value.toUint8() == 200'u8, "the byte came back as " & $value.toUint8()
+  doAssert 0'u8.toCppByte().toUint8() == 0'u8
+
+  doAssert compiles(proc(data: Span[CppByte]): ReferenceCountedObjectPtr[Typeface] =
+    Typeface.createSystemTypefaceFor(data))
+
+testCppByte()
