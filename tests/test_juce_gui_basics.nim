@@ -2009,4 +2009,84 @@ proc testGuiAggregates() =
 
 
 testDirectoryContentsList()
+# Toolbar =====================================================================
+#
+# A toolbar takes its items from a factory, which is abstract, so this needs
+# the generated CustomToolbarItemFactory and CustomToolbarItemComponent
+# together. The string round trip is the part worth holding: it is how an
+# application saves a toolbar the user has arranged.
+
+const toolbarCut = 2001.cint
+const toolbarCopy = 2002.cint
+
+proc testToolbar() =
+    initialiseJuce_GUI()
+
+    block:
+        var factory = newCustomToolbarItemFactory()
+        factory[].setGetAllToolbarItemIdsHandler(proc(ids: ptr Array[cint]) =
+            ids[].add(toolbarCut)
+            ids[].add(toolbarCopy))
+        factory[].setGetDefaultItemSetHandler(proc(ids: ptr Array[cint]) =
+            ids[].add(toolbarCut))
+        factory[].setCreateItemHandler(proc(itemId: cint): ptr ToolbarItemComponent =
+            let label = if itemId == toolbarCut: "Cut" else: "Copy"
+            var item = newCustomToolbarItemComponent(itemId, makeString(label), true)
+            item[].setGetToolbarItemSizesHandler(proc(toolbarThickness: cint,
+                                                      isToolbarVertical: bool,
+                                                      preferredSize: ptr cint,
+                                                      minSize: ptr cint,
+                                                      maxSize: ptr cint): bool =
+                preferredSize[] = 40.cint
+                minSize[] = 20.cint
+                maxSize[] = 80.cint
+                true)
+            item[].setPaintButtonAreaHandler(proc(g: ptr Graphics, width: cint,
+                                                  height: cint, isMouseOver: bool,
+                                                  isMouseDown: bool) = discard)
+            cast[ptr ToolbarItemComponent](item))
+
+        var bar = makeToolbar()
+        doAssert bar.getNumItems() == 0, "a fresh toolbar holds items"
+
+        bar.addDefaultItems(cast[ptr CustomToolbarItemFactory](factory)[])
+        doAssert bar.getNumItems() == 1,
+                 "the default set gave " & $bar.getNumItems() & " items"
+        doAssert bar.getItemId(0.cint) == toolbarCut,
+                 "the first item is " & $bar.getItemId(0.cint)
+        doAssert bar.getItemComponent(0.cint) != nil, "the first item has no component"
+
+        bar.addItem(cast[ptr CustomToolbarItemFactory](factory)[], toolbarCopy)
+        doAssert bar.getNumItems() == 2,
+                 "after adding one the toolbar holds " & $bar.getNumItems()
+        doAssert bar.getItemId(1.cint) == toolbarCopy,
+                 "the second item is " & $bar.getItemId(1.cint)
+
+        bar.setVertical(true)
+        doAssert bar.isVertical(), "the toolbar did not go vertical"
+        bar.setVertical(false)
+        doAssert not bar.isVertical(), "the toolbar did not go back to horizontal"
+
+        # Save, empty, restore. Clearing in between is what makes the restore
+        # the thing under test.
+        let saved = bar.toString()
+        doAssert $saved != "", "the toolbar saved as an empty string"
+
+        bar.clear()
+        doAssert bar.getNumItems() == 0,
+                 "after clearing the toolbar holds " & $bar.getNumItems()
+
+        doAssert bar.restoreFromString(cast[ptr CustomToolbarItemFactory](factory)[], saved),
+                 "restoreFromString reported failure"
+        doAssert bar.getNumItems() == 2,
+                 "the restored toolbar holds " & $bar.getNumItems() & " items"
+        doAssert bar.getItemId(1.cint) == toolbarCopy,
+                 "the restored second item is " & $bar.getItemId(1.cint)
+
+        cdelete factory
+
+    shutdownJuce_GUI()
+
+
 testGuiAggregates()
+testToolbar()
