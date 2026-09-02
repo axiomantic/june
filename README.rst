@@ -445,6 +445,18 @@ two apart, so those two are named in the generator with the reason, and
 ``check_handwritten_covered.py`` fails unless a test builds every one of the
 constructors that is emitted.
 
+``Array[T]``'s ``[]`` returns by value, and Nim builds a temporary for that,
+which needs ``T`` to be default-constructible. ``juce::TextLayout::Glyph`` is
+not, so every element of a laid-out run was unreachable. ``getReference`` is
+bound alongside it and hands back JUCE's own reference, needing nothing of
+``T``.
+
+A non-copyable container returned by value has to be used inline. ``OwnedArray``
+is one, so ``line.runs().size()`` and ``line.runs()[i]`` are fine while
+``var runs = line.runs()`` asks C++ for a copy it will not make -- and so does
+``for run in line.runs()``, because the ``items`` iterator takes the array by
+value.
+
 A field whose type cannot be copy-assigned is set with ``std::move``. Nine
 setters assigned one by copy and every call was rejected --
 ``PopupMenu::Item``'s ``subMenu`` and ``image``, ``FillType::gradient``,
