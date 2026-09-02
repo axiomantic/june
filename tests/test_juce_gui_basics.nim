@@ -2089,4 +2089,74 @@ proc testToolbar() =
 
 
 testGuiAggregates()
+# TableListBox ================================================================
+#
+# The model is abstract, so this needs CustomTableListBoxModel. Painting the
+# table into an image is the part that says the wiring works: JUCE calls back
+# into the Nim closures to draw every cell, and the counts have to match the
+# rows and columns the table was told about.
+
+proc testTableListBox() =
+    initialiseJuce_GUI()
+
+    block:
+        var cellsPainted = 0
+        var rowsPainted = 0
+
+        var model = newCustomTableListBoxModel()
+        model[].setGetNumRowsHandler(proc(): cint = 4.cint)
+        model[].setPaintRowBackgroundHandler(proc(g: ptr Graphics, rowNumber: cint,
+                                                  width: cint, height: cint,
+                                                  rowIsSelected: bool) =
+            rowsPainted += 1)
+        model[].setPaintCellHandler(proc(g: ptr Graphics, rowNumber: cint,
+                                         columnId: cint, width: cint,
+                                         height: cint, rowIsSelected: bool) =
+            cellsPainted += 1)
+
+        var table = makeTableListBox(makeString("table"),
+                                     cast[ptr TableListBoxModel](model))
+        doAssert table.getTableListBoxModel() == cast[ptr TableListBoxModel](model),
+                 "the table reports another model"
+
+        let visible = cint(TableHeaderComponentColumnPropertyFlags_visible)
+        table.getHeader().addColumn(makeString("Name"), 1.cint, 60.cint,
+                                    30.cint, -1.cint, visible)
+        table.getHeader().addColumn(makeString("Size"), 2.cint, 40.cint,
+                                    30.cint, -1.cint, visible)
+        doAssert table.getHeader().getNumColumns(true) == 2,
+                 "the header holds " & $table.getHeader().getNumColumns(true) & " columns"
+        doAssert $table.getHeader().getColumnName(1.cint) == "Name",
+                 "column 1 is called " & $table.getHeader().getColumnName(1.cint)
+        doAssert table.getHeader().getTotalWidth() == 100,
+                 "the columns total " & $table.getHeader().getTotalWidth()
+
+        table.setHeaderHeight(20.cint)
+        doAssert table.getHeaderHeight() == 20,
+                 "the header is " & $table.getHeaderHeight() & " high"
+
+        table.setBounds(makeRectangle(0.cint, 0.cint, 100.cint, 100.cint))
+        table.updateContent()
+
+        let image = makeImage(ImagePixelFormat_ARGB, 100.cint, 100.cint, true)
+        var context = makeGraphics(image)
+        table.paintEntireComponent(context, false)
+
+        doAssert rowsPainted == 4,
+                 "JUCE painted " & $rowsPainted & " row backgrounds for 4 rows"
+        doAssert cellsPainted == 8,
+                 "JUCE painted " & $cellsPainted & " cells for 4 rows of 2 columns"
+
+        # A cell's position has to sit inside the table and line up with the
+        # column widths it was given.
+        let firstCell = table.getCellPosition(1.cint, 0.cint, true)
+        doAssert firstCell.getWidth() == 60,
+                 "the first cell is " & $firstCell.getWidth() & " wide"
+
+        cdelete model
+
+    shutdownJuce_GUI()
+
+
 testToolbar()
+testTableListBox()
