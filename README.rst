@@ -281,6 +281,9 @@ Hand-written additions live in the ``*_lifting.nim`` files and in
   ``Image::BitmapData`` is ``ImageBitmapData``. At any depth:
   ``Expression::Scope::Visitor`` is ``ExpressionScopeVisitor``.
 - Constructors, as ``make<ClassName>`` procs.
+- Public fields, as a getter and a setter, so ``parameters.startAngleRadians``
+  reads and ``parameters.startAngleRadians = x`` writes. A field C++ will not
+  let anyone assign -- a const one, or a reference -- gets only the getter.
 - Static methods, taking the class as a ``typedesc``, so ``Colour::fromRGB`` is
   ``Colour.fromRGB(r, g, b)`` and ``AffineTransform::rotation`` is
   ``AffineTransform.rotation(angle)``.
