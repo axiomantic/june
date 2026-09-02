@@ -145,3 +145,35 @@ proc testValueTreePropertyWithDefault() =
 
 testValue()
 testValueTreePropertyWithDefault()
+
+# PropertiesFileOptions =======================================================
+#
+# The settings a PropertiesFile is opened with. Every field is reached through
+# a var getter, so assigning one writes into the options rather than into a
+# copy of them - which is the part worth asserting, because a copy would read
+# back the old value and nothing else would say so.
+
+proc testPropertiesFileOptions() =
+  var options = makePropertiesFileOptions()
+  doAssert $options.applicationName() == "", "a fresh options object had a name"
+  doAssert not options.commonToAllUsers(), "a fresh options object was common to all users"
+
+  options.applicationName = makeString("june-test")
+  doAssert $options.applicationName() == "june-test",
+           "the name came back as " & $options.applicationName()
+
+  options.filenameSuffix = makeString("settings")
+  doAssert $options.filenameSuffix() == "settings",
+           "the suffix came back as " & $options.filenameSuffix()
+
+  options.folderName = makeString("june")
+  doAssert $options.folderName() == "june", "the folder came back as " & $options.folderName()
+
+  options.commonToAllUsers = true
+  doAssert options.commonToAllUsers(), "the flag did not stick"
+
+  # The earlier fields survived the later writes.
+  doAssert $options.applicationName() == "june-test",
+           "a later write clobbered the name"
+
+testPropertiesFileOptions()
