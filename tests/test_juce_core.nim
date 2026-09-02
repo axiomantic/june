@@ -1033,3 +1033,32 @@ proc testScalarOverloads() =
   doAssert CharacterFunctions.isPrintable(uint32('x')), "isPrintable"
 
 testScalarOverloads()
+
+# The string-like overload sets ===============================================
+#
+# Twenty-three bound methods are overloaded across String, StringRef and
+# constChar. A Nim string reaches all three through converters and a String
+# reaches two, so each of these is a chance for the call to become ambiguous -
+# which is what happened to <=. Each set is called both ways here.
+
+proc testStringLikeOverloadSets() =
+  let text = makeString("abc")
+
+  doAssert $makeIdentifier("lit").toString() == "lit", "makeIdentifier with a literal"
+  doAssert $makeIdentifier(text).toString() == "abc", "makeIdentifier with a String"
+
+  var fromLiteral = makeStringArray("lit")
+  doAssert fromLiteral.size() == 1, "makeStringArray with a literal"
+  var fromString = makeStringArray(text)
+  doAssert fromString.size() == 1, "makeStringArray with a String"
+
+  doAssert makeStringRef(text) == text, "makeStringRef with a String"
+
+  doAssert text.compare("abc") == 0, "compare with a literal"
+  doAssert text.compare(makeString("abc")) == 0, "compare with a String"
+  doAssert text.equalsIgnoreCase("ABC"), "equalsIgnoreCase with a literal"
+
+  var pool = makeStringPool()
+  doAssert $pool.getPooledString(text) == "abc", "getPooledString with a String"
+
+testStringLikeOverloadSets()
