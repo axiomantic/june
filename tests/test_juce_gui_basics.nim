@@ -3072,6 +3072,72 @@ proc testComponentBuilder() =
     shutdownJuce_GUI()
 
 testTreeView()
+# MarkerList ==================================================================
+#
+# Named positions a layout can refer to. The listener is one of the nested
+# abstract classes the generator used to skip, and JUCE calls it back when the
+# list changes, so the closure is what says the notification arrived.
+
+proc testMarkerList() =
+    initialiseJuce_GUI()
+
+    block:
+        var markers = makeMarkerList()
+        doAssert markers.getNumMarkers() == 0,
+                 "a fresh list holds " & $markers.getNumMarkers() & " markers"
+
+        var changes = 0
+        var listener = newCustomMarkerListListener()
+        listener[].setMarkersChangedHandler(proc(markerList: ptr MarkerList) =
+            changes += 1)
+        markers.addListener(cast[ptr MarkerListListener](listener))
+
+        markers.setMarker(makeString("left"), makeRelativeCoordinate(10.0))
+        markers.setMarker(makeString("right"), makeRelativeCoordinate(90.0))
+        doAssert markers.getNumMarkers() == 2,
+                 "the list holds " & $markers.getNumMarkers() & " markers"
+
+        # Looked up by name and by index, and the two have to agree.
+        let byName = markers.getMarker(makeString("right"))
+        doAssert not byName.isNil(), "there is no marker called right"
+        doAssert $byName[].name() == "right",
+                 "the marker is called " & $byName[].name()
+        doAssert byName[].position().resolve(nil) == 90.0,
+                 "the marker sits at " & $byName[].position().resolve(nil)
+        doAssert markers.getMarker(1.cint)[].name() == byName[].name(),
+                 "the second marker is not the one called right"
+
+        doAssert markers.getMarker(makeString("nowhere")).isNil(),
+                 "a marker nobody set has a position"
+
+        # Setting an existing name moves it rather than adding another.
+        markers.setMarker(makeString("left"), makeRelativeCoordinate(20.0))
+        doAssert markers.getNumMarkers() == 2,
+                 "setting an existing marker left " & $markers.getNumMarkers()
+        doAssert markers.getMarker(makeString("left"))[].position().resolve(nil) == 20.0,
+                 "the marker moved to " &
+                 $markers.getMarker(makeString("left"))[].position().resolve(nil)
+
+        # setMarker notifies on its own, so the count is already up here.
+        doAssert changes > 0, "setting a marker told the listener nothing"
+        let beforeExplicitChange = changes
+        markers.markersHaveChanged()
+        doAssert changes == beforeExplicitChange + 1,
+                 "markersHaveChanged sent " &
+                 $(changes - beforeExplicitChange) & " notifications"
+
+        markers.removeMarker(makeString("left"))
+        doAssert markers.getNumMarkers() == 1,
+                 "after removing one, " & $markers.getNumMarkers() & " remain"
+        doAssert markers.getMarker(makeString("left")).isNil(),
+                 "the removed marker is still there"
+
+        markers.removeListener(cast[ptr MarkerListListener](listener))
+        cdelete listener
+
+    shutdownJuce_GUI()
+
+
 testComponentBuilder()
 
 # The nested abstract classes =================================================
@@ -3350,3 +3416,4 @@ proc testNestedSubclassesGuiBasics() =
     shutdownJuce_GUI()
 
 testNestedSubclassesGuiBasics()
+testMarkerList()
