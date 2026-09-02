@@ -218,3 +218,152 @@ proc testRemainingDataStructuresSubclasses() =
         cdelete synchroniser
 
 testRemainingDataStructuresSubclasses()
+# Every closure arity ==========================================================
+#
+# june_function_utils declares bindClosure and a call operator for nought to
+# nine arguments, with and without a result, but the bindings only reach N0-N3,
+# N5, N9 and R0-R2. A Nim template is only type-checked where it is used and a
+# generic proc only instantiated where it is called, so the rest had never been
+# compiled at all. Each one is bound from a Nim closure here and called back
+# through the std::function, so the arguments have to survive the round trip.
+#
+# Here rather than in test_juce_core: that module holds
+# CppFunctionObjectR0[ThreadPoolJobJobStatus], for ThreadPool.addJob, and Nim
+# renders one C++ type for that and for CppFunctionObjectR0[cint] because the
+# enum is a distinct cint. Adding a cint-returning closure of arity nought
+# there makes the assignment fail. basescalar and bindEnumClosure keep the
+# distinct out of every Nim *closure* type; this is the same Nim limitation
+# reaching the std::function type itself, and nothing in the bindings can
+# reach it.
+
+proc testEveryClosureArity() =
+    block:
+        var seen: seq[cint] = @[]
+        seen = @[]
+        var void0 = bindClosure(proc() =
+                seen.add(0.cint))
+        void0()
+        doAssert seen == @[0.cint],
+                 "the 0-argument void closure saw " & $seen
+        seen = @[]
+        var void1 = bindClosure(proc(a1: cint) =
+                seen.add(a1))
+        void1(1.cint)
+        doAssert seen == @[1.cint],
+                 "the 1-argument void closure saw " & $seen
+        seen = @[]
+        var void2 = bindClosure(proc(a1: cint, a2: cint) =
+                seen.add(a1)
+                seen.add(a2))
+        void2(1.cint, 2.cint)
+        doAssert seen == @[1.cint, 2.cint],
+                 "the 2-argument void closure saw " & $seen
+        seen = @[]
+        var void3 = bindClosure(proc(a1: cint, a2: cint, a3: cint) =
+                seen.add(a1)
+                seen.add(a2)
+                seen.add(a3))
+        void3(1.cint, 2.cint, 3.cint)
+        doAssert seen == @[1.cint, 2.cint, 3.cint],
+                 "the 3-argument void closure saw " & $seen
+        seen = @[]
+        var void4 = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint) =
+                seen.add(a1)
+                seen.add(a2)
+                seen.add(a3)
+                seen.add(a4))
+        void4(1.cint, 2.cint, 3.cint, 4.cint)
+        doAssert seen == @[1.cint, 2.cint, 3.cint, 4.cint],
+                 "the 4-argument void closure saw " & $seen
+        seen = @[]
+        var void5 = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint) =
+                seen.add(a1)
+                seen.add(a2)
+                seen.add(a3)
+                seen.add(a4)
+                seen.add(a5))
+        void5(1.cint, 2.cint, 3.cint, 4.cint, 5.cint)
+        doAssert seen == @[1.cint, 2.cint, 3.cint, 4.cint, 5.cint],
+                 "the 5-argument void closure saw " & $seen
+        seen = @[]
+        var void6 = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint, a6: cint) =
+                seen.add(a1)
+                seen.add(a2)
+                seen.add(a3)
+                seen.add(a4)
+                seen.add(a5)
+                seen.add(a6))
+        void6(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint)
+        doAssert seen == @[1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint],
+                 "the 6-argument void closure saw " & $seen
+        seen = @[]
+        var void7 = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint, a6: cint, a7: cint) =
+                seen.add(a1)
+                seen.add(a2)
+                seen.add(a3)
+                seen.add(a4)
+                seen.add(a5)
+                seen.add(a6)
+                seen.add(a7))
+        void7(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint)
+        doAssert seen == @[1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint],
+                 "the 7-argument void closure saw " & $seen
+        seen = @[]
+        var void8 = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint, a6: cint, a7: cint, a8: cint) =
+                seen.add(a1)
+                seen.add(a2)
+                seen.add(a3)
+                seen.add(a4)
+                seen.add(a5)
+                seen.add(a6)
+                seen.add(a7)
+                seen.add(a8))
+        void8(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint)
+        doAssert seen == @[1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint],
+                 "the 8-argument void closure saw " & $seen
+        seen = @[]
+        var void9 = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint, a6: cint, a7: cint, a8: cint, a9: cint) =
+                seen.add(a1)
+                seen.add(a2)
+                seen.add(a3)
+                seen.add(a4)
+                seen.add(a5)
+                seen.add(a6)
+                seen.add(a7)
+                seen.add(a8)
+                seen.add(a9))
+        void9(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint, 9.cint)
+        doAssert seen == @[1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint, 9.cint],
+                 "the 9-argument void closure saw " & $seen
+        var value0 = bindClosure(proc(): cint = 7.cint)
+        doAssert value0() == 7.cint,
+                 "the 0-argument closure returned " & $value0()
+        var value1 = bindClosure(proc(a1: cint): cint = a1)
+        doAssert value1(1.cint) == 1.cint,
+                 "the 1-argument closure returned " & $value1(1.cint)
+        var value2 = bindClosure(proc(a1: cint, a2: cint): cint = a1 + a2)
+        doAssert value2(1.cint, 2.cint) == 3.cint,
+                 "the 2-argument closure returned " & $value2(1.cint, 2.cint)
+        var value3 = bindClosure(proc(a1: cint, a2: cint, a3: cint): cint = a1 + a2 + a3)
+        doAssert value3(1.cint, 2.cint, 3.cint) == 6.cint,
+                 "the 3-argument closure returned " & $value3(1.cint, 2.cint, 3.cint)
+        var value4 = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint): cint = a1 + a2 + a3 + a4)
+        doAssert value4(1.cint, 2.cint, 3.cint, 4.cint) == 10.cint,
+                 "the 4-argument closure returned " & $value4(1.cint, 2.cint, 3.cint, 4.cint)
+        var value5 = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint): cint = a1 + a2 + a3 + a4 + a5)
+        doAssert value5(1.cint, 2.cint, 3.cint, 4.cint, 5.cint) == 15.cint,
+                 "the 5-argument closure returned " & $value5(1.cint, 2.cint, 3.cint, 4.cint, 5.cint)
+        var value6 = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint, a6: cint): cint = a1 + a2 + a3 + a4 + a5 + a6)
+        doAssert value6(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint) == 21.cint,
+                 "the 6-argument closure returned " & $value6(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint)
+        var value7 = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint, a6: cint, a7: cint): cint = a1 + a2 + a3 + a4 + a5 + a6 + a7)
+        doAssert value7(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint) == 28.cint,
+                 "the 7-argument closure returned " & $value7(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint)
+        var value8 = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint, a6: cint, a7: cint, a8: cint): cint = a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8)
+        doAssert value8(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint) == 36.cint,
+                 "the 8-argument closure returned " & $value8(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint)
+        var value9 = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint, a6: cint, a7: cint, a8: cint, a9: cint): cint = a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9)
+        doAssert value9(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint, 9.cint) == 45.cint,
+                 "the 9-argument closure returned " & $value9(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint, 9.cint)
+
+testEveryClosureArity()
