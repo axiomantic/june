@@ -689,6 +689,45 @@ def remap_argument_name(arg_name, count):
 
 #==================================================================================================
 
+# C++ builtins an argument can convert to silently, so an overload set built
+# only from these cannot be resolved by passing the value through.
+convertible_scalars = {
+    "char", "signed char", "unsigned char", "short", "unsigned short",
+    "int", "unsigned int", "long", "unsigned long", "long long",
+    "unsigned long long", "float", "double", "long double", "bool",
+    "wchar_t", "char16_t", "char32_t", "size_t",
+}
+
+
+def scalar_overloaded_names(methods):
+    """Method names whose overloads differ only in a scalar parameter.
+
+    CharacterFunctions::isDigit is declared for char and for juce_wchar. An
+    argument coming from Nim converts to both, so C++ reports the call as
+    ambiguous and neither binding can be used. Naming these lets the emitter
+    cast each argument to the type its overload declares, which picks one.
+    """
+    import collections
+
+    shapes = collections.defaultdict(list)
+    for method in methods:
+        # Canonical, so a typedef is compared as what it stands for:
+        # juce_wchar is wchar_t, and the overload it clashes with says char.
+        types = [a.type.get_canonical().spelling for a in method.get_arguments()]
+        shapes[(method.spelling, len(types))].append(types)
+
+    ambiguous = set()
+    for (name, _), overloads in shapes.items():
+        if len(overloads) < 2:
+            continue
+        for position in range(len(overloads[0])):
+            seen = {types[position] for types in overloads}
+            if len(seen) > 1 and all(t.replace("const ", "").strip() in convertible_scalars
+                                     for t in seen):
+                ambiguous.add(name)
+    return ambiguous
+
+
 def skip_class_method(class_name, method_name):
     # One entry per class, holding a set. A dict of class to a single method
     # name loses every entry but the last for a class named more than once, and
@@ -1349,6 +1388,11 @@ def run_main(juce_module_name, juce_class_name_to_export):
         class_bound_equality = False
         class_has_to_string = False
 
+        scalar_overloaded = scalar_overloaded_names(
+            [x for x in c.get_children()
+             if x.kind == CursorKind.CXX_METHOD
+             and x.access_specifier == AccessSpecifier.PUBLIC])
+
         for m in filter(lambda x: x.kind == CursorKind.CXX_METHOD, c.get_children()):
             if m.access_specifier != AccessSpecifier.PUBLIC:
                 continue
@@ -1366,6 +1410,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
             args = ([] if is_static_method
                     else [f"this: {'' if is_const_method else 'var '}{class_name}"])
             argument_types = []
+            cpp_argument_types = []
             for count, arg in enumerate(m.get_arguments()):
                 default_value = ""
 
@@ -1411,6 +1456,9 @@ def run_main(juce_module_name, juce_class_name_to_export):
 
                 args.append(f"{spelling}: {argument_type}{default_value}")
                 argument_types.append(argument_type)
+                # Canonical, because the cast has to name a type that resolves
+                # where the generated call sits - juce_wchar does not.
+                cpp_argument_types.append(arg.type.get_canonical().spelling)
 
             reason = ""
             return_type = ""
@@ -1458,6 +1506,31 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 # described as an iterator the Nim ones replace.
                 reason = reason or unbound_type_reason(rendered)
 
+            # An overload set that differs only in a scalar parameter needs each
+            # argument cast to the type this overload declares, or C++ cannot
+            # tell which one the call means.
+            has_arguments = len(args) > (0 if is_static_method else 1)
+            if has_arguments and m.spelling in scalar_overloaded:
+                # `#` takes the next argument in order, and a digit after it is
+                # literal text rather than an index, so one bare `#` per
+                # parameter is the spelling that works. In the instance form the
+                # leading `#.` has already consumed the receiver.
+                #
+                # A static method cannot use `#` at all: its first parameter is
+                # the typedesc, which is compile-time only and expands to
+                # nothing, swallowing a placeholder. `@` skips it, so a
+                # single-argument static method casts the whole expansion. With
+                # more than one argument there is nothing to cast piecewise, and
+                # the call stays ambiguous - loudly, as a C++ error.
+                if is_static_method:
+                    emitted_args = (f"({cpp_argument_types[0]}) @"
+                                    if len(cpp_argument_types) == 1 else "@")
+                else:
+                    emitted_args = ", ".join(
+                        f"({cpp_type}) #" for cpp_type in cpp_argument_types)
+            else:
+                emitted_args = "@" if has_arguments else ""
+
             if is_static_method:
                 declaration = nim_static_method_def.format(**{
                     "comment": comment,
@@ -1468,7 +1541,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
                     "juce_module_name": juce_module_name,
                     "qualified_name": qualified_name,
                     "juce_spelling": method_spelling,
-                    "juce_args": "@" if args else "",
+                    "juce_args": emitted_args,
                     "reason": f"  # {reason}" if comment and reason else "",
                 })
             else:
@@ -1479,7 +1552,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
                     "method_return": return_type,
                     "juce_module_name": juce_module_name,
                     "juce_spelling": method_spelling,
-                    "juce_args": "@" if len(args) > 1 else "",
+                    "juce_args": emitted_args,
                     "reason": f"  # {reason}" if comment and reason else "",
                 })
 

@@ -332,8 +332,8 @@ proc getBlue*(this: PixelARGB): uint8 {.header: juce_graphics, importcpp: "#.get
 proc setARGB*(this: var PixelARGB, a: uint8, r: uint8, g: uint8, b: uint8) {.header: juce_graphics, importcpp: "#.setARGB(@)".}
 proc blend*(this: var PixelARGB, src: PixelRGB) {.header: juce_graphics, importcpp: "#.blend(@)".}
 proc setAlpha*(this: var PixelARGB, newAlpha: uint8) {.header: juce_graphics, importcpp: "#.setAlpha(@)".}
-proc multiplyAlpha*(this: var PixelARGB, multiplier: cint) {.header: juce_graphics, importcpp: "#.multiplyAlpha(@)".}
-proc multiplyAlpha*(this: var PixelARGB, multiplier: cfloat) {.header: juce_graphics, importcpp: "#.multiplyAlpha(@)".}
+proc multiplyAlpha*(this: var PixelARGB, multiplier: cint) {.header: juce_graphics, importcpp: "#.multiplyAlpha((int) #)".}
+proc multiplyAlpha*(this: var PixelARGB, multiplier: cfloat) {.header: juce_graphics, importcpp: "#.multiplyAlpha((float) #)".}
 proc getUnpremultiplied*(this: PixelARGB): PixelARGB {.header: juce_graphics, importcpp: "#.getUnpremultiplied()".}
 proc premultiply*(this: var PixelARGB) {.header: juce_graphics, importcpp: "#.premultiply()".}
 proc unpremultiply*(this: var PixelARGB) {.header: juce_graphics, importcpp: "#.unpremultiply()".}
@@ -353,8 +353,8 @@ proc getBlue*(this: PixelRGB): uint8 {.header: juce_graphics, importcpp: "#.getB
 proc setARGB*(this: var PixelRGB, arg1: uint8, red: uint8, green: uint8, blue: uint8) {.header: juce_graphics, importcpp: "#.setARGB(@)".}
 proc blend*(this: var PixelRGB, src: PixelRGB) {.header: juce_graphics, importcpp: "#.blend(@)".}
 proc setAlpha*(this: var PixelRGB, arg1: uint8) {.header: juce_graphics, importcpp: "#.setAlpha(@)".}
-proc multiplyAlpha*(this: var PixelRGB, arg1: cint) {.header: juce_graphics, importcpp: "#.multiplyAlpha(@)".}
-proc multiplyAlpha*(this: var PixelRGB, arg1: cfloat) {.header: juce_graphics, importcpp: "#.multiplyAlpha(@)".}
+proc multiplyAlpha*(this: var PixelRGB, arg1: cint) {.header: juce_graphics, importcpp: "#.multiplyAlpha((int) #)".}
+proc multiplyAlpha*(this: var PixelRGB, arg1: cfloat) {.header: juce_graphics, importcpp: "#.multiplyAlpha((float) #)".}
 proc premultiply*(this: var PixelRGB) {.header: juce_graphics, importcpp: "#.premultiply()".}
 proc unpremultiply*(this: var PixelRGB) {.header: juce_graphics, importcpp: "#.unpremultiply()".}
 proc desaturate*(this: var PixelRGB) {.header: juce_graphics, importcpp: "#.desaturate()".}
@@ -372,8 +372,8 @@ proc getGreen*(this: PixelAlpha): uint8 {.header: juce_graphics, importcpp: "#.g
 proc getBlue*(this: PixelAlpha): uint8 {.header: juce_graphics, importcpp: "#.getBlue()".}
 proc setARGB*(this: var PixelAlpha, a: uint8, arg2: uint8, arg3: uint8, arg4: uint8) {.header: juce_graphics, importcpp: "#.setARGB(@)".}
 proc setAlpha*(this: var PixelAlpha, newAlpha: uint8) {.header: juce_graphics, importcpp: "#.setAlpha(@)".}
-proc multiplyAlpha*(this: var PixelAlpha, multiplier: cint) {.header: juce_graphics, importcpp: "#.multiplyAlpha(@)".}
-proc multiplyAlpha*(this: var PixelAlpha, multiplier: cfloat) {.header: juce_graphics, importcpp: "#.multiplyAlpha(@)".}
+proc multiplyAlpha*(this: var PixelAlpha, multiplier: cint) {.header: juce_graphics, importcpp: "#.multiplyAlpha((int) #)".}
+proc multiplyAlpha*(this: var PixelAlpha, multiplier: cfloat) {.header: juce_graphics, importcpp: "#.multiplyAlpha((float) #)".}
 proc premultiply*(this: var PixelAlpha) {.header: juce_graphics, importcpp: "#.premultiply()".}
 proc unpremultiply*(this: var PixelAlpha) {.header: juce_graphics, importcpp: "#.unpremultiply()".}
 proc desaturate*(this: var PixelAlpha) {.header: juce_graphics, importcpp: "#.desaturate()".}
@@ -412,8 +412,8 @@ proc getAlpha*(this: Colour): uint8 {.header: juce_graphics, importcpp: "#.getAl
 proc getFloatAlpha*(this: Colour): cfloat {.header: juce_graphics, importcpp: "#.getFloatAlpha()".}
 proc isOpaque*(this: Colour): bool {.header: juce_graphics, importcpp: "#.isOpaque()".}
 proc isTransparent*(this: Colour): bool {.header: juce_graphics, importcpp: "#.isTransparent()".}
-proc withAlpha*(this: Colour, newAlpha: uint8): Colour {.header: juce_graphics, importcpp: "#.withAlpha(@)".}
-proc withAlpha*(this: Colour, newAlpha: cfloat): Colour {.header: juce_graphics, importcpp: "#.withAlpha(@)".}
+proc withAlpha*(this: Colour, newAlpha: uint8): Colour {.header: juce_graphics, importcpp: "#.withAlpha((unsigned char) #)".}
+proc withAlpha*(this: Colour, newAlpha: cfloat): Colour {.header: juce_graphics, importcpp: "#.withAlpha((float) #)".}
 proc withMultipliedAlpha*(this: Colour, alphaMultiplier: cfloat): Colour {.header: juce_graphics, importcpp: "#.withMultipliedAlpha(@)".}
 proc overlaidWith*(this: Colour, foregroundColour: Colour): Colour {.header: juce_graphics, importcpp: "#.overlaidWith(@)".}
 proc interpolatedWith*(this: Colour, other: Colour, proportionOfOther: cfloat): Colour {.header: juce_graphics, importcpp: "#.interpolatedWith(@)".}
@@ -630,19 +630,19 @@ proc drawFittedText*(this: Graphics, text: String, x: cint, y: cint, width: cint
 proc drawFittedText*(this: Graphics, text: String, area: Rectangle[cint], justificationFlags: Justification, maximumNumberOfLines: cint, minimumHorizontalScale: cfloat = 0.0f, options: GlyphArrangementOptions) {.header: juce_graphics, importcpp: "#.drawFittedText(@)".}
 proc fillAll*(this: Graphics) {.header: juce_graphics, importcpp: "#.fillAll()".}
 proc fillAll*(this: Graphics, colourToUse: Colour) {.header: juce_graphics, importcpp: "#.fillAll(@)".}
-proc fillRect*(this: Graphics, rectangle: Rectangle[cint]) {.header: juce_graphics, importcpp: "#.fillRect(@)".}
-proc fillRect*(this: Graphics, rectangle: Rectangle[cfloat]) {.header: juce_graphics, importcpp: "#.fillRect(@)".}
-proc fillRect*(this: Graphics, x: cint, y: cint, width: cint, height: cint) {.header: juce_graphics, importcpp: "#.fillRect(@)".}
-proc fillRect*(this: Graphics, x: cfloat, y: cfloat, width: cfloat, height: cfloat) {.header: juce_graphics, importcpp: "#.fillRect(@)".}
+proc fillRect*(this: Graphics, rectangle: Rectangle[cint]) {.header: juce_graphics, importcpp: "#.fillRect((juce::Rectangle<int>) #)".}
+proc fillRect*(this: Graphics, rectangle: Rectangle[cfloat]) {.header: juce_graphics, importcpp: "#.fillRect((juce::Rectangle<float>) #)".}
+proc fillRect*(this: Graphics, x: cint, y: cint, width: cint, height: cint) {.header: juce_graphics, importcpp: "#.fillRect((int) #, (int) #, (int) #, (int) #)".}
+proc fillRect*(this: Graphics, x: cfloat, y: cfloat, width: cfloat, height: cfloat) {.header: juce_graphics, importcpp: "#.fillRect((float) #, (float) #, (float) #, (float) #)".}
 proc fillRectList*(this: Graphics, rectangles: RectangleList[cfloat]) {.header: juce_graphics, importcpp: "#.fillRectList(@)".}
 proc fillRectList*(this: Graphics, rectangles: RectangleList[cint]) {.header: juce_graphics, importcpp: "#.fillRectList(@)".}
 proc fillRoundedRectangle*(this: Graphics, x: cfloat, y: cfloat, width: cfloat, height: cfloat, cornerSize: cfloat) {.header: juce_graphics, importcpp: "#.fillRoundedRectangle(@)".}
 proc fillRoundedRectangle*(this: Graphics, rectangle: Rectangle[cfloat], cornerSize: cfloat) {.header: juce_graphics, importcpp: "#.fillRoundedRectangle(@)".}
 proc fillCheckerBoard*(this: Graphics, area: Rectangle[cfloat], checkWidth: cfloat, checkHeight: cfloat, colour1: Colour, colour2: Colour) {.header: juce_graphics, importcpp: "#.fillCheckerBoard(@)".}
-proc drawRect*(this: Graphics, x: cint, y: cint, width: cint, height: cint, lineThickness: cint = 1) {.header: juce_graphics, importcpp: "#.drawRect(@)".}
-proc drawRect*(this: Graphics, x: cfloat, y: cfloat, width: cfloat, height: cfloat, lineThickness: cfloat = 1.0f) {.header: juce_graphics, importcpp: "#.drawRect(@)".}
-proc drawRect*(this: Graphics, rectangle: Rectangle[cint], lineThickness: cint = 1) {.header: juce_graphics, importcpp: "#.drawRect(@)".}
-proc drawRect*(this: Graphics, rectangle: Rectangle[cfloat], lineThickness: cfloat = 1.0f) {.header: juce_graphics, importcpp: "#.drawRect(@)".}
+proc drawRect*(this: Graphics, x: cint, y: cint, width: cint, height: cint, lineThickness: cint = 1) {.header: juce_graphics, importcpp: "#.drawRect((int) #, (int) #, (int) #, (int) #, (int) #)".}
+proc drawRect*(this: Graphics, x: cfloat, y: cfloat, width: cfloat, height: cfloat, lineThickness: cfloat = 1.0f) {.header: juce_graphics, importcpp: "#.drawRect((float) #, (float) #, (float) #, (float) #, (float) #)".}
+proc drawRect*(this: Graphics, rectangle: Rectangle[cint], lineThickness: cint = 1) {.header: juce_graphics, importcpp: "#.drawRect((juce::Rectangle<int>) #, (int) #)".}
+proc drawRect*(this: Graphics, rectangle: Rectangle[cfloat], lineThickness: cfloat = 1.0f) {.header: juce_graphics, importcpp: "#.drawRect((juce::Rectangle<float>) #, (float) #)".}
 proc drawRoundedRectangle*(this: Graphics, x: cfloat, y: cfloat, width: cfloat, height: cfloat, cornerSize: cfloat, lineThickness: cfloat) {.header: juce_graphics, importcpp: "#.drawRoundedRectangle(@)".}
 proc drawRoundedRectangle*(this: Graphics, rectangle: Rectangle[cfloat], cornerSize: cfloat, lineThickness: cfloat) {.header: juce_graphics, importcpp: "#.drawRoundedRectangle(@)".}
 proc fillEllipse*(this: Graphics, x: cfloat, y: cfloat, width: cfloat, height: cfloat) {.header: juce_graphics, importcpp: "#.fillEllipse(@)".}
