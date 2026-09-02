@@ -13,6 +13,15 @@ type
   voidpConstImpl {.importc:"const void*".} = pointer
   #juce_wchar* = distinct wcharConstImpl
   constChar* = distinct cstringConstImpl
+
+  # C++'s wchar_t, which Nim has no type for. An alias to uint32 carrying the
+  # C name: the width is right on the platforms this binds, and the C++ name is
+  # what a pointer to it has to be spelled as. Nim converts to and from uint32
+  # without a cast, so a caller sees an ordinary codepoint.
+  #
+  # Spelling it uint32 instead made every binding taking a wchar_t* uncallable,
+  # because C++ does not convert `unsigned int*` to `wchar_t*`.
+  WChar* {.importc: "wchar_t", nodecl.} = uint32
   constPointer* = distinct voidpConstImpl
 
 
