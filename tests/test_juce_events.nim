@@ -207,3 +207,22 @@ proc testRemainingEventsHandlers() =
     shutdownJuce_GUI()
 
 testRemainingEventsHandlers()
+
+# The nested abstract classes =================================================
+#
+# The subclass generator keyed an abstract class on its own spelling, which
+# never matched a declared Nim name for a nested one, so every Listener,
+# LookAndFeelMethods and other nested interface was skipped with no withheld
+# entry. Building each compiles the C++ class, and setting each handler is what
+# type-checks and generates the setter.
+
+proc testNestedSubclassesEvents() =
+    initialiseJuce_GUI()
+    block:
+        var customMessageManagerMessageBase = newCustomMessageManagerMessageBase()
+        doAssert not customMessageManagerMessageBase.isNil(), "newCustomMessageManagerMessageBase built nothing"
+        customMessageManagerMessageBase[].setMessageCallbackHandler(proc() = discard)
+        cdelete customMessageManagerMessageBase
+    shutdownJuce_GUI()
+
+testNestedSubclassesEvents()

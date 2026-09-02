@@ -1100,3 +1100,23 @@ proc testImageConvolutionKernel() =
                  "the blur did not reach the neighbouring pixel"
 
 testImageConvolutionKernel()
+
+# The nested abstract classes =================================================
+#
+# The subclass generator keyed an abstract class on its own spelling, which
+# never matched a declared Nim name for a nested one, so every Listener,
+# LookAndFeelMethods and other nested interface was skipped with no withheld
+# entry. Building each compiles the C++ class, and setting each handler is what
+# type-checks and generates the setter.
+
+proc testNestedSubclassesGraphics() =
+    initialiseJuce_GUI()
+    block:
+        var customImagePixelDataListener = newCustomImagePixelDataListener()
+        doAssert not customImagePixelDataListener.isNil(), "newCustomImagePixelDataListener built nothing"
+        customImagePixelDataListener[].setImageDataChangedHandler(proc(arg0: ptr ImagePixelData) = discard)
+        customImagePixelDataListener[].setImageDataBeingDeletedHandler(proc(arg0: ptr ImagePixelData) = discard)
+        cdelete customImagePixelDataListener
+    shutdownJuce_GUI()
+
+testNestedSubclassesGraphics()

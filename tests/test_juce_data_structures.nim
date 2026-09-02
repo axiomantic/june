@@ -367,3 +367,22 @@ proc testEveryClosureArity() =
                  "the 9-argument closure returned " & $value9(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint, 9.cint)
 
 testEveryClosureArity()
+
+# The nested abstract classes =================================================
+#
+# The subclass generator keyed an abstract class on its own spelling, which
+# never matched a declared Nim name for a nested one, so every Listener,
+# LookAndFeelMethods and other nested interface was skipped with no withheld
+# entry. Building each compiles the C++ class, and setting each handler is what
+# type-checks and generates the setter.
+
+proc testNestedSubclassesDataStructures() =
+
+    block:
+        var customValueListener = newCustomValueListener()
+        doAssert not customValueListener.isNil(), "newCustomValueListener built nothing"
+        customValueListener[].setValueChangedHandler(proc(value: ptr Value) = discard)
+        cdelete customValueListener
+
+
+testNestedSubclassesDataStructures()
