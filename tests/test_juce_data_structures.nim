@@ -514,3 +514,49 @@ proc testActionsInCurrentTransaction() =
            "the action in the transaction is not the one performed"
 
 testActionsInCurrentTransaction()
+
+# ValueTree's iterators yield exactly what the tree holds ======================
+#
+# Each is a hand-written loop over the indexed accessors. JUCE's own begin and
+# end have no Nim spelling, so there is no second implementation to disagree
+# with an off-by-one - the count has to be checked against the tree itself.
+
+proc testValueTreeIteratorsAreComplete() =
+  var tree = makeValueTree(makeIdentifier(makeString("root")))
+  for index in 0 ..< 5:
+    tree.addChild(makeValueTree(makeIdentifier(makeString("c" & $index))),
+                  -1.cint, nil)
+  for index in 0 ..< 4:
+    discard tree.setProperty(makeIdentifier(makeString("p" & $index)),
+                     makejuce_var(index.cint), nil)
+
+  var children: seq[string] = @[]
+  for child in tree:
+    children.add($child.getType().toString())
+  doAssert children.len == tree.getNumChildren().int,
+           "items yielded " & $children.len & " of " & $tree.getNumChildren()
+  for index in 0 ..< children.len:
+    doAssert children[index] == $tree.getChild(index.cint).getType().toString(),
+             "items yielded " & children[index] & " at " & $index
+
+  var indexed: seq[int] = @[]
+  for index, child in tree.pairs:
+    indexed.add(index.int)
+    doAssert $child.getType().toString() ==
+             $tree.getChild(index).getType().toString(),
+             "pairs yielded the wrong child at " & $index
+  doAssert indexed.len == tree.getNumChildren().int,
+           "pairs yielded " & $indexed.len & " of " & $tree.getNumChildren()
+  doAssert indexed == @[0, 1, 2, 3, 4],
+           "pairs yielded the indices " & $indexed
+
+  var names: seq[string] = @[]
+  for name, value in tree.properties:
+    names.add($name.toString())
+  doAssert names.len == tree.getNumProperties().int,
+           "properties yielded " & $names.len & " of " & $tree.getNumProperties()
+  for index in 0 ..< names.len:
+    doAssert names[index] == $tree.getPropertyName(index.cint).toString(),
+             "properties yielded " & names[index] & " at " & $index
+
+testValueTreeIteratorsAreComplete()

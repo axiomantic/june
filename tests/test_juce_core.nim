@@ -2997,3 +2997,139 @@ proc testJobStatusIsActedOn() =
         cdelete job
 
 testJobStatusIsActedOn()
+
+# Every iterator yields exactly what its container holds =======================
+#
+# The iterators are hand-written loops over the indexed accessors, which is the
+# one place an off-by-one has nothing to catch it: JUCE's own begin and end
+# have no Nim spelling, so there is no second implementation to disagree with.
+# Existing tests iterate small fixed sets and check the contents, which catches
+# truncation by accident and nothing else. These compare the yielded count
+# against the container's own idea of its size, and the yielded order against
+# indexed access, for a size big enough that an off-by-one is not the whole set.
+
+proc testIteratorsAreComplete() =
+    block:
+        var numbers: Array[cint]
+        for value in 0 ..< 7:
+            numbers.add(value.cint)
+
+        var seen: seq[cint] = @[]
+        for value in numbers:
+            seen.add(value)
+        doAssert seen.len == numbers.size().int,
+                 "Array yielded " & $seen.len & " of " & $numbers.size()
+        for index in 0 ..< seen.len:
+            doAssert seen[index] == numbers[index.cint],
+                     "Array yielded " & $seen[index] & " at " & $index &
+                     " where the index gives " & $numbers[index.cint]
+
+    block:
+        var words = makeStringArray()
+        for value in 0 ..< 5:
+            words.add(makeString("w" & $value))
+
+        var seen: seq[string] = @[]
+        for value in words:
+            seen.add($value)
+        doAssert seen.len == words.size().int,
+                 "StringArray yielded " & $seen.len & " of " & $words.size()
+        for index in 0 ..< seen.len:
+            doAssert seen[index] == $words[index.cint],
+                     "StringArray yielded " & seen[index] & " at " & $index
+
+    block:
+        # MemoryBlock has no indexed accessor of its own, which is why its
+        # iterator reaches through getData - so the values come from fillWith
+        # rather than from an index.
+        var bytes = makeMemoryBlock(6'u64, true)
+        bytes.fillWith(0xAB'u8)
+
+        var seen: seq[uint8] = @[]
+        for value in bytes:
+            seen.add(value)
+        doAssert seen.len == bytes.getSize().int,
+                 "MemoryBlock yielded " & $seen.len & " of " & $bytes.getSize()
+        for index in 0 ..< seen.len:
+            doAssert seen[index] == 0xAB'u8,
+                     "MemoryBlock yielded " & $seen[index] & " at " & $index
+
+        # And it follows the size rather than a remembered one.
+        bytes.setSize(9'u64, true)
+        var after = 0
+        for value in bytes:
+            after += 1
+        doAssert after == 9, "after growing to 9 the iterator yielded " & $after
+
+    block:
+        let text = makeString("abcdef")
+        var seen: seq[uint32] = @[]
+        for codepoint in text:
+            seen.add(codepoint)
+        doAssert seen.len == text.length().int,
+                 "String yielded " & $seen.len & " of " & $text.length()
+        doAssert seen[0] == uint32(ord('a')) and seen[^1] == uint32(ord('f')),
+                 "String yielded the wrong ends"
+
+    block:
+        var document = makeXmlElement(makeString("root"))
+        for value in 0 ..< 4:
+            document.setAttribute(makeIdentifier(makeString("a" & $value)),
+                                  makeString("v" & $value))
+            discard document.createNewChildElement(makeString("child" & $value))
+
+        var children: seq[string] = @[]
+        for child in document:
+            children.add($child[].getTagName())
+        doAssert children.len == document.getNumChildElements().int,
+                 "XmlElement yielded " & $children.len & " children of " &
+                 $document.getNumChildElements()
+        for index in 0 ..< children.len:
+            doAssert children[index] ==
+                     $document.getChildElement(index.cint)[].getTagName(),
+                     "XmlElement yielded " & children[index] & " at " & $index
+
+        var names: seq[string] = @[]
+        for name, value in document.attributes:
+            names.add($name)
+        doAssert names.len == document.getNumAttributes().int,
+                 "XmlElement yielded " & $names.len & " attributes of " &
+                 $document.getNumAttributes()
+        for index in 0 ..< names.len:
+            doAssert names[index] == $document.getAttributeName(index.cint),
+                     "XmlElement yielded the attribute " & names[index] &
+                     " at " & $index
+
+    block:
+        var settings = makeNamedValueSet()
+        for index in 0 ..< 4:
+            discard settings.set(makeIdentifier(makeString("k" & $index)),
+                                 makejuce_var(index.cint))
+
+        var keys: seq[string] = @[]
+        for name, value in settings.pairs:
+            keys.add($name.toString())
+        doAssert keys.len == settings.size().int,
+                 "NamedValueSet yielded " & $keys.len & " of " & $settings.size()
+        for index in 0 ..< keys.len:
+            doAssert keys[index] == $settings.getName(index.cint).toString(),
+                     "NamedValueSet yielded " & keys[index] & " at " & $index
+
+    block:
+        # A Span is only ever handed out by JUCE - nothing in the binding
+        # builds one - so a juce::var holding an array is where it comes from.
+        var elements: Array[juce_var]
+        for value in 0 ..< 6:
+            elements.add(makejuce_var(value.cint))
+        let arrayVar = makejuce_var(elements)
+        let span = arrayVar.getArrayElements()
+
+        var seen: seq[int] = @[]
+        for element in span:
+            seen.add(element.toInt().int)
+        doAssert seen.len == span.size().int,
+                 "Span yielded " & $seen.len & " of " & $span.size()
+        doAssert seen == @[0, 1, 2, 3, 4, 5],
+                 "Span yielded " & $seen
+
+testIteratorsAreComplete()
