@@ -596,6 +596,18 @@ closure::
     written += bytes.int
     true)
 
+A nested interface is named by its parts joined together, so ``ComboBox::
+Listener`` is ``CustomComboBoxListener`` and ``TextEditor::InputFilter`` is
+``CustomTextEditorInputFilter``. They are used the same way, and this is how an
+application listens to a widget from Nim::
+
+  var listener = newCustomComboBoxListener()
+  listener[].setComboBoxChangedHandler(proc(box: ptr ComboBox) =
+    echo "now ", box[].getText())
+
+  var box = makeComboBox(makeString("choices"))
+  box.addListener(cast[ptr ComboBoxListener](listener))
+
 JUCE calls the handler through the virtual, so ``stream.writeText(...)`` -
 which is JUCE's own code - reaches it. The suite asserts that for this one and
 for every setter it can. Setting a handler is what type-checks and generates
