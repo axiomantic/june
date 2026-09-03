@@ -124,22 +124,33 @@ jobs:
           path: ~/.nimble/pkgs2
           key: nim-${{ matrix.os }}-${{ matrix.nim-version }}
 
-      # nimble resolves the pinned version against its package list, and when
-      # that list is missing it answers "No nim version matching any version"
-      # and downloads whatever is newest instead. That failed this job twice on
-      # ubuntu, each time leaving a red build over nothing. Refresh the list
-      # first, and retry once, because the failure is intermittent.
+      # When nimble cannot match the pinned version it asks "No nim version
+      # matching any version. Download it now?", and -y answers yes: it installs
+      # whatever is newest and EXITS 0. So the exit code says nothing, and a
+      # retry keyed on it never fires - which is why the earlier refresh-and-
+      # retry left this job red on macos after curing it on ubuntu.
       #
-      # The version is still verified below, where the run step resolves the
-      # compiler by an exact path and fails if it is not there - so a silent
-      # fallback to another Nim cannot pass as the pinned one.
+      # Key the retry on the artifact instead. The pinned compiler either is at
+      # its exact path or it is not, and a wrong version installed alongside is
+      # cleared before the second attempt so it cannot satisfy the check.
       - name: Install Nim ${{ matrix.nim-version }}
         run: |
+          pinned() { echo "$HOME"/.nimble/pkgs2/nim-${{ matrix.nim-version }}-*/bin/nim; }
           install_nim() {
-            nimble refresh -y
-            nimble install -y nim@${{ matrix.nim-version }}
+            nimble refresh -y || true
+            nimble install -y nim@${{ matrix.nim-version }} || true
+            test -x "$(pinned)"
           }
-          install_nim || { sleep 15; install_nim; }
+          install_nim || {
+            echo "nimble installed something other than ${{ matrix.nim-version }}; retrying"
+            rm -rf "$HOME"/.nimble/pkgs2/nim-*
+            sleep 15
+            install_nim
+          } || {
+            echo "::error::nimble could not install Nim ${{ matrix.nim-version }}"
+            exit 1
+          }
+          "$(pinned)" --version | sed -n '1p'
 
       # The JUCE static library is the slow part of the build and depends only
       # on the submodule revision, not on the Nim version under test. Key the
