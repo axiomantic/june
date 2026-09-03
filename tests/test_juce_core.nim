@@ -3546,3 +3546,213 @@ proc testStringNumbersAndEncodings() =
         doAssert $grown == "abc", "appending gave " & $grown
 
 testStringNumbersAndEncodings()
+
+# File, in behaviour ==========================================================
+#
+# Against a real directory under the system temp, created and removed here.
+# The compile harness proves these link; what they answer about a file on disk
+# is what this checks.
+
+proc testFilePathsAndNames() =
+    let root = june.File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                   .getNonexistentChildFile(makeString("june-file"), makeString(""))
+    doAssert root.createDirectory().wasOk(), "could not make the temp directory"
+
+    block:
+        let document = root.getChildFile(makeStringRef("notes.txt"))
+        doAssert $document.getFileExtension() == ".txt",
+                 "the extension is " & $document.getFileExtension()
+        doAssert $document.getFileNameWithoutExtension() == "notes",
+                 "the stem is " & $document.getFileNameWithoutExtension()
+        doAssert document.hasFileExtension(makeStringRef("txt")),
+                 "hasFileExtension said no to txt"
+        doAssert not document.hasFileExtension(makeStringRef("md")),
+                 "hasFileExtension said yes to md"
+        doAssert $document.withFileExtension(makeStringRef("md")).getFileName() ==
+                 "notes.md",
+                 "changing the extension gave " &
+                 $document.withFileExtension(makeStringRef("md")).getFileName()
+
+        doAssert document.getParentDirectory() == root,
+                 "the parent is not the directory it was made in"
+        doAssert $document.getSiblingFile(makeStringRef("other.txt")).getFileName() ==
+                 "other.txt", "the sibling has the wrong name"
+        doAssert document.isAChildOf(root), "the document is not a child of root"
+        doAssert not root.isAChildOf(document), "root is a child of the document"
+        doAssert not document.isRoot(), "the document reports itself as a root"
+        doAssert $document.getRelativePathFrom(root) == "notes.txt",
+                 "the relative path is " & $document.getRelativePathFrom(root)
+
+        doAssert not document.exists(), "a file that was never written exists"
+        let sibling = document.getNonexistentSibling(true)
+        doAssert not sibling.exists(), "the nonexistent sibling exists"
+
+    doAssert root.deleteRecursively(), "could not remove the temp directory"
+
+testFilePathsAndNames()
+
+proc testFileContentsAndCopies() =
+    let root = june.File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                   .getNonexistentChildFile(makeString("june-content"), makeString(""))
+    doAssert root.createDirectory().wasOk(), "could not make the temp directory"
+
+    block:
+        var source = root.getChildFile(makeStringRef("source.txt"))
+        doAssert source.create().wasOk(), "create did not make the file"
+        doAssert source.exists(), "the created file does not exist"
+        doAssert source.appendText(makeString("one\n"), false, false,
+                                   cast[constChar](cstring("\n"))),
+                 "appending the first line failed"
+        doAssert source.appendText(makeString("two\n"), false, false,
+                                   cast[constChar](cstring("\n"))),
+                 "appending the second line failed"
+        doAssert $source.loadFileAsString() == "one\ntwo\n",
+                 "the file holds " & $source.loadFileAsString()
+
+        var lines = makeStringArray()
+        source.readLines(lines)
+        # Three, not two: the trailing newline ends a line, so what follows it
+        # is an empty one.
+        doAssert lines.size() == 3,
+                 "readLines gave " & $lines.size() & " lines"
+        doAssert $lines[0] == "one", "the first line is " & $lines[0]
+        doAssert $lines[1] == "two", "the second line is " & $lines[1]
+        doAssert $lines[2] == "", "the third line is " & $lines[2]
+
+        var block1 = makeMemoryBlock()
+        doAssert source.loadFileAsData(block1), "loadFileAsData failed"
+        doAssert block1.getSize() == 8'u64,
+                 "the file is " & $block1.getSize() & " bytes, not 8"
+
+        # A copy has the same content; a moved file leaves nothing behind.
+        let copied = root.getChildFile(makeStringRef("copied.txt"))
+        doAssert source.copyFileTo(copied), "the copy failed"
+        doAssert source.hasIdenticalContentTo(copied),
+                 "the copy does not match the original"
+        doAssert copied.getSize() == source.getSize(),
+                 "the copy is a different size"
+
+        let moved = root.getChildFile(makeStringRef("moved.txt"))
+        doAssert copied.moveFileTo(moved), "the move failed"
+        doAssert not copied.exists(), "the moved file is still at its old path"
+        doAssert moved.exists(), "the moved file is not at its new path"
+
+        doAssert source.replaceWithData(cast[constPointer](cstring("xy")), 2'u64),
+                 "replaceWithData failed"
+        doAssert $source.loadFileAsString() == "xy",
+                 "after replacing, the file holds " & $source.loadFileAsString()
+        doAssert source.appendData(cast[constPointer](cstring("z")), 1'u64),
+                 "appendData failed"
+        doAssert $source.loadFileAsString() == "xyz",
+                 "after appending, the file holds " & $source.loadFileAsString()
+
+        # A UniquePtr, so C++ owns it and there is nothing to delete here.
+        var stream = source.createOutputStream(0'u64)
+        doAssert not stream.isNil, "createOutputStream gave nothing"
+
+    block:
+        # Directories: children, counts and a recursive copy.
+        let inner = root.getChildFile(makeStringRef("inner"))
+        doAssert inner.createDirectory().wasOk(), "could not make the inner directory"
+        doAssert inner.getChildFile(makeStringRef("a.txt"))
+                      .replaceWithText(makeString("a")), "could not write a.txt"
+
+        doAssert root.containsSubDirectories(), "root holds no subdirectories"
+        doAssert not inner.containsSubDirectories(),
+                 "the inner directory holds subdirectories"
+        doAssert inner.getNumberOfChildFiles(3.cint, makeString("*")) == 1,
+                 "the inner directory holds " &
+                 $inner.getNumberOfChildFiles(3.cint, makeString("*")) & " children"
+
+        let found = inner.findChildFiles(3.cint, false, makeString("*"),
+                                         FileFollowSymlinks_no)
+        doAssert found.size() == 1,
+                 "findChildFiles found " & $found.size() & " files"
+        doAssert $found[0.cint].getFileName() == "a.txt",
+                 "findChildFiles found " & $found[0.cint].getFileName()
+
+        let elsewhere = root.getChildFile(makeStringRef("elsewhere"))
+        doAssert inner.copyDirectoryTo(elsewhere), "the directory copy failed"
+        doAssert elsewhere.getChildFile(makeStringRef("a.txt")).exists(),
+                 "the copied directory has no a.txt"
+
+    doAssert root.deleteRecursively(), "could not remove the temp directory"
+
+testFileContentsAndCopies()
+
+proc testFileMetadataAndVolumes() =
+    let root = june.File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                   .getNonexistentChildFile(makeString("june-meta"), makeString(""))
+    doAssert root.createDirectory().wasOk(), "could not make the temp directory"
+
+    block:
+        var document = root.getChildFile(makeStringRef("stamped.txt"))
+        doAssert document.replaceWithText(makeString("content")),
+                 "could not write the file"
+
+        let now = Time.getCurrentTime()
+        doAssert document.getLastModificationTime() <= now,
+                 "the file was modified in the future"
+        doAssert document.getCreationTime() <= now,
+                 "the file was created in the future"
+        discard document.getLastAccessTime()
+
+        # Set a timestamp and read it back. A second is the resolution every
+        # filesystem this runs on can hold.
+        let stamp = Time.getCurrentTime() - makeRelativeTime(3600.0)
+        doAssert document.setLastModificationTime(stamp),
+                 "setting the modification time failed"
+        doAssert abs(document.getLastModificationTime().toMilliseconds() -
+                     stamp.toMilliseconds()) < 2000,
+                 "the modification time came back too far from what was set"
+        discard document.setLastAccessTime(stamp)
+        discard document.setCreationTime(stamp)
+
+        doAssert document.hasReadAccess(), "the file cannot be read"
+        doAssert document.hasWriteAccess(), "the file cannot be written"
+        doAssert not document.isHidden(), "a plain file reports itself hidden"
+        doAssert document.getFileIdentifier() != 0'u64,
+                 "the file has no identifier"
+        doAssert not document.isOnCDRomDrive(), "the temp file is on a CD"
+        discard document.isOnHardDisk()
+        discard document.isOnRemovableDrive()
+        discard document.getVersion()
+
+        doAssert document.setExecutePermission(true),
+                 "granting execute permission failed"
+        doAssert document.setExecutePermission(false),
+                 "removing execute permission failed"
+
+    block:
+        # A symbolic link points back at what it was made from.
+        let target = root.getChildFile(makeStringRef("target.txt"))
+        doAssert target.replaceWithText(makeString("t")), "could not write the target"
+        let link = root.getChildFile(makeStringRef("link.txt"))
+        if target.createSymbolicLink(link, true):
+            doAssert link.getLinkedTarget() == target,
+                     "the link points at " & $link.getLinkedTarget().getFullPathName()
+            discard link.getNativeLinkedTarget()
+
+    block:
+        # The volume the temp directory sits on has a size and some space free.
+        doAssert root.getVolumeTotalSize() > 0'i64,
+                 "the volume reports no total size"
+        doAssert root.getBytesFreeOnVolume() > 0'i64,
+                 "the volume reports no free space"
+        discard root.getVolumeLabel()
+        discard root.getVolumeSerialNumber()
+
+    block:
+        # replaceFileIn puts one file where another was.
+        let original = root.getChildFile(makeStringRef("original.txt"))
+        let replacement = root.getChildFile(makeStringRef("replacement.txt"))
+        doAssert original.replaceWithText(makeString("old")), "could not write the original"
+        doAssert replacement.replaceWithText(makeString("new")),
+                 "could not write the replacement"
+        doAssert replacement.replaceFileIn(original), "replaceFileIn failed"
+        doAssert $original.loadFileAsString() == "new",
+                 "after replacing, the original holds " & $original.loadFileAsString()
+
+    doAssert root.deleteRecursively(), "could not remove the temp directory"
+
+testFileMetadataAndVolumes()
