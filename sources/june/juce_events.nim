@@ -200,7 +200,7 @@ proc isTimerRunning*(this: MultiTimer, timerID: cint): bool {.header: juce_event
 proc getTimerInterval*(this: MultiTimer, timerID: cint): cint {.header: juce_events, importcpp: "#.getTimerInterval(@)".}
 proc `==`*(this: MultiTimer, other: MultiTimer): bool {.error: "juce::MultiTimer defines no operator==; compare a property instead".}
 
-# proc singletonHolder*(this: typedesc[ChildProcessManager]): juce::SingletonHolder<ChildProcessManager, juce::DummyCriticalSection, false> {.header: juce_events, importcpp: "(juce::ChildProcessManager::singletonHolder)".}  # a type that cannot be spelled in Nim
+# proc singletonHolder*(this: typedesc[ChildProcessManager]): juce::SingletonHolder<ChildProcessManager, juce::DummyCriticalSection, false> {.header: juce_events, importcpp: "(juce::ChildProcessManager::singletonHolder)".}  # JUCE's SingletonHolder, which is reached through the singleton it holds
 proc getInstance*(this: typedesc[ChildProcessManager]): ptr ChildProcessManager {.header: juce_events, importcpp: "juce::ChildProcessManager::getInstance()".}
 proc getInstanceWithoutCreating*(this: typedesc[ChildProcessManager]): ptr ChildProcessManager {.header: juce_events, importcpp: "juce::ChildProcessManager::getInstanceWithoutCreating()".}
 proc deleteInstance*(this: typedesc[ChildProcessManager]) {.header: juce_events, importcpp: "juce::ChildProcessManager::deleteInstance()".}
