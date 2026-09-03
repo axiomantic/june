@@ -2642,3 +2642,34 @@ proc testScopedHelpers() =
         discard documentIterator
 
 testScopedHelpers()
+
+# The derived comparison operators ============================================
+#
+# 37 procs are withheld with the reason "Nim derives > and >= from < and <=",
+# and 71 more with "Nim derives != from ==". Nothing had checked that the
+# derivation happens, which is the whole basis for leaving them out.
+
+proc testDerivedOperators() =
+    block:
+        let first = makeFile(makeString("/aaa"))
+        let second = makeFile(makeString("/bbb"))
+
+        doAssert first < second, "aaa did not sort before bbb"
+        doAssert second > first, "the derived > disagrees with the bound <"
+        doAssert not (second < first), "the comparison is not antisymmetric"
+
+        # JUCE declares no operator<= for File, so no >= derives either. That
+        # is faithful rather than a gap: the C++ class has neither.
+        doAssert not compiles(first >= second),
+                 ">= exists for a class JUCE gives no <="
+
+    block:
+        # != comes from ==, for a class that has one.
+        let one = makeIdentifier(makeString("alpha"))
+        let same = makeIdentifier(makeString("alpha"))
+        let other = makeIdentifier(makeString("beta"))
+        doAssert one == same, "two identical identifiers are not equal"
+        doAssert one != other, "the derived != disagrees with the bound =="
+        doAssert not (one != same), "the derived != contradicts itself"
+
+testDerivedOperators()
