@@ -1774,3 +1774,63 @@ proc testNestedSubclassesCore() =
 
 
 testNestedSubclassesCore()
+
+# FileSearchPath ==============================================================
+#
+# A list of directories with real filesystem behaviour behind it, so the
+# answers are about directories that exist rather than about strings.
+
+proc testFileSearchPath() =
+    block:
+        let root = june.File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                       .getNonexistentChildFile(makeString("june-search"), makeString(""))
+        doAssert root.createDirectory().wasOk(), "could not make the temp directory"
+        let inner = root.getChildFile(makeStringRef("inner"))
+        doAssert inner.createDirectory().wasOk(), "could not make the inner directory"
+        let gone = root.getChildFile(makeStringRef("gone"))
+
+        var path = makeFileSearchPath()
+        doAssert path.getNumPaths() == 0,
+                 "a fresh path holds " & $path.getNumPaths() & " directories"
+
+        path.add(root)
+        path.add(inner)
+        doAssert path.getNumPaths() == 2,
+                 "the path holds " & $path.getNumPaths() & " directories"
+        doAssert path[0.cint] == root, "the first entry is not the root"
+
+        # Adding the same directory twice is refused by addIfNotAlreadyThere
+        # and allowed by add, which is the difference between them.
+        doAssert not path.addIfNotAlreadyThere(root),
+                 "adding a directory already in the path reported success"
+        doAssert path.getNumPaths() == 2,
+                 "addIfNotAlreadyThere left " & $path.getNumPaths() & " directories"
+        path.add(root)
+        doAssert path.getNumPaths() == 3,
+                 "add refused a duplicate, leaving " & $path.getNumPaths()
+
+        path.removeRedundantPaths()
+        doAssert path.getNumPaths() < 3,
+                 "removing redundant paths left all " & $path.getNumPaths() & " of them"
+
+        # A directory that does not exist is dropped, and one that does is kept.
+        path.add(gone)
+        let beforePruning = path.getNumPaths()
+        path.removeNonExistentPaths()
+        doAssert path.getNumPaths() == beforePruning - 1,
+                 "pruning removed " & $(beforePruning - path.getNumPaths()) &
+                 " of the paths"
+
+        # A file under a directory in the path is in the path, recursively.
+        let deep = inner.getChildFile(makeStringRef("deep.txt"))
+        doAssert deep.replaceWithText(makeString("x")), "could not write deep.txt"
+        doAssert path.isFileInPath(deep, true),
+                 "a file under a directory in the path was not found"
+        doAssert not path.isFileInPath(
+                     june.File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                         .getChildFile(makeStringRef("june-not-in-path.txt")), true),
+                 "a file outside the path was found in it"
+
+        doAssert root.deleteRecursively(), "could not remove the temp directory"
+
+testFileSearchPath()
