@@ -17,7 +17,7 @@ type
   PixelARGB* {.header: juce_graphics, importcpp: "juce::PixelARGB", inheritable, pure.} = object
   PixelRGB* {.header: juce_graphics, importcpp: "juce::PixelRGB", inheritable, pure.} = object
   PixelAlpha* {.header: juce_graphics, importcpp: "juce::PixelAlpha", inheritable, pure.} = object
-  Colour* {.header: juce_graphics, importcpp: "juce::Colour", inheritable, pure.} = object
+  Colour* {.header: juce_graphics, importcpp: "juce::Colour", inheritable, pure, bycopy.} = object
   ColourGradient* {.header: juce_graphics, importcpp: "juce::ColourGradient", inheritable, pure.} = object
   EdgeTable* {.header: juce_graphics, importcpp: "juce::EdgeTable", inheritable, pure.} = object
   PathFlatteningIterator* {.header: juce_graphics, importcpp: "juce::PathFlatteningIterator", inheritable, pure.} = object
