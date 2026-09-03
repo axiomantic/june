@@ -1300,9 +1300,20 @@ def run_main(juce_module_name, juce_class_name_to_export):
         # Constructors. Nothing generated these before, so a type could be
         # named but never built: an Identifier had no way into existence, which
         # is most of why ValueTree was unusable.
+        # A deleted constructor is declared and cannot be called. JUCE deletes
+        # them on its static-only helpers - JSONUtils, OrderedContainerHelpers
+        # - and the generator emitted a makeX for each, which no call could
+        # compile.
+        def constructor_is_deleted(constructor):
+            try:
+                return constructor.is_deleted_method()
+            except AttributeError:
+                return False
+
         public_constructors = [x for x in c.get_children()
                                if x.kind == CursorKind.CONSTRUCTOR
-                               and x.access_specifier == AccessSpecifier.PUBLIC]
+                               and x.access_specifier == AccessSpecifier.PUBLIC
+                               and not constructor_is_deleted(x)]
 
         # juce::var declares one constructor per numeric type, and Nim's int64
         # is not long long on every platform, so g++ could not pick between

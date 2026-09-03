@@ -358,7 +358,6 @@ const
   CharPointer_UTF16_byteOrderMarkLE1*: cint = 255
   CharPointer_UTF16_byteOrderMarkLE2*: cint = 254
 
-proc makeOrderedContainerHelpers*(): OrderedContainerHelpers {.header: juce_core, importcpp: "juce::OrderedContainerHelpers(@)".}
 proc `==`*(this: OrderedContainerHelpers, other: OrderedContainerHelpers): bool {.error: "juce::OrderedContainerHelpers defines no operator==; compare a property instead".}
 
 proc makeScopedAutoReleasePool*(): ScopedAutoReleasePool {.header: juce_core, importcpp: "juce::ScopedAutoReleasePool(@)".}
@@ -654,7 +653,6 @@ proc makeString*(floatValue: cfloat): String {.header: juce_core, importcpp: "ju
 proc makeString*(doubleValue: float64): String {.header: juce_core, importcpp: "juce::String((double) @)".}
 proc makeString*(floatValue: cfloat, numberOfDecimalPlaces: cint, useScientificNotation: bool): String {.header: juce_core, importcpp: "juce::String(@)".}
 proc makeString*(doubleValue: float64, numberOfDecimalPlaces: cint, useScientificNotation: bool): String {.header: juce_core, importcpp: "juce::String(@)".}
-proc makeString*(arg1: bool): String {.header: juce_core, importcpp: "juce::String((bool) @)".}
 proc charToString*(this: typedesc[String], character: WChar): String {.header: juce_core, importcpp: "juce::String::charToString(@)".}
 proc hashCode*(this: String): cint {.header: juce_core, importcpp: "#.hashCode()".}
 proc hashCode64*(this: String): int64 {.header: juce_core, importcpp: "#.hashCode64()".}
@@ -1788,7 +1786,6 @@ proc logMessage*(this: var FileLogger, arg1: String) {.header: juce_core, import
 proc trimFileSize*(this: typedesc[FileLogger], file: File, maxFileSize: int64) {.header: juce_core, importcpp: "juce::FileLogger::trimFileSize(@)".}
 proc `==`*(this: FileLogger, other: FileLogger): bool {.error: "juce::FileLogger defines no operator==; compare a property instead".}
 
-proc makeJSONUtils*(): JSONUtils {.header: juce_core, importcpp: "juce::JSONUtils(@)".}
 proc getPointer*(this: typedesc[JSONUtils], v: juce_var, pointer: String): CppOptional[juce_var] {.header: juce_core, importcpp: "juce::JSONUtils::getPointer(@)".}
 proc setPointer*(this: typedesc[JSONUtils], v: juce_var, pointer: String, newValue: juce_var): CppOptional[juce_var] {.header: juce_core, importcpp: "juce::JSONUtils::setPointer(@)".}
 proc makeObject*(this: typedesc[JSONUtils], source: CppMap[Identifier, juce_var]): juce_var {.header: juce_core, importcpp: "juce::JSONUtils::makeObject(@)".}

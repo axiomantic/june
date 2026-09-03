@@ -201,3 +201,22 @@ proc testNestedSubclassesEvents() =
     shutdownJuce_GUI()
 
 testNestedSubclassesEvents()
+
+# Every no-argument constructor ===============================================
+#
+# An importcpp string reaches the C++ compiler only at a call site, so a
+# constructor nothing calls is never compiled. These had no caller.
+
+proc testEveryNoArgConstructorEvents() =
+    initialiseJuce_GUI()
+    block:
+        discard makeMessage()
+        discard makeScopedJuceInitialiser_GUI()
+        discard makeActionBroadcaster()
+        discard makeChangeBroadcaster()
+        discard makeChildProcessWorker()
+        discard makeChildProcessCoordinator()
+        discard makeScopedLowPowerModeDisabler()
+    shutdownJuce_GUI()
+
+testEveryNoArgConstructorEvents()
