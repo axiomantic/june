@@ -2489,7 +2489,7 @@ proc `==`*(this: TabbedComponent, other: TabbedComponent): bool {.error: "juce::
 
 proc getDisclosureLevel*(this: AccessibilityCellInterface): cint {.header: juce_gui_basics, importcpp: "#.getDisclosureLevel()".}
 proc getTableHandler*(this: AccessibilityCellInterface): ConstPtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.getTableHandler()".}
-proc getDisclosedRows*(this: AccessibilityCellInterface): CppVector[ptr AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.getDisclosedRows()".}
+proc getDisclosedRows*(this: AccessibilityCellInterface): CppVector[ConstPtr[AccessibilityHandler]] {.header: juce_gui_basics, importcpp: "#.getDisclosedRows()".}
 proc `==`*(this: AccessibilityCellInterface, other: AccessibilityCellInterface): bool {.error: "juce::AccessibilityCellInterface defines no operator==; compare a property instead".}
 
 proc getNumRows*(this: AccessibilityTableInterface): cint {.header: juce_gui_basics, importcpp: "#.getNumRows()".}
