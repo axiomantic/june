@@ -3471,6 +3471,63 @@ proc testDrawableComposite() =
 
 
 testMarkerList()
+# ImageComponent and ShapeButton ==============================================
+#
+# Two components that paint what they were given, so the surface says whether
+# the image and the shape actually reached the screen.
+
+proc testImageComponentAndShapeButton() =
+    initialiseJuce_GUI()
+
+    block:
+        var source = makeImage(ImagePixelFormat_ARGB, 4.cint, 4.cint, true)
+        block:
+            var painter = makeGraphics(source)
+            painter.setColour(makeColour(0'u8, 0'u8, 255'u8, 255'u8))
+            painter.fillAll()
+
+        var display = makeImageComponent(makeString("display"))
+        doAssert display.getImage().isNull(),
+                 "a fresh ImageComponent already holds an image"
+
+        display.setImage(source)
+        doAssert not display.getImage().isNull(), "the image did not stick"
+        doAssert display.getImage().getWidth() == 4,
+                 "the component holds a " & $display.getImage().getWidth() & "px image"
+
+        display.setBounds(makeRectangle(0.cint, 0.cint, 8.cint, 8.cint))
+        let shown = makeImage(ImagePixelFormat_ARGB, 8.cint, 8.cint, true)
+        var context = makeGraphics(shown)
+        display.paintEntireComponent(context, false)
+        doAssert shown.getPixelAt(4.cint, 4.cint).getBlue() == 255'u8,
+                 "the component painted blue " &
+                 $shown.getPixelAt(4.cint, 4.cint).getBlue()
+
+    block:
+        let green = makeColour(0'u8, 255'u8, 0'u8, 255'u8)
+        var button = makeShapeButton(makeString("shape"), green, green, green)
+
+        var triangle = makePath()
+        triangle.startNewSubPath(0.0'f32, 0.0'f32)
+        triangle.lineTo(20.0'f32, 0.0'f32)
+        triangle.lineTo(10.0'f32, 20.0'f32)
+        triangle.closeSubPath()
+        button.setShape(triangle, false, true, false)
+        button.setBounds(makeRectangle(0.cint, 0.cint, 20.cint, 20.cint))
+
+        let surface = makeImage(ImagePixelFormat_ARGB, 20.cint, 20.cint, true)
+        var context = makeGraphics(surface)
+        button.paintEntireComponent(context, false)
+
+        # Inside the triangle is green; the bottom left corner is outside it.
+        doAssert surface.getPixelAt(10.cint, 5.cint).getGreen() == 255'u8,
+                 "the middle of the triangle is not green"
+        doAssert surface.getPixelAt(1.cint, 18.cint).getAlpha() == 0'u8,
+                 "the corner outside the triangle was painted"
+
+    shutdownJuce_GUI()
+
+
 testDrawableComposite()
 
 # Every no-argument constructor ===============================================
@@ -3510,3 +3567,4 @@ proc testEveryNoArgConstructorGuiBasics() =
     shutdownJuce_GUI()
 
 testEveryNoArgConstructorGuiBasics()
+testImageComponentAndShapeButton()
