@@ -936,10 +936,10 @@ proc makeStringArray*(firstValue: String): StringArray {.header: juce_core, impo
 # proc makeStringArray*(strings: std::initializer_list<constChar>): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}  # a std::initializer_list parameter, which Nim cannot spell; build the value with the incremental API instead
 proc makeStringArray*(arg1: Array[String]): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
 proc makeStringArray*(strings: ptr String, numberOfStrings: cint): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
-proc makeStringArray*(strings: constChar, numberOfStrings: cint): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
-proc makeStringArray*(strings: constChar): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
-proc makeStringArray*(strings: ptr WChar): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
-proc makeStringArray*(strings: ptr WChar, numberOfStrings: cint): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
+proc makeStringArray*(strings: ptr constChar, numberOfStrings: cint): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
+proc makeStringArray*(strings: ptr constChar): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
+proc makeStringArray*(strings: ptr ptr WChar): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
+proc makeStringArray*(strings: ptr ptr WChar, numberOfStrings: cint): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
 proc strings*(this: StringArray): Array[String] {.header: juce_core, importcpp: "#.strings".}
 proc strings*(this: var StringArray): var Array[String] {.header: juce_core, importcpp: "#.strings".}
 proc `strings=`*(this: var StringArray, value: Array[String]) {.header: juce_core, importcpp: "#.strings = #".}
@@ -1033,7 +1033,7 @@ proc hasNeon*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp:
 proc getMemorySizeInMegabytes*(this: typedesc[SystemStats]): cint {.header: juce_core, importcpp: "juce::SystemStats::getMemorySizeInMegabytes()".}
 proc getPageSize*(this: typedesc[SystemStats]): cint {.header: juce_core, importcpp: "juce::SystemStats::getPageSize()".}
 proc getStackBacktrace*(this: typedesc[SystemStats]): String {.header: juce_core, importcpp: "juce::SystemStats::getStackBacktrace()".}
-# proc setApplicationCrashHandler*(this: typedesc[SystemStats], arg1: void ()(pointer)) {.header: juce_core, importcpp: "juce::SystemStats::setApplicationCrashHandler(@)".}  # excluded deliberately: see skip_class_method
+# proc setApplicationCrashHandler*(this: typedesc[SystemStats], arg1: ptr void ()(pointer)) {.header: juce_core, importcpp: "juce::SystemStats::setApplicationCrashHandler(@)".}  # excluded deliberately: see skip_class_method
 proc isRunningInAppExtensionSandbox*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::isRunningInAppExtensionSandbox()".}
 proc isAppSandboxEnabled*(this: typedesc[SystemStats]): bool {.header: juce_core, importcpp: "juce::SystemStats::isAppSandboxEnabled()".}
 proc getCpuSpeedInMegaherz*(this: typedesc[SystemStats]): cint {.header: juce_core, importcpp: "juce::SystemStats::getCpuSpeedInMegaherz()".}
@@ -2913,7 +2913,7 @@ proc makeOptional*[Value](v: Value): Optional[Value] {.header: juce_core, import
 # proc enumerate*[Range, Index](range: Range, startingValue: Index): auto {.header: juce_core, importcpp: "juce::enumerate(@)".}  # a deduced return type, which cannot be spelled without instantiating the template
 proc sortArray*[ElementType, ElementComparator](comparator: ElementComparator, array: ptr ElementType, firstElement: cint, lastElement: cint, retainOrderOfEquivalentItems: bool) {.header: juce_core, importcpp: "juce::sortArray(@)".}
 proc findInsertIndexInSortedArray*[ElementType, ElementComparator](comparator: ElementComparator, array: ptr ElementType, newElement: ElementType, firstElement: cint, lastElement: cint): cint {.header: juce_core, importcpp: "juce::findInsertIndexInSortedArray(@)".}
-# proc withMember*[Object, OtherObject, Member, Other](copy: Object, member: Member OtherObject::, value: Other): Object {.header: juce_core, importcpp: "juce::withMember(@)".}  # a nested or template name that survived remapping, so it is not valid Nim
+# proc withMember*[Object, OtherObject, Member, Other](copy: Object, member: ptr Member OtherObject::, value: Other): Object {.header: juce_core, importcpp: "juce::withMember(@)".}  # a nested or template name that survived remapping, so it is not valid Nim
 # proc toFnPtr*[Functor](functor: Functor): auto {.header: juce_core, importcpp: "juce::toFnPtr(@)".}  # a deduced return type, which cannot be spelled without instantiating the template
 # proc addSorted*[ElementComparator, ObjectClass, TypeOfCriticalSectionToUse](comparator: ElementComparator, newObject: ptr ObjectClass): cint {.header: juce_core, importcpp: "juce::addSorted(@)".}  # a template parameter that appears only in the return type, which nothing can deduce
 # proc indexOfSorted*[ElementComparator, ObjectClass, TypeOfCriticalSectionToUse](comparator: ElementComparator, objectToLookFor: ptr ObjectClass): cint {.header: juce_core, importcpp: "juce::indexOfSorted(@)".}  # a template parameter that appears only in the return type, which nothing can deduce

@@ -2671,3 +2671,42 @@ proc testDerivedOperators() =
         doAssert not (one != same), "the derived != contradicts itself"
 
 testDerivedOperators()
+
+# StringArray from a C array of strings ========================================
+#
+# These four constructors take const char* const* and const wchar_t* const*.
+# Both spellings glue the star to the next word, which defeated the pointer
+# test in remap_type: the char forms bound as a single constChar and the wchar
+# forms lost one of their two pointer levels.
+
+proc testStringArrayFromCArray() =
+    block:
+        var names = [cstring"alpha", cstring"beta", cstring"gamma"]
+        let counted = makeStringArray(cast[ptr constChar](addr names[0]), 3)
+        doAssert counted.size() == 3, "counted char array gave " & $counted.size()
+        doAssert $counted[0] == "alpha", "first entry is " & $counted[0]
+        doAssert $counted[2] == "gamma", "last entry is " & $counted[2]
+
+        # The one-argument form reads until it meets a null pointer.
+        var terminated = [cstring"alpha", cstring"beta", cstring(nil)]
+        let sentinel = makeStringArray(cast[ptr constChar](addr terminated[0]))
+        doAssert sentinel.size() == 2, "sentinel char array gave " & $sentinel.size()
+        doAssert $sentinel[1] == "beta", "second entry is " & $sentinel[1]
+
+    block:
+        # UTF-32 literals, NUL terminated, then an array of pointers to them.
+        var one = [WChar(ord('o')), WChar(ord('n')), WChar(ord('e')), WChar(0)]
+        var two = [WChar(ord('t')), WChar(ord('w')), WChar(ord('o')), WChar(0)]
+
+        var table = [addr one[0], addr two[0]]
+        let counted = makeStringArray(addr table[0], 2)
+        doAssert counted.size() == 2, "counted wchar array gave " & $counted.size()
+        doAssert $counted[0] == "one", "first entry is " & $counted[0]
+        doAssert $counted[1] == "two", "second entry is " & $counted[1]
+
+        var terminated = [addr one[0], addr two[0], cast[ptr WChar](nil)]
+        let sentinel = makeStringArray(addr terminated[0])
+        doAssert sentinel.size() == 2, "sentinel wchar array gave " & $sentinel.size()
+        doAssert $sentinel[1] == "two", "second entry is " & $sentinel[1]
+
+testStringArrayFromCArray()
