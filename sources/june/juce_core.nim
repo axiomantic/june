@@ -2418,9 +2418,9 @@ proc `==`*(this: TimedDiagnostic, other: TimedDiagnostic): bool {.error: "juce::
 proc getName*(this: UnitTest): String {.header: juce_core, importcpp: "#.getName()".}
 proc getCategory*(this: UnitTest): String {.header: juce_core, importcpp: "#.getCategory()".}
 proc performTest*(this: var UnitTest, runner: ptr UnitTestRunner) {.header: juce_core, importcpp: "#.performTest(@)".}
-proc getAllTests*(this: typedesc[UnitTest]): var Array[UnitTest] {.header: juce_core, importcpp: "juce::UnitTest::getAllTests()".}
-proc getTestsInCategory*(this: typedesc[UnitTest], category: String): Array[UnitTest] {.header: juce_core, importcpp: "juce::UnitTest::getTestsInCategory(@)".}
-proc getTestsWithName*(this: typedesc[UnitTest], name: String): Array[UnitTest] {.header: juce_core, importcpp: "juce::UnitTest::getTestsWithName(@)".}
+proc getAllTests*(this: typedesc[UnitTest]): var Array[ptr UnitTest] {.header: juce_core, importcpp: "juce::UnitTest::getAllTests()".}
+proc getTestsInCategory*(this: typedesc[UnitTest], category: String): Array[ptr UnitTest] {.header: juce_core, importcpp: "juce::UnitTest::getTestsInCategory(@)".}
+proc getTestsWithName*(this: typedesc[UnitTest], name: String): Array[ptr UnitTest] {.header: juce_core, importcpp: "juce::UnitTest::getTestsWithName(@)".}
 proc getAllCategories*(this: typedesc[UnitTest]): StringArray {.header: juce_core, importcpp: "juce::UnitTest::getAllCategories()".}
 proc initialise*(this: var UnitTest) {.header: juce_core, importcpp: "#.initialise()".}
 proc shutdown*(this: var UnitTest) {.header: juce_core, importcpp: "#.shutdown()".}
@@ -2432,7 +2432,7 @@ proc getRandom*(this: UnitTest): Random {.header: juce_core, importcpp: "#.getRa
 proc `==`*(this: UnitTest, other: UnitTest): bool {.error: "juce::UnitTest defines no operator==; compare a property instead".}
 
 proc makeUnitTestRunner*(): UnitTestRunner {.header: juce_core, importcpp: "juce::UnitTestRunner(@)".}
-proc runTests*(this: var UnitTestRunner, tests: Array[UnitTest], randomSeed: int64 = 0) {.header: juce_core, importcpp: "#.runTests(@)".}
+proc runTests*(this: var UnitTestRunner, tests: Array[ptr UnitTest], randomSeed: int64 = 0) {.header: juce_core, importcpp: "#.runTests(@)".}
 proc runAllTests*(this: var UnitTestRunner, randomSeed: int64 = 0) {.header: juce_core, importcpp: "#.runAllTests(@)".}
 proc runTestsInCategory*(this: var UnitTestRunner, category: String, randomSeed: int64 = 0) {.header: juce_core, importcpp: "#.runTestsInCategory(@)".}
 proc runTestsWithName*(this: var UnitTestRunner, name: String, randomSeed: int64 = 0) {.header: juce_core, importcpp: "#.runTestsWithName(@)".}

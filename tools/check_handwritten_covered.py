@@ -266,6 +266,100 @@ def check_classes():
     return not (untested or stale)
 
 
+inherited_method = re.compile(
+    r'^proc (\w+)\*\(this: (?:var )?(?:typedesc\[)?(\w+)[,)\]][^\n]*'
+    r'# inherited from a secondary base$', re.M)
+
+
+# Restated methods a test cannot call, with the reason it cannot. Same shape as
+# the exclusion tables the other checks carry: the entry has to say what stops
+# a test, not that writing one is inconvenient.
+uncallable_inherited = {
+    "setCurrentDragImage":
+        "JUCE writes through dragImageComponents[0] without checking it exists "
+        "(juce_DragAndDropContainer.cpp:570), so it segfaults unless a drag is "
+        "already running, and starting a real one needs a dragging mouse",
+    "startDragging":
+        "needs a MouseInputSource that is actually dragging; with none it "
+        "trips two jasserts and starts nothing",
+    "performExternalDragDropOfFiles":
+        "hands the payload to the operating system's drag service, so calling "
+        "it would start a real drag on the machine running the tests",
+    "performExternalDragDropOfText":
+        "hands the payload to the operating system's drag service, so calling "
+        "it would start a real drag on the machine running the tests",
+    "findFirstTargetParentComponent":
+        "reached only through a JUCEApplication, whose constructor asserts "
+        "unless it is the process's one application instance",
+    "getTargetForCommand":
+        "reached only through a JUCEApplication, whose constructor asserts "
+        "unless it is the process's one application instance",
+    "invoke":
+        "reached only through a JUCEApplication, whose constructor asserts "
+        "unless it is the process's one application instance",
+    "isCommandActive":
+        "reached only through a JUCEApplication, whose constructor asserts "
+        "unless it is the process's one application instance",
+}
+
+
+def check_inherited_methods():
+    """Every method restated from a secondary base is called by a test.
+
+    Nim carries one parent, so a method reaching a class through any other
+    public base is not inherited - it exists only because the generator
+    restates it on the class. A restatement nobody calls is never handed to the
+    C++ compiler, which is how the whole class of defect on this branch stayed
+    invisible. Each of these is a fresh binding and gets the same treatment as
+    a hand-written one.
+    """
+    emitted = set()
+    for module in ("juce_core", "juce_events", "juce_data_structures",
+                   "juce_graphics", "juce_gui_basics"):
+        for method, owner in inherited_method.findall(
+                open(f"sources/june/{module}.nim").read()):
+            emitted.add((owner, method))
+
+    used = ""
+    for pattern in ("tests/test_juce_*.nim", "examples/*.nim"):
+        for path in glob.glob(pattern):
+            used += open(path).read()
+
+    # The receiver's type is not written at the call site, so this asks only
+    # that the method name appears. Two classes inheriting the same method from
+    # the same base therefore cover each other, which is why the tests below
+    # name the class in the assertion message instead.
+    uncalled = sorted({method for _, method in emitted
+                       if method not in uncallable_inherited
+                       and not re.search(r"\." + method + r"\b", used)})
+
+    # An entry that no longer names an emitted method is stale, and a stale
+    # excuse reads exactly like a live one.
+    stale = sorted(name for name in uncallable_inherited
+                   if name not in {method for _, method in emitted})
+    if stale:
+        print("These entries in uncallable_inherited name no restated method:",
+              file=sys.stderr)
+        for name in stale:
+            print(f"  {name}", file=sys.stderr)
+        return False
+
+    if uncalled:
+        print("These methods are restated from a secondary base and never "
+              "called, so the C++ compiler never sees them:", file=sys.stderr)
+        for name in uncalled[:25]:
+            owners = sorted(o for o, m in emitted if m == name)
+            print(f"  {name} on {', '.join(owners)}", file=sys.stderr)
+        if len(uncalled) > 25:
+            print(f"  ... and {len(uncalled) - 25} more", file=sys.stderr)
+        return False
+
+    print(f"all {len(emitted)} methods restated from a secondary base "
+          f"are called by a test "
+          f"({len(uncallable_inherited)} listed as uncallable)")
+    return True
+
+
 def check_constants():
     """Every bound constant is read by a test.
 
@@ -484,10 +578,12 @@ def main():
     constants_ok = check_constants()
     statics_ok = check_static_variables()
     classes_ok = check_classes()
+    inherited_ok = check_inherited_methods()
 
     if (uncovered or stale or not iterators_ok or not defaults_ok
             or not subclasses_ok or not handlers_ok or not constructors_ok
-            or not constants_ok or not statics_ok or not classes_ok):
+            or not constants_ok or not statics_ok or not classes_ok
+            or not inherited_ok):
         sys.exit(1)
 
     print(f"all {len(declared)} hand-written binding names are called "

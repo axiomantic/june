@@ -231,7 +231,16 @@ def remap_type(t, *args):
     result = result.strip()
 
     if "<" in result:
-        mapped = remap_template(result, *args)
+        # From the pointee's spelling, not from `result`: the replacements above
+        # strip every star in the string, including the ones inside the angle
+        # brackets, so Array<TextButton *> reached remap_template as
+        # Array<TextButton> and bound an array of buttons where JUCE wants an
+        # array of pointers to them. Only the outer const needs removing here;
+        # the outer star and reference are already gone with the pointee.
+        template_spelling = target.spelling
+        if template_spelling.startswith("const "):
+            template_spelling = template_spelling[len("const "):]
+        mapped = remap_template(template_spelling, *args)
         # std::function over a const reference is a different C++ type from one
         # over a value, and where the argument holds a reference member - as
         # var::NativeFunctionArgs does - the by-value form does not compile at
@@ -870,32 +879,75 @@ def use_system_libclang():
 
 #==================================================================================================
 
-def reachable_method_count(class_spelling, class_map, class_inheritance_map,
-                           seen=None):
-    """Public methods on a class and on everything it publicly inherits.
+def public_bases(cursor):
+    """The public base classes of a class, as cursors.
 
-    Used to pick which of several public bases becomes the Nim parent. Keyed on
-    the bare spelling, like the rest of the generator's tables, so two nested
-    classes of the same name share a count; that only ever moves the choice
-    between bases of one class, never makes an unrelated one unreachable.
+    Read off the cursor rather than looked up by name. JUCE gives many nested
+    classes the name LookAndFeelMethods and LookAndFeel inherits most of them,
+    so a table keyed on the bare spelling collapses them into one and loses
+    every drawing hook but the first.
     """
-    seen = seen if seen is not None else set()
-    if class_spelling in seen:
-        return 0
-    seen.add(class_spelling)
-
-    cursor = class_map.get(class_spelling)
     if cursor is None:
-        return 0
+        return []
+    return [node.referenced for node in cursor.get_children()
+            if node.kind == CursorKind.CXX_BASE_SPECIFIER
+            and node.access_specifier == AccessSpecifier.PUBLIC
+            and node.referenced is not None]
 
-    total = len([x for x in cursor.get_children()
-                 if x.kind == CursorKind.CXX_METHOD
-                 and x.access_specifier == AccessSpecifier.PUBLIC])
-    for b in class_inheritance_map.get(class_spelling, ()):
-        if b is not None:
-            total += reachable_method_count(b.spelling, class_map,
-                                            class_inheritance_map, seen)
-    return total
+#==================================================================================================
+
+def reachable_public_methods(cursor, seen=None):
+    """Public methods of a class and of everything it publicly inherits.
+
+    Returns name -> list of (owner USR, cursor). A name reaching the class down
+    two different base branches has more than one owner and is ambiguous in C++
+    when called unqualified. A name the class redeclares shadows the base's, so
+    an override keeps a single owner and stays callable - which is why the test
+    is on owners rather than on how many declarations were seen.
+
+    Each branch recurses with its own visited set, so a name arriving twice
+    through a diamond is reported as the two arrivals it is rather than pruned
+    to one and wrongly emitted.
+    """
+    seen = set() if seen is None else seen
+    found = {}
+    if cursor is None:
+        return found
+    usr = cursor.get_usr()
+    if usr in seen:
+        return found
+    seen = seen | {usr}
+
+    for x in cursor.get_children():
+        if (x.kind == CursorKind.CXX_METHOD
+                and x.access_specifier == AccessSpecifier.PUBLIC
+                and x.spelling):
+            found.setdefault(x.spelling, []).append((usr, x))
+
+    declared_here = set(found)
+    for b in public_bases(cursor):
+        for name, entries in reachable_public_methods(b, seen).items():
+            if name in declared_here:
+                continue
+            found.setdefault(name, []).extend(entries)
+    return found
+
+#==================================================================================================
+
+def primary_base(cursor, class_map):
+    """The public base that becomes the Nim parent: the one reaching the most.
+
+    Nim has one parent and C++ has as many as it likes, so this choice decides
+    which half of the API is inherited and which half has to be restated on the
+    class itself. Taking the first base declared bound TextEditor as a
+    TextInputTarget and put the whole of Component out of reach - no setBounds,
+    no repaint.
+    """
+    candidates = [b for b in public_bases(cursor)
+                  if b.spelling in class_map and b.spelling != cursor.spelling]
+    if not candidates:
+        return None
+    return max(candidates, key=lambda b: len(reachable_public_methods(b)))
 
 #==================================================================================================
 
@@ -1145,13 +1197,8 @@ def run_main(juce_module_name, juce_class_name_to_export):
         # gives up TextInputTarget's 13 methods rather than Component's 203,
         # and the other two classes this moves - KeyPressMappingSet and
         # RelativeCoordinatePositionerBase - improve the same way.
-        candidates = [b for b in class_inheritance_map[c.spelling]
-                      if b is not None and b.spelling in class_map
-                      and b.spelling != c.spelling]
-        base = (remap_exported_class_name(
-                    max(candidates, key=lambda b: reachable_method_count(
-                        b.spelling, class_map, class_inheritance_map)).spelling)
-                if candidates else None)
+        chosen = primary_base(c, class_map)
+        base = remap_exported_class_name(chosen.spelling) if chosen else None
 
         all_class_decls.append(nim_class_def.format(**{
             "class_name": class_name,
@@ -1665,6 +1712,35 @@ def run_main(juce_module_name, juce_class_name_to_export):
                     and x.spelling == using.spelling
                     and x.access_specifier == AccessSpecifier.PUBLIC]
 
+        # Nim carries one parent, so everything reachable through the public
+        # bases the parent is NOT stays unreachable unless it is restated here.
+        # That was 189 methods across 21 classes: setTooltip and getTooltip on
+        # eight widgets, DragAndDropContainer's ten on Toolbar, and the drawing
+        # hooks LookAndFeel gets from its many LookAndFeelMethods interfaces.
+        # The C++ call is the same either way - the base is public - so the
+        # only thing restating them changes is whether Nim can see them.
+        inherited_members = set()
+        chosen_base = primary_base(c, class_map)
+        already_reachable = (set(reachable_public_methods(chosen_base))
+                             if chosen_base is not None else set())
+        declared_here = {x.spelling for x in class_members
+                         if x.kind == CursorKind.CXX_METHOD}
+
+        for b in public_bases(c):
+            if chosen_base is not None and b.get_usr() == chosen_base.get_usr():
+                continue
+            for name, entries in sorted(reachable_public_methods(b).items()):
+                if name in already_reachable or name in declared_here:
+                    continue
+                # Declared by two different classes among the bases, so an
+                # unqualified call is ambiguous in C++ as well. Leaving it out
+                # is what the C++ compiler would say about it.
+                if len({owner for owner, _ in entries}) > 1:
+                    continue
+                for _, cursor in entries:
+                    inherited_members.add(cursor.get_usr())
+                    class_members.append(cursor)
+
         scalar_overloaded = scalar_overloaded_names(
             [x for x in class_members
              if x.kind == CursorKind.CXX_METHOD
@@ -1859,6 +1935,14 @@ def run_main(juce_module_name, juce_class_name_to_export):
                     "juce_args": emitted_args,
                     "reason": f"  # {reason}" if comment and reason else "",
                 })
+
+            # Marked so the coverage check can require a test for each. These
+            # reach the class through a public base that is not the Nim parent,
+            # which means nothing inherits them: they exist only because they
+            # are restated here, and a restatement nobody calls is never seen
+            # by the C++ compiler.
+            if not comment and m.get_usr() in inherited_members:
+                declaration += "  # inherited from a secondary base"
 
             # libclang can hand back the same method more than once for a single
             # class, and Nim rejects the repeat as a redefinition.

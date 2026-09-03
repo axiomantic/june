@@ -51,7 +51,7 @@ proc undoCurrentTransactionOnly*(this: var UndoManager): bool {.header: juce_dat
 proc getUndoDescription*(this: UndoManager): String {.header: juce_data_structures, importcpp: "#.getUndoDescription()".}
 proc getUndoDescriptions*(this: UndoManager): StringArray {.header: juce_data_structures, importcpp: "#.getUndoDescriptions()".}
 proc getTimeOfUndoTransaction*(this: UndoManager): Time {.header: juce_data_structures, importcpp: "#.getTimeOfUndoTransaction()".}
-proc getActionsInCurrentTransaction*(this: UndoManager, actionsFound: var Array[UndoableAction]) {.header: juce_data_structures, importcpp: "#.getActionsInCurrentTransaction(@)".}
+proc getActionsInCurrentTransaction*(this: UndoManager, actionsFound: var Array[ptr UndoableAction]) {.header: juce_data_structures, importcpp: "#.getActionsInCurrentTransaction(@)".}
 proc getNumActionsInCurrentTransaction*(this: UndoManager): cint {.header: juce_data_structures, importcpp: "#.getNumActionsInCurrentTransaction()".}
 proc canRedo*(this: UndoManager): bool {.header: juce_data_structures, importcpp: "#.canRedo()".}
 proc redo*(this: var UndoManager): bool {.header: juce_data_structures, importcpp: "#.redo()".}
@@ -199,6 +199,12 @@ proc needsToBeSaved*(this: PropertiesFile): bool {.header: juce_data_structures,
 proc setNeedsToBeSaved*(this: var PropertiesFile, needsToBeSaved: bool) {.header: juce_data_structures, importcpp: "#.setNeedsToBeSaved(@)".}
 proc reload*(this: var PropertiesFile): bool {.header: juce_data_structures, importcpp: "#.reload()".}
 proc getFile*(this: PropertiesFile): File {.header: juce_data_structures, importcpp: "#.getFile()".}
+proc addChangeListener*(this: var PropertiesFile, listener: ptr ChangeListener) {.header: juce_data_structures, importcpp: "#.addChangeListener(@)".}  # inherited from a secondary base
+proc dispatchPendingMessages*(this: var PropertiesFile) {.header: juce_data_structures, importcpp: "#.dispatchPendingMessages()".}  # inherited from a secondary base
+proc removeAllChangeListeners*(this: var PropertiesFile) {.header: juce_data_structures, importcpp: "#.removeAllChangeListeners()".}  # inherited from a secondary base
+proc removeChangeListener*(this: var PropertiesFile, listener: ptr ChangeListener) {.header: juce_data_structures, importcpp: "#.removeChangeListener(@)".}  # inherited from a secondary base
+proc sendChangeMessage*(this: var PropertiesFile) {.header: juce_data_structures, importcpp: "#.sendChangeMessage()".}  # inherited from a secondary base
+proc sendSynchronousChangeMessage*(this: var PropertiesFile) {.header: juce_data_structures, importcpp: "#.sendSynchronousChangeMessage()".}  # inherited from a secondary base
 proc `==`*(this: PropertiesFile, other: PropertiesFile): bool {.error: "juce::PropertiesFile defines no operator==; compare a property instead".}
 
 proc makePropertiesFileOptions*(): PropertiesFileOptions {.header: juce_data_structures, importcpp: "juce::PropertiesFile::Options(@)".}

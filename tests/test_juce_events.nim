@@ -376,3 +376,69 @@ proc testPrivateBasesAreNotParents() =
     shutdownJuce_GUI()
 
 testPrivateBasesAreNotParents()
+
+# Methods restated from a secondary base ======================================
+#
+# Message and CallbackMessage reach ReferenceCountedObject through a public
+# base that is not their Nim parent, so those five are not inherited: the
+# generator restates them, and a restatement nobody calls never reaches the C++
+# compiler.
+
+proc testReferenceCountingOnMessages() =
+    initialiseJuce_GUI()
+
+    block:
+        # Heap allocated, because the reference count owns it: the last
+        # decReferenceCount deletes the object.
+        let message = newCustomCallbackMessage()
+        doAssert message[].getReferenceCount() == 0,
+                 "a fresh message starts at " & $message[].getReferenceCount()
+
+        message[].incReferenceCount()
+        doAssert message[].getReferenceCount() == 1,
+                 "after one retain the count is " & $message[].getReferenceCount()
+        message[].incReferenceCount()
+        doAssert message[].getReferenceCount() == 2,
+                 "after two retains the count is " & $message[].getReferenceCount()
+
+        doAssert not message[].decReferenceCountWithoutDeleting(),
+                 "the count reached zero after one release of two"
+        doAssert message[].getReferenceCount() == 1,
+                 "after one release the count is " & $message[].getReferenceCount()
+
+        # decReferenceCount deletes the object when the count reaches zero, so
+        # this is the end of its life and it must not be cdeleted afterwards.
+        message[].decReferenceCount()
+
+    block:
+        var ran = 0
+        let message = newCustomCallbackMessage()
+        message[].setMessageCallbackHandler(proc() = ran += 1)
+
+        # post() hands the message to the queue, which owns it from here: it is
+        # deleted once delivered, so nothing may touch it afterwards and it
+        # must not be cdeleted. Delivery needs a running message loop, and
+        # JUCE only exposes one to run under JUCE_MODAL_LOOPS_PERMITTED, which
+        # this build does not set - so what is asserted is that the queue took
+        # it, not that it arrived.
+        doAssert message[].post(), "the message manager refused the message"
+        doAssert ran == 0, "the message ran with no loop to deliver it"
+
+    block:
+        # The action listener's handler setter, which had none until now: the
+        # class could be built and attached but never told what to do.
+        let listener = newCustomActionListener()
+        var seen = 0
+        listener[].setActionListenerCallbackHandler(
+            proc(message: ptr String) = seen += 1)
+
+        var broadcaster = makeActionBroadcaster()
+        broadcaster.addActionListener(cast[ptr ActionListener](listener))
+        broadcaster.sendActionMessage(makeString("hello"))
+        doAssert seen == 0, "the action arrived with no loop to deliver it"
+        broadcaster.removeActionListener(cast[ptr ActionListener](listener))
+        cdelete listener
+
+    shutdownJuce_GUI()
+
+testReferenceCountingOnMessages()

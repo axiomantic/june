@@ -91,6 +91,11 @@ proc lockWasGained*(this: MessageManagerLock): bool {.header: juce_events, impor
 proc `==`*(this: MessageManagerLock, other: MessageManagerLock): bool {.error: "juce::MessageManagerLock defines no operator==; compare a property instead".}
 
 proc makeMessage*(): Message {.header: juce_events, importcpp: "juce::Message(@)".}
+proc decReferenceCount*(this: var Message) {.header: juce_events, importcpp: "#.decReferenceCount()".}  # inherited from a secondary base
+proc decReferenceCountWithoutDeleting*(this: var Message): bool {.header: juce_events, importcpp: "#.decReferenceCountWithoutDeleting()".}  # inherited from a secondary base
+proc getReferenceCount*(this: Message): cint {.header: juce_events, importcpp: "#.getReferenceCount()".}  # inherited from a secondary base
+proc incReferenceCount*(this: var Message) {.header: juce_events, importcpp: "#.incReferenceCount()".}  # inherited from a secondary base
+proc post*(this: var Message): bool {.header: juce_events, importcpp: "#.post()".}  # inherited from a secondary base
 proc `==`*(this: Message, other: Message): bool {.error: "juce::Message defines no operator==; compare a property instead".}
 
 # proc makeMessageListener*(): MessageListener {.header: juce_events, importcpp: "juce::MessageListener(@)".}  # MessageListener is abstract; build a CustomMessageListener instead
@@ -100,6 +105,11 @@ proc `==`*(this: MessageListener, other: MessageListener): bool {.error: "juce::
 
 # proc makeCallbackMessage*(): CallbackMessage {.header: juce_events, importcpp: "juce::CallbackMessage(@)".}  # CallbackMessage is abstract; build a CustomCallbackMessage instead
 proc messageCallback*(this: var CallbackMessage) {.header: juce_events, importcpp: "#.messageCallback()".}
+proc decReferenceCount*(this: var CallbackMessage) {.header: juce_events, importcpp: "#.decReferenceCount()".}  # inherited from a secondary base
+proc decReferenceCountWithoutDeleting*(this: var CallbackMessage): bool {.header: juce_events, importcpp: "#.decReferenceCountWithoutDeleting()".}  # inherited from a secondary base
+proc getReferenceCount*(this: CallbackMessage): cint {.header: juce_events, importcpp: "#.getReferenceCount()".}  # inherited from a secondary base
+proc incReferenceCount*(this: var CallbackMessage) {.header: juce_events, importcpp: "#.incReferenceCount()".}  # inherited from a secondary base
+proc post*(this: var CallbackMessage): bool {.header: juce_events, importcpp: "#.post()".}  # inherited from a secondary base
 proc `==`*(this: CallbackMessage, other: CallbackMessage): bool {.error: "juce::CallbackMessage defines no operator==; compare a property instead".}
 
 proc deleteAll*(this: typedesc[DeletedAtShutdown]) {.header: juce_events, importcpp: "juce::DeletedAtShutdown::deleteAll()".}
@@ -211,7 +221,7 @@ proc getInstance*(this: typedesc[ChildProcessManager]): ptr ChildProcessManager 
 proc getInstanceWithoutCreating*(this: typedesc[ChildProcessManager]): ptr ChildProcessManager {.header: juce_events, importcpp: "juce::ChildProcessManager::getInstanceWithoutCreating()".}
 proc deleteInstance*(this: typedesc[ChildProcessManager]) {.header: juce_events, importcpp: "juce::ChildProcessManager::deleteInstance()".}
 proc clearSingletonInstance*(this: var ChildProcessManager) {.header: juce_events, importcpp: "#.clearSingletonInstance()".}
-proc addChildProcessExitedListener*(this: var ChildProcessManager, listener: CppFunctionObjectN1[ChildProcess]): ErasedScopeGuard {.header: juce_events, importcpp: "#.addChildProcessExitedListener(@)".}
+proc addChildProcessExitedListener*(this: var ChildProcessManager, listener: CppFunctionObjectN1[ptr ChildProcess]): ErasedScopeGuard {.header: juce_events, importcpp: "#.addChildProcessExitedListener(@)".}
 proc hasRunningProcess*(this: ChildProcessManager): bool {.header: juce_events, importcpp: "#.hasRunningProcess()".}
 proc `==`*(this: ChildProcessManager, other: ChildProcessManager): bool {.error: "juce::ChildProcessManager defines no operator==; compare a property instead".}
 
