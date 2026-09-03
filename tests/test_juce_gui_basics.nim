@@ -7205,3 +7205,194 @@ proc testKeyPressComparison() =
     shutdownJuce_GUI()
 
 testKeyPressComparison()
+
+# Slider's range is where a caller gets surprised: the interval quantises every
+# value that goes in, the skew factor bends the mapping between a value and the
+# position on screen, and a two-value slider keeps its pair ordered.
+proc testSliderRange() =
+    initialiseJuce_GUI()
+
+    block:
+        let slider = newCustomSlider()
+
+        slider[].setRange(0.0, 100.0, 5.0)
+        doAssert slider[].getMinimum() == 0.0,
+                 "the minimum is " & $slider[].getMinimum()
+        doAssert slider[].getMaximum() == 100.0,
+                 "the maximum is " & $slider[].getMaximum()
+        doAssert slider[].getInterval() == 5.0,
+                 "the interval is " & $slider[].getInterval()
+        doAssert slider[].getRange().getStart() == 0.0 and
+                 slider[].getRange().getEnd() == 100.0,
+                 "getRange disagrees with getMinimum/getMaximum"
+
+        # The interval quantises: 37 lands on the nearest multiple of 5.
+        slider[].setValue(37.0, NotificationType_dontSendNotification)
+        doAssert slider[].getValue() == 35.0,
+                 "37 snapped to " & $slider[].getValue() & ", not to 35"
+
+        # Values outside the range are clamped, not wrapped or rejected.
+        slider[].setValue(1000.0, NotificationType_dontSendNotification)
+        doAssert slider[].getValue() == 100.0,
+                 "a value above the range became " & $slider[].getValue()
+        slider[].setValue(-1000.0, NotificationType_dontSendNotification)
+        doAssert slider[].getValue() == 0.0,
+                 "a value below the range became " & $slider[].getValue()
+
+        # With no interval every value is kept as given.
+        slider[].setRange(0.0, 1.0, 0.0)
+        slider[].setValue(0.375, NotificationType_dontSendNotification)
+        doAssert slider[].getValue() == 0.375,
+                 "an unquantised slider changed the value to " & $slider[].getValue()
+
+        cdelete slider
+
+    block:
+        let slider = newCustomSlider()
+        slider[].setRange(0.0, 100.0, 0.0)
+
+        # Unskewed, the proportion along the slider is the fraction of the range.
+        doAssert slider[].getSkewFactor() == 1.0,
+                 "the default skew factor is " & $slider[].getSkewFactor()
+        doAssert not slider[].isSymmetricSkew(), "the default skew is symmetric"
+        doAssert abs(slider[].valueToProportionOfLength(50.0) - 0.5) < 1.0e-9,
+                 "the midpoint sits at " & $slider[].valueToProportionOfLength(50.0)
+        doAssert abs(slider[].proportionOfLengthToValue(0.25) - 25.0) < 1.0e-9,
+                 "a quarter along reads as " & $slider[].proportionOfLengthToValue(0.25)
+
+        # setSkewFactorFromMidPoint puts the named value at the halfway point,
+        # which is the whole reason a caller reaches for a skew.
+        slider[].setSkewFactorFromMidPoint(10.0)
+        doAssert slider[].getSkewFactor() != 1.0,
+                 "setSkewFactorFromMidPoint left the skew factor at 1"
+        doAssert abs(slider[].valueToProportionOfLength(10.0) - 0.5) < 1.0e-6,
+                 "after skewing, 10 sits at " &
+                 $slider[].valueToProportionOfLength(10.0) & " and not at the middle"
+
+        # The two mappings are inverses of one another whatever the skew.
+        for value in [0.0, 1.0, 10.0, 42.0, 100.0]:
+            let roundTripped = slider[].proportionOfLengthToValue(
+                                   slider[].valueToProportionOfLength(value))
+            doAssert abs(roundTripped - value) < 1.0e-6,
+                     "a round trip turned " & $value & " into " & $roundTripped
+
+        cdelete slider
+
+    block:
+        # A two-value slider keeps min <= max whichever end is pushed.
+        let slider = newCustomSlider()
+        slider[].setSliderStyle(SliderSliderStyle_TwoValueHorizontal)
+        slider[].setRange(0.0, 100.0, 1.0)
+        slider[].setMinAndMaxValues(20.0, 80.0, NotificationType_dontSendNotification)
+        doAssert slider[].getMinValue() == 20.0,
+                 "the low value is " & $slider[].getMinValue()
+        doAssert slider[].getMaxValue() == 80.0,
+                 "the high value is " & $slider[].getMaxValue()
+
+        # Pushing the low value past the high one carries the high one along
+        # rather than crossing it.
+        slider[].setMinValue(90.0, NotificationType_dontSendNotification, true)
+        doAssert slider[].getMinValue() <= slider[].getMaxValue(),
+                 "the low value " & $slider[].getMinValue() &
+                 " overtook the high value " & $slider[].getMaxValue()
+
+        cdelete slider
+
+    block:
+        # The text side: a suffix and a decimal count both reach getTextFromValue.
+        let slider = newCustomSlider()
+        slider[].setRange(0.0, 100.0, 0.01)
+        slider[].setTextValueSuffix(makeString(" Hz"))
+        doAssert $slider[].getTextValueSuffix() == " Hz",
+                 "the suffix reads as " & $slider[].getTextValueSuffix()
+
+        slider[].setNumDecimalPlacesToDisplay(1.cint)
+        doAssert slider[].getNumDecimalPlacesToDisplay() == 1,
+                 "the decimal count is " & $slider[].getNumDecimalPlacesToDisplay()
+        let text = $slider[].getTextFromValue(12.345)
+        doAssert text == "12.3 Hz", "12.345 rendered as " & text
+
+        # And back again, suffix and all.
+        doAssert abs(slider[].getValueFromText(makeString("12.3 Hz")) - 12.3) < 1.0e-9,
+                 "the text did not parse back to its value"
+
+        cdelete slider
+
+    shutdownJuce_GUI()
+
+testSliderRange()
+
+# Slider carries a dozen configuration pairs. Each is a separate binding, and a
+# pair that reads back a neighbour's field compiles perfectly.
+proc testSliderConfiguration() =
+    initialiseJuce_GUI()
+
+    let slider = newCustomSlider()
+
+    slider[].setSliderStyle(SliderSliderStyle_LinearVertical)
+    doAssert slider[].getSliderStyle() == SliderSliderStyle_LinearVertical,
+             "the style did not read back"
+    doAssert slider[].isVertical(), "a LinearVertical slider is not vertical"
+    doAssert not slider[].isHorizontal(), "a LinearVertical slider is horizontal"
+
+    slider[].setSliderStyle(SliderSliderStyle_LinearHorizontal)
+    doAssert slider[].isHorizontal(), "a LinearHorizontal slider is not horizontal"
+    doAssert not slider[].isVertical(), "a LinearHorizontal slider is vertical"
+
+    slider[].setMouseDragSensitivity(250.cint)
+    doAssert slider[].getMouseDragSensitivity() == 250,
+             "the drag sensitivity is " & $slider[].getMouseDragSensitivity()
+
+    doAssert not slider[].getVelocityBasedMode(), "velocity mode starts on"
+    slider[].setVelocityBasedMode(true)
+    doAssert slider[].getVelocityBasedMode(), "velocity mode did not turn on"
+    slider[].setVelocityModeParameters(2.5, 7.cint, 0.25, false,
+                                       ModifierKeysFlags_ctrlModifier)
+    doAssert slider[].getVelocitySensitivity() == 2.5,
+             "the sensitivity is " & $slider[].getVelocitySensitivity()
+    doAssert slider[].getVelocityThreshold() == 7,
+             "the threshold is " & $slider[].getVelocityThreshold()
+    doAssert slider[].getVelocityOffset() == 0.25,
+             "the offset is " & $slider[].getVelocityOffset()
+    doAssert not slider[].getVelocityModeIsSwappable(),
+             "the mode reports swappable after being told it is not"
+
+    slider[].setTextBoxStyle(SliderTextEntryBoxPosition_TextBoxLeft, false,
+                             80.cint, 24.cint)
+    doAssert slider[].getTextBoxPosition() == SliderTextEntryBoxPosition_TextBoxLeft,
+             "the text box position did not read back"
+    doAssert slider[].getTextBoxWidth() == 80,
+             "the text box width is " & $slider[].getTextBoxWidth()
+    doAssert slider[].getTextBoxHeight() == 24,
+             "the text box height is " & $slider[].getTextBoxHeight()
+    doAssert slider[].isTextBoxEditable(), "a writable text box reports read only"
+    slider[].setTextBoxIsEditable(false)
+    doAssert not slider[].isTextBoxEditable(), "the text box stayed editable"
+
+    doAssert slider[].isScrollWheelEnabled(), "the scroll wheel starts disabled"
+    slider[].setScrollWheelEnabled(false)
+    doAssert not slider[].isScrollWheelEnabled(), "the scroll wheel stayed enabled"
+
+    slider[].setRange(0.0, 10.0, 0.0)
+    slider[].setDoubleClickReturnValue(true, 4.0, makeModifierKeys(0.cint))
+    doAssert slider[].isDoubleClickReturnEnabled(),
+             "double click return did not turn on"
+    doAssert slider[].getDoubleClickReturnValue() == 4.0,
+             "the double click value is " & $slider[].getDoubleClickReturnValue()
+
+    doAssert slider[].getSliderSnapsToMousePosition(),
+             "snapping to the mouse starts off"
+    slider[].setSliderSnapsToMousePosition(false)
+    doAssert not slider[].getSliderSnapsToMousePosition(),
+             "snapping to the mouse stayed on"
+
+    # Nothing is being dragged, and no popup is showing, in a headless test.
+    doAssert slider[].getThumbBeingDragged() == -1,
+             "a thumb reports as dragged: " & $slider[].getThumbBeingDragged()
+    doAssert slider[].getCurrentPopupDisplay().isNil,
+             "a popup display exists with no drag in progress"
+
+    cdelete slider
+    shutdownJuce_GUI()
+
+testSliderConfiguration()
