@@ -574,14 +574,26 @@ from the generator, and an ``importcpp`` string only reaches the C++ compiler
 at the call site. A binding nothing calls is never compiled at all, which is
 how a ``BorderSize`` constructor JUCE does not declare, four container types
 with no constructor, and three ``Range`` setters that mutated a ``let`` binding
-all sat in the tree. ``tools/check_handwritten_covered.py`` fails if an export
-is never named by a test or an example::
+all sat in the tree. ``tools/check_handwritten_covered.py`` is the guard
+against that whole shape, and it fails when any of these is not exercised::
 
   python3 tools/check_handwritten_covered.py
 
-A binding a test genuinely cannot call -- one that builds the process's single
-``JUCEApplication``, say -- goes in that script's ``uncallable`` table with the
-reason, and the script fails if a listed name stops existing.
+- a hand-written binding name that no test calls
+- a withheld ``begin()`` naming a Nim iterator that does not exist
+- an emitted implicit default constructor that no test builds
+- a generated subclass that no test builds
+- a handler setter that no test calls
+- a no-argument constructor that no test calls
+- a bound constant or static variable that no test reads
+- a class with a constructor that no test names
+
+It reports what it covered rather than only what failed, so the figures are
+read off the run rather than out of this file.
+
+Anything a test genuinely cannot reach goes in that script's tables with the
+reason -- why a test *cannot*, never that nobody has yet -- and the script
+fails the other way too, when a listed name stops existing.
 
 A class it cannot express is listed at the end of the file with the reason, in
 the same style as an unbound proc. Count what is left with::
