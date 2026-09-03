@@ -598,3 +598,136 @@ proc testValueTreeListenerConstructs() =
   doAssert (addr listener) != nil, "the ValueTree listener did not build"
 
 testValueTreeListenerConstructs()
+
+# UndoManager groups actions into TRANSACTIONS, and that grouping is the whole
+# of what it does beyond a stack: one undo reverses a transaction, not an
+# action. Each action here counts its own calls, so the grouping is measured
+# rather than assumed.
+proc testUndoManagerTransactions() =
+  proc countingAction(performed, undone: ptr int): ptr CustomUndoableAction =
+    result = newCustomUndoableAction()
+    let p = performed
+    let u = undone
+    result[].setPerformHandler(proc(): bool =
+      p[] += 1
+      true)
+    result[].setUndoHandler(proc(): bool =
+      u[] += 1
+      true)
+
+  block:
+    var performed, undone = 0
+    var manager = makeUndoManager(30000.cint, 30.cint)
+
+    doAssert not manager.canUndo(), "a new manager can undo"
+    doAssert not manager.canRedo(), "a new manager can redo"
+    doAssert manager.getUndoDescription().isEmpty(),
+             "a new manager describes an undo as " & $manager.getUndoDescription()
+    doAssert not manager.isPerformingUndoRedo(),
+             "a manager reports an undo in progress before anything ran"
+
+    # Two actions in ONE transaction: one undo reverses both.
+    manager.beginNewTransaction(makeString("edit"))
+    doAssert manager.perform(cast[ptr UndoableAction](
+                 countingAction(addr performed, addr undone))),
+             "the first perform reported failure"
+    doAssert manager.perform(cast[ptr UndoableAction](
+                 countingAction(addr performed, addr undone))),
+             "the second perform reported failure"
+    doAssert performed == 2, "two actions ran " & $performed & " times"
+    doAssert manager.getNumActionsInCurrentTransaction() == 2,
+             "the transaction holds " &
+             $manager.getNumActionsInCurrentTransaction() & " actions"
+
+    doAssert manager.canUndo(), "the manager cannot undo after two actions"
+    doAssert $manager.getUndoDescription() == "edit",
+             "the undo describes itself as " & $manager.getUndoDescription()
+    doAssert manager.getUndoDescriptions().size() == 1,
+             "there are " & $manager.getUndoDescriptions().size() &
+             " transactions to undo, not one"
+
+    doAssert manager.undo(), "undo reported failure"
+    doAssert undone == 2,
+             "one undo reversed " & $undone & " of the two actions"
+    doAssert not manager.canUndo(), "the manager can still undo"
+    doAssert manager.canRedo(), "the manager cannot redo what it just undid"
+    doAssert $manager.getRedoDescription() == "edit",
+             "the redo describes itself as " & $manager.getRedoDescription()
+    doAssert manager.getRedoDescriptions().size() == 1,
+             "there are " & $manager.getRedoDescriptions().size() &
+             " transactions to redo"
+
+    doAssert manager.redo(), "redo reported failure"
+    doAssert performed == 4, "the redo re-ran " & $(performed - 2) & " actions"
+
+  block:
+    var performed, undone = 0
+    var manager = makeUndoManager(30000.cint, 30.cint)
+
+    # Two SEPARATE transactions: each undo reverses one.
+    manager.beginNewTransaction(makeString("first"))
+    discard manager.perform(cast[ptr UndoableAction](
+        countingAction(addr performed, addr undone)))
+    manager.beginNewTransaction(makeString("second"))
+    discard manager.perform(cast[ptr UndoableAction](
+        countingAction(addr performed, addr undone)))
+
+    doAssert manager.getUndoDescriptions().size() == 2,
+             "there are " & $manager.getUndoDescriptions().size() &
+             " transactions, not two"
+    doAssert $manager.getUndoDescription() == "second",
+             "the newest transaction is " & $manager.getUndoDescription()
+
+    doAssert manager.undo(), "the first undo reported failure"
+    doAssert undone == 1,
+             "one undo reversed " & $undone & " actions across two transactions"
+    doAssert $manager.getUndoDescription() == "first",
+             "after one undo the next is " & $manager.getUndoDescription()
+    doAssert manager.undo(), "the second undo reported failure"
+    doAssert undone == 2, "two undos reversed " & $undone & " actions"
+    doAssert not manager.canUndo(), "there is a third transaction"
+
+  block:
+    var performed, undone = 0
+    var manager = makeUndoManager(30000.cint, 30.cint)
+
+    # The transaction can be named after the fact, and undone on its own
+    # without ending it.
+    manager.beginNewTransaction()
+    discard manager.perform(cast[ptr UndoableAction](
+        countingAction(addr performed, addr undone)))
+    manager.setCurrentTransactionName(makeString("renamed"))
+    doAssert $manager.getCurrentTransactionName() == "renamed",
+             "the transaction is called " & $manager.getCurrentTransactionName()
+
+    doAssert manager.undoCurrentTransactionOnly(),
+             "undoCurrentTransactionOnly reported failure"
+    doAssert undone == 1,
+             "undoCurrentTransactionOnly reversed " & $undone & " actions"
+    doAssert manager.getNumActionsInCurrentTransaction() == 0,
+             "the transaction still holds " &
+             $manager.getNumActionsInCurrentTransaction() & " actions"
+
+  block:
+    var performed, undone = 0
+    var manager = makeUndoManager(30000.cint, 30.cint)
+    manager.beginNewTransaction(makeString("edit"))
+    discard manager.perform(cast[ptr UndoableAction](
+        countingAction(addr performed, addr undone)))
+
+    doAssert manager.getNumberOfUnitsTakenUpByStoredCommands() >= 0,
+             "the stored commands take up " &
+             $manager.getNumberOfUnitsTakenUpByStoredCommands() & " units"
+    doAssert manager.getTimeOfUndoTransaction().toMilliseconds() > 0,
+             "the transaction has no timestamp"
+
+    # Clearing throws the history away without undoing anything.
+    manager.clearUndoHistory()
+    doAssert not manager.canUndo(), "the history survived clearUndoHistory"
+    doAssert undone == 0,
+             "clearUndoHistory undid " & $undone & " actions"
+
+    # And a new limit is accepted at any time.
+    manager.setMaxNumberOfStoredUnits(100.cint, 2.cint)
+
+testUndoManagerTransactions()
