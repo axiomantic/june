@@ -999,7 +999,14 @@ def using_declaration_members(cursor):
 #==================================================================================================
 
 def method_signature(cursor):
-    """A method's identity for the override relation: name, arguments, const."""
+    """A method's identity: name, arguments, constness and return type.
+
+    The return type is part of it because C++ allows a covariant override, and
+    dropping one as a duplicate would hand the caller the base's type instead:
+    TableListBox::getModel returns a TableListBoxModel where ListBox::getModel
+    returns a ListBoxModel, and the derived one is the whole point of calling
+    it on a TableListBox.
+    """
     # Canonical spellings, because the same type is written differently
     # depending on where it is declared: PopupMenu::LookAndFeelMethods spells
     # its parameter "const Options &" and LookAndFeel_V2 spells the same one
@@ -1007,7 +1014,8 @@ def method_signature(cursor):
     # looking like two different methods and both were emitted.
     return (cursor.spelling,
             tuple(a.type.get_canonical().spelling for a in cursor.get_arguments()),
-            cursor.is_const_method())
+            cursor.is_const_method(),
+            cursor.result_type.get_canonical().spelling)
 
 #==================================================================================================
 

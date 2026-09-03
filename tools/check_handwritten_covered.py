@@ -445,8 +445,26 @@ def check_one_declaration_per_signature():
             found.append(name)
         return found
 
+    children = {}
+    for child, parent in parents.items():
+        children.setdefault(parent, []).append(child)
+
+    def has_descendant(name):
+        return bool(children.get(name))
+
+    # Only where a class below the derived one exists. On the derived class
+    # itself Nim prefers the nearer proc, so two declarations there are
+    # harmless; the ambiguity needs a receiver for which neither is nearer.
+    # That distinction is what lets a covariant override stay: TableListBox
+    # declares its own getModel because it returns a TableListBoxModel rather
+    # than a ListBoxModel, and nothing inherits from TableListBox. A covariant
+    # override on a class that DOES have descendants would land here, and it
+    # would be a real conflict rather than a false alarm - the type and the
+    # callability cannot both be had.
     clashes = []
     for (name, receiver), signatures in sorted(procedures.items()):
+        if not has_descendant(receiver):
+            continue
         for ancestor in ancestors(receiver):
             shared = signatures & procedures.get((name, ancestor), set())
             if shared:
@@ -463,8 +481,8 @@ def check_one_declaration_per_signature():
             print(f"  ... and {len(clashes) - 20} more", file=sys.stderr)
         return False
 
-    print(f"no method is declared on both a class and a Nim ancestor "
-          f"({len(procedures)} class-and-name pairs checked)")
+    print(f"no method is declared on both a class with descendants and a Nim "
+          f"ancestor ({len(procedures)} class-and-name pairs checked)")
     return True
 
 
