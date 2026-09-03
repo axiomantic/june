@@ -468,6 +468,15 @@ two apart, so those two are named in the generator with the reason, and
 ``check_handwritten_covered.py`` fails unless a test builds every one of the
 constructors that is emitted.
 
+A nested class is named by its parts joined together, and one of those
+collided with a top-level class: ``juce::MessageManagerLock`` and
+``juce::MessageManager::Lock`` both flattened to ``MessageManagerLock``. The
+type was declared as the nested one while every method bound onto it came from
+the top-level one, so the constructor could not be called and the methods were
+attributed to a class that does not have them. The nested one is
+``MessageManagerInnerLock`` now, and the generator carries the rename with that
+reason.
+
 ``cnew`` takes a constructor call, not a name. Its ``importcpp`` pattern
 expands to ``new T(args)``, so ``cnew(makeDrawableRectangle())`` works and
 ``cnew(existingValue)`` is rejected with "call expression expected for C++
