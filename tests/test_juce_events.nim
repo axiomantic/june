@@ -326,6 +326,64 @@ proc testTimedCallback() =
         doAssert not callback.isTimerRunning(), "a fresh TimedCallback is running"
         doAssert fired == 0, "the callback ran before the timer started"
 
+        # These five reach TimedCallback through a using-declaration, not
+        # through inheritance: it inherits Timer PRIVATELY, so it is not a
+        # Timer and only the members it re-exports are callable. The interval
+        # is read back rather than just set, so the call has to have landed.
+        callback.startTimer(40.cint)
+        doAssert callback.isTimerRunning(), "the timer did not start"
+        doAssert callback.getTimerInterval() == 40,
+                 "the interval is " & $callback.getTimerInterval() & ", not 40"
+        callback.startTimerHz(25.cint)   # 25 per second is one every 40ms
+        doAssert callback.getTimerInterval() == 40,
+                 "25Hz gave an interval of " & $callback.getTimerInterval() &
+                 "ms rather than 40ms"
+        callback.stopTimer()
+        doAssert not callback.isTimerRunning(), "the timer did not stop"
+        doAssert fired == 0, "the callback ran with no message loop"
+
+        # The private base itself is not a Nim parent, so nothing else Timer
+        # declares comes with it.
+        doAssert not compiles(callback.timerCallback()),
+                 "a member the class does not re-export was offered anyway"
+
     shutdownJuce_GUI()
 
 testTimedCallback()
+
+# Private bases are not Nim parents ===========================================
+#
+# A privately inherited base is not a subtype outside the class, so binding it
+# as the Nim parent offered every method it declares while the C++ compiler
+# refused each one: triggerAsyncUpdate on an ApplicationCommandManager is "a
+# private member of juce::AsyncUpdater". Nothing called them, so nothing said
+# so. Fourteen classes inherited that way.
+
+proc testPrivateBasesAreNotParents() =
+    initialiseJuce_GUI()
+
+    block:
+        var manager = makeApplicationCommandManager()
+        doAssert not compiles(manager.triggerAsyncUpdate()),
+                 "AsyncUpdater's members are offered on ApplicationCommandManager"
+        doAssert not compiles(manager.isUpdatePending()),
+                 "isUpdatePending is offered on ApplicationCommandManager"
+
+        # What the class declares itself is unaffected.
+        doAssert manager.getNumCommands() == 0,
+                 "a fresh manager holds " & $manager.getNumCommands() & " commands"
+
+    block:
+        # Abstract, so it comes from the generated subclass. It inherits Thread
+        # privately, and the same rule applies through the subclass.
+        let server = newCustomInterprocessConnectionServer()
+        doAssert not compiles(server[].startThread()),
+                 "Thread's members are offered on InterprocessConnectionServer"
+        doAssert server[].getBoundPort() == -1,
+                 "an unbound server reports port " & $server[].getBoundPort() &
+                 " rather than -1"
+        cdelete server
+
+    shutdownJuce_GUI()
+
+testPrivateBasesAreNotParents()

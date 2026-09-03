@@ -3664,6 +3664,23 @@ proc testFileViews() =
             doAssert list.getNumSelectedFiles() == 0,
                      "deselecting left " & $list.getNumSelectedFiles() & " selected"
 
+            # FileListComponent publicly inherits ListBox and privately
+            # inherits ListBoxModel. It used to be bound as a ListBoxModel,
+            # which is not a subtype outside the class, so none of the ListBox
+            # and Component behaviour below was reachable.
+            list.setBounds(makeRectangle(0.cint, 0.cint, 120.cint, 90.cint))
+            doAssert list.getWidth() == 120,
+                     "the list is " & $list.getWidth() & " wide, not 120"
+            list.setRowHeight(18.cint)
+            doAssert list.getRowHeight() == 18,
+                     "the row height is " & $list.getRowHeight() & ", not 18"
+
+            # ListBoxModel is the PRIVATE base, so its members are not part of
+            # this class. C++ rejects the call; Nim now does too, rather than
+            # offering it and failing in the C++ compiler.
+            doAssert not compiles(list.getNumRows()),
+                     "a member of the private base was offered anyway"
+
         block:
             # The tree's own selection is not asserted. setSelectedFile works
             # through the TreeView's rows, and those are built when the
