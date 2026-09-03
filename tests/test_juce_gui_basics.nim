@@ -8547,3 +8547,146 @@ proc testListBoxSelection() =
     shutdownJuce_GUI()
 
 testListBoxSelection()
+
+# TreeViewItem is a node in a tree that owns its children. The item numbers -
+# index in parent, row in the whole tree - are two different things, and the
+# row number depends on which ancestors are open.
+proc testTreeViewItemNumbering() =
+    initialiseJuce_GUI()
+
+    block:
+        var tree = makeTreeView(makeString("tree"))
+        let root = newCustomTreeViewItem()
+        root[].setMightContainSubItemsHandler(proc(): bool = true)
+        tree.setRootItem(cast[ptr TreeViewItem](root))
+
+        doAssert root[].getNumSubItems() == 0,
+                 "a new item holds " & $root[].getNumSubItems() & " children"
+        doAssert root[].getParentItem().isNil, "the root has a parent"
+        doAssert root[].getOwnerView() == addr tree,
+                 "the root does not belong to the tree it was given to"
+
+        let first = newCustomTreeViewItem()
+        let second = newCustomTreeViewItem()
+        first[].setMightContainSubItemsHandler(proc(): bool = true)
+        root[].addSubItem(cast[ptr TreeViewItem](first))
+        root[].addSubItem(cast[ptr TreeViewItem](second))
+
+        doAssert root[].getNumSubItems() == 2,
+                 "the root holds " & $root[].getNumSubItems() & " children"
+        doAssert root[].getSubItem(0.cint) == cast[ptr TreeViewItem](first),
+                 "the first child is not the one added first"
+        doAssert first[].getParentItem() == cast[ptr TreeViewItem](root),
+                 "the child's parent is not the root"
+        doAssert first[].getIndexInParent() == 0,
+                 "the first child is at index " & $first[].getIndexInParent()
+        doAssert second[].getIndexInParent() == 1,
+                 "the second child is at index " & $second[].getIndexInParent()
+        doAssert not first[].isLastOfSiblings(), "the first child is the last"
+        doAssert second[].isLastOfSiblings(), "the second child is not the last"
+
+        # A child belongs to the same tree as the parent it was added to.
+        doAssert first[].getOwnerView() == addr tree,
+                 "a child added to the root belongs to a different tree"
+
+        # An insert position puts a child where it is asked to.
+        let middle = newCustomTreeViewItem()
+        root[].addSubItem(cast[ptr TreeViewItem](middle), 1.cint)
+        doAssert middle[].getIndexInParent() == 1,
+                 "the inserted child landed at " & $middle[].getIndexInParent()
+        doAssert second[].getIndexInParent() == 2,
+                 "the inserted child did not push its sibling along; it is at " &
+                 $second[].getIndexInParent()
+
+        # Openness decides whether the children are rows of the tree at all.
+        doAssert not root[].isOpen(), "a new item is open"
+        doAssert first[].areAllParentsOpen() == false,
+                 "a child of a closed root reports its parents open"
+
+        root[].setOpen(true)
+        doAssert root[].isOpen(), "setOpen did not take"
+        doAssert root[].getOpenness() == TreeViewItemOpenness_opennessOpen,
+                 "the openness does not agree with isOpen"
+        doAssert first[].areAllParentsOpen(),
+                 "the child still reports a closed ancestor"
+
+        # The row number counts every visible row above it, so it moves when an
+        # ancestor opens or closes.
+        doAssert root[].getRowNumberInTree() == 0,
+                 "the root is at row " & $root[].getRowNumberInTree()
+        doAssert first[].getRowNumberInTree() == 1,
+                 "the first child is at row " & $first[].getRowNumberInTree()
+        doAssert second[].getRowNumberInTree() == 3,
+                 "the last child is at row " & $second[].getRowNumberInTree()
+
+        # Opening a child pushes its later siblings down.
+        let grandchild = newCustomTreeViewItem()
+        first[].addSubItem(cast[ptr TreeViewItem](grandchild))
+        first[].setOpen(true)
+        doAssert second[].getRowNumberInTree() == 4,
+                 "after opening a sibling the last child is at row " &
+                 $second[].getRowNumberInTree()
+
+        first[].setOpenness(TreeViewItemOpenness_opennessClosed)
+        doAssert not first[].isOpen(), "setOpenness did not close the item"
+        doAssert second[].getRowNumberInTree() == 3,
+                 "after closing it again the last child is at row " &
+                 $second[].getRowNumberInTree()
+        doAssert not grandchild[].areAllParentsOpen(),
+                 "a grandchild under a closed parent reports its parents open"
+
+        # Selection is per item, and deselectOtherItemsFirst decides whether
+        # the others keep theirs.
+        first[].setOpen(true)
+        doAssert not first[].isSelected(), "a new item is selected"
+        first[].setSelected(true, false, NotificationType_dontSendNotification)
+        doAssert first[].isSelected(), "setSelected did not take"
+
+        second[].setSelected(true, false, NotificationType_dontSendNotification)
+        doAssert first[].isSelected() and second[].isSelected(),
+                 "selecting without deselecting cleared the first selection"
+
+        first[].setSelected(true, true, NotificationType_dontSendNotification)
+        doAssert first[].isSelected(), "the item deselected itself"
+        doAssert not second[].isSelected(),
+                 "deselectOtherItemsFirst left the other item selected"
+
+        # The identifier string is the path of getUniqueName() values from the
+        # root down (juce_TreeView.cpp:2103), and TreeViewItem::getUniqueName
+        # returns nothing unless a subclass overrides it. CustomTreeViewItem
+        # does not, so every item at the same depth carries the SAME
+        # identifier - "//" for a child of the root - and it identifies
+        # nothing. It is the depth that shows here, not the item.
+        doAssert $root[].getItemIdentifierString() == "/",
+                 "the root's identifier is " & $root[].getItemIdentifierString()
+        doAssert $first[].getItemIdentifierString() == "//",
+                 "a child's identifier is " & $first[].getItemIdentifierString()
+        doAssert $first[].getItemIdentifierString() ==
+                 $second[].getItemIdentifierString(),
+                 "two items with no unique name have different identifiers"
+        doAssert root[].getUniqueName().isEmpty(),
+                 "an item with no override has the unique name " &
+                 $root[].getUniqueName()
+
+        doAssert root[].getItemHeight() > 0,
+                 "an item is " & $root[].getItemHeight() & " pixels tall"
+
+        # removeSubItem takes ownership with it when told to.
+        root[].removeSubItem(1.cint, true)
+        doAssert root[].getNumSubItems() == 2,
+                 "after removing one the root holds " & $root[].getNumSubItems()
+        doAssert second[].getIndexInParent() == 1,
+                 "the surviving sibling is at index " &
+                 $second[].getIndexInParent()
+
+        root[].clearSubItems()
+        doAssert root[].getNumSubItems() == 0,
+                 "clearSubItems left " & $root[].getNumSubItems() & " children"
+
+        # The tree must let go of the root before the root is deleted.
+        tree.setRootItem(nil)
+        cdelete root
+
+    shutdownJuce_GUI()
+
+testTreeViewItemNumbering()
