@@ -244,6 +244,41 @@ def check_constants():
     return True
 
 
+static_variable = re.compile(
+    r'^proc (\w+)\*\(this: typedesc\[\w+\]\): [^{]+\{[^}]*importcpp: "\(', re.M)
+
+
+def check_static_variables():
+    """Every bound static variable is read by a test.
+
+    Bound as a proc over the typedesc, so it is compiled only where it is
+    called - exactly like the constants, and 99 of the 111 had never had their
+    C++ spelling checked.
+    """
+    emitted = set()
+    for module in ("juce_core", "juce_events", "juce_data_structures",
+                   "juce_graphics", "juce_gui_basics"):
+        emitted.update(static_variable.findall(
+            open(f"sources/june/{module}.nim").read()))
+
+    used = ""
+    for pattern in ("tests/test_juce_*.nim", "examples/*.nim"):
+        for path in glob.glob(pattern):
+            used += open(path).read()
+
+    unread = sorted(name for name in emitted
+                    if not re.search(r"\b" + name + r"\b", used))
+    if unread:
+        print("These static variables are never read, so their C++ spelling "
+              "is not checked:", file=sys.stderr)
+        for name in unread[:20]:
+            print(f"  {name}", file=sys.stderr)
+        return False
+
+    print(f"all {len(emitted)} static variables are read by a test")
+    return True
+
+
 def check_handlers():
     """Every generated handler setter is called by a test.
 
@@ -446,6 +481,7 @@ def main():
     handlers_ok = check_handlers()
     constructors_ok = check_no_argument_constructors()
     constants_ok = check_constants()
+    statics_ok = check_static_variables()
 
     if (uncovered or stale
             or not licences_ok
@@ -454,7 +490,8 @@ def main():
             or not subclasses_ok
             or not handlers_ok
             or not constructors_ok
-            or not constants_ok):
+            or not constants_ok
+            or not statics_ok):
         sys.exit(1)
 
     print(f"all {len(declared)} hand-written binding names are called "
