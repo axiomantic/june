@@ -3284,6 +3284,10 @@ proc testNestedSubclassesGuiBasics() =
         customMouseInactivityDetectorListener[].setMouseBecameActiveHandler(proc() = discard)
         customMouseInactivityDetectorListener[].setMouseBecameInactiveHandler(proc() = discard)
         cdelete customMouseInactivityDetectorListener
+        var customMultiDocumentPanel = newCustomMultiDocumentPanel()
+        doAssert not customMultiDocumentPanel.isNil(), "newCustomMultiDocumentPanel built nothing"
+        customMultiDocumentPanel[].setTryToCloseDocumentAsyncHandler(proc(component: ptr Component, callback: CppFunctionObjectN1[bool]) = discard)
+        cdelete customMultiDocumentPanel
         var customPopupMenuCustomCallback = newCustomPopupMenuCustomCallback()
         doAssert not customPopupMenuCustomCallback.isNil(), "newCustomPopupMenuCustomCallback built nothing"
         customPopupMenuCustomCallback[].setMenuItemTriggeredHandler(proc(): bool = false)
@@ -9495,3 +9499,91 @@ proc testResizableWindow() =
     shutdownJuce_GUI()
 
 testResizableWindow()
+
+# MultiDocumentPanel keeps a list of documents and shows them either as tabs or
+# as floating windows. It could not be subclassed until the macro learned to
+# spell std::function, so nothing here was reachable before.
+proc testMultiDocumentPanel() =
+    initialiseJuce_GUI()
+
+    block:
+        let panel = newCustomMultiDocumentPanel()
+        panel[].setBounds(makeRectangle(0.cint, 0.cint, 600.cint, 400.cint))
+
+        doAssert panel[].getNumDocuments() == 0,
+                 "a new panel holds " & $panel[].getNumDocuments() & " documents"
+        doAssert panel[].getActiveDocument().isNil,
+                 "a new panel has an active document"
+
+        panel[].setBackgroundColour(Colours_darkslategrey)
+        doAssert panel[].getBackgroundColour() == Colours_darkslategrey,
+                 "the background is " & $panel[].getBackgroundColour()
+
+        # The layout mode decides whether a TabbedComponent exists at all.
+        panel[].setLayoutMode(MultiDocumentPanelLayoutMode_MaximisedWindowsWithTabs)
+        doAssert panel[].getLayoutMode() ==
+                 MultiDocumentPanelLayoutMode_MaximisedWindowsWithTabs,
+                 "the layout mode did not read back"
+
+        let first = newCustomComponent()
+        first[].setName(makeString("first"))
+        doAssert panel[].addDocument(cast[ptr Component](first),
+                                     Colours_white, false),
+                 "the first document was refused"
+        doAssert panel[].getNumDocuments() == 1,
+                 "after one addDocument there are " & $panel[].getNumDocuments()
+        doAssert panel[].getDocument(0.cint) == cast[ptr Component](first),
+                 "document 0 is a different component"
+        doAssert panel[].getActiveDocument() == cast[ptr Component](first),
+                 "the only document is not the active one"
+
+        let second = newCustomComponent()
+        second[].setName(makeString("second"))
+        doAssert panel[].addDocument(cast[ptr Component](second),
+                                     Colours_white, false),
+                 "the second document was refused"
+        doAssert panel[].getNumDocuments() == 2,
+                 "after two addDocument there are " & $panel[].getNumDocuments()
+        doAssert panel[].getActiveDocument() == cast[ptr Component](second),
+                 "the newest document is not the active one"
+
+        panel[].setActiveDocument(cast[ptr Component](first))
+        doAssert panel[].getActiveDocument() == cast[ptr Component](first),
+                 "setActiveDocument did not take"
+
+        # With tabs on and more than one document, a TabbedComponent exists.
+        doAssert not panel[].getCurrentTabbedComponent().isNil,
+                 "two documents in tab mode produced no TabbedComponent"
+
+        # The maximum is a hard limit: the next addDocument is refused.
+        panel[].setMaximumNumDocuments(2.cint)
+        let third = newCustomComponent()
+        doAssert not panel[].addDocument(cast[ptr Component](third),
+                                         Colours_white, false),
+                 "a third document was accepted past the maximum of two"
+        doAssert panel[].getNumDocuments() == 2,
+                 "the refused document was added anyway; there are " &
+                 $panel[].getNumDocuments()
+        cdelete third
+
+        # useFullscreenWhenOneDocument is its own switch.
+        doAssert not panel[].isFullscreenWhenOneDocument(),
+                 "a new panel goes fullscreen for one document"
+        panel[].useFullscreenWhenOneDocument(true)
+        doAssert panel[].isFullscreenWhenOneDocument(),
+                 "the switch stayed off"
+
+        # closeAllDocumentsAsync with the check turned off empties the panel.
+        # deleteWhenRemoved was false for both, so the components outlive it.
+        panel[].closeAllDocumentsAsync(false, bindClosure(
+            proc(succeeded: bool) = discard))
+        doAssert panel[].getNumDocuments() == 0,
+                 "closing them all left " & $panel[].getNumDocuments()
+
+        cdelete second
+        cdelete first
+        cdelete panel
+
+    shutdownJuce_GUI()
+
+testMultiDocumentPanel()
