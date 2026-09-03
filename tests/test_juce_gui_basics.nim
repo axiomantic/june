@@ -6186,3 +6186,83 @@ proc testHandlerArgumentsArrive() =
     shutdownJuce_GUI()
 
 testHandlerArgumentsArrive()
+
+# The scalars a paint handler is given ========================================
+#
+# TableListBoxModel's paint hooks are called once per row and once per cell as
+# the table paints, and they carry the row, the column, the size and the
+# selection as plain scalars. Nothing checked that any of them arrives as what
+# JUCE passed - a handler that counts its invocations cannot tell 0 from 2.
+
+proc testPaintHandlerScalars() =
+    initialiseJuce_GUI()
+
+    block:
+        let model = newCustomTableListBoxModel()
+        model[].setGetNumRowsHandler(proc(): cint = 3)
+
+        var rows: seq[(int, int, int, bool)] = @[]
+        var cells: seq[(int, int)] = @[]
+        var drew = 0
+
+        model[].setPaintRowBackgroundHandler(
+            proc(context: ptr Graphics, rowNumber, width, height: cint,
+                 rowIsSelected: bool) =
+                rows.add((rowNumber.int, width.int, height.int, rowIsSelected))
+                # Drawing through it proves the Graphics is the table's own.
+                context[].setColour(makeColour(255'u8, 0'u8, 0'u8, 255'u8))
+                context[].fillRect(0.cint, 0.cint, width, height)
+                drew += 1)
+
+        model[].setPaintCellHandler(
+            proc(context: ptr Graphics, rowNumber, columnId, width, height: cint,
+                 rowIsSelected: bool) =
+                cells.add((rowNumber.int, columnId.int)))
+
+        var table = makeTableListBox(makeString("table"),
+                                     cast[ptr TableListBoxModel](model))
+        # visible, or the column is not shown and paintCell is never reached.
+        table.getHeader().addColumn(
+            makeString("only"), 7.cint, 60.cint, 30.cint, -1.cint,
+            TableHeaderComponentColumnPropertyFlags_visible.cint, -1.cint)
+        table.setRowHeight(20.cint)
+        # Tall enough for all three rows: the header takes the top of the
+        # component, so a 60px table only ever paints the two that fit.
+        table.setBounds(makeRectangle(0.cint, 0.cint, 60.cint, 200.cint))
+        table.updateContent()
+
+        var image = makeImage(ImagePixelFormat_ARGB, 60.cint, 200.cint, true)
+        var g = makeGraphics(image)
+        table.paintEntireComponent(g, false)
+
+        doAssert rows.len == 3,
+                 "the row background was painted " & $rows.len & " times, not 3"
+        doAssert rows[0][0] == 0 and rows[1][0] == 1 and rows[2][0] == 2,
+                 "the rows arrived as " & $rows[0][0] & "," & $rows[1][0] &
+                 "," & $rows[2][0] & " rather than 0,1,2"
+        doAssert rows[0][2] == 20,
+                 "the row height arrived as " & $rows[0][2] & ", not 20"
+        doAssert rows[0][1] > 0,
+                 "the row width arrived as " & $rows[0][1]
+        doAssert not rows[0][3], "an unselected row arrived as selected"
+
+        doAssert cells.len == 3,
+                 "the cell was painted " & $cells.len & " times, not 3"
+        doAssert cells[0][1] == 7,
+                 "the column id arrived as " & $cells[0][1] & ", not 7"
+
+        # And what the handler drew through its Graphics is in the image.
+        var reds = 0
+        for x in 0 ..< 60:
+            for y in 0 ..< 200:
+                if image.getPixelAt(x.cint, y.cint).getRed() == 255'u8:
+                    reds += 1
+        doAssert drew == 3, "the handler drew " & $drew & " times"
+        doAssert reds > 0,
+                 "nothing the handler drew reached the table's image"
+
+        cdelete model
+
+    shutdownJuce_GUI()
+
+testPaintHandlerScalars()
