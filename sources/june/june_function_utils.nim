@@ -17,6 +17,10 @@ type
     # The const-reference form. JUCE asks for this where the argument holds a
     # reference member and so cannot be passed by value at all.
     CppFunctionObjectR1Ref*[R, T] {.importcpp: "std::function<'0(const '1&)>", header: "<functional>".} = object
+    # The same, returning nothing. FileChooser::launchAsync asks for one over a
+    # FileChooser, which cannot be copied, so the by-value form is not merely
+    # the wrong type - it is a type C++ cannot form at all.
+    CppFunctionObjectN1Ref*[T] {.importcpp: "std::function<void(const '0&)>", header: "<functional>".} = object
     CppFunctionObjectN2*[T1, T2] {.importcpp: "std::function<void('0, '1)>", header: "<functional>".} = object
     CppFunctionObjectR2*[R, T1, T2] {.importcpp: "std::function<'0('1, '2)>", header: "<functional>".} = object
     CppFunctionObjectN3*[T1, T2, T3] {.importcpp: "std::function<void('0, '1, '2)>", header: "<functional>".} = object
@@ -41,6 +45,7 @@ type
     CppFunctionClosureN1[T] = proc (a: T, env: pointer) {.nimcall.}
     CppFunctionClosureR1[R, T] = proc (a: T, env: pointer): R {.nimcall.}
     CppFunctionClosureR1Ref[R, T] = proc (a: ptr T, env: pointer): R {.nimcall.}
+    CppFunctionClosureN1Ref[T] = proc (a: ptr T, env: pointer) {.nimcall.}
     CppFunctionClosureN2[T1, T2] = proc (a1: T1, a2: T2, env: pointer) {.nimcall.}
     CppFunctionClosureR2[R, T1, T2] = proc (a1: T1, a2: T2, env: pointer): R {.nimcall.}
     CppFunctionClosureN3[T1, T2, T3] = proc (a1: T1, a2: T2, a3: T3, env: pointer) {.nimcall.}
@@ -80,6 +85,9 @@ proc bindInternal[R](p: CppFunctionClosureR0[R], env: pointer): CppFunctionObjec
 proc bindInternal[T](p: CppFunctionClosureN1[T], env: pointer): CppFunctionObjectN1[T] {.header: "<june.h>", importcpp: "june::bind(@)".}
 proc bindInternal[R, T](p: CppFunctionClosureR1[R, T], env: pointer): CppFunctionObjectR1[R, T] {.header: "<june.h>", importcpp: "june::bind(@)".}
 proc bindInternalConstRef[R, T](p: CppFunctionClosureR1Ref[R, T], env: pointer): CppFunctionObjectR1Ref[R, T] {.header: "<june.h>", importcpp: "june::bindConstRef(@)".}
+# The same june::bindConstRef: its R deduces to void from a void function
+# pointer, and `return f(...)` in a void-returning lambda is legal C++.
+proc bindInternalConstRef[T](p: CppFunctionClosureN1Ref[T], env: pointer): CppFunctionObjectN1Ref[T] {.header: "<june.h>", importcpp: "june::bindConstRef(@)".}
 proc bindInternal[T1, T2](p: CppFunctionClosureN2[T1, T2], env: pointer): CppFunctionObjectN2[T1, T2] {.header: "<june.h>", importcpp: "june::bind(@)".}
 proc bindInternal[R, T1, T2](p: CppFunctionClosureR2[R, T1, T2], env: pointer): CppFunctionObjectR2[R, T1, T2] {.header: "<june.h>", importcpp: "june::bind(@)".}
 proc bindInternal[T1, T2, T3](p: CppFunctionClosureN3[T1, T2, T3], env: pointer): CppFunctionObjectN3[T1, T2, T3] {.header: "<june.h>", importcpp: "june::bind(@)".}
@@ -168,6 +176,10 @@ template bindConstRefClosure*[R, T](f: proc(a: ptr T): R {.closure.}): CppFuncti
     block:
         let boundClosure: proc(a: ptr T): R {.closure.} = f
         bindInternalConstRef(cast[CppFunctionClosureR1Ref[R, T]](rawProc boundClosure), retainEnv(rawEnv boundClosure))
+template bindConstRefClosure*[T](f: proc(a: ptr T) {.closure.}): CppFunctionObjectN1Ref[T] =
+    block:
+        let boundClosure: proc(a: ptr T) {.closure.} = f
+        bindInternalConstRef(cast[CppFunctionClosureN1Ref[T]](rawProc boundClosure), retainEnv(rawEnv boundClosure))
 template bindClosure*[T1, T2](f: proc(a1: T1, a2: T2) {.closure.}): CppFunctionObjectN2[T1, T2] =
     block:
         let boundClosure: proc(a1: T1, a2: T2) {.closure.} = f
@@ -241,6 +253,12 @@ proc `()`*(f: var CppFunctionObjectN0) {.importcpp: "std::invoke(@)", header: "<
 proc `()`*[R](f: var CppFunctionObjectR0[R]): R {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc `()`*[T](f: var CppFunctionObjectN1[T], a: T) {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc `()`*[R, T](f: var CppFunctionObjectR1[R, T], a: T): R {.importcpp: "std::invoke(@)", header: "<functional>".}
+# The const-reference forms take the argument by pointer on the Nim side, the
+# way their handlers receive it, and C++ dereferences it into the reference the
+# std::function declares. Without these a caller could hold one of these
+# objects and had no way to call it.
+proc `()`*[R, T](f: var CppFunctionObjectR1Ref[R, T], a: ptr T): R {.importcpp: "std::invoke(#, *#)", header: "<functional>".}
+proc `()`*[T](f: var CppFunctionObjectN1Ref[T], a: ptr T) {.importcpp: "std::invoke(#, *#)", header: "<functional>".}
 proc `()`*[T1, T2](f: var CppFunctionObjectN2[T1, T2], a1: T1, a2: T2) {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc `()`*[R, T1, T2](f: var CppFunctionObjectR2[R, T1, T2], a1: T1, a2: T2): R {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc `()`*[T1, T2, T3](f: var CppFunctionObjectN3[T1, T2, T3], a1: T1, a2: T2, a3: T3) {.importcpp: "std::invoke(@)", header: "<functional>".}

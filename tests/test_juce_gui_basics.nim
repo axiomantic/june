@@ -5801,3 +5801,70 @@ proc testContainersOfPointers() =
     shutdownJuce_GUI()
 
 testContainersOfPointers()
+
+# Slider's text conversion hooks ==============================================
+#
+# valueFromTextFunction is a std::function<double(const String&)> field. Its
+# spelling carries an ampersand inside the template argument, which the field
+# pass read as "this field is a reference" and so emitted no setter: the hook
+# could be read and never installed, which is the only thing it is for.
+
+proc testSliderTextConversion() =
+    initialiseJuce_GUI()
+
+    block:
+        var slider = makeSlider(makeString("slider"))
+        slider.setRange(0.0, 100.0, 1.0)
+
+        # Read a percentage: "40%" means 40.
+        slider.valueFromTextFunction = bindConstRefClosure(
+            proc(text: ptr String): cdouble =
+                text[].upToFirstOccurrenceOf(makeString("%"), false, false)
+                      .getDoubleValue())
+
+        doAssert slider.getValueFromText(makeString("40%")) == 40.0,
+                 "40% read as " & $slider.getValueFromText(makeString("40%"))
+        doAssert slider.getValueFromText(makeString("7%")) == 7.0,
+                 "7% read as " & $slider.getValueFromText(makeString("7%"))
+
+        # And the hook is what the slider uses when text is entered.
+        slider.setValue(slider.getValueFromText(makeString("55%")),
+                        NotificationType_dontSendNotification)
+        doAssert slider.getValue() == 55.0,
+                 "the slider holds " & $slider.getValue()
+
+    shutdownJuce_GUI()
+
+testSliderTextConversion()
+
+# FileChooser::launchAsync ====================================================
+#
+# Its callback is a std::function<void(const FileChooser&)>. Only the
+# value-returning const-reference form had a Nim type, so this bound as
+# std::function<void(FileChooser)> - and FileChooser cannot be copied, so that
+# is not merely the wrong type but one C++ cannot form.
+
+proc testFileChooserLaunchAsync() =
+    initialiseJuce_GUI()
+
+    block:
+        var chooser = makeFileChooser(makeString("pick a file"), june.File(),
+                                      makeString("*"), true, false, nil)
+        var chosen = 0
+
+        # Launching opens a chooser on the machine running the tests, so the
+        # call is compiled and never reached. `launched` is read from the
+        # chooser rather than written as a literal, so the compiler cannot fold
+        # the branch away and skip generating the call.
+        let launched = chooser.getResults().size() > 0
+        doAssert not launched, "a chooser nobody launched has results"
+        if launched:
+            chooser.launchAsync(
+                FileBrowserComponentFileChooserFlags_openMode.cint,
+                bindConstRefClosure(proc(source: ptr FileChooser) = chosen += 1))
+
+        doAssert chosen == 0, "the callback ran without a launch"
+
+    shutdownJuce_GUI()
+
+testFileChooserLaunchAsync()
