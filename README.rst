@@ -277,7 +277,21 @@ Hand-written additions live in the ``*_lifting.nim`` files and in
 ``june_juce_types.nim``.
 
 - Classes, with their inheritance, so a ``TextButton`` accepts every
-  ``Component`` method. Nested classes too, with their own methods and
+  ``Component`` method. Only PUBLIC bases: a private one is not a subtype
+  outside the class, and binding it as the parent offered every method it
+  declares while C++ refused each call. What a class re-exports from a private
+  base with a ``using`` declaration is bound on the class itself, which is how
+  ``TimedCallback`` gets its five ``Timer`` methods.
+
+  Nim carries ONE parent and C++ carries as many as it likes. The parent is the
+  public base reaching the most, so ``TextEditor`` is a ``Component`` rather
+  than the ``TextInputTarget`` it happens to list first. What the other public
+  bases bring is written onto the class directly -- ``setTooltip`` on eight
+  widgets, ``LookAndFeel``'s drawing hooks -- so the choice of parent does not
+  decide what is reachable. A name arriving down two different base branches is
+  left out, because calling it unqualified is ambiguous in C++ as well.
+
+  Nested classes too, with their own methods and
   constructors, under the name of the class that encloses them:
   ``LookAndFeel_V4::ColourScheme`` is ``LookAndFeel_V4ColourScheme`` and
   ``Image::BitmapData`` is ``ImageBitmapData``. At any depth:
