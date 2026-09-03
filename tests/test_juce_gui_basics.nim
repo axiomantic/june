@@ -4822,4 +4822,76 @@ proc testComboBoxListener() =
 
 
 testEveryStaticVariableGuiBasics()
+# The remaining gui scoped helpers ============================================
+#
+# RAII types and the MessageBoxOptions builders, none of which shows a window.
+
+proc testRemainingGuiScopedHelpers() =
+    initialiseJuce_GUI()
+
+    block:
+        var owner = newCustomComponent()
+        owner[].setBounds(makeRectangle(0.cint, 0.cint, 100.cint, 100.cint))
+
+        var corner = makeResizableCornerComponent(cast[ptr Component](owner), nil)
+        corner.setBounds(makeRectangle(84.cint, 84.cint, 16.cint, 16.cint))
+        doAssert corner.getWidth() == 16,
+                 "the corner is " & $corner.getWidth() & " wide"
+
+        var notifier = makeNativeScaleFactorNotifier(
+            cast[ptr Component](owner), bindClosure(proc(scale: cfloat) = discard))
+        discard notifier
+
+        cdelete owner
+
+    block:
+        var slider = makeSlider(makeString("gain"))
+        # A drag notification tells listeners a drag started and ended.
+        block:
+            let dragging = makeSliderScopedDragNotification(slider)
+            discard dragging
+
+    block:
+        var item = newCustomTreeViewItem()
+        item[].setMightContainSubItemsHandler(proc(): bool = true)
+        item[].setOpen(true)
+        block:
+            # The restorer puts the openness back when the scope ends.
+            let restorer = makeTreeViewItemOpennessRestorer(
+                cast[ptr TreeViewItem](item)[])
+            discard restorer
+        cdelete item
+
+    block:
+        # The MessageBoxOptions builders, which describe a box without showing
+        # one. Each names its buttons, so the count is the answer.
+        let icon = MessageBoxIconType_InfoIcon
+        let ok = MessageBoxOptions.makeOptionsOk(
+            icon, makeString("Title"), makeString("Body"), makeString("OK"))
+        doAssert ok.getNumButtons() == 1,
+                 "the ok box has " & $ok.getNumButtons() & " buttons"
+
+        let okCancel = MessageBoxOptions.makeOptionsOkCancel(
+            icon, makeString("Title"), makeString("Body"),
+            makeString("OK"), makeString("Cancel"))
+        doAssert okCancel.getNumButtons() == 2,
+                 "the ok/cancel box has " & $okCancel.getNumButtons() & " buttons"
+
+        let yesNo = MessageBoxOptions.makeOptionsYesNo(
+            icon, makeString("Title"), makeString("Body"),
+            makeString("Yes"), makeString("No"))
+        doAssert yesNo.getNumButtons() == 2,
+                 "the yes/no box has " & $yesNo.getNumButtons() & " buttons"
+
+        let yesNoCancel = MessageBoxOptions.makeOptionsYesNoCancel(
+            icon, makeString("Title"), makeString("Body"),
+            makeString("Yes"), makeString("No"), makeString("Cancel"))
+        doAssert yesNoCancel.getNumButtons() == 3,
+                 "the yes/no/cancel box has " &
+                 $yesNoCancel.getNumButtons() & " buttons"
+
+    shutdownJuce_GUI()
+
+
 testComboBoxListener()
+testRemainingGuiScopedHelpers()

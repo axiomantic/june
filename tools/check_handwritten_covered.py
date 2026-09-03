@@ -209,6 +209,63 @@ def check_no_argument_constructors():
 bound_constant = re.compile(r'^let (\w+)\* \{[^}]*importcpp:', re.M)
 
 
+constructible_class = re.compile(r'^proc make(\w+)\*\(', re.M)
+
+# A class a test cannot reach. The reason has to be why, not that nobody has.
+unreachable_classes = {
+    "NetworkServiceDiscoveryAvailableServiceList":
+        "opens a UDP socket to listen for service announcements",
+    "NetworkServiceDiscoveryAdvertiser":
+        "opens a UDP socket to broadcast announcements",
+    "AndroidDocumentInputSource": "exists on Android only",
+    "ScopedAutoReleasePool":
+        "is an Objective-C autorelease pool and exists on macOS only, while "
+        "the committed generated files are the macOS output",
+}
+
+
+def check_classes():
+    """Every class with a constructor is named by a test.
+
+    Weaker than the other checks here - a name in a test file is not proof the
+    class was driven - but it is what stops a new class from arriving with no
+    test at all, which is how every defect this branch fixed stayed hidden.
+    """
+    emitted = set()
+    for module in ("juce_core", "juce_events", "juce_data_structures",
+                   "juce_graphics", "juce_gui_basics"):
+        emitted.update(constructible_class.findall(
+            open(f"sources/june/{module}.nim").read()))
+
+    used = ""
+    for pattern in ("tests/test_juce_*.nim", "examples/*.nim"):
+        for path in glob.glob(pattern):
+            used += open(path).read()
+
+    # Substring, not a word boundary: a class is often reached through
+    # make<Name>, and <Name> has no boundary before it there.
+    untested = sorted(name for name in emitted
+                      if name not in unreachable_classes and name not in used)
+    stale = sorted(name for name in unreachable_classes if name not in emitted)
+
+    if untested:
+        print("These classes have a constructor and are named by no test:",
+              file=sys.stderr)
+        for name in untested:
+            print(f"  {name}", file=sys.stderr)
+    if stale:
+        print("These are listed as unreachable but have no constructor:",
+              file=sys.stderr)
+        for name in stale:
+            print(f"  {name}", file=sys.stderr)
+
+    if not (untested or stale):
+        print(f"all {len(emitted) - len(unreachable_classes)} constructible "
+              f"classes are named by a test "
+              f"({len(unreachable_classes)} listed as unreachable)")
+    return not (untested or stale)
+
+
 def check_constants():
     """Every bound constant is read by a test.
 
@@ -426,10 +483,11 @@ def main():
     constructors_ok = check_no_argument_constructors()
     constants_ok = check_constants()
     statics_ok = check_static_variables()
+    classes_ok = check_classes()
 
     if (uncovered or stale or not iterators_ok or not defaults_ok
             or not subclasses_ok or not handlers_ok or not constructors_ok
-            or not constants_ok or not statics_ok):
+            or not constants_ok or not statics_ok or not classes_ok):
         sys.exit(1)
 
     print(f"all {len(declared)} hand-written binding names are called "

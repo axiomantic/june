@@ -1352,3 +1352,26 @@ proc testEveryStaticVariableGraphics() =
         discard FontFeatureSetting.`featureDisabled`()
 
 testEveryStaticVariableGraphics()
+
+# Graphics::ScopedSaveState ===================================================
+#
+# Saves the graphics state on construction and restores it when the scope ends,
+# so a clip applied inside it does not survive.
+
+proc testScopedSaveState() =
+    block:
+        let surface = makeImage(ImagePixelFormat_ARGB, 20.cint, 20.cint, true)
+        var context = makeGraphics(surface)
+        context.setColour(makeColour(255'u8, 0'u8, 0'u8, 255'u8))
+
+        block:
+            let saved = makeGraphicsScopedSaveState(context)
+            discard context.reduceClipRegion(makeRectangle(0.cint, 0.cint, 5.cint, 5.cint))
+            context.fillAll()
+
+        # The clip went with the scope, so this fill reaches the whole surface.
+        context.fillAll()
+        doAssert surface.getPixelAt(15.cint, 15.cint).getRed() == 255'u8,
+                 "the clip outlived the scope that set it"
+
+testScopedSaveState()
