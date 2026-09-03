@@ -8193,3 +8193,221 @@ proc testComponentCoordinates() =
     shutdownJuce_GUI()
 
 testComponentCoordinates()
+
+# Component carries a dozen independent flags and an explicit colour map.
+# Every one is a separate binding into a separate bit, and a pair that read
+# back a neighbour's bit would compile perfectly.
+proc testComponentFlags() =
+    initialiseJuce_GUI()
+
+    block:
+        let component = newCustomComponent()
+        component[].setBounds(makeRectangle(0.cint, 0.cint, 100.cint, 100.cint))
+
+        # Enablement is inherited: a child of a disabled parent is disabled too,
+        # without its own flag changing.
+        doAssert component[].isEnabled(), "a new component is disabled"
+        component[].setEnabled(false)
+        doAssert not component[].isEnabled(), "setEnabled did not take"
+        component[].setEnabled(true)
+
+        let child = newCustomComponent()
+        component[].addAndMakeVisible(cast[ptr Component](child))
+        doAssert child[].isEnabled(), "a new child is disabled"
+        component[].setEnabled(false)
+        doAssert not child[].isEnabled(),
+                 "a child of a disabled parent reports enabled"
+        component[].setEnabled(true)
+        doAssert child[].isEnabled(), "the child did not come back"
+
+        # isVisible reports the component's OWN flag; hiding the parent leaves
+        # the child's flag alone.
+        doAssert child[].isVisible(), "the child is hidden"
+        component[].setVisible(true)
+        component[].setVisible(false)
+        doAssert child[].isVisible(),
+                 "hiding the parent cleared the child's own flag"
+
+        # isShowing walks the whole chain and, at the top of it, requires a
+        # desktop peer (juce_Component.cpp:610). So off the desktop it is
+        # false however visible every component in the chain is - the same
+        # rule that makes contains() and reallyContains() false there.
+        doAssert not child[].isShowing(),
+                 "the child is showing under a hidden parent"
+        component[].setVisible(true)
+        doAssert not child[].isShowing(),
+                 "an off-desktop component reports that it is showing"
+
+        cdelete child
+        cdelete component
+
+    block:
+        # The plain switches. Each is asserted from its documented default and
+        # then in both directions.
+        let component = newCustomComponent()
+
+        doAssert not component[].isOpaque(), "a new component is opaque"
+        component[].setOpaque(true)
+        doAssert component[].isOpaque(), "setOpaque did not take"
+        component[].setOpaque(false)
+        doAssert not component[].isOpaque(), "setOpaque did not turn back off"
+
+        doAssert not component[].isAlwaysOnTop(), "a new component is always on top"
+        component[].setAlwaysOnTop(true)
+        doAssert component[].isAlwaysOnTop(), "setAlwaysOnTop did not take"
+
+        doAssert not component[].getWantsKeyboardFocus(),
+                 "a new component wants keyboard focus"
+        component[].setWantsKeyboardFocus(true)
+        doAssert component[].getWantsKeyboardFocus(),
+                 "setWantsKeyboardFocus did not take"
+
+        doAssert component[].getMouseClickGrabsKeyboardFocus(),
+                 "a click does not grab focus by default"
+        component[].setMouseClickGrabsKeyboardFocus(false)
+        doAssert not component[].getMouseClickGrabsKeyboardFocus(),
+                 "the switch stayed on"
+
+        doAssert component[].getExplicitFocusOrder() == 0,
+                 "a new component has focus order " &
+                 $component[].getExplicitFocusOrder()
+        component[].setExplicitFocusOrder(3.cint)
+        doAssert component[].getExplicitFocusOrder() == 3,
+                 "the focus order is " & $component[].getExplicitFocusOrder()
+
+        doAssert not component[].getViewportIgnoreDragFlag(),
+                 "a new component ignores viewport drags"
+        component[].setViewportIgnoreDragFlag(true)
+        doAssert component[].getViewportIgnoreDragFlag(),
+                 "the viewport drag flag did not take"
+
+        doAssert not component[].isPaintingUnclipped(),
+                 "a new component paints unclipped"
+        component[].setPaintingIsUnclipped(true)
+        doAssert component[].isPaintingUnclipped(),
+                 "setPaintingIsUnclipped did not take"
+
+        doAssert component[].isAccessible(), "a new component is not accessible"
+        component[].setAccessible(false)
+        doAssert not component[].isAccessible(), "setAccessible did not take"
+
+        # setInterceptsMouseClicks reports through two out parameters, and the
+        # two switches are independent.
+        # Every component flag starts at zero (juce_Component.cpp:486), and the
+        # two halves of this pair read opposite senses of their bits: a new
+        # component takes clicks itself, because that is the NOT of
+        # ignoresMouseClicks, and does not pass them to its children, because
+        # that is allowChildMouseClicks read straight
+        # (juce_Component.cpp:1346).
+        var onSelf, onChildren: bool
+        component[].getInterceptsMouseClicks(onSelf, onChildren)
+        doAssert onSelf, "a new component does not take clicks itself"
+        doAssert not onChildren, "a new component passes clicks to its children"
+
+        component[].setInterceptsMouseClicks(false, true)
+        component[].getInterceptsMouseClicks(onSelf, onChildren)
+        doAssert not onSelf, "the component still takes clicks itself"
+        doAssert onChildren, "the children's clicks did not turn on"
+
+        # Nothing is under the mouse or focused in a headless test.
+        doAssert not component[].isMouseOver(), "the mouse is over the component"
+        doAssert not component[].isMouseButtonDown(),
+                 "a mouse button is held on the component"
+        doAssert not component[].hasKeyboardFocus(false),
+                 "the component holds the keyboard focus"
+        doAssert not component[].isCurrentlyModal(), "the component is modal"
+        doAssert not component[].isOnDesktop(), "the component is on the desktop"
+
+        cdelete component
+
+    block:
+        # The explicit colour map. A colour that was never set is not
+        # specified, and findColour falls back to the LookAndFeel.
+        let component = newCustomComponent()
+        let colourId = LabelColourIds_textColourId.cint
+
+        doAssert not component[].isColourSpecified(colourId),
+                 "a new component specifies a colour"
+
+        component[].setColour(colourId, Colours_magenta)
+        doAssert component[].isColourSpecified(colourId),
+                 "setColour did not record the colour"
+        doAssert component[].findColour(colourId) == Colours_magenta,
+                 "the colour reads back as " & $component[].findColour(colourId)
+
+        # A child does not see its parent's colour unless it is asked to
+        # inherit, which is what the second argument is for.
+        let child = newCustomComponent()
+        component[].addAndMakeVisible(cast[ptr Component](child))
+        doAssert not child[].isColourSpecified(colourId),
+                 "the child inherited the colour into its own map"
+        doAssert child[].findColour(colourId, true) == Colours_magenta,
+                 "the child did not inherit the colour when asked to"
+        doAssert not (child[].findColour(colourId, false) == Colours_magenta),
+                 "the child inherited the colour without being asked"
+
+        # copyAllExplicitColoursTo writes them into the target's own map.
+        let target = newCustomComponent()
+        component[].copyAllExplicitColoursTo(target[])
+        doAssert target[].isColourSpecified(colourId),
+                 "the colours were not copied"
+        doAssert target[].findColour(colourId) == Colours_magenta,
+                 "the copied colour is " & $target[].findColour(colourId)
+
+        component[].removeColour(colourId)
+        doAssert not component[].isColourSpecified(colourId),
+                 "removeColour left the colour behind"
+
+        cdelete target
+        cdelete child
+        cdelete component
+
+    block:
+        # The property set is arbitrary storage that rides along with the
+        # component, and it is the same set through both accessors.
+        let component = newCustomComponent()
+        doAssert component[].getProperties().size() == 0,
+                 "a new component carries " & $component[].getProperties().size() &
+                 " properties"
+
+        discard component[].getProperties().set(makeIdentifier("mode"),
+                                                makejuce_var(makeString("edit")))
+        doAssert component[].getProperties().size() == 1,
+                 "the property was not stored"
+        doAssert component[].getProperties().contains(makeIdentifier("mode")),
+                 "the stored property is not in the set"
+        doAssert $component[].getProperties()[makeIdentifier("mode")].toString() ==
+                 "edit",
+                 "the property reads as " &
+                 $component[].getProperties()[makeIdentifier("mode")].toString()
+
+        # The const and var accessors reach the SAME set, not a copy: a write
+        # through one is visible through the other.
+        doAssert component[].getProperties().indexOf(makeIdentifier("mode")) == 0,
+                 "the property is at index " &
+                 $component[].getProperties().indexOf(makeIdentifier("mode"))
+        doAssert component[].getProperties().remove(makeIdentifier("mode")),
+                 "the property could not be removed"
+        doAssert component[].getProperties().size() == 0,
+                 "removing left " & $component[].getProperties().size()
+
+        cdelete component
+
+    block:
+        # The accessibility text fields are three separate strings.
+        let component = newCustomComponent()
+        component[].setTitle(makeString("Volume"))
+        component[].setDescription(makeString("The output level"))
+        component[].setHelpText(makeString("Drag to change"))
+        doAssert $component[].getTitle() == "Volume",
+                 "the title is " & $component[].getTitle()
+        doAssert $component[].getDescription() == "The output level",
+                 "the description is " & $component[].getDescription()
+        doAssert $component[].getHelpText() == "Drag to change",
+                 "the help text is " & $component[].getHelpText()
+
+        cdelete component
+
+    shutdownJuce_GUI()
+
+testComponentFlags()
