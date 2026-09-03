@@ -1175,8 +1175,18 @@ def run_main(juce_module_name, juce_class_name_to_export):
         arguments = list(function.get_arguments())
         if not arguments:
             continue
-        first = arguments[0].type.spelling.replace("const", "").replace("&", "").strip()
-        classes_with_free_equality.add(remap_class_name(first.split("::")[-1]))
+        # From the declaration rather than the written type. Stripping const and
+        # & off the spelling leaves the template arguments attached, so a free
+        # == on a class template was recorded under "RangedValuesIterator<T>"
+        # and matched nothing. No bound class is affected today; the spelling
+        # is simply not where a type's name lives.
+        first = arguments[0].type
+        if first.kind in (TypeKind.LVALUEREFERENCE, TypeKind.RVALUEREFERENCE):
+            first = first.get_pointee()
+        declaration = first.get_declaration()
+        if declaration is not None and declaration.spelling:
+            classes_with_free_equality.add(
+                remap_class_name(declaration.spelling))
 
     # Extract all juce classes
     all_classes = []
