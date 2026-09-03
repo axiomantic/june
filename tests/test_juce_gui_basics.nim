@@ -9259,3 +9259,111 @@ proc testSliderValueAndStyle() =
     shutdownJuce_GUI()
 
 testSliderValueAndStyle()
+
+# PopupMenu::Options is a value builder. Nothing here opens a menu: every one
+# of these is building the description of where a menu would go.
+proc testPopupMenuOptionsBuilding() =
+    initialiseJuce_GUI()
+
+    block:
+        let base = makePopupMenuOptions()
+        doAssert base.getParentComponent().isNil,
+                 "a new options object names a parent"
+        doAssert base.getTargetComponent().isNil,
+                 "a new options object names a target"
+        doAssert base.getTopLevelTargetComponent().isNil,
+                 "a new options object names a top level target"
+        doAssert base.getMinimumWidth() == 0,
+                 "the default minimum width is " & $base.getMinimumWidth()
+        doAssert base.getStandardItemHeight() == 0,
+                 "the default item height is " & $base.getStandardItemHeight()
+        doAssert base.getItemThatMustBeVisible() == 0,
+                 "the default visible item is " & $base.getItemThatMustBeVisible()
+        doAssert base.getInitiallySelectedItemId() == 0,
+                 "the default selected item is " &
+                 $base.getInitiallySelectedItemId()
+        doAssert base.getMinimumNumColumns() == 1,
+                 "the default minimum column count is " &
+                 $base.getMinimumNumColumns()
+        doAssert base.getMaximumNumColumns() == 0,
+                 "the default maximum column count is " &
+                 $base.getMaximumNumColumns()
+
+        # Each with- method changes one field and returns a new object.
+        let sized = base.withMinimumWidth(220.cint)
+                        .withStandardItemHeight(26.cint)
+                        .withMinimumNumColumns(2.cint)
+                        .withMaximumNumColumns(4.cint)
+        doAssert sized.getMinimumWidth() == 220,
+                 "the minimum width is " & $sized.getMinimumWidth()
+        doAssert sized.getStandardItemHeight() == 26,
+                 "the item height is " & $sized.getStandardItemHeight()
+        doAssert sized.getMinimumNumColumns() == 2,
+                 "the minimum column count is " & $sized.getMinimumNumColumns()
+        doAssert sized.getMaximumNumColumns() == 4,
+                 "the maximum column count is " & $sized.getMaximumNumColumns()
+        doAssert base.getMinimumWidth() == 0,
+                 "the chain changed the original to " & $base.getMinimumWidth()
+
+        let chosen = base.withItemThatMustBeVisible(7.cint)
+                         .withInitiallySelectedItem(3.cint)
+        doAssert chosen.getItemThatMustBeVisible() == 7,
+                 "the visible item is " & $chosen.getItemThatMustBeVisible()
+        doAssert chosen.getInitiallySelectedItemId() == 3,
+                 "the selected item is " & $chosen.getInitiallySelectedItemId()
+
+        doAssert base.withPreferredPopupDirection(
+                     PopupMenuOptionsPopupDirection_upwards)
+                     .getPreferredPopupDirection() ==
+                 PopupMenuOptionsPopupDirection_upwards,
+                 "the popup direction did not read back"
+
+    block:
+        # A target component sets the screen area the menu points at, so the
+        # two are not independent.
+        let component = newCustomComponent()
+        component[].setBounds(makeRectangle(10.cint, 20.cint, 100.cint, 40.cint))
+
+        let targeted = makePopupMenuOptions().withTargetComponent(
+                           cast[ptr Component](component))
+        doAssert targeted.getTargetComponent() == cast[ptr Component](component),
+                 "the target is a different component"
+        doAssert targeted.getTargetScreenArea().getWidth() == 100,
+                 "the target area is " &
+                 $targeted.getTargetScreenArea().getWidth() & " wide"
+
+        # An explicit area overrides it.
+        let framed = targeted.withTargetScreenArea(
+                         makeRectangle(0.cint, 0.cint, 5.cint, 5.cint))
+        doAssert framed.getTargetScreenArea().getWidth() == 5,
+                 "the explicit area reads " &
+                 $framed.getTargetScreenArea().getWidth() & " wide"
+
+        let parented = makePopupMenuOptions().withParentComponent(
+                           cast[ptr Component](component))
+        doAssert parented.getParentComponent() == cast[ptr Component](component),
+                 "the parent is a different component"
+
+        # The deletion check watches a component, and it has not been deleted.
+        let watched = makePopupMenuOptions().withDeletionCheck(component[])
+        doAssert not watched.hasWatchedComponentBeenDeleted(),
+                 "the watched component is reported deleted while it is alive"
+
+        # forSubmenu derives the options a nested menu would use, keeping the
+        # sizing and dropping the target.
+        let submenu = targeted.withStandardItemHeight(30.cint).forSubmenu()
+        doAssert submenu.getStandardItemHeight() == 30,
+                 "the submenu's item height is " &
+                 $submenu.getStandardItemHeight()
+
+        # withMousePosition targets wherever the pointer is, which is a valid
+        # area even with no window open.
+        doAssert makePopupMenuOptions().withMousePosition()
+                                       .getTargetComponent().isNil,
+                 "targeting the mouse named a component"
+
+        cdelete component
+
+    shutdownJuce_GUI()
+
+testPopupMenuOptionsBuilding()
