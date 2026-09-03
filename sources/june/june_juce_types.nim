@@ -350,6 +350,13 @@ type
     NormalisableRange*[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::NormalisableRange".} = object
 
 proc makeNormalisableRange*[T](rangeStart: T, rangeEnd: T): NormalisableRange[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::NormalisableRange<'*0>(@)".}
+proc makeNormalisableRange*[T](rangeStart: T, rangeEnd: T, intervalValue: T,
+                               skewFactor: T, useSymmetricSkew: bool = false):
+    NormalisableRange[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::NormalisableRange<'*0>(@)".}
+proc getStart*[T](this: NormalisableRange[T]): T {.importcpp: "#.start".}
+proc getEnd*[T](this: NormalisableRange[T]): T {.importcpp: "#.end".}
+proc getInterval*[T](this: NormalisableRange[T]): T {.importcpp: "#.interval".}
+proc getSkew*[T](this: NormalisableRange[T]): T {.importcpp: "#.skew".}
 proc convertTo0to1*[T](this: NormalisableRange[T], v: T): T {.importcpp: "#.convertTo0to1(@)".}
 proc convertFrom0to1*[T](this: NormalisableRange[T], v: T): T {.importcpp: "#.convertFrom0to1(@)".}
 proc snapToLegalValue*[T](this: NormalisableRange[T], v: T): T {.importcpp: "#.snapToLegalValue(@)".}

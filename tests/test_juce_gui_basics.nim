@@ -9099,3 +9099,163 @@ proc testTableHeaderOrdering() =
     shutdownJuce_GUI()
 
 testTableHeaderOrdering()
+
+# A Slider's value is also a Value object, which is how JUCE binds one to a
+# ValueTree. The style predicates and the text conversion hooks are the rest.
+proc testSliderValueAndStyle() =
+    initialiseJuce_GUI()
+
+    block:
+        let slider = newCustomSlider()
+        slider[].setRange(0.0, 100.0, 0.0)
+        slider[].setValue(42.0, NotificationType_dontSendNotification)
+
+        # The Value object is a view of the same number, not a copy of it.
+        doAssert slider[].getValueObject().getValue().toFloat64() == 42.0,
+                 "the value object reads " &
+                 $slider[].getValueObject().getValue().toFloat64()
+        slider[].setValue(17.0, NotificationType_dontSendNotification)
+        doAssert slider[].getValueObject().getValue().toFloat64() == 17.0,
+                 "the value object did not follow the slider; it reads " &
+                 $slider[].getValueObject().getValue().toFloat64()
+
+        # And writing through the Value moves the slider.
+        slider[].getValueObject().setValue(makejuce_var(63.0))
+        doAssert slider[].getValue() == 63.0,
+                 "writing through the value object gave " & $slider[].getValue()
+
+        cdelete slider
+
+    block:
+        # The style predicates each answer for their own family, and only one
+        # of them at a time.
+        let slider = newCustomSlider()
+
+        slider[].setSliderStyle(SliderSliderStyle_LinearBar)
+        doAssert slider[].isBar(), "a LinearBar slider is not a bar"
+        doAssert not slider[].isRotary(), "a LinearBar slider is rotary"
+        doAssert not slider[].isTwoValue(), "a LinearBar slider has two values"
+
+        slider[].setSliderStyle(SliderSliderStyle_Rotary)
+        doAssert slider[].isRotary(), "a Rotary slider is not rotary"
+        doAssert not slider[].isBar(), "a Rotary slider is a bar"
+
+        slider[].setSliderStyle(SliderSliderStyle_TwoValueVertical)
+        doAssert slider[].isTwoValue(), "a TwoValue slider has one value"
+        doAssert not slider[].isThreeValue(), "a TwoValue slider has three"
+
+        slider[].setSliderStyle(SliderSliderStyle_ThreeValueVertical)
+        doAssert slider[].isThreeValue(), "a ThreeValue slider has two values"
+        doAssert not slider[].isTwoValue(), "a ThreeValue slider has two values"
+
+        cdelete slider
+
+    block:
+        # A two-value slider carries its pair as Value objects too.
+        let slider = newCustomSlider()
+        slider[].setSliderStyle(SliderSliderStyle_TwoValueHorizontal)
+        slider[].setRange(0.0, 100.0, 0.0)
+        slider[].setMinAndMaxValues(20.0, 80.0,
+                                    NotificationType_dontSendNotification)
+
+        doAssert slider[].getMinValueObject().getValue().toFloat64() == 20.0,
+                 "the low value object reads " &
+                 $slider[].getMinValueObject().getValue().toFloat64()
+        doAssert slider[].getMaxValueObject().getValue().toFloat64() == 80.0,
+                 "the high value object reads " &
+                 $slider[].getMaxValueObject().getValue().toFloat64()
+
+        slider[].setMaxValue(90.0, NotificationType_dontSendNotification, false)
+        doAssert slider[].getMaxValue() == 90.0,
+                 "the high value is " & $slider[].getMaxValue()
+        doAssert slider[].getMinValue() == 20.0,
+                 "moving the high value moved the low one to " &
+                 $slider[].getMinValue()
+
+        cdelete slider
+
+    block:
+        # A NormalisableRange is the range plus its skew, taken and given back
+        # as one object.
+        let slider = newCustomSlider()
+        let range = makeNormalisableRange(10.0, 200.0, 0.5, 1.0, false)
+        slider[].setNormalisableRange(range)
+
+        doAssert slider[].getMinimum() == 10.0,
+                 "the minimum is " & $slider[].getMinimum()
+        doAssert slider[].getMaximum() == 200.0,
+                 "the maximum is " & $slider[].getMaximum()
+        doAssert slider[].getInterval() == 0.5,
+                 "the interval is " & $slider[].getInterval()
+        doAssert slider[].getNormalisableRange().getStart() == 10.0,
+                 "the range reads back starting at " &
+                 $slider[].getNormalisableRange().getStart()
+        doAssert slider[].getNormalisableRange().getEnd() == 200.0,
+                 "the range ends at " & $slider[].getNormalisableRange().getEnd()
+        doAssert slider[].getNormalisableRange().getInterval() == 0.5,
+                 "the range's interval is " &
+                 $slider[].getNormalisableRange().getInterval()
+        doAssert slider[].getNormalisableRange().getSkew() == 1.0,
+                 "the range's skew is " &
+                 $slider[].getNormalisableRange().getSkew()
+
+        # The range maps onto 0..1 and back, and the two are inverses.
+        doAssert range.convertTo0to1(105.0) > 0.4 and
+                 range.convertTo0to1(105.0) < 0.6,
+                 "the midpoint normalises to " & $range.convertTo0to1(105.0)
+        doAssert abs(range.convertFrom0to1(range.convertTo0to1(60.0)) - 60.0) <
+                 1.0e-9,
+                 "a round trip through 0..1 turned 60 into " &
+                 $range.convertFrom0to1(range.convertTo0to1(60.0))
+        doAssert range.snapToLegalValue(10.3) == 10.5,
+                 "the range snapped 10.3 to " & $range.snapToLegalValue(10.3)
+
+        # snapValue is a HOOK for a subclass, not the interval snapper: its
+        # default returns the value unchanged (juce_Slider.cpp:1690). The
+        # interval rounding happens in setValue, which testSliderRange covers.
+        slider[].setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 20.cint))
+        slider[].setSliderStyle(SliderSliderStyle_LinearHorizontal)
+        doAssert slider[].snapValue(10.3, SliderDragMode_notDragging) == 10.3,
+                 "the default snapValue changed 10.3 to " &
+                 $slider[].snapValue(10.3, SliderDragMode_notDragging)
+        slider[].setValue(10.3, NotificationType_dontSendNotification)
+        doAssert slider[].getValue() == 10.5,
+                 "setValue put 10.3 at " & $slider[].getValue() &
+                 " rather than on the half-unit interval"
+        doAssert slider[].getPositionOfValue(200.0) >
+                 slider[].getPositionOfValue(10.0),
+                 "the maximum sits at " & $slider[].getPositionOfValue(200.0) &
+                 " and the minimum at " & $slider[].getPositionOfValue(10.0)
+
+        cdelete slider
+
+    block:
+        # The two text hooks replace JUCE's own formatting in both directions.
+        let slider = newCustomSlider()
+        slider[].setRange(0.0, 10.0, 1.0)
+
+        slider[].textFromValueFunction = bindClosure(proc(value: float64): String =
+            makeString("v" & $int(value)))
+        slider[].valueFromTextFunction = bindConstRefClosure(
+            proc(text: ptr String): float64 =
+                # The text is "v" and a digit, so the digit is its value.
+                float64(ord(($text[])[1]) - ord('0')))
+
+        doAssert $slider[].getTextFromValue(7.0) == "v7",
+                 "the hook rendered 7 as " & $slider[].getTextFromValue(7.0)
+        doAssert slider[].getValueFromText(makeString("v3")) == 3.0,
+                 "the hook parsed v3 as " &
+                 $slider[].getValueFromText(makeString("v3"))
+
+        # updateText pushes the rendered text into the box without changing
+        # the value.
+        slider[].setValue(5.0, NotificationType_dontSendNotification)
+        slider[].updateText()
+        doAssert slider[].getValue() == 5.0,
+                 "updateText changed the value to " & $slider[].getValue()
+
+        cdelete slider
+
+    shutdownJuce_GUI()
+
+testSliderValueAndStyle()
