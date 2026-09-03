@@ -1037,23 +1037,38 @@ def restated_members(cursor, class_map):
 
 #==================================================================================================
 
-def restated_by_an_ancestor(cursor, member, class_map):
-    """Whether a Nim ancestor already restates this exact method.
+def declared_by_an_ancestor(cursor, member, class_map):
+    """Whether a Nim ancestor already declares this exact method.
 
-    Emitting it again on the derived class gives Nim two procs with identical
-    parameter types differing only in the receiver, and 2.2.2 calls that
-    ambiguous rather than preferring the nearer one - LookAndFeel_V2 declares
-    its own drawScrollbarButton, and LookAndFeel now restates the one it
-    overrides. Dropping the derived copy loses nothing: the base proc accepts
-    the derived receiver, and C++ dispatches it virtually to the override.
+    An override has the same parameter types as the virtual it overrides, so
+    emitting both gives Nim two procs differing only in the receiver. Called on
+    the derived class itself the nearer one wins, but called on anything below
+    it neither is nearer and 2.2.2 calls it ambiguous: `paint` on a
+    TableListBox matched both ListBox's and Component's and could not be
+    called at all. 51 pairs were in that state.
+
+    Dropping the derived copy loses nothing. The base proc accepts the derived
+    receiver, and the C++ it emits is a call on the object, which dispatches
+    virtually to whichever override the object actually has.
+
+    Both what an ancestor declares itself and what it restates from a secondary
+    base count, since both are emitted as procs on the ancestor.
     """
+    if member.is_static_method():
+        # A static's receiver is typedesc[X], which does not inherit.
+        return False
+
     wanted = method_signature(member)
     ancestor = primary_base(cursor, class_map)
     seen = set()
     while ancestor is not None and ancestor.get_usr() not in seen:
         seen.add(ancestor.get_usr())
-        if any(method_signature(x) == wanted
-               for x in restated_members(ancestor, class_map)):
+        declared = [x for x in ancestor.get_children()
+                    if x.kind == CursorKind.CXX_METHOD
+                    and x.access_specifier == AccessSpecifier.PUBLIC]
+        declared += using_declaration_members(ancestor)
+        declared += restated_members(ancestor, class_map)
+        if any(method_signature(x) == wanted for x in declared):
             return True
         ancestor = primary_base(ancestor, class_map)
     return False
@@ -1939,13 +1954,13 @@ def run_main(juce_module_name, juce_class_name_to_export):
             if m.spelling in ["JUCE_DEPRECATED", "JUCE_DEPRECATED_STATIC"]:
                 continue
 
-            # An override of something a Nim ancestor already restates. Emitting
+            # An override of something a Nim ancestor already declares. Emitting
             # it here would give Nim two procs with identical parameter types
             # differing only in the receiver, which 2.2.2 rejects as ambiguous
-            # rather than preferring the nearer one. The base proc accepts this
-            # receiver and C++ dispatches it virtually, so nothing is lost.
+            # for any receiver below the derived class. The base proc accepts
+            # this receiver and C++ dispatches it virtually, so nothing is lost.
             if (m.get_usr() not in inherited_members
-                    and restated_by_an_ancestor(c, m, class_map)):
+                    and declared_by_an_ancestor(c, m, class_map)):
                 continue
 
             is_static_method = m.is_static_method()
