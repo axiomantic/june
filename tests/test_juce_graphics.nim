@@ -2500,3 +2500,195 @@ proc testFontOptionsBuilding() =
                  "two different options objects do not order"
 
 testFontOptionsBuilding()
+
+# Path's shape helpers. Each one is a separate binding with a long argument
+# list, and the assertions are on the BOUNDS it produces, which is what a
+# swapped pair of arguments changes.
+proc testPathShapes() =
+    block:
+        # The curves take their control points before the end point.
+        var path = makePath()
+        path.startNewSubPath(0.0'f32, 0.0'f32)
+        path.quadraticTo(50.0'f32, 100.0'f32, 100.0'f32, 0.0'f32)
+        doAssert path.getCurrentPosition() == makePoint(100.0'f32, 0.0'f32),
+                 "the quadratic ended at " & $path.getCurrentPosition()
+        # getBounds is NOT tight around a curve: quadraticTo extends the bounds
+        # by the control point as well as the end point
+        # (juce_Path.cpp:253), so a curve that only bulges towards (0, 100)
+        # still reports 100 tall. contains() draws the distinction - the
+        # control point itself is outside the shape.
+        doAssert path.getBounds().getHeight() == 100.0'f32,
+                 "the quadratic's bounds are " & $path.getBounds().getHeight() &
+                 " tall, so the control point is no longer counted"
+        doAssert not path.contains(50.0'f32, 95.0'f32, 1.0'f32),
+                 "the curve reaches its own control point"
+
+        var cubic = makePath()
+        cubic.startNewSubPath(0.0'f32, 0.0'f32)
+        cubic.cubicTo(0.0'f32, 100.0'f32, 100.0'f32, 100.0'f32,
+                      100.0'f32, 0.0'f32)
+        doAssert cubic.getCurrentPosition() == makePoint(100.0'f32, 0.0'f32),
+                 "the cubic ended at " & $cubic.getCurrentPosition()
+        doAssert cubic.getBounds().getHeight() > 0.0'f32,
+                 "the cubic did not bend"
+
+    block:
+        # Every add* helper puts its shape where it was told to.
+        var rounded = makePath()
+        rounded.addRoundedRectangle(10.0'f32, 20.0'f32, 100.0'f32, 50.0'f32,
+                                    8.0'f32)
+        doAssert rounded.getBounds().getX() == 10.0'f32 and
+                 rounded.getBounds().getWidth() == 100.0'f32,
+                 "the rounded rectangle is at " & $rounded.getBounds().getX() &
+                 " and " & $rounded.getBounds().getWidth() & " wide"
+
+        var ellipse = makePath()
+        ellipse.addEllipse(makeRectangle(5.0'f32, 5.0'f32, 40.0'f32, 20.0'f32))
+        doAssert ellipse.getBounds().getWidth() == 40.0'f32 and
+                 ellipse.getBounds().getHeight() == 20.0'f32,
+                 "the ellipse measures " & $ellipse.getBounds().getWidth() & "x" &
+                 $ellipse.getBounds().getHeight()
+
+        var quad = makePath()
+        quad.addQuadrilateral(0.0'f32, 0.0'f32, 30.0'f32, 5.0'f32,
+                              25.0'f32, 40.0'f32, -5.0'f32, 35.0'f32)
+        doAssert quad.getBounds().getX() == -5.0'f32,
+                 "the quadrilateral starts at " & $quad.getBounds().getX()
+        doAssert quad.getBounds().getWidth() == 35.0'f32,
+                 "the quadrilateral is " & $quad.getBounds().getWidth() & " wide"
+
+        # A polygon and a star are both drawn around a centre with a radius, so
+        # the bounds are twice the radius across.
+        var polygon = makePath()
+        polygon.addPolygon(makePoint(50.0'f32, 50.0'f32), 6.cint, 20.0'f32,
+                           0.0'f32)
+        doAssert polygon.getBounds().getWidth() <= 40.0'f32 and
+                 polygon.getBounds().getWidth() > 30.0'f32,
+                 "a hexagon of radius 20 measures " &
+                 $polygon.getBounds().getWidth() & " across"
+
+        var star = makePath()
+        star.addStar(makePoint(50.0'f32, 50.0'f32), 5.cint, 8.0'f32, 20.0'f32,
+                     0.0'f32)
+        doAssert star.getBounds().getWidth() <= 40.0'f32,
+                 "a star of outer radius 20 measures " &
+                 $star.getBounds().getWidth() & " across"
+        doAssert star.getBounds().getWidth() > polygon.getBounds().getWidth() * 0.5'f32,
+                 "the star is far smaller than its outer radius"
+
+        # An arc over part of a circle is smaller than the whole circle.
+        var quarter = makePath()
+        quarter.addCentredArc(50.0'f32, 50.0'f32, 20.0'f32, 20.0'f32, 0.0'f32,
+                              0.0'f32, 1.5707963'f32, true)
+        doAssert quarter.getBounds().getWidth() < 40.0'f32,
+                 "a quarter arc measures " & $quarter.getBounds().getWidth() &
+                 " across, which is the whole circle"
+
+        var pie = makePath()
+        pie.addPieSegment(makeRectangle(0.0'f32, 0.0'f32, 40.0'f32, 40.0'f32),
+                          0.0'f32, 3.1415927'f32, 0.5'f32)
+        doAssert not pie.isEmpty(), "the pie segment drew nothing"
+        doAssert pie.getBounds().getWidth() <= 40.0'f32,
+                 "the pie segment escaped its bounds at " &
+                 $pie.getBounds().getWidth() & " across"
+
+        # A line segment and an arrow are both thick shapes rather than lines,
+        # and the arrow is the wider of the two for the same line.
+        let line = makeLine(0.0'f32, 0.0'f32, 100.0'f32, 0.0'f32)
+        var segment = makePath()
+        segment.addLineSegment(line, 2.0'f32)
+        doAssert segment.getBounds().getHeight() >= 2.0'f32,
+                 "the line segment is " & $segment.getBounds().getHeight() &
+                 " thick"
+
+        var arrow = makePath()
+        arrow.addArrow(line, 2.0'f32, 12.0'f32, 20.0'f32)
+        doAssert arrow.getBounds().getHeight() > segment.getBounds().getHeight(),
+                 "the arrow is " & $arrow.getBounds().getHeight() &
+                 " tall and the plain segment " &
+                 $segment.getBounds().getHeight()
+
+        var bubble = makePath()
+        bubble.addBubble(makeRectangle(20.0'f32, 20.0'f32, 60.0'f32, 30.0'f32),
+                         makeRectangle(0.0'f32, 0.0'f32, 100.0'f32, 100.0'f32),
+                         makePoint(50.0'f32, 80.0'f32), 5.0'f32, 10.0'f32)
+        doAssert bubble.getBounds().getHeight() > 30.0'f32,
+                 "the bubble is " & $bubble.getBounds().getHeight() &
+                 " tall, so its arrow was not added"
+
+    block:
+        # createPathWithRoundedCorners softens the corners without moving the
+        # shape off its bounds.
+        var square = makePath()
+        square.addRectangle(0.0'f32, 0.0'f32, 40.0'f32, 40.0'f32)
+        let softened = square.createPathWithRoundedCorners(8.0'f32)
+        doAssert softened.getBounds().getWidth() == 40.0'f32,
+                 "the softened shape is " & $softened.getBounds().getWidth() &
+                 " wide"
+        doAssert not softened.contains(0.5'f32, 0.5'f32, 0.5'f32),
+                 "the corner was not rounded off"
+        doAssert square.contains(0.5'f32, 0.5'f32, 0.5'f32),
+                 "createPathWithRoundedCorners changed the original"
+
+    block:
+        # getTransformToScaleToFit describes the move without making it.
+        var path = makePath()
+        path.addRectangle(0.0'f32, 0.0'f32, 10.0'f32, 10.0'f32)
+        let transform = path.getTransformToScaleToFit(
+                            makeRectangle(0.0'f32, 0.0'f32, 100.0'f32, 100.0'f32),
+                            true, makeJustification(
+                                JustificationFlags_centred.cint))
+        doAssert path.getBounds().getWidth() == 10.0'f32,
+                 "getTransformToScaleToFit changed the path itself"
+        doAssert path.getBoundsTransformed(transform).getWidth() == 100.0'f32,
+                 "the transform scales the path to " &
+                 $path.getBoundsTransformed(transform).getWidth()
+
+    block:
+        # getClippedLine keeps whichever half of a line it is asked for.
+        var box = makePath()
+        box.addRectangle(0.0'f32, 0.0'f32, 100.0'f32, 100.0'f32)
+        let crossing = makeLine(-50.0'f32, 50.0'f32, 50.0'f32, 50.0'f32)
+
+        let inside = box.getClippedLine(crossing, false)
+        let outside = box.getClippedLine(crossing, true)
+        doAssert inside.getLength() < crossing.getLength(),
+                 "the clipped line is " & $inside.getLength() &
+                 " long and the original " & $crossing.getLength()
+        doAssert outside.getLength() < crossing.getLength(),
+                 "the outside half is " & $outside.getLength() & " long"
+        doAssert abs(inside.getLength() + outside.getLength() -
+                     crossing.getLength()) < 1.0'f32,
+                 "the two halves measure " & $inside.getLength() & " and " &
+                 $outside.getLength() & ", which is not the whole line"
+
+    block:
+        # A path survives a round trip through a stream, and preallocating
+        # space changes nothing a caller can see.
+        var path = makePath()
+        path.preallocateSpace(64.cint)
+        path.addStar(makePoint(0.0'f32, 0.0'f32), 7.cint, 4.0'f32, 10.0'f32,
+                     0.0'f32)
+
+        var output = makeMemoryOutputStream(256'u64)
+        path.writePathToStream(output)
+        doAssert output.getDataSize() > 0'u64,
+                 "writePathToStream wrote " & $output.getDataSize() & " bytes"
+
+        var input = makeMemoryInputStream(output.getData(),
+                                          output.getDataSize(), false)
+        var restored = makePath()
+        restored.loadPathFromStream(input)
+        doAssert restored.getBounds().getWidth() == path.getBounds().getWidth(),
+                 "the round trip through a stream gave a shape " &
+                 $restored.getBounds().getWidth() & " wide"
+
+        # And straight from the bytes, which is the other door to the same
+        # decoder.
+        var fromData = makePath()
+        fromData.loadPathFromData(output.getData(), output.getDataSize())
+        doAssert fromData.getBounds().getWidth() == path.getBounds().getWidth(),
+                 "loading from raw data gave a shape " &
+                 $fromData.getBounds().getWidth() & " wide"
+
+testPathShapes()
