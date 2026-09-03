@@ -6032,3 +6032,47 @@ proc testNestedNamespaceConstants() =
     shutdownJuce_GUI()
 
 testNestedNamespaceConstants()
+
+# One declaration per signature down a hierarchy ==============================
+#
+# An override has the same parameter types as the virtual it overrides, so
+# emitting both gave Nim two procs differing only in the receiver. Called on
+# the derived class itself the nearer one wins, but called on anything below it
+# neither is nearer: `paint` on a TableListBox matched both ListBox's and
+# Component's and Nim 2.2.2 refused the call. 51 pairs were in that state, and
+# every one of them was invisible until somebody made the call.
+#
+# The derived copy is gone; the base proc takes the derived receiver and the
+# C++ it emits dispatches virtually.
+
+proc testOneDeclarationPerSignature() =
+    initialiseJuce_GUI()
+
+    var image = makeImage(ImagePixelFormat_ARGB, 16, 16, true)
+    var g = makeGraphics(image)
+
+    block:
+        # TableListBox is two levels below Component, which is what made this
+        # call ambiguous.
+        var box = makeTableListBox(makeString("table"), nil)
+        box.setBounds(makeRectangle(0.cint, 0.cint, 16.cint, 16.cint))
+        box.paint(g)
+        discard box.keyPressed(makeKeyPress(KeyPress.escapeKey))
+        doAssert box.getWidth() == 16,
+                 "the table is " & $box.getWidth() & " wide"
+
+    block:
+        # And the dispatch the fix rests on: paint is declared only on
+        # Component now, and calling it through that proc has to reach the
+        # override on the object.
+        var painted = 0
+        let component = newCustomComponent()
+        component[].setPaintHandler(proc(context: ptr Graphics) = painted += 1)
+        component[].paint(g)
+        doAssert painted == 1,
+                 "the override ran " & $painted & " times through the base proc"
+        cdelete component
+
+    shutdownJuce_GUI()
+
+testOneDeclarationPerSignature()
