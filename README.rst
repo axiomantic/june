@@ -352,6 +352,15 @@ Hand-written additions live in the ``*_lifting.nim`` files and in
   ``HeapBlock``, ``WeakReference``, ``OptionalScopedPointer`` and
   ``ReferenceCountedObjectPtr``. ``HeapBlock`` owns its buffer
   and cannot be copied, so Nim rejects a copy of one at compile time.
+
+  These seventeen are declared by hand in ``june_juce_types.nim``; the
+  generator binds no class template of its own. JUCE declares 66 public ones,
+  and the 49 that are left out cost nothing at the surface: no binding is
+  withheld because of them. They are either JUCE's own machinery -- ``ArrayBase``,
+  ``SingletonHolder``, ``LeakedObjectDetector`` -- or a container with a Nim
+  equivalent, such as ``HashMap`` and ``SortedSet``. ``GenericScopedLock`` is
+  the one whose absence shows: lock a ``CriticalSection`` with ``enter`` and
+  ``exit`` in a ``try``/``finally``, which is the Nim shape of the same thing.
 - Iterators over the containers a caller loops over: ``ValueTree`` children and
   properties, ``StringArray``, ``XmlElement`` children and attributes,
   ``NamedValueSet``,
