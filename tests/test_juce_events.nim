@@ -282,3 +282,20 @@ proc testMessageManagerLock() =
     shutdownJuce_GUI()
 
 testMessageManagerLock()
+
+# Every bound constant ========================================================
+#
+# A `let` with an importcpp is not checked against C++ unless something reads
+# it: a constant naming juce::NoSuchClass::nope compiles clean while nothing
+# touches it. Reading each is what compiles the spelling.
+
+proc testEveryConstantEvents() =
+    block:
+        discard NotificationType_dontSendNotification
+        discard NotificationType_sendNotification
+        discard NotificationType_sendNotificationSync
+        discard NotificationType_sendNotificationAsync
+        discard InterprocessConnectionNotify_no
+        discard InterprocessConnectionNotify_yes
+
+testEveryConstantEvents()

@@ -399,3 +399,17 @@ proc testEveryNoArgConstructorDataStructures() =
 
 
 testEveryNoArgConstructorDataStructures()
+
+# Every bound constant ========================================================
+#
+# A `let` with an importcpp is not checked against C++ unless something reads
+# it: a constant naming juce::NoSuchClass::nope compiles clean while nothing
+# touches it. Reading each is what compiles the spelling.
+
+proc testEveryConstantDataStructures() =
+    block:
+        discard PropertiesFileStorageFormat_storeAsBinary
+        discard PropertiesFileStorageFormat_storeAsCompressedBinary
+        discard PropertiesFileStorageFormat_storeAsXML
+
+testEveryConstantDataStructures()

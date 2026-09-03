@@ -1262,3 +1262,79 @@ proc testFontFeatureSettings() =
                  $font.getFeatureSettings().size().int & " settings"
 
 testFontFeatureSettings()
+
+# Every bound constant ========================================================
+#
+# A `let` with an importcpp is not checked against C++ unless something reads
+# it: a constant naming juce::NoSuchClass::nope compiles clean while nothing
+# touches it. Reading each is what compiles the spelling.
+
+proc testEveryConstantGraphics() =
+    block:
+        discard TypefaceMetricsKind_legacy
+        discard TypefaceMetricsKind_portable
+        discard JustificationFlags_left
+        discard JustificationFlags_right
+        discard JustificationFlags_horizontallyCentred
+        discard JustificationFlags_top
+        discard JustificationFlags_bottom
+        discard JustificationFlags_verticallyCentred
+        discard JustificationFlags_horizontallyJustified
+        discard JustificationFlags_centred
+        discard JustificationFlags_centredLeft
+        discard JustificationFlags_centredRight
+        discard JustificationFlags_centredTop
+        discard JustificationFlags_centredBottom
+        discard JustificationFlags_topLeft
+        discard JustificationFlags_topRight
+        discard JustificationFlags_bottomLeft
+        discard JustificationFlags_bottomRight
+        discard PathIteratorPathElementType_startNewSubPath
+        discard PathIteratorPathElementType_lineTo
+        discard PathIteratorPathElementType_quadraticTo
+        discard PathIteratorPathElementType_cubicTo
+        discard PathIteratorPathElementType_closePath
+        discard PathStrokeTypeJointStyle_mitered
+        discard PathStrokeTypeJointStyle_curved
+        discard PathStrokeTypeJointStyle_beveled
+        discard PathStrokeTypeEndCapStyle_butt
+        discard PathStrokeTypeEndCapStyle_square
+        discard PathStrokeTypeEndCapStyle_rounded
+        discard RectanglePlacementFlags_xLeft
+        discard RectanglePlacementFlags_xRight
+        discard RectanglePlacementFlags_xMid
+        discard RectanglePlacementFlags_yTop
+        discard RectanglePlacementFlags_yBottom
+        discard RectanglePlacementFlags_yMid
+        discard RectanglePlacementFlags_stretchToFit
+        discard RectanglePlacementFlags_fillDestination
+        discard RectanglePlacementFlags_onlyReduceInSize
+        discard RectanglePlacementFlags_onlyIncreaseInSize
+        discard RectanglePlacementFlags_doNotResize
+        discard RectanglePlacementFlags_centred
+        discard GraphicsResamplingQuality_lowResamplingQuality
+        discard GraphicsResamplingQuality_mediumResamplingQuality
+        discard GraphicsResamplingQuality_highResamplingQuality
+        discard ImagePixelFormat_UnknownFormat
+        discard ImagePixelFormat_RGB
+        discard ImagePixelFormat_ARGB
+        discard ImagePixelFormat_SingleChannel
+        discard ImageBitmapDataReadWriteMode_readOnly
+        discard ImageBitmapDataReadWriteMode_writeOnly
+        discard ImageBitmapDataReadWriteMode_readWrite
+        discard TypefaceColourGlyphFormat_colourGlyphFormatBitmap
+        discard TypefaceColourGlyphFormat_colourGlyphFormatSvg
+        discard TypefaceColourGlyphFormat_colourGlyphFormatCOLRv0
+        discard TypefaceColourGlyphFormat_colourGlyphFormatCOLRv1
+        discard FontFontStyleFlags_plain
+        discard FontFontStyleFlags_bold
+        discard FontFontStyleFlags_italic
+        discard FontFontStyleFlags_underlined
+        discard AttributedStringWordWrap_none
+        discard AttributedStringWordWrap_byWord
+        discard AttributedStringWordWrap_byChar
+        discard AttributedStringReadingDirection_natural
+        discard AttributedStringReadingDirection_leftToRight
+        discard AttributedStringReadingDirection_rightToLeft
+
+testEveryConstantGraphics()
