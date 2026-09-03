@@ -10066,3 +10066,150 @@ proc testRemainingGuiImplicitConstructors() =
     shutdownJuce_GUI()
 
 testRemainingGuiImplicitConstructors()
+
+# Desktop is the process-wide singleton for the screen, the mouse and the
+# component stack. Everything here is a query or a switch that reads back;
+# nothing puts a window on the desktop, because that is what leaks under X11.
+proc testDesktop() =
+    initialiseJuce_GUI()
+
+    block:
+        # The singleton is the same object every time.
+        doAssert (addr Desktop.getInstance()) == (addr Desktop.getInstance()),
+                 "two calls gave two different Desktops"
+
+        # Displays. Under a real window server or a virtual one there is at
+        # least one; isHeadless is the flag that says which.
+        let displays = Desktop.getInstance().getDisplays()
+        if Desktop.getInstance().isHeadless():
+            doAssert displays.displays().size() == 0.cint,
+                     "a headless Desktop lists " & $displays.displays().size() &
+                     " displays"
+        else:
+            doAssert displays.displays().size() > 0.cint,
+                     "a Desktop with a window server lists no displays"
+            doAssert not displays.getPrimaryDisplay().isNil,
+                     "there are displays but no primary one"
+            doAssert displays.getPrimaryDisplay()[].totalArea().getWidth() > 0,
+                     "the primary display is " &
+                     $displays.getPrimaryDisplay()[].totalArea().getWidth() &
+                     " wide"
+
+    block:
+        # Mouse sources. There is always at least one, and asking for one past
+        # the end gives nothing rather than a bad pointer.
+        let count = Desktop.getInstance().getNumMouseSources()
+        doAssert count > 0, "the desktop has " & $count & " mouse sources"
+        doAssert Desktop.getInstance().getMouseSource(0.cint) != nil,
+                 "mouse source 0 is missing"
+        doAssert Desktop.getInstance().getMouseSource(count + 10) == nil,
+                 "a mouse source past the end exists"
+        doAssert Desktop.getInstance().getMouseSources().size() == count,
+                 "the span holds " &
+                 $Desktop.getInstance().getMouseSources().size() &
+                 " sources and the count says " & $count
+
+        # Nothing is being dragged in a test with no input.
+        doAssert Desktop.getInstance().getNumDraggingMouseSources() == 0,
+                 "a mouse source is dragging"
+        doAssert Desktop.getInstance().getDraggingMouseSource(0.cint) == nil,
+                 "a dragging mouse source exists"
+
+        # The click and wheel counters only ever go up, and start at zero here.
+        doAssert Desktop.getInstance().getMouseButtonClickCounter() >= 0,
+                 "the click counter is " &
+                 $Desktop.getInstance().getMouseButtonClickCounter()
+        doAssert Desktop.getInstance().getMouseWheelMoveCounter() >= 0,
+                 "the wheel counter is " &
+                 $Desktop.getInstance().getMouseWheelMoveCounter()
+
+    block:
+        # The component stack. Nothing is on the desktop in this test, so it is
+        # empty, and finding a component at any point gives nothing.
+        doAssert Desktop.getInstance().getNumComponents() == 0,
+                 "the desktop holds " &
+                 $Desktop.getInstance().getNumComponents() & " components"
+        doAssert Desktop.getInstance().getComponent(0.cint).isNil,
+                 "component 0 exists on an empty desktop"
+        doAssert Desktop.getInstance().findComponentAt(
+                     makePoint(10.cint, 10.cint)).isNil,
+                 "a component was found on an empty desktop"
+        doAssert Desktop.getInstance().getKioskModeComponent().isNil,
+                 "a component is in kiosk mode"
+
+    block:
+        # The default LookAndFeel is a process-wide setting, and it reads back
+        # as the same object.
+        # Taken as an address, never as a value: LookAndFeel is abstract, and
+        # binding the returned reference to a `let` asks C++ to copy one.
+        doAssert (addr Desktop.getInstance().getDefaultLookAndFeel()) != nil,
+                 "there is no default LookAndFeel"
+
+        var replacement = makeLookAndFeel_V4()
+        Desktop.getInstance().setDefaultLookAndFeel(
+            cast[ptr LookAndFeel](addr replacement))
+        doAssert (addr Desktop.getInstance().getDefaultLookAndFeel()) ==
+                 cast[ptr LookAndFeel](addr replacement),
+                 "the default LookAndFeel did not change"
+
+        # Put it back before the replacement goes out of scope: the desktop
+        # holds a bare pointer, and a dangling one is a crash in whatever runs
+        # next rather than a failure here.
+        Desktop.getInstance().setDefaultLookAndFeel(nil)
+        doAssert (addr Desktop.getInstance().getDefaultLookAndFeel()) !=
+                 cast[ptr LookAndFeel](addr replacement),
+                 "setDefaultLookAndFeel(nil) did not release the replacement"
+
+    block:
+        # Orientation is a phone concern, and the flags round trip anyway.
+        let orientations = cint(DesktopDisplayOrientation_upright) or
+                           cint(DesktopDisplayOrientation_upsideDown)
+        Desktop.getInstance().setOrientationsEnabled(orientations)
+        doAssert Desktop.getInstance().getOrientationsEnabled() == orientations,
+                 "the enabled orientations read back as " &
+                 $Desktop.getInstance().getOrientationsEnabled()
+        doAssert Desktop.getInstance().isOrientationEnabled(
+                     DesktopDisplayOrientation_upright),
+                 "upright was not enabled"
+        doAssert not Desktop.getInstance().isOrientationEnabled(
+                     DesktopDisplayOrientation_rotatedClockwise),
+                 "an orientation that was not enabled reports enabled"
+
+        # These are queries with no side effect; what is asserted is that they
+        # answer at all.
+        discard Desktop.getInstance().isDarkModeActive()
+        discard Desktop.getInstance().getCurrentOrientation()
+        discard Desktop.getInstance().supportsBorderlessNonClientResize()
+        doAssert (addr Desktop.getInstance().getAnimator()) != nil,
+                 "the desktop has no animator"
+
+    block:
+        # The three listener lists each take a plain base, which is
+        # constructible even though nothing can override it from Nim.
+        var mouseListener = makeMouseListener()
+        Desktop.getInstance().addGlobalMouseListener(addr mouseListener)
+        Desktop.getInstance().removeGlobalMouseListener(addr mouseListener)
+
+        # FocusChangeListener has a pure virtual, so it gets a Custom subclass
+        # and a handler that can actually be called - unlike MouseListener,
+        # whose methods JUCE gives empty bodies.
+        let focusListener = newCustomFocusChangeListener()
+        focusListener[].setGlobalFocusChangedHandler(
+            proc(focusedComponent: ptr Component) = discard)
+        Desktop.getInstance().addFocusChangeListener(
+            cast[ptr FocusChangeListener](focusListener))
+        Desktop.getInstance().removeFocusChangeListener(
+            cast[ptr FocusChangeListener](focusListener))
+        cdelete focusListener
+
+        let darkModeListener = newCustomDarkModeSettingListener()
+        darkModeListener[].setDarkModeSettingChangedHandler(proc() = discard)
+        Desktop.getInstance().addDarkModeSettingListener(
+            cast[ptr DarkModeSettingListener](darkModeListener))
+        Desktop.getInstance().removeDarkModeSettingListener(
+            cast[ptr DarkModeSettingListener](darkModeListener))
+        cdelete darkModeListener
+
+    shutdownJuce_GUI()
+
+testDesktop()
