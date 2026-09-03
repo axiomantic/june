@@ -9878,3 +9878,105 @@ proc testComponentServices() =
     shutdownJuce_GUI()
 
 testComponentServices()
+
+# TableListBox is a ListBox whose rows are divided into columns by a
+# TableHeaderComponent. The cell geometry is where the two meet, and it is what
+# a wrong row height or a hidden column changes.
+proc testTableListBoxCells() =
+    initialiseJuce_GUI()
+
+    block:
+        var model = newCustomTableListBoxModel()
+        model[].setGetNumRowsHandler(proc(): cint = 10.cint)
+
+        var table = makeTableListBox(makeString("table"),
+                                     cast[ptr TableListBoxModel](model))
+        table.setBounds(makeRectangle(0.cint, 0.cint, 300.cint, 200.cint))
+        doAssert table.getModel() == cast[ptr TableListBoxModel](model),
+                 "getModel reports a different model than getTableListBoxModel"
+
+        let visible = cint(TableHeaderComponentColumnPropertyFlags_visible)
+        table.getHeader().addColumn(makeString("Name"), 1.cint, 100.cint,
+                                    30.cint, -1.cint, visible, -1.cint)
+        table.getHeader().addColumn(makeString("Size"), 2.cint, 60.cint,
+                                    30.cint, -1.cint, visible, -1.cint)
+
+        table.setHeaderHeight(24.cint)
+        doAssert table.getHeaderHeight() == 24,
+                 "the header is " & $table.getHeaderHeight() & " tall"
+        table.setRowHeight(20.cint)
+        table.updateContent()
+
+        # A cell's rectangle follows the column widths and the row height, and
+        # the two coordinate frames differ by the header's height.
+        let cell = table.getCellPosition(2.cint, 0.cint, true)
+        doAssert cell.getX() == 100,
+                 "the second column starts at " & $cell.getX()
+        doAssert cell.getWidth() == 60,
+                 "the second column is " & $cell.getWidth() & " wide"
+        doAssert cell.getHeight() == 20,
+                 "the cell is " & $cell.getHeight() & " tall"
+
+        # relativeToComponentTopLeft does NOT offset by the header's height. It
+        # adds the header's X to the X, and passes the flag down to
+        # getRowPosition, which is where the VIEWPORT's scroll offset enters
+        # (juce_TableListBox.cpp:437). With the table at the top of its list
+        # and the header at x=0, the two frames coincide.
+        doAssert table.getCellPosition(2.cint, 0.cint, false) == cell,
+                 "the two frames differ before anything has scrolled"
+
+        # Scrolling is what separates them: the row-relative frame follows the
+        # row, and the component-relative one follows the screen.
+        table.setVerticalPosition(0.5)
+        let scrolledRelative = table.getCellPosition(2.cint, 0.cint, true)
+        let scrolledAbsolute = table.getCellPosition(2.cint, 0.cint, false)
+        doAssert scrolledRelative != scrolledAbsolute,
+                 "after scrolling the two frames still agree"
+        table.setVerticalPosition(0.0)
+
+        # Row 1 sits one row height below row 0.
+        doAssert table.getCellPosition(1.cint, 1.cint, true).getY() ==
+                 table.getCellPosition(1.cint, 0.cint, true).getY() + 20,
+                 "row 1 is not one row height below row 0"
+
+        # Hiding a column moves the ones after it.
+        table.getHeader().setColumnVisible(1.cint, false)
+        doAssert table.getCellPosition(2.cint, 0.cint, true).getX() == 0,
+                 "hiding the first column left the second at " &
+                 $table.getCellPosition(2.cint, 0.cint, true).getX()
+        table.getHeader().setColumnVisible(1.cint, true)
+
+        # No cell component exists until the model makes one.
+        # A laid-out row carries a cell component for each visible column even
+        # when the model supplies none of its own, and it is a component of its
+        # own rather than the row.
+        let cellComponent = table.getCellComponent(1.cint, 0.cint)
+        doAssert not cellComponent.isNil,
+                 "a laid-out row has no cell component"
+        doAssert cellComponent != table.getComponentForRowNumber(0.cint),
+                 "the cell component is the row component itself"
+        doAssert table.getCellComponent(99.cint, 0.cint).isNil,
+                 "a column that does not exist has a cell component"
+        doAssert table.getCellComponent(1.cint, 500.cint).isNil,
+                 "a row far past the end has a cell component"
+
+        doAssert table.isAutoSizeMenuOptionShown(),
+                 "the auto-size menu option starts hidden"
+        table.setAutoSizeMenuOptionShown(false)
+        doAssert not table.isAutoSizeMenuOptionShown(),
+                 "the option stayed shown"
+
+        # These have no reader; what is asserted is that they run and leave the
+        # table consistent.
+        table.autoSizeColumn(1.cint)
+        table.autoSizeAllColumns()
+        table.scrollToEnsureColumnIsOnscreen(2.cint)
+        doAssert table.getHeader().getNumColumns(false) == 2,
+                 "auto-sizing changed the column count to " &
+                 $table.getHeader().getNumColumns(false)
+
+        cdelete model
+
+    shutdownJuce_GUI()
+
+testTableListBoxCells()
