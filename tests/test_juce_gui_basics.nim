@@ -3986,4 +3986,66 @@ proc testCurvesAndBurgerMenu() =
 
 
 testMenuIteratorAndInputFilter()
+# DocumentWindow ==============================================================
+#
+# macOS only. A DocumentWindow is a top-level window, and building one on the
+# headless Linux container segfaults the same way AlertWindow does, which is
+# why CustomThreadWithProgressWindow is listed unbuildable in
+# check_handwritten_covered.py. addToDesktop is false, so nothing is shown:
+# the window exists as a component and answers about its own title bar and
+# buttons.
+
+when defined(macosx):
+    proc testDocumentWindow() =
+        initialiseJuce_GUI()
+
+        block:
+            var window = makeDocumentWindowImpl(
+                makeString("Document"), makeColour(20'u8, 20'u8, 20'u8, 255'u8),
+                cint(DocumentWindow_allButtons), false)
+
+            doAssert $window.getName() == "Document",
+                     "the window is called " & $window.getName()
+            window.setName(makeString("Renamed"))
+            doAssert $window.getName() == "Renamed",
+                     "the window is called " & $window.getName()
+
+            window.setTitleBarHeight(30.cint)
+            doAssert window.getTitleBarHeight() == 30,
+                     "the title bar is " & $window.getTitleBarHeight() & " high"
+
+            # All buttons were asked for, so all three exist.
+            doAssert window.getCloseButton() != nil, "there is no close button"
+            doAssert window.getMinimiseButton() != nil, "there is no minimise button"
+            doAssert window.getMaximiseButton() != nil, "there is no maximise button"
+
+            # A menu bar model gives the window a menu bar component.
+            doAssert window.getMenuBarComponent() == nil,
+                     "the window has a menu bar before one was set"
+
+            var model = newCustomMenuBarModel()
+            model[].setGetMenuBarNamesHandler(proc(): StringArray =
+                result = makeStringArray()
+                result.add(makeString("File")))
+            model[].setGetMenuForIndexHandler(proc(topLevelMenuIndex: cint,
+                                                   menuName: ptr String): PopupMenu =
+                makePopupMenu())
+            model[].setMenuItemSelectedHandler(proc(menuItemID: cint,
+                                                    topLevelMenuIndex: cint) = discard)
+
+            window.setMenuBar(cast[ptr MenuBarModel](model), 24.cint)
+            doAssert window.getMenuBarComponent() != nil,
+                     "setting a model gave the window no menu bar"
+
+            window.setMenuBar(nil)
+            doAssert window.getMenuBarComponent() == nil,
+                     "clearing the model left a menu bar"
+
+            cdelete model
+
+        shutdownJuce_GUI()
+
+
 testCurvesAndBurgerMenu()
+when defined(macosx):
+    testDocumentWindow()
