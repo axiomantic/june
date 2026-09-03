@@ -211,6 +211,43 @@ def check_no_argument_constructors():
     return True
 
 
+bound_constant = re.compile(r'^let (\w+)\* \{[^}]*importcpp:', re.M)
+
+
+def check_constants():
+    """Every bound constant is read by a test.
+
+    A `let` with an importcpp is not checked against C++ unless something
+    reads it. A constant naming juce::NoSuchClass::nope compiles clean while
+    nothing touches it, which was measured rather than assumed, so 591 of the
+    635 had never had their spelling checked.
+    """
+    emitted = set()
+    for module in ("juce_core", "juce_events", "juce_data_structures",
+                   "juce_graphics", "juce_gui_basics"):
+        emitted.update(bound_constant.findall(
+            open(f"sources/june/{module}.nim").read()))
+
+    used = ""
+    for pattern in ("tests/test_juce_*.nim", "examples/*.nim"):
+        for path in glob.glob(pattern):
+            used += open(path).read()
+
+    unread = sorted(name for name in emitted
+                    if not re.search(r"\b" + name + r"\b", used))
+    if unread:
+        print("These constants are never read, so their C++ spelling is not "
+              "checked:", file=sys.stderr)
+        for name in unread[:20]:
+            print(f"  {name}", file=sys.stderr)
+        if len(unread) > 20:
+            print(f"  ... and {len(unread) - 20} more", file=sys.stderr)
+        return False
+
+    print(f"all {len(emitted)} bound constants are read by a test")
+    return True
+
+
 def check_handlers():
     """Every generated handler setter is called by a test.
 
@@ -420,6 +457,7 @@ def main():
     subclasses_ok = check_subclasses()
     handlers_ok = check_handlers()
     constructors_ok = check_no_argument_constructors()
+    constants_ok = check_constants()
 
     if (uncovered or stale
             or not licences_ok
@@ -427,7 +465,8 @@ def main():
             or not defaults_ok
             or not subclasses_ok
             or not handlers_ok
-            or not constructors_ok):
+            or not constructors_ok
+            or not constants_ok):
         sys.exit(1)
 
     shared = len(declarations) - len(declared)
