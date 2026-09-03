@@ -2070,3 +2070,71 @@ proc testFileLogger() =
         doAssert root.deleteRecursively(), "could not remove the temp directory"
 
 testFileLogger()
+
+# The small core classes ======================================================
+#
+# Five classes whose answers are exact: a filter that accepts one name and
+# refuses another, an event that a wait can time out on, a file mapped into
+# memory whose bytes are the ones on disk, and two value types.
+
+proc testSmallCoreClasses() =
+    block:
+        # A filter takes patterns, so it has to accept one name and refuse
+        # another rather than accepting everything.
+        let filter = makeWildcardFileFilter(makeString("*.txt"), makeString("*"),
+                                            makeString("text files"))
+        let root = june.File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                       .getNonexistentChildFile(makeString("june-small"), makeString(""))
+        doAssert root.createDirectory().wasOk(), "could not make the temp directory"
+
+        let accepted = root.getChildFile(makeStringRef("notes.txt"))
+        let refused = root.getChildFile(makeStringRef("notes.dat"))
+        doAssert accepted.replaceWithText(makeString("hello")), "could not write notes.txt"
+        doAssert refused.replaceWithText(makeString("hello")), "could not write notes.dat"
+
+        doAssert filter.isFileSuitable(accepted), "the filter refused notes.txt"
+        doAssert not filter.isFileSuitable(refused), "the filter accepted notes.dat"
+        doAssert filter.isDirectorySuitable(root), "the filter refused a directory"
+
+        # An input source hands back a stream over the same file.
+        var source = makeFileInputSource(accepted, false)
+        var stream = source.createInputStream()
+        doAssert stream != nil, "the input source produced no stream"
+        doAssert $stream[].readEntireStreamAsString() == "hello",
+                 "the stream read something else"
+        cdelete stream
+        doAssert source.hashCode() != 0'i64, "the input source hashes to zero"
+
+        # The same file mapped into memory has the bytes that were written.
+        block:
+            let mapped = makeMemoryMappedFile(
+                accepted, MemoryMappedFileAccessMode_readOnly, false)
+            doAssert mapped.getSize() == 5'u64,
+                     "the mapping is " & $mapped.getSize() & " bytes"
+            let bytes = cast[ptr UncheckedArray[char]](mapped.getData())
+            doAssert bytes[0] == 'h' and bytes[4] == 'o',
+                     "the mapped bytes are not the ones written"
+
+        doAssert root.deleteRecursively(), "could not remove the temp directory"
+
+    block:
+        # Manual reset, so the event stays signalled until it is reset.
+        let event = makeWaitableEvent(true)
+        doAssert not event.wait(1.0), "an unsignalled event let a wait through"
+        event.signal()
+        doAssert event.wait(1.0), "a signalled event blocked a wait"
+        doAssert event.wait(1.0), "a manual-reset event cleared itself"
+        event.reset()
+        doAssert not event.wait(1.0), "the event stayed signalled after a reset"
+
+    block:
+        var symbol = makeExpressionSymbol(makeString("scope"), makeString("width"))
+        doAssert $symbol.scopeUID() == "scope",
+                 "the symbol names scope " & $symbol.scopeUID()
+        doAssert $symbol.symbolName() == "width",
+                 "the symbol is called " & $symbol.symbolName()
+        symbol.symbolName = makeString("height")
+        doAssert $symbol.symbolName() == "height",
+                 "after renaming the symbol is called " & $symbol.symbolName()
+
+testSmallCoreClasses()
