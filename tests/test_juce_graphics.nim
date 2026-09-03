@@ -1698,6 +1698,10 @@ testTextLayoutRunGlyphs()
 # this covers the two height scales, the derived metrics, italic, underline,
 # and the horizontal scale and kerning that a caller sets alongside them.
 proc testFontMetrics() =
+    # A real typeface is loaded here, and the cache that holds it is cleared
+    # by shutdownJuce_GUI. Without the pair the run ends with a leak report.
+    initialiseJuce_GUI()
+
     block:
         var font = makeFont(makeFontOptions(24.0'f32))
 
@@ -1837,5 +1841,7 @@ proc testFontMetrics() =
         let rebuilt = Font.fromString(described)
         doAssert $rebuilt.toString() == $described,
                  "a round trip turned " & $described & " into " & $rebuilt.toString()
+
+    shutdownJuce_GUI()
 
 testFontMetrics()
