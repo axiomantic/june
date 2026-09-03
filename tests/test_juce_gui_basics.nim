@@ -7797,3 +7797,228 @@ proc testLabelEditing() =
     shutdownJuce_GUI()
 
 testLabelEditing()
+
+# A ComboBox holds an ordered item list where the id and the index are two
+# different numbers, which is the thing a caller confuses.
+proc testComboBoxItems() =
+    initialiseJuce_GUI()
+
+    block:
+        var box = makeComboBox(makeString("choices"))
+        doAssert box.getNumItems() == 0,
+                 "a new box holds " & $box.getNumItems() & " items"
+        doAssert box.getSelectedId() == 0,
+                 "a new box has selected id " & $box.getSelectedId()
+        doAssert box.getSelectedItemIndex() == -1,
+                 "a new box has selected index " & $box.getSelectedItemIndex()
+
+        # The ids need not match the positions, and must not be zero, which is
+        # what "nothing is selected" means.
+        box.addItem(makeString("first"), 10.cint)
+        box.addItem(makeString("second"), 20.cint)
+        box.addItem(makeString("third"), 30.cint)
+
+        doAssert box.getNumItems() == 3,
+                 "the box holds " & $box.getNumItems() & " items"
+        doAssert $box.getItemText(0.cint) == "first",
+                 "item 0 is " & $box.getItemText(0.cint)
+        doAssert box.getItemId(1.cint) == 20,
+                 "item 1 has id " & $box.getItemId(1.cint)
+        doAssert box.indexOfItemId(30.cint) == 2,
+                 "id 30 is at index " & $box.indexOfItemId(30.cint)
+        doAssert box.indexOfItemId(99.cint) == -1,
+                 "an absent id is at index " & $box.indexOfItemId(99.cint)
+
+        # Selecting by id and by index reach the same item from both ends.
+        box.setSelectedId(20.cint, NotificationType_dontSendNotification)
+        doAssert box.getSelectedId() == 20,
+                 "the selected id is " & $box.getSelectedId()
+        doAssert box.getSelectedItemIndex() == 1,
+                 "the selected index is " & $box.getSelectedItemIndex()
+        doAssert $box.getText() == "second",
+                 "the box shows " & $box.getText()
+
+        box.setSelectedItemIndex(2.cint, NotificationType_dontSendNotification)
+        doAssert box.getSelectedId() == 30,
+                 "selecting index 2 gave id " & $box.getSelectedId()
+
+        # A separator and a heading are not items that can be selected, but
+        # they do take a place in the list.
+        let before = box.getNumItems()
+        box.addSeparator()
+        box.addSectionHeading(makeString("more"))
+        doAssert box.getNumItems() == before,
+                 "a separator and a heading changed the item count from " &
+                 $before & " to " & $box.getNumItems()
+
+        # An item is disabled without being removed.
+        doAssert box.isItemEnabled(10.cint), "a new item is disabled"
+        box.setItemEnabled(10.cint, false)
+        doAssert not box.isItemEnabled(10.cint), "the item stayed enabled"
+        doAssert box.getNumItems() == before,
+                 "disabling an item removed it"
+
+        box.changeItemText(10.cint, makeString("renamed"))
+        doAssert $box.getItemText(0.cint) == "renamed",
+                 "the item reads as " & $box.getItemText(0.cint)
+
+        box.clear(NotificationType_dontSendNotification)
+        doAssert box.getNumItems() == 0,
+                 "clear left " & $box.getNumItems() & " items"
+        doAssert box.getSelectedId() == 0,
+                 "clear left id " & $box.getSelectedId() & " selected"
+
+    block:
+        # addItemList numbers the items from the offset it is given.
+        var box = makeComboBox(makeString("choices"))
+        var items = makeStringArray()
+        items.add(makeString("alpha"))
+        items.add(makeString("beta"))
+        box.addItemList(items, 100.cint)
+
+        doAssert box.getNumItems() == 2,
+                 "addItemList added " & $box.getNumItems() & " items"
+        doAssert box.getItemId(0.cint) == 100,
+                 "the first id is " & $box.getItemId(0.cint)
+        doAssert box.getItemId(1.cint) == 101,
+                 "the second id is " & $box.getItemId(1.cint)
+
+    block:
+        # The two placeholder messages are separate strings for separate cases.
+        var box = makeComboBox(makeString("choices"))
+        box.setTextWhenNothingSelected(makeString("choose one"))
+        box.setTextWhenNoChoicesAvailable(makeString("nothing to choose"))
+        doAssert $box.getTextWhenNothingSelected() == "choose one",
+                 "the empty-selection message is " &
+                 $box.getTextWhenNothingSelected()
+        doAssert $box.getTextWhenNoChoicesAvailable() == "nothing to choose",
+                 "the empty-list message is " &
+                 $box.getTextWhenNoChoicesAvailable()
+
+        doAssert not box.isTextEditable(), "a new box is editable"
+        box.setEditableText(true)
+        doAssert box.isTextEditable(), "setEditableText did not take"
+
+        doAssert not box.isPopupActive(), "a popup is open in a headless test"
+
+        box.setTooltip(makeString("pick"))
+        doAssert $box.getTooltip() == "pick",
+                 "the tooltip reads as " & $box.getTooltip()
+
+    shutdownJuce_GUI()
+
+testComboBoxItems()
+
+# A Viewport shows a window onto a larger component. The view position is
+# clamped to what the viewed component actually offers, which is the rule a
+# caller has to know.
+proc testViewport() =
+    initialiseJuce_GUI()
+
+    block:
+        var port = makeViewport(makeString("port"))
+        port.setBounds(makeRectangle(0.cint, 0.cint, 100.cint, 100.cint))
+        doAssert port.getViewedComponent().isNil,
+                 "a new viewport shows something"
+
+        let content = newCustomComponent()
+        content[].setBounds(makeRectangle(0.cint, 0.cint, 500.cint, 400.cint))
+        port.setViewedComponent(cast[ptr Component](content), false)
+        doAssert port.getViewedComponent() == cast[ptr Component](content),
+                 "the viewport shows a different component"
+
+        # The visible area is the viewport's own size, less any scrollbars.
+        doAssert port.getViewWidth() > 0 and port.getViewHeight() > 0,
+                 "the visible area is " & $port.getViewWidth() & "x" &
+                 $port.getViewHeight()
+        doAssert port.getViewWidth() <= 100 and port.getViewHeight() <= 100,
+                 "the visible area " & $port.getViewWidth() & "x" &
+                 $port.getViewHeight() & " is larger than the viewport"
+
+        # Both scroll directions are possible: the content is larger both ways.
+        doAssert port.canScrollVertically(), "a tall content cannot scroll down"
+        doAssert port.canScrollHorizontally(), "a wide content cannot scroll across"
+
+        port.setViewPosition(50.cint, 25.cint)
+        doAssert port.getViewPositionX() == 50 and port.getViewPositionY() == 25,
+                 "the view is at " & $port.getViewPositionX() & "," &
+                 $port.getViewPositionY()
+        doAssert port.getViewPosition() == makePoint(50.cint, 25.cint),
+                 "getViewPosition disagrees with the x/y accessors"
+        doAssert port.getViewArea().getX() == 50,
+                 "the view area starts at " & $port.getViewArea().getX()
+
+        # A position past the end of the content is clamped to it.
+        port.setViewPosition(10_000.cint, 10_000.cint)
+        doAssert port.getViewPositionX() <= 500 - port.getViewWidth(),
+                 "the view scrolled past the right edge to " &
+                 $port.getViewPositionX()
+        doAssert port.getViewPositionY() <= 400 - port.getViewHeight(),
+                 "the view scrolled past the bottom edge to " &
+                 $port.getViewPositionY()
+
+        # And a negative one is clamped to the origin.
+        port.setViewPosition(-500.cint, -500.cint)
+        doAssert port.getViewPositionX() == 0 and port.getViewPositionY() == 0,
+                 "the view scrolled above the origin to " &
+                 $port.getViewPositionX() & "," & $port.getViewPositionY()
+
+        # Proportional positioning walks the same range.
+        port.setViewPositionProportionately(1.0, 1.0)
+        doAssert port.getViewPositionX() > 0,
+                 "scrolling all the way right left the view at " &
+                 $port.getViewPositionX()
+        port.setViewPositionProportionately(0.0, 0.0)
+        doAssert port.getViewPositionX() == 0,
+                 "scrolling all the way left gave " & $port.getViewPositionX()
+
+        cdelete content
+
+    block:
+        # The scrollbar switches are all separate, and the thickness is shared.
+        var port = makeViewport(makeString("port"))
+        port.setBounds(makeRectangle(0.cint, 0.cint, 100.cint, 100.cint))
+
+        let content = newCustomComponent()
+        content[].setBounds(makeRectangle(0.cint, 0.cint, 500.cint, 400.cint))
+        port.setViewedComponent(cast[ptr Component](content), false)
+
+        doAssert port.isVerticalScrollBarShown(), "the vertical bar is hidden"
+        doAssert port.isHorizontalScrollBarShown(), "the horizontal bar is hidden"
+
+        port.setScrollBarsShown(false, true)
+        doAssert not port.isVerticalScrollBarShown(),
+                 "the vertical bar stayed shown"
+        doAssert port.isHorizontalScrollBarShown(),
+                 "turning off the vertical bar hid the horizontal one too"
+
+        port.setScrollBarsShown(true, true)
+        doAssert port.isVerticalScrollbarOnTheRight(),
+                 "the vertical bar is not on the right"
+        doAssert port.isHorizontalScrollbarAtBottom(),
+                 "the horizontal bar is not at the bottom"
+        port.setScrollBarPosition(false, false)
+        doAssert not port.isVerticalScrollbarOnTheRight(),
+                 "the vertical bar stayed on the right"
+        doAssert not port.isHorizontalScrollbarAtBottom(),
+                 "the horizontal bar stayed at the bottom"
+
+        port.setScrollBarThickness(15.cint)
+        doAssert port.getScrollBarThickness() == 15,
+                 "the thickness is " & $port.getScrollBarThickness()
+
+        doAssert not port.isScrollOnDragEnabled(),
+                 "scroll on drag starts enabled on a desktop build"
+        port.setScrollOnDragMode(ViewportScrollOnDragMode_all)
+        doAssert port.getScrollOnDragMode() == ViewportScrollOnDragMode_all,
+                 "the drag mode did not read back"
+        doAssert port.isScrollOnDragEnabled(),
+                 "setting the drag mode to all did not enable it"
+        doAssert not port.isCurrentlyScrollingOnDrag(),
+                 "a drag is in progress in a headless test"
+
+        cdelete content
+
+    shutdownJuce_GUI()
+
+testViewport()
