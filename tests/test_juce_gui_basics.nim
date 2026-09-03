@@ -3925,4 +3925,65 @@ proc testMenuIteratorAndInputFilter() =
 
 
 testSmallGuiClasses()
+# The curved path elements and BurgerMenuComponent ============================
+#
+# QuadraticTo and CubicTo add a curve to a Path, so the bounds of the result
+# say the control points were used. BurgerMenuComponent takes the same
+# MenuBarModel a menu bar does.
+
+proc testCurvesAndBurgerMenu() =
+    initialiseJuce_GUI()
+
+    block:
+        # A quadratic whose control point is above the two ends: the curve has
+        # to reach above the straight line between them.
+        var curved = makePath()
+        curved.startNewSubPath(0.0'f32, 20.0'f32)
+        let quadratic = makeRelativePointPathQuadraticTo(
+            makeRelativePoint(10.0'f32, 0.0'f32),
+            makeRelativePoint(20.0'f32, 20.0'f32))
+        quadratic.addToPath(curved, nil)
+        doAssert curved.getBounds().getY() < 20.0'f32,
+                 "the quadratic stayed on the line, topping out at y " &
+                 $curved.getBounds().getY()
+        doAssert curved.getBounds().getWidth() == 20.0'f32,
+                 "the quadratic spans " & $curved.getBounds().getWidth()
+
+        # A cubic with both control points below its ends dips the other way.
+        var dipped = makePath()
+        dipped.startNewSubPath(0.0'f32, 0.0'f32)
+        let cubic = makeRelativePointPathCubicTo(
+            makeRelativePoint(5.0'f32, 30.0'f32),
+            makeRelativePoint(15.0'f32, 30.0'f32),
+            makeRelativePoint(20.0'f32, 0.0'f32))
+        cubic.addToPath(dipped, nil)
+        doAssert dipped.getBounds().getBottom() > 0.0'f32,
+                 "the cubic stayed on the line, bottoming at " &
+                 $dipped.getBounds().getBottom()
+
+    block:
+        var model = newCustomMenuBarModel()
+        model[].setGetMenuBarNamesHandler(proc(): StringArray =
+            result = makeStringArray()
+            result.add(makeString("File")))
+        model[].setGetMenuForIndexHandler(proc(topLevelMenuIndex: cint,
+                                               menuName: ptr String): PopupMenu =
+            result = makePopupMenu()
+            result.addItem(1.cint, makeString("Open")))
+        model[].setMenuItemSelectedHandler(proc(menuItemID: cint,
+                                                topLevelMenuIndex: cint) = discard)
+
+        var burger = makeBurgerMenuComponent(cast[ptr MenuBarModel](model))
+        doAssert burger.getModel() == cast[ptr MenuBarModel](model),
+                 "the burger menu reports another model"
+
+        burger.setModel(nil)
+        doAssert burger.getModel() == nil, "the model was not cleared"
+
+        cdelete model
+
+    shutdownJuce_GUI()
+
+
 testMenuIteratorAndInputFilter()
+testCurvesAndBurgerMenu()
