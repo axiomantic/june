@@ -770,7 +770,7 @@ proc copyToUTF16*(this: String, destBuffer: ptr int16, maxBufferSizeBytes: uint6
 proc copyToUTF32*(this: String, destBuffer: ptr WChar, maxBufferSizeBytes: uint64): uint64 {.header: juce_core, importcpp: "#.copyToUTF32(@)".}
 proc preallocateBytes*(this: var String, numBytesNeeded: uint64) {.header: juce_core, importcpp: "#.preallocateBytes(@)".}
 proc swapWith*(this: var String, other: var String) {.header: juce_core, importcpp: "#.swapWith(@)".}
-# proc fromCFString*(this: typedesc[String], cfString: ptr struct __CFString): String {.header: juce_core, importcpp: "juce::String::fromCFString(@)".}  # a type that cannot be spelled in Nim
+# proc fromCFString*(this: typedesc[String], cfString: ptr struct __CFString): String {.header: juce_core, importcpp: "juce::String::fromCFString(@)".}  # a Core Foundation type, which is not bound
 # proc toCFString*(this: String): ptr struct __CFString {.header: juce_core, importcpp: "#.toCFString()".}  # a platform type with no Nim spelling
 proc convertToPrecomposedUnicode*(this: String): String {.header: juce_core, importcpp: "#.convertToPrecomposedUnicode()".}
 proc getReferenceCount*(this: String): cint {.header: juce_core, importcpp: "#.getReferenceCount()".}
@@ -1796,7 +1796,7 @@ proc makeObjectWithKeyFirst*(this: typedesc[JSONUtils], source: CppMap[Identifie
 proc deepEqual*(this: typedesc[JSONUtils], a: juce_var, b: juce_var): bool {.header: juce_core, importcpp: "juce::JSONUtils::deepEqual(@)".}
 proc `==`*(this: JSONUtils, other: JSONUtils): bool {.error: "juce::JSONUtils defines no operator==; compare a property instead".}
 
-# proc marshallingVersion*(this: typedesc[SerialisationTraits]): nullopt_t {.header: juce_core, importcpp: "(juce::SerialisationTraits::marshallingVersion)".}  # a type that cannot be spelled in Nim
+# proc marshallingVersion*(this: typedesc[SerialisationTraits]): nullopt_t {.header: juce_core, importcpp: "(juce::SerialisationTraits::marshallingVersion)".}  # std::nullopt_t, which is a tag rather than a value Nim can pass
 proc `==`*(this: SerialisationTraits, other: SerialisationTraits): bool {.error: "juce::SerialisationTraits defines no operator==; compare a property instead".}
 
 proc withExplicitVersion*(this: ToVarOptions, x: CppOptional[cint]): ToVarOptions {.header: juce_core, importcpp: "#.withExplicitVersion(@)".}
@@ -2303,7 +2303,7 @@ proc readEntireXmlStream*(this: URL, usePostCommand: bool = false): UniquePtr[Xm
 proc addEscapeChars*(this: typedesc[URL], stringToAddEscapeCharsTo: String, isParameter: bool, roundBracketsAreLegal: bool = true): String {.header: juce_core, importcpp: "juce::URL::addEscapeChars(@)".}
 proc removeEscapeChars*(this: typedesc[URL], stringToRemoveEscapeCharsFrom: String): String {.header: juce_core, importcpp: "juce::URL::removeEscapeChars(@)".}
 proc createWithoutParsing*(this: typedesc[URL], url: String): URL {.header: juce_core, importcpp: "juce::URL::createWithoutParsing(@)".}
-# proc createInputStream*(this: URL, doPostLikeRequest: bool, progressCallback: ptr bool (pointer, int, int) = nil, progressCallbackContext: pointer = nil, extraHeaders: String, connectionTimeOutMs: cint = 0, responseHeaders: ptr StringPairArray = nil, statusCode: ptr cint = nil, numRedirectsToFollow: cint = 5, httpRequestCmd: String): UniquePtr[InputStream] {.header: juce_core, importcpp: "#.createInputStream(@)".}  # a type that cannot be spelled in Nim
+# proc createInputStream*(this: URL, doPostLikeRequest: bool, progressCallback: ptr bool (pointer, int, int) = nil, progressCallbackContext: pointer = nil, extraHeaders: String, connectionTimeOutMs: cint = 0, responseHeaders: ptr StringPairArray = nil, statusCode: ptr cint = nil, numRedirectsToFollow: cint = 5, httpRequestCmd: String): UniquePtr[InputStream] {.header: juce_core, importcpp: "#.createInputStream(@)".}  # a C++ function pointer parameter, which the generator cannot spell
 
 proc makeURLInputStreamOptions*(parameterHandling: URLParameterHandling): URLInputStreamOptions {.header: juce_core, importcpp: "juce::URL::InputStreamOptions(@)".}
 proc withProgressCallback*(this: URLInputStreamOptions, progressCallback: CppFunctionObjectR2[bool, cint, cint]): URLInputStreamOptions {.header: juce_core, importcpp: "#.withProgressCallback(@)".}
@@ -2910,18 +2910,18 @@ proc isPowerOfTwo*[IntegerType](value: IntegerType): bool {.header: juce_core, i
 proc negativeAwareModulo*[IntegerType](dividend: IntegerType, divisor: IntegerType): IntegerType {.header: juce_core, importcpp: "juce::negativeAwareModulo(@)".}
 proc square*[NumericType](n: NumericType): NumericType {.header: juce_core, importcpp: "juce::square(@)".}
 # proc toUnderlyingType*[T](t: T): std::enable_if_t<std::is_enum_v<T>, std::underlying_type_t<T>> {.header: juce_core, importcpp: "juce::toUnderlyingType(@)".}  # a SFINAE-constrained signature, which Nim has no way to express
-# proc deleteAndZero*[Type](arg1: ScopedPointer<Type>) {.header: juce_core, importcpp: "juce::deleteAndZero(@)".}  # a type that cannot be spelled in Nim
+# proc deleteAndZero*[Type](arg1: ScopedPointer<Type>) {.header: juce_core, importcpp: "juce::deleteAndZero(@)".}  # juce::ScopedPointer, which JUCE removed and does not define
 proc makeOptional*[Value](v: Value): Optional[Value] {.header: juce_core, importcpp: "juce::makeOptional(@)".}
-# proc makeRange*[Begin, End](begin: Begin, `end`: End): auto {.header: juce_core, importcpp: "juce::makeRange(@)".}  # a type that cannot be spelled in Nim
-# proc enumerate*[Range, Index](range: Range, startingValue: Index): auto {.header: juce_core, importcpp: "juce::enumerate(@)".}  # a type that cannot be spelled in Nim
+# proc makeRange*[Begin, End](begin: Begin, `end`: End): auto {.header: juce_core, importcpp: "juce::makeRange(@)".}  # a deduced return type, which cannot be spelled without instantiating the template
+# proc enumerate*[Range, Index](range: Range, startingValue: Index): auto {.header: juce_core, importcpp: "juce::enumerate(@)".}  # a deduced return type, which cannot be spelled without instantiating the template
 proc sortArray*[ElementType, ElementComparator](comparator: ElementComparator, array: ptr ElementType, firstElement: cint, lastElement: cint, retainOrderOfEquivalentItems: bool) {.header: juce_core, importcpp: "juce::sortArray(@)".}
 proc findInsertIndexInSortedArray*[ElementType, ElementComparator](comparator: ElementComparator, array: ptr ElementType, newElement: ElementType, firstElement: cint, lastElement: cint): cint {.header: juce_core, importcpp: "juce::findInsertIndexInSortedArray(@)".}
-# proc withMember*[Object, OtherObject, Member, Other](copy: Object, member: Member OtherObject::, value: Other): Object {.header: juce_core, importcpp: "juce::withMember(@)".}  # a type that cannot be spelled in Nim
-# proc toFnPtr*[Functor](functor: Functor): auto {.header: juce_core, importcpp: "juce::toFnPtr(@)".}  # a type that cannot be spelled in Nim
+# proc withMember*[Object, OtherObject, Member, Other](copy: Object, member: Member OtherObject::, value: Other): Object {.header: juce_core, importcpp: "juce::withMember(@)".}  # a nested or template name that survived remapping, so it is not valid Nim
+# proc toFnPtr*[Functor](functor: Functor): auto {.header: juce_core, importcpp: "juce::toFnPtr(@)".}  # a deduced return type, which cannot be spelled without instantiating the template
 # proc addSorted*[ElementComparator, ObjectClass, TypeOfCriticalSectionToUse](comparator: ElementComparator, newObject: ptr ObjectClass): cint {.header: juce_core, importcpp: "juce::addSorted(@)".}  # a template parameter that appears only in the return type, which nothing can deduce
 # proc indexOfSorted*[ElementComparator, ObjectClass, TypeOfCriticalSectionToUse](comparator: ElementComparator, objectToLookFor: ptr ObjectClass): cint {.header: juce_core, importcpp: "juce::indexOfSorted(@)".}  # a template parameter that appears only in the return type, which nothing can deduce
 # proc sort*[ElementComparator, ObjectClass, TypeOfCriticalSectionToUse](comparator: ElementComparator, retainOrderOfEquivalentItems: bool) {.header: juce_core, importcpp: "juce::sort(@)".}  # a template parameter that appears only in the return type, which nothing can deduce
-# proc named*[T](c: std::string_view, t: T): auto {.header: juce_core, importcpp: "juce::named(@)".}  # a type that cannot be spelled in Nim
+# proc named*[T](c: std::string_view, t: T): auto {.header: juce_core, importcpp: "juce::named(@)".}  # a deduced return type, which cannot be spelled without instantiating the template
 # proc serialisationSize*[T](t: T): std::enable_if_t<std::is_integral_v<T>, SerialisationSize<T>> {.header: juce_core, importcpp: "juce::serialisationSize(@)".}  # a SFINAE-constrained signature, which Nim has no way to express
 # proc serialisationSize*[T](t: T): std::enable_if_t<std::is_integral_v<T>, SerialisationSize< T>> {.header: juce_core, importcpp: "juce::serialisationSize(@)".}  # a SFINAE-constrained signature, which Nim has no way to express
 
