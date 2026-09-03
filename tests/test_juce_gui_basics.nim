@@ -3744,4 +3744,51 @@ proc testMultiChoicePropertyComponent() =
 
 
 testFileViews()
+# RelativePointPath ===========================================================
+#
+# A path described by relative coordinates, turned into a real Path by
+# createPath. The elements are added as heap objects the path takes ownership
+# of, and the resulting bounds are what says the coordinates were used.
+
+proc testRelativePointPath() =
+    initialiseJuce_GUI()
+
+    block:
+        var shape = makeRelativePointPath()
+        doAssert shape.elements().size() == 0,
+                 "a fresh path holds " & $shape.elements().size() & " elements"
+        doAssert not shape.containsAnyDynamicPoints(),
+                 "an empty path claims to hold dynamic points"
+
+        let start = cnew(makeRelativePointPathStartSubPath(
+            makeRelativePoint(10.0'f32, 20.0'f32)))
+        shape.addElement(cast[ptr RelativePointPathElementBase](start))
+
+        let across = cnew(makeRelativePointPathLineTo(
+            makeRelativePoint(40.0'f32, 20.0'f32)))
+        shape.addElement(cast[ptr RelativePointPathElementBase](across))
+
+        let down = cnew(makeRelativePointPathLineTo(
+            makeRelativePoint(40.0'f32, 60.0'f32)))
+        shape.addElement(cast[ptr RelativePointPathElementBase](down))
+
+        doAssert shape.elements().size() == 3,
+                 "the path holds " & $shape.elements().size() & " elements"
+        doAssert start[].startPos().resolve(nil).getX() == 10.0'f32,
+                 "the start is at x " & $start[].startPos().resolve(nil).getX()
+
+        # Turned into a real Path, the bounds are the box the points describe.
+        var built = makePath()
+        shape.createPath(built, nil)
+        doAssert built.getBounds().getX() == 10.0'f32,
+                 "the built path starts at x " & $built.getBounds().getX()
+        doAssert built.getBounds().getWidth() == 30.0'f32,
+                 "the built path is " & $built.getBounds().getWidth() & " wide"
+        doAssert built.getBounds().getHeight() == 40.0'f32,
+                 "the built path is " & $built.getBounds().getHeight() & " high"
+
+    shutdownJuce_GUI()
+
+
 testMultiChoicePropertyComponent()
+testRelativePointPath()
