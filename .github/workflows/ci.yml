@@ -214,11 +214,30 @@ jobs:
           # bash carries: nothing in this file states that the step depends on
           # it, so a later edit to `shell:` or a pipe added to the command would
           # turn a red suite green with no other sign.
+          # JUCE's leak detector reports what a class with JUCE_LEAK_DETECTOR
+          # still has alive at exit, and it prints rather than failing, so a
+          # leak reaches the log and the job stays green. It is worth failing
+          # on: the two it caught were a DrawableButton test that believed
+          # setImages takes ownership when it stores a copy, and a closure
+          # capturing a ValueTree, whose environment Nim never destructs. Both
+          # were wrong beliefs about ownership rather than untidy tests.
+          leaked=0
           for test_file in tests/test_juce_*.nim; do
             echo "::group::$test_file"
-            "$nim_bin" cpp -r --hints:off "$test_file" || exit 1
+            # Redirected rather than piped through tee: a pipe hands the
+            # step tee's exit status, so whether a failing test is noticed
+            # would depend on pipefail being set.
+            "$nim_bin" cpp -r --hints:off "$test_file" > /tmp/test_output 2>&1 \
+              || { cat /tmp/test_output; exit 1; }
+            cat /tmp/test_output
+            if grep -q "Leaked objects detected" /tmp/test_output; then
+              echo "::error::$test_file leaked:"
+              grep "Leaked objects detected" /tmp/test_output
+              leaked=1
+            fi
             echo "::endgroup::"
           done
+          [ "$leaked" = 0 ] || exit 1
 
           # The examples are reproduced in the README, so an API change that
           # breaks one breaks the documentation too. Built but not run: they
