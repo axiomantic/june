@@ -10443,3 +10443,102 @@ proc testTreeViewItemStateAndGeometry() =
     shutdownJuce_GUI()
 
 testTreeViewItemStateAndGeometry()
+
+# AccessibleState is twelve independent flags reached through twelve with-
+# methods and twelve predicates. The pairing is mechanical, which is exactly
+# where a generator can put a with- method next to the wrong predicate: each
+# flag is asserted to be off by default, to turn on through its OWN with-
+# method, and to stay off when a NEIGHBOUR is turned on instead.
+proc testAccessibleStateFlagPairing() =
+    initialiseJuce_GUI()
+
+    block:
+        let empty = makeAccessibleState()
+        doAssert not empty.isCheckable(), "a new state is checkable"
+        doAssert not empty.isChecked(), "a new state is checked"
+        doAssert not empty.isCollapsed(), "a new state is collapsed"
+        doAssert not empty.isExpandable(), "a new state is expandable"
+        doAssert not empty.isExpanded(), "a new state is expanded"
+        doAssert not empty.isFocusable(), "a new state is focusable"
+        doAssert not empty.isFocused(), "a new state is focused"
+        doAssert not empty.isIgnored(), "a new state is ignored"
+        doAssert not empty.isMultiSelectable(), "a new state is multi selectable"
+        doAssert not empty.isSelectable(), "a new state is selectable"
+        doAssert not empty.isSelected(), "a new state is selected"
+        doAssert not empty.isAccessibleOffscreen(), "a new state is offscreen"
+
+        # Each with- method sets its own flag, and the neighbours it is most
+        # easily confused with stay off. The pairs chosen are the ones whose
+        # names differ by a suffix: checkable/checked, expandable/expanded,
+        # focusable/focused, selectable/selected.
+        doAssert empty.withCheckable().isCheckable(),
+                 "withCheckable did not set checkable"
+        doAssert not empty.withCheckable().isChecked(),
+                 "withCheckable set checked as well"
+        doAssert empty.withChecked().isChecked(),
+                 "withChecked did not set checked"
+        doAssert not empty.withChecked().isCheckable(),
+                 "withChecked set checkable as well"
+
+        doAssert empty.withExpandable().isExpandable(),
+                 "withExpandable did not set expandable"
+        doAssert not empty.withExpandable().isExpanded(),
+                 "withExpandable set expanded as well"
+        doAssert empty.withExpanded().isExpanded(),
+                 "withExpanded did not set expanded"
+        doAssert not empty.withExpanded().isExpandable(),
+                 "withExpanded set expandable as well"
+        doAssert not empty.withExpanded().isCollapsed(),
+                 "withExpanded set collapsed too"
+        doAssert empty.withCollapsed().isCollapsed(),
+                 "withCollapsed did not set collapsed"
+
+        doAssert empty.withFocusable().isFocusable(),
+                 "withFocusable did not set focusable"
+        doAssert not empty.withFocusable().isFocused(),
+                 "withFocusable set focused as well"
+        doAssert empty.withFocused().isFocused(),
+                 "withFocused did not set focused"
+        doAssert not empty.withFocused().isFocusable(),
+                 "withFocused set focusable as well"
+
+        doAssert empty.withSelectable().isSelectable(),
+                 "withSelectable did not set selectable"
+        doAssert not empty.withSelectable().isSelected(),
+                 "withSelectable set selected as well"
+        doAssert not empty.withSelectable().isMultiSelectable(),
+                 "withSelectable set multi selectable as well"
+        doAssert empty.withSelected().isSelected(),
+                 "withSelected did not set selected"
+        doAssert empty.withMultiSelectable().isMultiSelectable(),
+                 "withMultiSelectable did not set multi selectable"
+        doAssert not empty.withMultiSelectable().isSelectable(),
+                 "withMultiSelectable set selectable as well"
+
+        doAssert empty.withIgnored().isIgnored(),
+                 "withIgnored did not set ignored"
+        doAssert empty.withAccessibleOffscreen().isAccessibleOffscreen(),
+                 "withAccessibleOffscreen did not set offscreen"
+
+        # The with- methods return a new state and leave the receiver alone,
+        # so a chain accumulates and the original stays empty.
+        let combined = empty.withFocusable().withSelectable().withExpandable()
+        doAssert combined.isFocusable() and combined.isSelectable() and
+                 combined.isExpandable(),
+                 "the chain lost one of its three flags"
+        doAssert not empty.isFocusable(), "the chain changed the original"
+
+        # Two states cannot be compared with ==: JUCE gives AccessibleState no
+        # operator==, and the binding emits an {.error.} rather than letting
+        # Nim compare an importcpp object structurally - which, since such an
+        # object declares no fields, would compare nothing and call every two
+        # states equal. So the ORDER independence is asserted flag by flag.
+        let oneWay = empty.withFocusable().withSelectable()
+        let otherWay = empty.withSelectable().withFocusable()
+        doAssert oneWay.isFocusable() == otherWay.isFocusable() and
+                 oneWay.isSelectable() == otherWay.isSelectable(),
+                 "the order the flags were set in changed the state"
+
+    shutdownJuce_GUI()
+
+testAccessibleStateFlagPairing()
