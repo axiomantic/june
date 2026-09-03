@@ -3133,3 +3133,36 @@ proc testIteratorsAreComplete() =
                  "Span yielded " & $seen
 
 testIteratorsAreComplete()
+
+# What a generated constructor forwards ========================================
+#
+# Each generated subclass has a template forwarding constructor, so `new
+# june::CustomThread(name, size)` reaches juce::Thread's own. The coverage check
+# requires every one to be built, which proves the arguments type-check; it does
+# not prove they arrive. A forwarding constructor that dropped or reordered one
+# would build an object in the wrong state and say nothing.
+
+proc testGeneratedConstructorsForward() =
+    block:
+        let worker = newCustomThread(makeString("june-worker"), 0.csize_t)
+        doAssert $worker[].getThreadName() == "june-worker",
+                 "the thread is called " & $worker[].getThreadName()
+        cdelete worker
+
+    block:
+        let job = newCustomThreadPoolJob(makeString("june-job"))
+        doAssert $job[].getJobName() == "june-job",
+                 "the job is called " & $job[].getJobName()
+        cdelete job
+
+    block:
+        # Two Strings in a row, which is where a reordering would show.
+        let unitTest = newCustomUnitTest(makeString("the name"),
+                                         makeString("the category"))
+        doAssert $unitTest[].getName() == "the name",
+                 "the test is called " & $unitTest[].getName()
+        doAssert $unitTest[].getCategory() == "the category",
+                 "the category is " & $unitTest[].getCategory()
+        cdelete unitTest
+
+testGeneratedConstructorsForward()

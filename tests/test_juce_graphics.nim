@@ -1442,3 +1442,33 @@ proc testGraphicsIteratorsAreComplete() =
 initialiseJuce_GUI()
 testGraphicsIteratorsAreComplete()
 shutdownJuce_GUI()
+
+# What a generated constructor forwards ========================================
+#
+# The forwarding constructor with mixed argument types: an enum and two ints
+# for the pixel data, two Strings for the typeface. Building one proves the
+# arguments type-check, which is what the coverage check requires; reading them
+# back is what proves they arrive in the order they were given.
+
+proc testGeneratedConstructorsForwardGraphics() =
+    block:
+        let data = newCustomImagePixelData(ImagePixelFormat_ARGB, 13.cint, 29.cint)
+        doAssert data[].pixelFormat() == ImagePixelFormat_ARGB,
+                 "the pixel data has a different format from the one given"
+        doAssert data[].width() == 13,
+                 "the pixel data is " & $data[].width() & " wide, not 13"
+        doAssert data[].height() == 29,
+                 "the pixel data is " & $data[].height() & " tall, not 29"
+        cdelete data
+
+    block:
+        let typeface = newCustomTypeface(makeString("a name"), makeString("a style"))
+        doAssert $typeface[].getName() == "a name",
+                 "the typeface is called " & $typeface[].getName()
+        doAssert $typeface[].getStyle() == "a style",
+                 "the typeface style is " & $typeface[].getStyle()
+        cdelete typeface
+
+initialiseJuce_GUI()
+testGeneratedConstructorsForwardGraphics()
+shutdownJuce_GUI()
