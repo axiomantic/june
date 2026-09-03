@@ -8949,3 +8949,153 @@ proc testTreeViewRows() =
     shutdownJuce_GUI()
 
 testTreeViewRows()
+
+# TableHeaderComponent keeps columns in two orders at once: the id a caller
+# names them by, and the visible index. Hiding a column changes the second and
+# not the first, which is where the two accessor pairs diverge.
+proc testTableHeaderOrdering() =
+    initialiseJuce_GUI()
+
+    block:
+        var header = makeTableHeaderComponent()
+        header.setBounds(makeRectangle(0.cint, 0.cint, 300.cint, 22.cint))
+        doAssert header.getNumColumns(false) == 0,
+                 "a new header holds " & $header.getNumColumns(false) & " columns"
+        doAssert header.getTotalWidth() == 0,
+                 "a new header measures " & $header.getTotalWidth()
+
+        let visible = TableHeaderComponentColumnPropertyFlags_visible.cint
+        header.addColumn(makeString("Name"), 1.cint, 100.cint, 30.cint,
+                         -1.cint, visible, -1.cint)
+        header.addColumn(makeString("Size"), 2.cint, 60.cint, 30.cint,
+                         -1.cint, visible, -1.cint)
+        header.addColumn(makeString("Date"), 3.cint, 80.cint, 30.cint,
+                         -1.cint, visible, -1.cint)
+
+        doAssert header.getNumColumns(false) == 3,
+                 "the header holds " & $header.getNumColumns(false) & " columns"
+        doAssert header.getNumColumns(true) == 3,
+                 "only " & $header.getNumColumns(true) & " of them are visible"
+        doAssert $header.getColumnName(2.cint) == "Size",
+                 "column 2 is named " & $header.getColumnName(2.cint)
+        doAssert header.getColumnWidth(1.cint) == 100,
+                 "column 1 is " & $header.getColumnWidth(1.cint) & " wide"
+        doAssert header.getTotalWidth() == 240,
+                 "the three columns measure " & $header.getTotalWidth()
+
+        # Ids and indices are separate numbers, and the two lookups invert.
+        doAssert header.getIndexOfColumnId(2.cint, true) == 1,
+                 "column 2 is at index " & $header.getIndexOfColumnId(2.cint, true)
+        doAssert header.getColumnIdOfIndex(1.cint, true) == 2,
+                 "index 1 holds column " & $header.getColumnIdOfIndex(1.cint, true)
+
+        # The positions follow the widths.
+        doAssert header.getColumnPosition(0.cint).getX() == 0,
+                 "the first column starts at " &
+                 $header.getColumnPosition(0.cint).getX()
+        doAssert header.getColumnPosition(1.cint).getX() == 100,
+                 "the second column starts at " &
+                 $header.getColumnPosition(1.cint).getX()
+        doAssert header.getColumnIdAtX(150.cint) == 2,
+                 "x=150 is in column " & $header.getColumnIdAtX(150.cint)
+        doAssert header.getColumnIdAtX(1000.cint) == 0,
+                 "x=1000 is in column " & $header.getColumnIdAtX(1000.cint)
+
+        # Hiding a column changes the visible count and the visible indices,
+        # but not the ids, and not the count that includes hidden ones.
+        header.setColumnVisible(2.cint, false)
+        doAssert not header.isColumnVisible(2.cint), "the column stayed visible"
+        doAssert header.getNumColumns(true) == 2,
+                 "with one hidden, " & $header.getNumColumns(true) & " are visible"
+        doAssert header.getNumColumns(false) == 3,
+                 "hiding a column removed it: " & $header.getNumColumns(false) &
+                 " remain"
+        doAssert header.getColumnIdOfIndex(1.cint, true) == 3,
+                 "visible index 1 now holds column " &
+                 $header.getColumnIdOfIndex(1.cint, true)
+        doAssert header.getColumnIdOfIndex(1.cint, false) == 2,
+                 "counting hidden columns, index 1 holds column " &
+                 $header.getColumnIdOfIndex(1.cint, false)
+        doAssert $header.getColumnName(2.cint) == "Size",
+                 "hiding the column lost its name"
+
+        header.setColumnVisible(2.cint, true)
+        doAssert header.getNumColumns(true) == 3,
+                 "the column did not come back"
+
+        # Renaming and resizing reach the column named by id.
+        header.setColumnName(2.cint, makeString("Bytes"))
+        doAssert $header.getColumnName(2.cint) == "Bytes",
+                 "the column is named " & $header.getColumnName(2.cint)
+        header.setColumnWidth(2.cint, 90.cint)
+        doAssert header.getColumnWidth(2.cint) == 90,
+                 "the column is " & $header.getColumnWidth(2.cint) & " wide"
+        doAssert header.getTotalWidth() == 270,
+                 "the header measures " & $header.getTotalWidth()
+
+        # moveColumn takes a VISIBLE index, so it changes the order and not
+        # the ids.
+        header.moveColumn(1.cint, 2.cint)
+        doAssert header.getIndexOfColumnId(1.cint, true) == 2,
+                 "after the move column 1 is at index " &
+                 $header.getIndexOfColumnId(1.cint, true)
+        doAssert $header.getColumnName(1.cint) == "Name",
+                 "moving the column changed its name"
+
+        # Sorting records a column and a direction.
+        doAssert header.getSortColumnId() == 0,
+                 "a new header sorts by column " & $header.getSortColumnId()
+        header.setSortColumnId(3.cint, false)
+        doAssert header.getSortColumnId() == 3,
+                 "the sort column is " & $header.getSortColumnId()
+        doAssert not header.isSortedForwards(), "the sort is still forwards"
+        header.setSortColumnId(3.cint, true)
+        doAssert header.isSortedForwards(), "the sort did not turn round"
+
+        # The remaining switches.
+        doAssert not header.isStretchToFitActive(),
+                 "a new header stretches to fit"
+        header.setStretchToFitActive(true)
+        doAssert header.isStretchToFitActive(),
+                 "setStretchToFitActive did not take"
+
+        doAssert header.isPopupMenuActive(),
+                 "a new header has no popup menu"
+        header.setPopupMenuActive(false)
+        doAssert not header.isPopupMenuActive(), "setPopupMenuActive did not take"
+
+        # resizeAllColumnsToFit does NOTHING unless stretch-to-fit is on
+        # (juce_TableHeaderComponent.cpp:322), so the switch is not a hint -
+        # it gates the call.
+        header.setStretchToFitActive(false)
+        let before = header.getTotalWidth()
+        header.resizeAllColumnsToFit(600.cint)
+        doAssert header.getTotalWidth() == before,
+                 "the resize took effect with stretch-to-fit off: " &
+                 $header.getTotalWidth()
+
+        # With it on the columns share the width out. Each column's width is a
+        # whole number of pixels, so the total can fall short by up to one per
+        # column - three here - and asserting an exact 600 would be asserting
+        # this particular rounding.
+        header.setStretchToFitActive(true)
+        header.resizeAllColumnsToFit(600.cint)
+        doAssert header.getTotalWidth() > 600 - header.getNumColumns(true) and
+                 header.getTotalWidth() <= 600,
+                 "with stretch-to-fit on, resizing to 600 measured " &
+                 $header.getTotalWidth()
+
+        header.removeColumn(2.cint)
+        doAssert header.getNumColumns(false) == 2,
+                 "after removing one, " & $header.getNumColumns(false) & " remain"
+        doAssert header.getColumnName(2.cint).isEmpty(),
+                 "the removed column still answers to its id with " &
+                 $header.getColumnName(2.cint)
+
+        header.removeAllColumns()
+        doAssert header.getNumColumns(false) == 0,
+                 "removeAllColumns left " & $header.getNumColumns(false)
+
+    shutdownJuce_GUI()
+
+testTableHeaderOrdering()
