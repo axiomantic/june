@@ -4894,4 +4894,35 @@ proc testRemainingGuiScopedHelpers() =
 
 
 testComboBoxListener()
+# The equality guard ==========================================================
+#
+# Where C++ defines no operator==, the generator emits one marked {.error.}.
+# Without it Nim falls back to structural equality, and an importcpp object
+# declares no fields, so it would compare nothing and call every two values
+# equal - silently, and in the direction that makes a test pass.
+
+proc testEqualityGuard() =
+    initialiseJuce_GUI()
+
+    block:
+        let first = makeAccessibleState()
+        let second = makeAccessibleState()
+        doAssert not compiles(first == second),
+                 "two values of a class with no C++ equality compared anyway"
+
+        # != is derived from ==, so the guard covers it too.
+        doAssert not compiles(first != second),
+                 "two values of a class with no C++ equality compared with !="
+
+        # A class that does define equality is unaffected.
+        let red = makeColour(255'u8, 0'u8, 0'u8, 255'u8)
+        doAssert compiles(red == red),
+                 "a class with a real operator== was guarded by mistake"
+        doAssert red == makeColour(255'u8, 0'u8, 0'u8, 255'u8),
+                 "two identical colours are not equal"
+
+    shutdownJuce_GUI()
+
+
 testRemainingGuiScopedHelpers()
+testEqualityGuard()
