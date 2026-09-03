@@ -204,21 +204,27 @@ C++ holds only the raw environment pointer, so without that the environment is
 collected as soon as the Nim closure goes out of scope, and the callback then
 reads freed memory -- which shows up as a corrupted capture rather than a crash.
 
-Do not capture a ``String``, an ``Identifier`` or a ``juce_var`` in a closure.
-Convert it first: ``let name = $someString`` captures a Nim string and is safe.
+Do not capture a JUCE object in a closure. Convert it first: ``let name =
+$someString`` captures a Nim string and is safe, and so is anything else Nim
+owns.
 
-Nim allocates a closure's environment as zeroed memory rather than constructing
-it, and ``String::operator=`` releases whatever the target held before -- from
-zeroed memory that is a null buffer, and the release writes through it. This is
-Nim's closure code generation, not something ``bindClosure`` does: a plain
-``proc() = discard capturedString`` crashes the same way. Types that hold a
-``String`` inherit the problem, which is why ``Identifier`` and ``juce_var``
-are on the list.
+A closure's environment is Nim's memory. Nim allocates it zeroed rather than
+constructing it and never destroys what is in it, so a C++ object placed there
+is neither constructed nor destructed. Both halves of that bite:
 
-Types built on ``ReferenceCountedObjectPtr`` are unaffected, because assigning
-one checks for null first: ``Image``, ``ValueTree`` and ``Font`` capture
-cleanly, as do the plain-value types like ``Colour``, ``Point`` and
-``Rectangle``.
+- Nothing releases what the object owns. Capturing an ``Image`` or a
+  ``ValueTree`` leaks it, which JUCE's leak detector reports by name. A type
+  whose ownership the detector does not track leaks just as surely and says
+  nothing.
+- ``String::operator=`` releases whatever the target held before, and from
+  zeroed memory that is a null buffer it writes through. Capturing a
+  ``String`` crashes outright, as does anything holding one: ``Identifier``
+  and ``juce_var`` among them.
+
+This is Nim's closure code generation rather than anything ``bindClosure``
+does; a plain ``proc() = discard capturedString`` crashes the same way. A type
+that owns nothing -- ``Colour``, ``Point``, ``Rectangle`` -- survives being
+captured, but the rule is easier to hold than the exceptions.
 The cost is one retained environment per bound closure; callbacks are set up
 once, so that is bounded.
 
