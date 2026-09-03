@@ -966,6 +966,51 @@ def reachable_public_methods(cursor, seen=None):
 
 #==================================================================================================
 
+def non_copyable_type_names(translation_unit):
+    """Names of types with no accessible copy constructor.
+
+    Read from the definitions, and from the CLASS_TEMPLATE among them: asking
+    an instantiation for its constructors gives nothing, because libclang has
+    not laid one out. OwnedArray<Run> answers "no constructors" and reads as
+    copyable, while the template it came from deletes the copy.
+    """
+    found = set()
+
+    def visit(cursor):
+        for child in cursor.get_children():
+            if (child.kind in (CursorKind.CLASS_DECL, CursorKind.STRUCT_DECL,
+                               CursorKind.CLASS_TEMPLATE)
+                    and child.is_definition() and child.spelling):
+                copies = [x for x in child.get_children()
+                          if x.kind == CursorKind.CONSTRUCTOR
+                          and x.is_copy_constructor()]
+                if copies and not any(
+                        x.access_specifier == AccessSpecifier.PUBLIC
+                        and not x.is_deleted_method() for x in copies):
+                    found.add(child.spelling)
+            visit(child)
+
+    visit(translation_unit.cursor)
+    return found
+
+#==================================================================================================
+
+def type_is_copyable(field_type, non_copyable):
+    """Whether a value of this type can be copied.
+
+    A field whose type cannot be copied has no by-value getter and no setter:
+    both compile until something calls them, and then neither does. OwnedArray
+    deletes its copy constructor, so TextLayoutLine's runs and
+    RelativePointPath's elements could only ever be reached through the var
+    getter that hands back the field itself.
+    """
+    declaration = field_type.get_declaration()
+    if declaration is None or not declaration.spelling:
+        return True
+    return declaration.spelling not in non_copyable
+
+#==================================================================================================
+
 def using_declaration_members(cursor):
     """Members a class hands back out of a base with a using-declaration.
 
@@ -1313,6 +1358,8 @@ def run_main(juce_module_name, juce_class_name_to_export):
             lambda x: x.kind == CursorKind.CLASS_DECL or x.kind == CursorKind.STRUCT_DECL, entry.get_children())]
 
     by_value_classes = passed_by_value_to_a_virtual(index, juce_args, base_path)
+    non_copyable = non_copyable_type_names(translation_unit)
+
 
     # A module header pulls in the modules it depends on, so the translation
     # unit holds their classes too. Bind only what this module declares, and
@@ -1906,12 +1953,25 @@ def run_main(juce_module_name, juce_class_name_to_export):
             binds_reference = (field.type.kind == TypeKind.LVALUEREFERENCE
                                and not field.type.get_pointee().is_const_qualified())
 
+            # A field whose type has no accessible copy constructor cannot be
+            # handed back by value or assigned. Both stay as comments with the
+            # reason rather than being dropped, so what is missing is visible
+            # where the var getter that does work sits beside them.
+            field_copyable = type_is_copyable(field.type, non_copyable)
+            value_comment, value_reason = field_comment, field_reason
+            if not field_copyable:
+                value_comment = "# "
+                value_reason = value_reason or (
+                    f"{field_type.replace('var ', '')} has no accessible copy "
+                    f"constructor, so it can only be reached through the var "
+                    f"getter below")
+
             if not binds_reference:
                 print(nim_field_getter_def.format(**{
-                    "comment": field_comment, "field_name": field_name,
+                    "comment": value_comment, "field_name": field_name,
                     "class_name": class_name, "field_type": field_type.replace("var ", ""),
                     "juce_module_name": juce_module_name, "juce_spelling": field.spelling,
-                    "reason": f"  # {field_reason}" if field_comment else "" }))
+                    "reason": f"  # {value_reason}" if value_comment else "" }))
 
             # A second getter returning var, so a container field can be
             # mutated in place: box.items.add(x) works on the field itself,
@@ -1934,16 +1994,17 @@ def run_main(juce_module_name, juce_class_name_to_export):
                     "reason": f"  # {field_reason}" if field_comment else "" }))
 
             # No setter for a field C++ will not let anyone assign: a const one,
-            # or a reference, which binds once and cannot be repointed.
+            # a reference, which binds once and cannot be repointed, or one
+            # whose type has no copy constructor to assign through.
             if not (field.type.is_const_qualified() or is_reference):
                 print(nim_field_setter_def.format(**{
                     "value_expression": ("std::move(#)"
                                          if field_type.startswith(move_only_wrappers)
                                          else "#"),
-                    "comment": field_comment, "raw_name": field.spelling,
+                    "comment": value_comment, "raw_name": field.spelling,
                     "class_name": class_name, "field_type": field_type.replace("var ", ""),
                     "juce_module_name": juce_module_name, "juce_spelling": field.spelling,
-                    "reason": f"  # {field_reason}" if field_comment else "" }))
+                    "reason": f"  # {value_reason}" if value_comment else "" }))
 
         class_bound_equality = False
         class_has_to_string = False
