@@ -2024,3 +2024,176 @@ proc testColour() =
                  "the display string without alpha is empty"
 
 testColour()
+
+# Path is a list of subpaths built by moving a pen. The assertions that matter
+# are the ones a wrong argument order would break: where the bounds land, where
+# the pen ends up, and what a transform does to both.
+proc testPathGeometry() =
+    block:
+        # The pen position follows the drawing, which testPath above never
+        # looks at. The bounds are relative to where the subpath started, not
+        # to the origin.
+        var path = makePath()
+        path.startNewSubPath(10.0'f32, 20.0'f32)
+        doAssert path.getCurrentPosition() == makePoint(10.0'f32, 20.0'f32),
+                 "the pen is at " & $path.getCurrentPosition()
+
+        path.lineTo(110.0'f32, 20.0'f32)
+        doAssert path.getCurrentPosition() == makePoint(110.0'f32, 20.0'f32),
+                 "lineTo left the pen at " & $path.getCurrentPosition()
+
+        path.lineTo(110.0'f32, 70.0'f32)
+        path.closeSubPath()
+
+        let bounds = path.getBounds()
+        doAssert bounds.getX() == 10.0'f32 and bounds.getY() == 20.0'f32,
+                 "the bounds start at " & $bounds.getX() & "," & $bounds.getY()
+        doAssert bounds.getWidth() == 100.0'f32 and bounds.getHeight() == 50.0'f32,
+                 "the bounds are " & $bounds.getWidth() & "x" & $bounds.getHeight()
+
+    block:
+        # A closed rectangle contains its middle and not a point outside it.
+        var path = makePath()
+        path.addRectangle(0.0'f32, 0.0'f32, 100.0'f32, 50.0'f32)
+        doAssert path.contains(50.0'f32, 25.0'f32, 1.0'f32),
+                 "the path does not contain its own centre"
+        doAssert not path.contains(500.0'f32, 500.0'f32, 1.0'f32),
+                 "the path contains a point far outside it"
+        doAssert path.contains(makePoint(50.0'f32, 25.0'f32), 1.0'f32),
+                 "the Point overload disagrees with the x/y overload"
+
+        # A line through the middle crosses the outline; one far away does not.
+        doAssert path.intersectsLine(
+                     makeLine(-10.0'f32, 25.0'f32, 110.0'f32, 25.0'f32), 1.0'f32),
+                 "a line through the rectangle does not cross it"
+        doAssert not path.intersectsLine(
+                     makeLine(-10.0'f32, 500.0'f32, 110.0'f32, 500.0'f32), 1.0'f32),
+                 "a line far below the rectangle crosses it"
+
+        # The perimeter of a 100x50 rectangle is 300.
+        doAssert abs(path.getLength(AffineTransform.identity(), 1.0'f32) - 300.0'f32) <
+                 0.5'f32,
+                 "the perimeter measures " &
+                 $path.getLength(AffineTransform.identity(), 1.0'f32)
+
+        # addRectangle starts its subpath at the BOTTOM left corner and walks
+        # anticlockwise (juce_Path.cpp:339), so distance zero along the path is
+        # (0, 50) and not the origin.
+        let start = path.getPointAlongPath(0.0'f32, AffineTransform.identity(),
+                                           1.0'f32)
+        doAssert start == makePoint(0.0'f32, 50.0'f32),
+                 "the path starts at " & $start
+
+        # A quarter of the perimeter along, the pen has walked the 50-tall left
+        # edge and is at the top left corner.
+        let quarter = path.getPointAlongPath(50.0'f32, AffineTransform.identity(),
+                                             1.0'f32)
+        doAssert quarter == makePoint(0.0'f32, 0.0'f32),
+                 "50 along the perimeter is " & $quarter
+
+        # getNearestPoint writes the point through its out parameter, and what
+        # it RETURNS is the distance along the path to that point, not the
+        # distance from the target to it. A spot above the top edge is nearest
+        # to (50, 0), which is 50 up the left edge plus 50 along the top.
+        var onPath: Point[cfloat]
+        let along = path.getNearestPoint(makePoint(50.0'f32, -30.0'f32), onPath,
+                                         AffineTransform.identity(), 1.0'f32)
+        doAssert onPath == makePoint(50.0'f32, 0.0'f32),
+                 "the nearest point to a spot above the top edge is " & $onPath
+        doAssert abs(along - 100.0'f32) < 1.0'f32,
+                 "the distance along the path measures " & $along
+
+    block:
+        # A transform moves the path, and getBoundsTransformed reports where the
+        # bounds would land without moving anything.
+        var path = makePath()
+        path.addRectangle(0.0'f32, 0.0'f32, 10.0'f32, 10.0'f32)
+        let shift = AffineTransform.translation(100.0'f32, 200.0'f32)
+
+        let shifted = path.getBoundsTransformed(shift)
+        doAssert shifted.getX() == 100.0'f32 and shifted.getY() == 200.0'f32,
+                 "the transformed bounds start at " & $shifted.getX() & "," &
+                 $shifted.getY()
+        doAssert path.getBounds().getX() == 0.0'f32,
+                 "getBoundsTransformed moved the path itself"
+
+        path.applyTransform(shift)
+        doAssert path.getBounds().getX() == 100.0'f32,
+                 "applyTransform left the path at " & $path.getBounds().getX()
+
+        # scaleToFit puts the path inside the rectangle it is given.
+        path.scaleToFit(0.0'f32, 0.0'f32, 200.0'f32, 200.0'f32, true)
+        let fitted = path.getBounds()
+        doAssert fitted.getWidth() <= 200.0'f32 and fitted.getHeight() <= 200.0'f32,
+                 "after scaleToFit the path is " & $fitted.getWidth() & "x" &
+                 $fitted.getHeight()
+
+    block:
+        # addPath appends: the combined bounds enclose both.
+        var left = makePath()
+        left.addRectangle(0.0'f32, 0.0'f32, 10.0'f32, 10.0'f32)
+        var right = makePath()
+        right.addRectangle(90.0'f32, 0.0'f32, 10.0'f32, 10.0'f32)
+
+        left.addPath(right)
+        doAssert left.getBounds().getWidth() == 100.0'f32,
+                 "the combined width is " & $left.getBounds().getWidth()
+
+        # And the transforming overload places the appended copy.
+        var target = makePath()
+        target.addRectangle(0.0'f32, 0.0'f32, 10.0'f32, 10.0'f32)
+        var source = makePath()
+        source.addRectangle(0.0'f32, 0.0'f32, 10.0'f32, 10.0'f32)
+        target.addPath(source, AffineTransform.translation(190.0'f32, 0.0'f32))
+        doAssert target.getBounds().getWidth() == 200.0'f32,
+                 "the transformed append gave a width of " &
+                 $target.getBounds().getWidth()
+
+    block:
+        # swapWithPath exchanges the two, so each ends up with the other's bounds.
+        var small = makePath()
+        small.addRectangle(0.0'f32, 0.0'f32, 1.0'f32, 1.0'f32)
+        var large = makePath()
+        large.addRectangle(0.0'f32, 0.0'f32, 100.0'f32, 100.0'f32)
+
+        small.swapWithPath(large)
+        doAssert small.getBounds().getWidth() == 100.0'f32,
+                 "after the swap the first path is " &
+                 $small.getBounds().getWidth() & " wide"
+        doAssert large.getBounds().getWidth() == 1.0'f32,
+                 "after the swap the second path is " &
+                 $large.getBounds().getWidth() & " wide"
+
+    block:
+        # The winding rule decides whether a hole inside a shape is filled.
+        var path = makePath()
+        path.addRectangle(0.0'f32, 0.0'f32, 100.0'f32, 100.0'f32)
+        path.addRectangle(25.0'f32, 25.0'f32, 50.0'f32, 50.0'f32)
+
+        doAssert path.isUsingNonZeroWinding(),
+                 "a path does not start with the non-zero winding rule"
+        doAssert path.contains(50.0'f32, 50.0'f32, 1.0'f32),
+                 "the non-zero rule left the inner square empty"
+
+        path.setUsingNonZeroWinding(false)
+        doAssert not path.isUsingNonZeroWinding(),
+                 "the winding rule did not change"
+        doAssert not path.contains(50.0'f32, 50.0'f32, 1.0'f32),
+                 "the even-odd rule filled the inner square"
+
+    block:
+        # A path survives a round trip through its own string form.
+        var path = makePath()
+        path.addTriangle(0.0'f32, 0.0'f32, 10.0'f32, 0.0'f32, 5.0'f32, 8.0'f32)
+        let text = path.toString()
+        doAssert text.isNotEmpty(), "toString gave an empty description"
+
+        var rebuilt = makePath()
+        rebuilt.restoreFromString(makeStringRef($text))
+        doAssert rebuilt.getBounds().getWidth() == path.getBounds().getWidth() and
+                 rebuilt.getBounds().getHeight() == path.getBounds().getHeight(),
+                 "the round trip changed the bounds to " &
+                 $rebuilt.getBounds().getWidth() & "x" &
+                 $rebuilt.getBounds().getHeight()
+
+testPathGeometry()
