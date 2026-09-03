@@ -105,6 +105,12 @@ iterator items*[T; N: static int](this: CppArray[T, N]): T =
     for index in 0 ..< N:
         yield this[index.csize_t]
 
+proc add*[T](this: var CppVector[T], value: T)
+    {.importcpp: "#.push_back(#)", header: "<vector>".}
+proc clear*[T](this: var CppVector[T])
+    {.importcpp: "#.clear()", header: "<vector>".}
+proc isEmpty*[T](this: CppVector[T]): bool
+    {.importcpp: "#.empty()", header: "<vector>".}
 proc size*[T](this: CppVector[T]): csize_t {.importcpp: "#.size()".}
 proc `[]`*[T](this: CppVector[T], index: csize_t): T {.importcpp: "#[#]".}
 
