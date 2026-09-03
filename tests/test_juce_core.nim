@@ -1924,3 +1924,56 @@ proc testFileStreams() =
         doAssert root.deleteRecursively(), "could not remove the temp directory"
 
 testFileStreams()
+
+# LocalisedStrings ============================================================
+#
+# A translation table parsed from JUCE's own .lang format, so the assertions
+# are about text that came back through the parser rather than a map that was
+# filled by hand.
+
+proc testLocalisedStrings() =
+    block:
+        let table = """language: Pirate
+countries: pi
+
+"Open" = "Broach"
+"Save" = "Stow"
+"""
+        var strings = makeLocalisedStrings(makeString(table), false)
+
+        doAssert $strings.getLanguageName() == "Pirate",
+                 "the language is " & $strings.getLanguageName()
+        doAssert strings.getCountryCodes().size() == 1,
+                 "the table names " & $strings.getCountryCodes().size() & " countries"
+        doAssert $strings.getCountryCodes()[0.cint] == "pi",
+                 "the country is " & $strings.getCountryCodes()[0.cint]
+
+        doAssert $strings.translate(makeString("Open")) == "Broach",
+                 "Open translates to " & $strings.translate(makeString("Open"))
+        doAssert $strings.translate(makeString("Save")) == "Stow",
+                 "Save translates to " & $strings.translate(makeString("Save"))
+
+        # A word with no entry comes back unchanged, which is what makes a
+        # missing translation harmless.
+        doAssert $strings.translate(makeString("Quit")) == "Quit",
+                 "an untranslated word became " & $strings.translate(makeString("Quit"))
+        doAssert $strings.translate(makeString("Quit"), makeString("Abandon ship")) ==
+                 "Abandon ship",
+                 "the fallback for an untranslated word was ignored"
+
+        doAssert strings.getMappings().size() == 2,
+                 "the table holds " & $strings.getMappings().size() & " mappings"
+
+        # A second table merged in adds its entries without dropping the first.
+        let extra = """language: Pirate
+countries: pi
+
+"Quit" = "Abandon ship"
+"""
+        strings.addStrings(makeLocalisedStrings(makeString(extra), false))
+        doAssert $strings.translate(makeString("Quit")) == "Abandon ship",
+                 "the merged entry is missing"
+        doAssert $strings.translate(makeString("Open")) == "Broach",
+                 "merging dropped the original entry"
+
+testLocalisedStrings()
