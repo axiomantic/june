@@ -413,6 +413,14 @@ def remap_template(spelling, *args):
     return f"{nim_head}[{', '.join(mapped)}]"
 
 def remap_template_arg(spelling, *args):
+    # Read before the const is stripped: a pointer TO a const is a different
+    # C++ type from a pointer to a mutable one, and Array<const UndoableAction *>
+    # bound as Array[ptr UndoableAction] names a type C++ will not convert to.
+    # ConstPtr is what spells the difference in Nim.
+    without_reference = spelling.replace("&", "").strip()
+    points_to_const = (without_reference.endswith("*")
+                       and "const" in without_reference[:without_reference.rindex("*")])
+
     spelling = spelling.replace("const", "").replace("&", "").strip()
 
     is_pointer = spelling.endswith("*")
@@ -454,7 +462,9 @@ def remap_template_arg(spelling, *args):
     if result is None:
         return None
 
-    return f"ptr {result}" if is_pointer else result
+    if not is_pointer:
+        return result
+    return f"ConstPtr[{result}]" if points_to_const else f"ptr {result}"
 
 #==================================================================================================
 

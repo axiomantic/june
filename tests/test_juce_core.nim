@@ -2710,3 +2710,44 @@ proc testStringArrayFromCArray() =
         doAssert $sentinel[1] == "two", "second entry is " & $sentinel[1]
 
 testStringArrayFromCArray()
+
+# UnitTest's registry ==========================================================
+#
+# Every UnitTest registers itself in a static Array<UnitTest*>, and the pointer
+# was dropped: the array bound as Array[UnitTest], which is an array of copies
+# of a non-copyable class. Nothing called these, so nothing said so.
+
+proc testUnitTestRegistry() =
+    block:
+        let before = UnitTest.getAllTests().size()
+        let registered = newCustomUnitTest(makeString("june registry test"),
+                                           makeString("june"))
+        doAssert UnitTest.getAllTests().size() == before + 1,
+                 "the registry went from " & $before & " to " &
+                 $UnitTest.getAllTests().size()
+
+        var ran = 0
+        registered[].setRunTestHandler(proc() = ran += 1)
+
+        let byName = UnitTest.getTestsWithName(makeString("june registry test"))
+        doAssert byName.size() == 1,
+                 "searching by name found " & $byName.size() & " tests"
+        doAssert byName[0] == cast[ptr UnitTest](registered),
+                 "the test found by name is not the one registered"
+
+        let byCategory = UnitTest.getTestsInCategory(makeString("june"))
+        doAssert byCategory.size() == 1,
+                 "searching by category found " & $byCategory.size() & " tests"
+        doAssert byCategory[0] == cast[ptr UnitTest](registered),
+                 "the test found by category is not the one registered"
+
+        var runner = makeUnitTestRunner()
+        runner.setAssertOnFailure(false)
+        runner.runTests(byName)
+        doAssert ran == 1, "the registered test ran " & $ran & " times"
+
+        cdelete registered
+        doAssert UnitTest.getAllTests().size() == before,
+                 "the registry did not shrink when the test was deleted"
+
+testUnitTestRegistry()
