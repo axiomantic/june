@@ -2375,3 +2375,14 @@ proc testEveryConstantCore() =
         discard ZipFileFollowSymlinks_yes
 
 testEveryConstantCore()
+
+# Every static variable =======================================================
+#
+# Bound as a proc over the typedesc, so it is compiled only where it is called,
+# exactly like the constants. Reading each is what checks its C++ spelling.
+
+proc testEveryStaticVariableCore() =
+    block:
+        discard Thread.`osDefaultStackSize`()
+
+testEveryStaticVariableCore()
