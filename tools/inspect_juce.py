@@ -247,9 +247,17 @@ def remap_type(t, *args):
         # all. The const and the & are stripped from the spelling above before
         # remap_template ever sees them, so the distinction is read here, off
         # the original.
-        if (mapped is not None and mapped.startswith("CppFunctionObjectR1[")
-                and re.search(r"std::function<[^<>]*\(\s*const\s[^()*]*&\s*\)>", t.spelling)):
+        const_reference_argument = re.search(
+            r"std::function<[^<>]*\(\s*const\s[^()*]*&\s*\)>", t.spelling)
+        if (mapped is not None and const_reference_argument
+                and mapped.startswith("CppFunctionObjectR1[")):
             mapped = "CppFunctionObjectR1Ref[" + mapped[len("CppFunctionObjectR1["):]
+        # The void-returning form of the same thing. FileChooser::launchAsync
+        # asks for a std::function over a FileChooser, which cannot be copied,
+        # so the by-value type it was bound as is one C++ cannot even form.
+        elif (mapped is not None and const_reference_argument
+                and mapped.startswith("CppFunctionObjectN1[")):
+            mapped = "CppFunctionObjectN1Ref[" + mapped[len("CppFunctionObjectN1["):]
         # Leave the C++ spelling in place when it cannot be mapped. It is not
         # valid Nim, which is exactly the signal the emit site checks in order
         # to comment the proc out.
@@ -524,6 +532,7 @@ known_builtin_types = {
     "cint", "cuint", "clong", "culong", "clonglong", "culonglong",
     "cfloat", "cdouble", "constChar", "constPointer", "WChar", "ConstPtr",
     "UniquePtr", "CppOptional", "CppVector", "CppFunctionObjectR1Ref",
+    "CppFunctionObjectN1Ref",
     "CppString", "CppMap", "CppUnorderedMap", "CppArray", "CppException", "CppTypeIndex", "CppByte",
     "Rectangle", "Point", "Line", "BorderSize", "Range",
     "Array", "OwnedArray", "ReferenceCountedObjectPtr",
@@ -1772,8 +1781,15 @@ def run_main(juce_module_name, juce_class_name_to_export):
             # where the by-value getter above hands back a copy. Same C++
             # expression; Nim picks by whether the receiver is mutable. For a
             # reference field it is the only getter.
+            # is_reference, not an ampersand anywhere in the spelling: a field
+            # whose type is std::function<void (const ArgumentList &)> carries
+            # one inside the template argument, and reading it that way left
+            # ConsoleApplicationCommand::command with no setter - readable, and
+            # impossible to install.
+            is_reference = field.type.kind in (TypeKind.LVALUEREFERENCE,
+                                               TypeKind.RVALUEREFERENCE)
             if binds_reference or not (field.type.is_const_qualified()
-                                       or "&" in field.type.spelling):
+                                       or is_reference):
                 print(nim_field_var_getter_def.format(**{
                     "comment": field_comment, "field_name": field_name,
                     "class_name": class_name, "field_type": field_type.replace("var ", ""),
@@ -1782,7 +1798,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
 
             # No setter for a field C++ will not let anyone assign: a const one,
             # or a reference, which binds once and cannot be repointed.
-            if not (field.type.is_const_qualified() or "&" in field.type.spelling):
+            if not (field.type.is_const_qualified() or is_reference):
                 print(nim_field_setter_def.format(**{
                     "value_expression": ("std::move(#)"
                                          if field_type.startswith(move_only_wrappers)

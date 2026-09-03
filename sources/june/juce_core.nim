@@ -1211,7 +1211,9 @@ proc `shortDescription=`*(this: var ConsoleApplicationCommand, value: String) {.
 proc longDescription*(this: ConsoleApplicationCommand): String {.header: juce_core, importcpp: "#.longDescription".}
 proc longDescription*(this: var ConsoleApplicationCommand): var String {.header: juce_core, importcpp: "#.longDescription".}
 proc `longDescription=`*(this: var ConsoleApplicationCommand, value: String) {.header: juce_core, importcpp: "#.longDescription = #".}
-proc command*(this: ConsoleApplicationCommand): CppFunctionObjectN1[ArgumentList] {.header: juce_core, importcpp: "#.command".}
+proc command*(this: ConsoleApplicationCommand): CppFunctionObjectN1Ref[ArgumentList] {.header: juce_core, importcpp: "#.command".}
+proc command*(this: var ConsoleApplicationCommand): var CppFunctionObjectN1Ref[ArgumentList] {.header: juce_core, importcpp: "#.command".}
+proc `command=`*(this: var ConsoleApplicationCommand, value: CppFunctionObjectN1Ref[ArgumentList]) {.header: juce_core, importcpp: "#.command = #".}
 proc `==`*(this: ConsoleApplicationCommand, other: ConsoleApplicationCommand): bool {.error: "juce::ConsoleApplication::Command defines no operator==; compare a property instead".}
 
 proc makejuce_var*(): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
