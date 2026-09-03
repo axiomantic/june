@@ -3649,6 +3649,8 @@ proc onDragEnd*(this: Slider): CppFunctionObjectN0 {.header: juce_gui_basics, im
 proc onDragEnd*(this: var Slider): var CppFunctionObjectN0 {.header: juce_gui_basics, importcpp: "#.onDragEnd".}
 proc `onDragEnd=`*(this: var Slider, value: CppFunctionObjectN0) {.header: juce_gui_basics, importcpp: "#.onDragEnd = #".}
 proc valueFromTextFunction*(this: Slider): CppFunctionObjectR1Ref[cdouble, String] {.header: juce_gui_basics, importcpp: "#.valueFromTextFunction".}
+proc valueFromTextFunction*(this: var Slider): var CppFunctionObjectR1Ref[cdouble, String] {.header: juce_gui_basics, importcpp: "#.valueFromTextFunction".}
+proc `valueFromTextFunction=`*(this: var Slider, value: CppFunctionObjectR1Ref[cdouble, String]) {.header: juce_gui_basics, importcpp: "#.valueFromTextFunction = #".}
 proc textFromValueFunction*(this: Slider): CppFunctionObjectR1[String, cdouble] {.header: juce_gui_basics, importcpp: "#.textFromValueFunction".}
 proc textFromValueFunction*(this: var Slider): var CppFunctionObjectR1[String, cdouble] {.header: juce_gui_basics, importcpp: "#.textFromValueFunction".}
 proc `textFromValueFunction=`*(this: var Slider, value: CppFunctionObjectR1[String, cdouble]) {.header: juce_gui_basics, importcpp: "#.textFromValueFunction = #".}
@@ -4685,7 +4687,7 @@ proc layoutFileBrowserComponent*(this: var FileBrowserComponentLookAndFeelMethod
 proc `==`*(this: FileBrowserComponentLookAndFeelMethods, other: FileBrowserComponentLookAndFeelMethods): bool {.error: "juce::FileBrowserComponent::LookAndFeelMethods defines no operator==; compare a property instead".}
 
 proc makeFileChooser*(dialogBoxTitle: String, initialFileOrDirectory: File, filePatternsAllowed: String, useOSNativeDialogBox: bool, treatFilePackagesAsDirectories: bool, parentComponent: ptr Component): FileChooser {.header: juce_gui_basics, importcpp: "juce::FileChooser(@)".}
-proc launchAsync*(this: var FileChooser, flags: cint, arg2: CppFunctionObjectN1[FileChooser], previewComponent: ptr FilePreviewComponent = nil) {.header: juce_gui_basics, importcpp: "#.launchAsync(@)".}
+proc launchAsync*(this: var FileChooser, flags: cint, arg2: CppFunctionObjectN1Ref[FileChooser], previewComponent: ptr FilePreviewComponent = nil) {.header: juce_gui_basics, importcpp: "#.launchAsync(@)".}
 proc getResult*(this: FileChooser): File {.header: juce_gui_basics, importcpp: "#.getResult()".}
 proc getResults*(this: FileChooser): Array[File] {.header: juce_gui_basics, importcpp: "#.getResults()".}
 proc getURLResult*(this: FileChooser): URL {.header: juce_gui_basics, importcpp: "#.getURLResult()".}
