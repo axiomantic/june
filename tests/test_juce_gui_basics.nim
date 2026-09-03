@@ -7127,3 +7127,81 @@ proc testComponentHierarchy() =
     shutdownJuce_GUI()
 
 testComponentHierarchy()
+
+proc testKeyPressComparison() =
+    # testKeyPress above covers construction and the description round trip.
+    # This covers the comparisons and the ModifierKeys flag algebra.
+    initialiseJuce_GUI()
+
+    block:
+        let space = makeKeyPress(KeyPress.spaceKey)
+        doAssert space.isKeyCode(KeyPress.spaceKey), "isKeyCode denied its own code"
+        doAssert not space.isKeyCode(KeyPress.escapeKey),
+                 "isKeyCode accepted a different code"
+        doAssert space == makeKeyPress(KeyPress.spaceKey),
+                 "two space keys are not equal"
+        doAssert not (space == makeKeyPress(KeyPress.escapeKey)),
+                 "space equals escape"
+
+        # The int overload of == compares the key code alone.
+        doAssert space == KeyPress.spaceKey, "== against the raw code failed"
+
+        # Modifiers are part of the identity: shift-A is not A.
+        let plainA = makeKeyPress(cint(ord('a')),
+                                  makeModifierKeys(0.cint),
+                                  uint16('a'))
+        let shiftA = makeKeyPress(cint(ord('a')),
+                                  makeModifierKeys(cint(ModifierKeysFlags_shiftModifier)),
+                                  uint16('A'))
+        doAssert not (plainA == shiftA), "shift-A equals a plain A"
+        doAssert plainA.getKeyCode() == shiftA.getKeyCode(),
+                 "the two share a key but not a key code"
+
+        # Nothing is held down in a test process with no window.
+        doAssert not KeyPress.isKeyCurrentlyDown(KeyPress.spaceKey),
+                 "the space bar is held down in a headless test"
+        doAssert not space.isCurrentlyDown(),
+                 "isCurrentlyDown reported a key held in a headless test"
+
+    block:
+        # ModifierKeys is a flag set, and the with/without pairs are opposites.
+        let none = makeModifierKeys(0.cint)
+        doAssert not none.isAnyModifierKeyDown(), "an empty set holds a modifier"
+        doAssert not none.isAnyMouseButtonDown(), "an empty set holds a button"
+        doAssert none.getNumMouseButtonsDown() == 0,
+                 "an empty set holds " & $none.getNumMouseButtonsDown() & " buttons"
+        doAssert none.getRawFlags() == 0,
+                 "an empty set has raw flags " & $none.getRawFlags()
+
+        let shift = none.withFlags(cint(ModifierKeysFlags_shiftModifier))
+        doAssert shift.isShiftDown(), "withFlags did not set shift"
+        doAssert shift.testFlags(cint(ModifierKeysFlags_shiftModifier)),
+                 "testFlags denied the flag withFlags set"
+        doAssert not shift.withoutFlags(
+                    cint(ModifierKeysFlags_shiftModifier)).isShiftDown(),
+                 "withoutFlags did not clear shift"
+
+        let clicking = shift.withFlags(cint(ModifierKeysFlags_leftButtonModifier))
+        doAssert clicking.isLeftButtonDown(), "the left button flag was lost"
+        doAssert clicking.getNumMouseButtonsDown() == 1,
+                 "one button reads as " & $clicking.getNumMouseButtonsDown()
+        doAssert not clicking.withoutMouseButtons().isLeftButtonDown(),
+                 "withoutMouseButtons kept the button"
+        doAssert clicking.withoutMouseButtons().isShiftDown(),
+                 "withoutMouseButtons dropped a keyboard modifier too"
+        doAssert not clicking.withOnlyMouseButtons().isShiftDown(),
+                 "withOnlyMouseButtons kept a keyboard modifier"
+        doAssert clicking.withOnlyMouseButtons().isLeftButtonDown(),
+                 "withOnlyMouseButtons dropped the button"
+
+        # ctrl and alt are separate bits, and neither is the other.
+        let ctrlAlt = none.withFlags(cint(ModifierKeysFlags_ctrlModifier) or
+                                     cint(ModifierKeysFlags_altModifier))
+        doAssert ctrlAlt.isCtrlDown() and ctrlAlt.isAltDown(),
+                 "setting two flags at once lost one of them"
+        doAssert not ctrlAlt.isShiftDown(), "ctrl+alt reports shift"
+        doAssert ctrlAlt.isAnyModifierKeyDown(), "ctrl+alt holds no modifier"
+
+    shutdownJuce_GUI()
+
+testKeyPressComparison()
