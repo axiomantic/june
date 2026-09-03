@@ -6080,3 +6080,30 @@ proc testOneDeclarationPerSignature() =
     shutdownJuce_GUI()
 
 testOneDeclarationPerSignature()
+
+# A covariant override keeps its own return type ==============================
+#
+# TableListBox::getModel returns a TableListBoxModel where ListBox::getModel
+# returns a ListBoxModel. Dropping the derived declaration as a duplicate of
+# the base's - which every other identical override is - would hand the caller
+# the base type, and the derived one is the whole point of calling it on a
+# TableListBox.
+
+proc testCovariantReturn() =
+    initialiseJuce_GUI()
+
+    block:
+        let model = newCustomTableListBoxModel()
+        var table = makeTableListBox(makeString("table"),
+                                     cast[ptr TableListBoxModel](model))
+
+        # The static type is what matters: getNumRows is declared on
+        # TableListBoxModel and reached through the pointer this returns.
+        let returned: ptr TableListBoxModel = table.getModel()
+        doAssert returned == cast[ptr TableListBoxModel](model),
+                 "the table returned a different model from the one it was given"
+        cdelete model
+
+    shutdownJuce_GUI()
+
+testCovariantReturn()
