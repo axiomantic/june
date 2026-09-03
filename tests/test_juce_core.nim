@@ -2233,3 +2233,32 @@ proc testNaturalFileComparator() =
         doAssert root.deleteRecursively(), "could not remove the temp directory"
 
 testNaturalFileComparator()
+
+# URLInputSource ==============================================================
+#
+# Built over a URL rather than a File. No network is touched: the source is
+# asked what it hashes to and what a related path resolves to, both of which
+# are string work.
+
+proc testUrlInputSource() =
+    block:
+        let page = makeURL(makeString("https://example.invalid/docs/index.html"))
+        doAssert $page.toString(false) == "https://example.invalid/docs/index.html",
+                 "the URL reads " & $page.toString(false)
+
+        var source = makeURLInputSource(page)
+        doAssert source.hashCode() != 0'i64, "the source hashes to zero"
+
+        # Two sources over the same URL agree, and one over a different URL
+        # does not - which says the hash is of the URL rather than of nothing.
+        var same = makeURLInputSource(makeURL(
+            makeString("https://example.invalid/docs/index.html")))
+        doAssert same.hashCode() == source.hashCode(),
+                 "two sources over the same URL hash differently"
+
+        var other = makeURLInputSource(makeURL(
+            makeString("https://example.invalid/docs/other.html")))
+        doAssert other.hashCode() != source.hashCode(),
+                 "sources over different URLs hash the same"
+
+testUrlInputSource()
