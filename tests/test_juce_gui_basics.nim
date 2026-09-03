@@ -10332,3 +10332,114 @@ proc testListBoxRowsAndScrolling() =
     shutdownJuce_GUI()
 
 testListBoxRowsAndScrolling()
+
+# TreeViewItem's openness state is an XmlElement, which is how a program saves
+# an expanded tree and restores it. The geometry and the drawing flags are the
+# rest of what a caller reaches for.
+proc testTreeViewItemStateAndGeometry() =
+    initialiseJuce_GUI()
+
+    block:
+        var tree = makeTreeView(makeString("tree"))
+        tree.setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 300.cint))
+        # Shown, because an item's position comes from the tree's layout and a
+        # component starts invisible - an unshown tree reports every item at
+        # the origin.
+        tree.setVisible(true)
+
+        let root = newCustomTreeViewItem()
+        root[].setMightContainSubItemsHandler(proc(): bool = true)
+        tree.setRootItem(cast[ptr TreeViewItem](root))
+
+        let branch = newCustomTreeViewItem()
+        branch[].setMightContainSubItemsHandler(proc(): bool = true)
+        root[].addSubItem(cast[ptr TreeViewItem](branch))
+        branch[].addSubItem(cast[ptr TreeViewItem](newCustomTreeViewItem()))
+
+        # The item is a candidate for selection and has a place on screen.
+        doAssert root[].canBeSelected(), "the root cannot be selected"
+        doAssert root[].getItemWidth() != 0,
+                 "an item is " & $root[].getItemWidth() & " wide"
+        doAssert root[].getItemPosition(false).getHeight() > 0,
+                 "the root is " & $root[].getItemPosition(false).getHeight() &
+                 " tall"
+
+        # The X of an item's rectangle is its INDENT, computed from its depth
+        # on demand, so a child is indented further than the root whatever the
+        # tree has drawn (juce_TreeView.cpp:1856).
+        root[].setOpen(true)
+        doAssert branch[].getItemPosition(false).getX() >
+                 root[].getItemPosition(false).getX(),
+                 "the child is indented to " &
+                 $branch[].getItemPosition(false).getX() & " and the root to " &
+                 $root[].getItemPosition(false).getX()
+
+        # The Y is NOT computed on demand: it is a member the tree writes
+        # during its own layout pass, which runs on a repaint. Nothing paints
+        # in this test, so every item reports y=0 - which is why the row
+        # ordering is asserted through getRowNumberInTree instead.
+        doAssert root[].getItemPosition(false).getY() == 0,
+                 "an unpainted tree gave the root y=" &
+                 $root[].getItemPosition(false).getY()
+        doAssert branch[].getRowNumberInTree() >
+                 root[].getRowNumberInTree(),
+                 "the child is on row " & $branch[].getRowNumberInTree() &
+                 " and the root on " & $root[].getRowNumberInTree()
+
+        # relativeToTreeViewTopLeft subtracts the viewport's position, which is
+        # the origin with nothing scrolled, so the two frames agree here.
+        doAssert branch[].getItemPosition(true).getX() ==
+                 branch[].getItemPosition(false).getX(),
+                 "the two frames disagree on x with nothing scrolled"
+
+        # The openness state is XML keyed on each item's getUniqueName, and it
+        # returns NOTHING when that name is empty (juce_TreeView.cpp:2173).
+        # CustomTreeViewItem does not override getUniqueName - the same
+        # missing override that makes getItemIdentifierString "//" - so an
+        # expanded tree of these cannot be saved at all.
+        root[].setOpen(true)
+        branch[].setOpen(true)
+        doAssert root[].getUniqueName().isEmpty(),
+                 "the item has a unique name after all"
+        doAssert root[].getOpennessState().isNil(),
+                 "an item with no unique name produced an openness state"
+
+        # restoreOpennessState matches on the same names, so a state built by
+        # hand finds nothing to apply and leaves the tree as it was. What is
+        # asserted is that it runs and changes nothing, rather than that it
+        # restores.
+        var state = makeXmlElement(makeString("OPENNESS"))
+        root[].restoreOpennessState(state)
+        doAssert root[].isOpen(),
+                 "a state naming no item closed the root"
+        doAssert branch[].isOpen(),
+                 "a state naming no item closed the branch"
+
+        # The drawing flags have no reader, so what is asserted is that they
+        # run and leave the tree consistent.
+        root[].setDrawsInLeftMargin(true)
+        root[].setDrawsInRightMargin(true)
+        root[].setLinesDrawnForSubItems(false)
+        root[].repaintItem()
+        root[].treeHasChanged()
+        doAssert root[].getNumSubItems() == 1,
+                 "the drawing flags changed the child count to " &
+                 $root[].getNumSubItems()
+
+        # The drag and drop questions all answer no for an item that was never
+        # told to accept anything.
+        doAssert not root[].isInterestedInFileDrag(makeStringArray()),
+                 "the item accepts a file drag it was never told about"
+        doAssert root[].getDragSourceDescription().isVoid(),
+                 "the item describes itself as a drag source"
+
+        # An item with no custom component uses the tree's own mouse handling.
+        doAssert root[].createItemComponent().isNil,
+                 "the item made a custom component with no handler to do it"
+
+        tree.setRootItem(nil)
+        cdelete root
+
+    shutdownJuce_GUI()
+
+testTreeViewItemStateAndGeometry()
