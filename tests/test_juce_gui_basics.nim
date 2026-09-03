@@ -9704,3 +9704,161 @@ proc testAlertWindowContents() =
     shutdownJuce_GUI()
 
 testAlertWindowContents()
+
+# Focus containers, the mouse cursor, the LookAndFeel and the image cache. Each
+# is a piece of state a component keeps and hands back, and several of them
+# search UP the hierarchy rather than answering for the component alone.
+proc testComponentServices() =
+    initialiseJuce_GUI()
+
+    block:
+        # A focus container is found by searching upwards, so a child answers
+        # with whichever ancestor was marked - and with the top-level component
+        # when none was.
+        let root = newCustomComponent()
+        let middle = newCustomComponent()
+        let leaf = newCustomComponent()
+        root[].addAndMakeVisible(cast[ptr Component](middle))
+        middle[].addAndMakeVisible(cast[ptr Component](leaf))
+
+        doAssert not root[].isFocusContainer(), "a new component is a focus container"
+        doAssert not root[].isKeyboardFocusContainer(),
+                 "a new component is a keyboard focus container"
+        doAssert leaf[].findFocusContainer() == cast[ptr Component](root),
+                 "with nothing marked the leaf found something other than the root"
+
+        middle[].setFocusContainerType(
+            ComponentFocusContainerType_focusContainer)
+        doAssert middle[].isFocusContainer(), "setFocusContainerType did not take"
+        doAssert not middle[].isKeyboardFocusContainer(),
+                 "a plain focus container is also a keyboard focus container"
+        doAssert leaf[].findFocusContainer() == cast[ptr Component](middle),
+                 "the leaf did not find the nearest marked ancestor"
+        doAssert leaf[].findKeyboardFocusContainer() == cast[ptr Component](root),
+                 "a plain focus container answered for the keyboard search"
+
+        middle[].setFocusContainerType(
+            ComponentFocusContainerType_keyboardFocusContainer)
+        doAssert middle[].isKeyboardFocusContainer(),
+                 "the keyboard container flag did not take"
+        doAssert leaf[].findKeyboardFocusContainer() == cast[ptr Component](middle),
+                 "the leaf did not find the keyboard container"
+
+        # A traverser is created on demand, and each call makes a new one.
+        var traverser = root[].createFocusTraverser()
+        doAssert not traverser.isNil(), "createFocusTraverser produced nothing"
+        var keyboardTraverser = root[].createKeyboardFocusTraverser()
+        doAssert not keyboardTraverser.isNil(),
+                 "createKeyboardFocusTraverser produced nothing"
+        doAssert traverser.get() != keyboardTraverser.get(),
+                 "the two traversers are the same object"
+
+        doAssert not root[].hasFocusOutline(), "a new component has a focus outline"
+        root[].setHasFocusOutline(true)
+        doAssert root[].hasFocusOutline(), "setHasFocusOutline did not take"
+
+        # Nothing holds the focus in a headless test, and grabbing it changes
+        # nothing without a peer.
+        doAssert not leaf[].hasKeyboardFocus(true),
+                 "a component holds the focus in a headless test"
+        doAssert not root[].isCurrentlyBlockedByAnotherModalComponent(),
+                 "a modal component is blocking in a headless test"
+
+        cdelete leaf
+        cdelete middle
+        cdelete root
+
+    block:
+        # The LookAndFeel is inherited from the parent unless the component was
+        # given one of its own, and the reference is to the same object.
+        let parent = newCustomComponent()
+        let child = newCustomComponent()
+        parent[].addAndMakeVisible(cast[ptr Component](child))
+
+        doAssert (addr child[].getLookAndFeel()) == (addr parent[].getLookAndFeel()),
+                 "a child does not share its parent's LookAndFeel"
+
+        var own = makeLookAndFeel_V4()
+        parent[].setLookAndFeel(cast[ptr LookAndFeel](addr own))
+        doAssert (addr parent[].getLookAndFeel()) == cast[ptr LookAndFeel](addr own),
+                 "setLookAndFeel did not take"
+        doAssert (addr child[].getLookAndFeel()) == cast[ptr LookAndFeel](addr own),
+                 "the child did not inherit the parent's new LookAndFeel"
+
+        parent[].sendLookAndFeelChange()
+
+        # The component has to let go before the LookAndFeel is destroyed.
+        parent[].setLookAndFeel(nil)
+        cdelete child
+        cdelete parent
+
+    block:
+        # The mouse cursor is a value the component keeps.
+        let component = newCustomComponent()
+        component[].setMouseCursor(makeMouseCursor(
+            MouseCursorStandardCursorType_PointingHandCursor))
+        doAssert component[].getMouseCursor() == makeMouseCursor(
+            MouseCursorStandardCursorType_PointingHandCursor),
+                 "the cursor did not read back"
+        doAssert not (component[].getMouseCursor() == makeMouseCursor(
+            MouseCursorStandardCursorType_DraggingHandCursor)),
+                 "two different cursors compare equal"
+
+        doAssert not component[].isBroughtToFrontOnMouseClick(),
+                 "a new component comes to the front on a click"
+        component[].setBroughtToFrontOnMouseClick(true)
+        doAssert component[].isBroughtToFrontOnMouseClick(),
+                 "the switch did not take"
+
+        # These have no reader, so what is asserted is that they run.
+        component[].setRepaintsOnMouseActivity(true)
+        component[].repaint()
+        component[].repaint(makeRectangle(0.cint, 0.cint, 10.cint, 10.cint))
+        component[].repaint(0.cint, 0.cint, 5.cint, 5.cint)
+
+        cdelete component
+
+    block:
+        # Buffering installs a CachedComponentImage; turning it off removes it.
+        let component = newCustomComponent()
+        component[].setBounds(makeRectangle(0.cint, 0.cint, 40.cint, 30.cint))
+        doAssert component[].getCachedComponentImage().isNil,
+                 "a new component is already buffered"
+
+        component[].setBufferedToImage(true)
+        doAssert not component[].getCachedComponentImage().isNil,
+                 "setBufferedToImage installed no cache"
+        component[].invalidateCachedImageResources()
+        doAssert not component[].getCachedComponentImage().isNil,
+                 "invalidating the resources removed the cache itself"
+
+        component[].setBufferedToImage(false)
+        doAssert component[].getCachedComponentImage().isNil,
+                 "turning buffering off left the cache in place"
+
+        # A snapshot is an image of the area it was asked for.
+        let snapshot = component[].createComponentSnapshot(
+            makeRectangle(0.cint, 0.cint, 20.cint, 15.cint), true, 1.0'f32,
+            makeSoftwareImageType())
+        doAssert snapshot.isValid(), "the snapshot is not a valid image"
+        doAssert snapshot.getWidth() == 20 and snapshot.getHeight() == 15,
+                 "the snapshot measures " & $snapshot.getWidth() & "x" &
+                 $snapshot.getHeight()
+
+        # An effect is a plain pointer the component holds.
+        doAssert component[].getComponentEffect().isNil,
+                 "a new component has an effect"
+        var glow = makeGlowEffect()
+        component[].setComponentEffect(cast[ptr ImageEffectFilter](addr glow))
+        doAssert component[].getComponentEffect() ==
+                 cast[ptr ImageEffectFilter](addr glow),
+                 "the effect is a different one"
+        component[].setComponentEffect(nil)
+        doAssert component[].getComponentEffect().isNil,
+                 "the effect was not cleared"
+
+        cdelete component
+
+    shutdownJuce_GUI()
+
+testComponentServices()
