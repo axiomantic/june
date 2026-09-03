@@ -163,6 +163,7 @@ proc `==`*(this: ValueTreeIterator, arg1: ValueTreeIterator): bool {.header: juc
 # proc operator!=*(this: ValueTreeIterator, arg1: ValueTreeIterator): bool {.header: juce_data_structures, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `*`*(this: ValueTreeIterator): ValueTree {.header: juce_data_structures, importcpp: "#.operator*()".}
 
+proc makeValueTreeListener*(): ValueTreeListener {.header: juce_data_structures, importcpp: "juce::ValueTree::Listener(@)".}  # implicit default constructor
 proc valueTreePropertyChanged*(this: var ValueTreeListener, treeWhosePropertyHasChanged: var ValueTree, property: Identifier) {.header: juce_data_structures, importcpp: "#.valueTreePropertyChanged(@)".}
 proc valueTreeChildAdded*(this: var ValueTreeListener, parentTree: var ValueTree, childWhichHasBeenAdded: var ValueTree) {.header: juce_data_structures, importcpp: "#.valueTreeChildAdded(@)".}
 proc valueTreeChildRemoved*(this: var ValueTreeListener, parentTree: var ValueTree, childWhichHasBeenRemoved: var ValueTree, indexFromWhichChildWasRemoved: cint) {.header: juce_data_structures, importcpp: "#.valueTreeChildRemoved(@)".}

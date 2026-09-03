@@ -9980,3 +9980,67 @@ proc testTableListBoxCells() =
     shutdownJuce_GUI()
 
 testTableListBoxCells()
+
+# The last classes with an implicit default constructor. Several are listener
+# bases whose methods JUCE gives empty bodies rather than making pure, so the
+# generator emits no Custom subclass and this constructor is the only way to
+# get an instance; the rest are namespace-shaped classes of static members.
+# Each is built here, which is what compiles its importcpp.
+proc testRemainingGuiImplicitConstructors() =
+    initialiseJuce_GUI()
+
+    block:
+        # The listener bases. A plain one does nothing when called, which is
+        # exactly what JUCE's empty bodies do - so the assertion is that one
+        # can be built and attached at all.
+        var componentListener = makeComponentListener()
+        var mouseListener = makeMouseListener()
+        var editorListener = makeTextEditorListener()
+
+        let component = newCustomComponent()
+        component[].addComponentListener(addr componentListener)
+        component[].addMouseListener(addr mouseListener, false)
+        component[].setBounds(makeRectangle(0.cint, 0.cint, 10.cint, 10.cint))
+        component[].removeMouseListener(addr mouseListener)
+        component[].removeComponentListener(addr componentListener)
+
+        var editor = makeTextEditor(makeString("editor"), WChar(0))
+        editor.addListener(addr editorListener)
+        editor.setText(makeString("text"), false)
+        editor.removeListener(addr editorListener)
+
+        cdelete component
+
+    block:
+        # A KeyboardFocusTraverser is a ComponentTraverser, and it answers for
+        # a hierarchy the same way FocusTraverser does.
+        var traverser = makeKeyboardFocusTraverser()
+        let parent = newCustomComponent()
+        parent[].setBounds(makeRectangle(0.cint, 0.cint, 100.cint, 100.cint))
+        let child = newCustomComponent()
+        child[].setWantsKeyboardFocus(true)
+        parent[].addAndMakeVisible(cast[ptr Component](child))
+
+        doAssert traverser.getAllComponents(
+                     cast[ptr Component](parent)).size() >= 1'u64,
+                 "the traverser found no components under the parent"
+
+        cdelete child
+        cdelete parent
+
+    block:
+        # The namespace-shaped classes.
+        var standardStrings = makeRelativeCoordinateStandardStrings()
+        doAssert (addr standardStrings) != nil,
+                 "RelativeCoordinate::StandardStrings did not build"
+        var strings = makeRelativeCoordinateStrings()
+        doAssert (addr strings) != nil, "RelativeCoordinate::Strings did not build"
+        var clipboard = makeSystemClipboard()
+        doAssert (addr clipboard) != nil, "SystemClipboard did not build"
+        var extraBases = makeExtraLookAndFeelBaseClasses()
+        doAssert (addr extraBases) != nil,
+                 "ExtraLookAndFeelBaseClasses did not build"
+
+    shutdownJuce_GUI()
+
+testRemainingGuiImplicitConstructors()
