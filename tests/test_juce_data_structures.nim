@@ -480,3 +480,37 @@ proc testPropertiesFileBroadcasts() =
   shutdownJuce_GUI()
 
 testPropertiesFileBroadcasts()
+
+# The actions in the current transaction =======================================
+#
+# getActionsInCurrentTransaction fills an Array<UndoableAction*>, and the
+# pointer was dropped: it bound as Array[UndoableAction], an array of copies of
+# an abstract class. Nothing called it.
+
+proc testActionsInCurrentTransaction() =
+  var manager = makeUndoManager(30000.cint, 30.cint)
+  # Array<const UndoableAction*>, so ConstPtr rather than ptr: the const is
+  # part of the C++ type and Array<T*> will not bind to Array<const T*>.
+  var found = makeArray[ConstPtr[UndoableAction]]()
+
+  manager.getActionsInCurrentTransaction(found)
+  doAssert found.size() == 0,
+           "a fresh manager reports " & $found.size() & " actions"
+
+  var performed = 0
+  let action = newCustomUndoableAction()
+  action[].setPerformHandler(proc(): bool = performed += 1; true)
+  action[].setUndoHandler(proc(): bool = true)
+
+  manager.beginNewTransaction(makeString("one edit"))
+  doAssert manager.perform(cast[ptr UndoableAction](action)),
+           "the action did not perform"
+  doAssert performed == 1, "the action ran " & $performed & " times"
+
+  manager.getActionsInCurrentTransaction(found)
+  doAssert found.size() == 1,
+           "the transaction holds " & $found.size() & " actions"
+  doAssert found[0] == cast[ptr UndoableAction](action),
+           "the action in the transaction is not the one performed"
+
+testActionsInCurrentTransaction()

@@ -5721,3 +5721,83 @@ proc testLookAndFeelDrawingHooks() =
     shutdownJuce_GUI()
 
 testLookAndFeelDrawingHooks()
+
+# Containers of pointers ======================================================
+#
+# Each of these names a class as its element type in C++ through a pointer, and
+# the pointer was being dropped: Array<Component*> bound as Array[Component],
+# an array of copies of a class that cannot be copied. None could have compiled
+# at a call site, and nothing called them.
+
+proc testContainersOfPointers() =
+    initialiseJuce_GUI()
+
+    block:
+        let parent = newCustomComponent()
+        let first = newCustomComponent()
+        let second = newCustomComponent()
+        parent[].addAndMakeVisible(cast[ptr Component](first))
+        parent[].addAndMakeVisible(cast[ptr Component](second))
+
+        let children = parent[].getChildren()
+        doAssert children.size() == 2,
+                 "the parent reports " & $children.size() & " children"
+        doAssert children[0] == cast[ptr Component](first),
+                 "the first child is not the component that was added"
+        doAssert children[1] == cast[ptr Component](second),
+                 "the second child is not the component that was added"
+
+        # The traverser walks the whole subtree, so it returns both children
+        # and the pointers it hands back are the components themselves.
+        var traverser = makeFocusTraverser()
+        let traversed = traverser.getAllComponents(cast[ptr Component](parent))
+        doAssert traversed.size() == 2,
+                 "the traverser found " & $traversed.size() & " components"
+        doAssert traversed[0.csize_t] == cast[ptr Component](first),
+                 "the first traversed component is not the first child"
+        doAssert traversed[1.csize_t] == cast[ptr Component](second),
+                 "the second traversed component is not the second child"
+
+        cdelete second
+        cdelete first
+        cdelete parent
+
+    block:
+        # AccessibilityHandler's own children, and a cell's disclosed rows.
+        let component = newCustomComponent()
+        var wrapped = cast[ptr Component](component)
+        var handler = makeAccessibilityHandler(
+            wrapped[], AccessibilityRole_group, makeAccessibilityActions(),
+            makeAccessibilityHandlerInterfaces())
+        doAssert handler.getChildren().size() == 0,
+                 "a handler with no children reports " &
+                 $handler.getChildren().size()
+
+        let cell = newCustomAccessibilityCellInterface()
+        doAssert cell[].getDisclosedRows().size() == 0,
+                 "a cell with no disclosed rows reports " &
+                 $cell[].getDisclosedRows().size()
+        cdelete cell
+        cdelete component
+
+    block:
+        # PropertyPanel takes ownership of what it is given, so the components
+        # are not deleted here.
+        var panel = makePropertyPanel(makeString("panel"))
+        var properties = makeArray[ptr PropertyComponent]()
+        properties.add(cast[ptr PropertyComponent](
+            newCustomPropertyComponent(makeString("first"), 20.cint)))
+        panel.addProperties(properties)
+        doAssert panel.getTotalContentHeight() > 0,
+                 "the panel is " & $panel.getTotalContentHeight() & " tall"
+
+        var section = makeArray[ptr PropertyComponent]()
+        section.add(cast[ptr PropertyComponent](
+            newCustomPropertyComponent(makeString("second"), 20.cint)))
+        panel.addSection(makeString("Section"), section)
+        doAssert panel.getSectionNames().size() == 1,
+                 "the panel holds " & $panel.getSectionNames().size() & " sections"
+
+    shutdownJuce_GUI()
+
+testContainersOfPointers()

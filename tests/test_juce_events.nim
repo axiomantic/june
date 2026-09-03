@@ -467,3 +467,29 @@ proc testReferenceCountingOnMessages() =
     shutdownJuce_GUI()
 
 testReferenceCountingOnMessages()
+
+# The child-process exit listener ==============================================
+#
+# The listener is a std::function<void(ChildProcess&)>, and the pointer inside
+# that template argument was dropped, so the binding named a function taking a
+# ChildProcess by value - a class that cannot be copied. Nothing called it.
+
+proc testChildProcessExitedListener() =
+    initialiseJuce_GUI()
+
+    block:
+        var manager = ChildProcessManager.getInstance()
+        var exited = 0
+        var guard = manager[].addChildProcessExitedListener(
+            bindClosure(proc(process: ptr ChildProcess) = exited += 1))
+
+        # No child process was started, so nothing has exited. The listener is
+        # detached by releasing the guard, which is the whole of its contract.
+        doAssert exited == 0, "the listener ran " & $exited & " times"
+        guard.reset()
+
+        ChildProcessManager.deleteInstance()
+
+    shutdownJuce_GUI()
+
+testChildProcessExitedListener()
