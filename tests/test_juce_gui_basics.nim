@@ -8411,3 +8411,139 @@ proc testComponentFlags() =
     shutdownJuce_GUI()
 
 testComponentFlags()
+
+# ListBox's selection is a SparseSet of row numbers, and the several ways of
+# changing it interact. The row list itself comes from the model.
+proc testListBoxSelection() =
+    initialiseJuce_GUI()
+
+    block:
+        let model = newCustomListBoxModel()
+        model[].setNumRowsHandler(proc(): cint = 20)
+
+        var box = makeListBox(makeString("list"), cast[ptr ListBoxModel](model))
+        box.setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 200.cint))
+        box.setRowHeight(20.cint)
+        box.updateContent()
+
+        doAssert box.getNumRowsOnScreen() > 0,
+                 "no rows fit on a 200 pixel box of 20 pixel rows"
+        doAssert box.getNumSelectedRows() == 0,
+                 "a new box has " & $box.getNumSelectedRows() & " rows selected"
+        doAssert box.getSelectedRow() == -1,
+                 "a new box reports row " & $box.getSelectedRow() & " selected"
+        doAssert not box.isRowSelected(0.cint), "row 0 starts selected"
+
+        box.selectRow(3.cint)
+        doAssert box.isRowSelected(3.cint), "selectRow did not select the row"
+        doAssert box.getSelectedRow() == 3,
+                 "the selected row is " & $box.getSelectedRow()
+        doAssert box.getNumSelectedRows() == 1,
+                 "one selection reads as " & $box.getNumSelectedRows()
+        doAssert box.getLastRowSelected() == 3,
+                 "the last selected row is " & $box.getLastRowSelected()
+
+        # A single-selection box replaces rather than adds.
+        box.selectRow(5.cint)
+        doAssert box.getNumSelectedRows() == 1,
+                 "a second selectRow on a single-selection box gave " &
+                 $box.getNumSelectedRows() & " selected rows"
+        doAssert not box.isRowSelected(3.cint), "the first row stayed selected"
+
+        # With multiple selection on, a range selects every row in it.
+        box.setMultipleSelectionEnabled(true)
+        box.selectRangeOfRows(2.cint, 5.cint)
+        doAssert box.getNumSelectedRows() == 4,
+                 "the range 2..5 selected " & $box.getNumSelectedRows() & " rows"
+        for row in 2.cint .. 5.cint:
+            doAssert box.isRowSelected(row),
+                     "row " & $row & " is not in the selected range"
+        doAssert not box.isRowSelected(6.cint),
+                 "the range reached past its end"
+
+        # The selection reads back as a set.
+        doAssert box.getSelectedRows().size() == 4,
+                 "the selection set holds " & $box.getSelectedRows().size()
+
+        box.flipRowSelection(2.cint)
+        doAssert not box.isRowSelected(2.cint),
+                 "flipping a selected row left it selected"
+        box.flipRowSelection(2.cint)
+        doAssert box.isRowSelected(2.cint),
+                 "flipping it back left it deselected"
+
+        box.deselectRow(3.cint)
+        doAssert not box.isRowSelected(3.cint), "deselectRow did not take"
+        doAssert box.isRowSelected(4.cint),
+                 "deselecting one row cleared its neighbour"
+
+        box.deselectAllRows()
+        doAssert box.getNumSelectedRows() == 0,
+                 "deselectAllRows left " & $box.getNumSelectedRows() & " selected"
+
+        # setSelectedRows takes the whole set at once.
+        var wanted = makeSparseSet[cint]()
+        wanted.addRange(makeRange(10.cint, 13.cint))
+        box.setSelectedRows(wanted, NotificationType_dontSendNotification)
+        doAssert box.getNumSelectedRows() == 3,
+                 "setSelectedRows gave " & $box.getNumSelectedRows() & " rows"
+        doAssert box.isRowSelected(10.cint) and box.isRowSelected(12.cint),
+                 "setSelectedRows selected the wrong rows"
+        doAssert not box.isRowSelected(13.cint),
+                 "a Range is half open, so 13 should be outside it"
+
+        cdelete model
+
+    block:
+        # Row geometry: each row is where its height says it is.
+        let model = newCustomListBoxModel()
+        model[].setNumRowsHandler(proc(): cint = 20)
+
+        var box = makeListBox(makeString("list"), cast[ptr ListBoxModel](model))
+        box.setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 100.cint))
+        box.setRowHeight(25.cint)
+        box.updateContent()
+
+        doAssert box.getRowHeight() == 25,
+                 "the row height is " & $box.getRowHeight()
+        doAssert box.getRowPosition(2.cint, true).getY() == 50,
+                 "row 2 sits at y=" & $box.getRowPosition(2.cint, true).getY()
+        doAssert box.getRowPosition(2.cint, true).getHeight() == 25,
+                 "row 2 is " & $box.getRowPosition(2.cint, true).getHeight() &
+                 " tall"
+        doAssert box.getRowContainingPosition(10.cint, 60.cint) == 2,
+                 "y=60 is in row " & $box.getRowContainingPosition(10.cint, 60.cint)
+        doAssert box.getRowContainingPosition(10.cint, 5.cint) == 0,
+                 "y=5 is in row " & $box.getRowContainingPosition(10.cint, 5.cint)
+
+        # An insertion index is where a dropped row would go, so it counts the
+        # gaps rather than the rows.
+        doAssert box.getInsertionIndexForPosition(10.cint, 0.cint) == 0,
+                 "the top inserts at " &
+                 $box.getInsertionIndexForPosition(10.cint, 0.cint)
+
+        # The outline is off until it is given a thickness.
+        doAssert box.getOutlineThickness() == 0,
+                 "a new box has an outline " & $box.getOutlineThickness() &
+                 " thick"
+        box.setOutlineThickness(2.cint)
+        doAssert box.getOutlineThickness() == 2,
+                 "the outline is " & $box.getOutlineThickness() & " thick"
+
+        # The scroll position is in rows, not pixels.
+        box.setVerticalPosition(0.5)
+        doAssert box.getVerticalPosition() > 0.0,
+                 "the box did not scroll; it is at " & $box.getVerticalPosition()
+        box.setVerticalPosition(0.0)
+        doAssert box.getVerticalPosition() == 0.0,
+                 "scrolling back to the top gave " & $box.getVerticalPosition()
+
+        doAssert not box.getViewport().isNil, "the box has no viewport"
+        doAssert box.getHeaderComponent().isNil,
+                 "a new box has a header component"
+
+        cdelete model
+
+    shutdownJuce_GUI()
+
+testListBoxSelection()
