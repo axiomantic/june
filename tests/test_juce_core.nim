@@ -2138,3 +2138,55 @@ proc testSmallCoreClasses() =
                  "after renaming the symbol is called " & $symbol.symbolName()
 
 testSmallCoreClasses()
+
+# The scoped try-locks ========================================================
+#
+# A try-lock reports whether it got the lock rather than blocking. JUCE grants
+# a write lock to a thread that already holds the only read lock -
+# tryEnterWriteInternal takes that branch explicitly - so a single-threaded
+# test sees the upgrade rather than a refusal, and that is what is asserted.
+
+proc testScopedTryLocks() =
+    block:
+        var lock = makeReadWriteLock()
+
+        block:
+            var reader = makeScopedTryReadLock(lock)
+            doAssert reader.isLocked(), "the read lock was not taken"
+
+            # Read locks share, so a second reader on this thread is fine.
+            var alsoReader = makeScopedTryReadLock(lock)
+            doAssert alsoReader.isLocked(), "a second reader was refused"
+
+            # And this thread can upgrade to the write lock, because it is the
+            # only reader.
+            var writer = makeScopedTryWriteLock(lock)
+            doAssert writer.isLocked(),
+                     "the only reader could not upgrade to a write lock"
+
+        block:
+            var writer = makeScopedTryWriteLock(lock)
+            doAssert writer.isLocked(),
+                     "the write lock was refused after the readers went"
+
+        # Built without acquiring, so it starts unlocked and retryLock takes it.
+        block:
+            var later = makeScopedTryWriteLock(lock, false)
+            doAssert not later.isLocked(),
+                     "a lock built with acquireLockOnInitialisation false was taken"
+            doAssert later.retryLock(), "retryLock did not take a free lock"
+            doAssert later.isLocked(), "retryLock reported success and did not lock"
+
+        block:
+            var laterRead = makeScopedTryReadLock(lock, false)
+            doAssert not laterRead.isLocked(),
+                     "a read lock built without acquiring was taken"
+            doAssert laterRead.retryLock(), "retryLock did not take a free read lock"
+
+    block:
+        # An inter-process lock over a name nothing else holds.
+        var lock = makeInterProcessLock(makeString("june-test-lock"))
+        doAssert lock.enter(1000.cint), "the inter-process lock was refused"
+        lock.exit()
+
+testScopedTryLocks()
