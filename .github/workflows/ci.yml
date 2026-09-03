@@ -135,13 +135,15 @@ jobs:
 
       # When nimble cannot match the pinned version it asks "No nim version
       # matching any version. Download it now?", and -y answers yes: it installs
-      # whatever is newest and EXITS 0. So the exit code says nothing, and a
-      # retry keyed on it never fires - which is why the earlier refresh-and-
-      # retry left this job red on macos after curing it on ubuntu.
+      # whatever is newest and EXITS 0. So the exit code says nothing about
+      # which compiler is now on disk, and a retry keyed on it never fires.
       #
       # Key the retry on the artifact instead. The pinned compiler either is at
       # its exact path or it is not, and a wrong version installed alongside is
-      # cleared before the second attempt so it cannot satisfy the check.
+      # cleared before the second attempt so it cannot satisfy the check. The
+      # retry is for a transient list fetch; the one cause found so far - no
+      # published macOS build below 2.2.8 - is handled by the matrix exclude
+      # above, since no number of retries can download a file that is not there.
       - name: Install Nim ${{ matrix.nim-version }}
         run: |
           pinned() { echo "$HOME"/.nimble/pkgs2/nim-${{ matrix.nim-version }}-*/bin/nim; }
