@@ -3708,6 +3708,7 @@ proc tableColumnsChanged*(this: var TableListBox, arg1: ptr TableHeaderComponent
 proc tableColumnsResized*(this: var TableListBox, arg1: ptr TableHeaderComponent) {.header: juce_gui_basics, importcpp: "#.tableColumnsResized(@)".}
 proc tableSortOrderChanged*(this: var TableListBox, arg1: ptr TableHeaderComponent) {.header: juce_gui_basics, importcpp: "#.tableSortOrderChanged(@)".}
 proc tableColumnDraggingChanged*(this: var TableListBox, arg1: ptr TableHeaderComponent, arg2: cint) {.header: juce_gui_basics, importcpp: "#.tableColumnDraggingChanged(@)".}
+proc getModel*(this: TableListBox): ptr TableListBoxModel {.header: juce_gui_basics, importcpp: "#.getModel()".}
 proc `==`*(this: TableListBox, other: TableListBox): bool {.error: "juce::TableListBox defines no operator==; compare a property instead".}
 
 proc makeToolbar*(): Toolbar {.header: juce_gui_basics, importcpp: "juce::Toolbar(@)".}
