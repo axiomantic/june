@@ -413,3 +413,25 @@ proc testEveryConstantDataStructures() =
         discard PropertiesFileStorageFormat_storeAsXML
 
 testEveryConstantDataStructures()
+
+# ValueTree::Iterator =========================================================
+#
+# The C++ iterator behind the Nim one. Both ends of a two-child tree are built
+# here, which is what the Nim iterator uses underneath.
+
+proc testValueTreeIterator() =
+    block:
+        var tree = makeValueTree(makeIdentifier(makeString("root")))
+        tree.addChild(makeValueTree(makeIdentifier(makeString("first"))), -1.cint, nil)
+        tree.addChild(makeValueTree(makeIdentifier(makeString("second"))), -1.cint, nil)
+
+        let start = makeValueTreeIterator(tree, false)
+        let stop = makeValueTreeIterator(tree, true)
+        doAssert start != stop, "the begin and end iterators of a filled tree are equal"
+
+        let emptyTree = makeValueTree(makeIdentifier(makeString("empty")))
+        doAssert makeValueTreeIterator(emptyTree, false) ==
+                 makeValueTreeIterator(emptyTree, true),
+                 "the begin and end iterators of an empty tree differ"
+
+testValueTreeIterator()

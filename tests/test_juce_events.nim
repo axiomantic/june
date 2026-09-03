@@ -324,3 +324,22 @@ proc testEveryConstantEvents() =
         discard InterprocessConnectionNotify_yes
 
 testEveryConstantEvents()
+
+# TimedCallback ===============================================================
+#
+# A Timer whose callback is a std::function, so it takes a Nim closure without
+# a subclass. It is not started here: nothing would run it without a message
+# loop, and a started timer would outlive the test.
+
+proc testTimedCallback() =
+    initialiseJuce_GUI()
+
+    block:
+        var fired = 0
+        var callback = makeTimedCallback(bindClosure(proc() = fired += 1))
+        doAssert not callback.isTimerRunning(), "a fresh TimedCallback is running"
+        doAssert fired == 0, "the callback ran before the timer started"
+
+    shutdownJuce_GUI()
+
+testTimedCallback()

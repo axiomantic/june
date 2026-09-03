@@ -2582,3 +2582,63 @@ proc testWebInputStreamRequestSide() =
                  "a cancelled stream does not report an error"
 
 testWebInputStreamRequestSide()
+
+# The scoped helpers and the remaining statics ================================
+#
+# RAII types that do their work in a constructor and a destructor, so building
+# one is most of what there is to check.
+
+proc testScopedHelpers() =
+    block:
+        # A scoped lock over a ReadWriteLock takes it and gives it back.
+        var lock = makeReadWriteLock()
+        block:
+            # Held, so a second reader is granted and the lock is not free.
+            let reader = makeScopedReadLock(lock)
+            doAssert lock.tryEnterRead(), "a second reader was refused"
+            lock.exitRead()
+        # Released by the scope ending, so a writer gets it outright.
+        doAssert lock.tryEnterWrite(),
+                 "the write lock was refused after the scoped reader ended"
+        lock.exitWrite()
+
+        block:
+            let writer = makeScopedWriteLock(lock)
+            discard writer
+        doAssert lock.tryEnterWrite(),
+                 "the write lock was refused after the scoped writer ended"
+        lock.exitWrite()
+
+        # The dummy critical section is the no-op lock JUCE uses where a
+        # container is told it needs no locking.
+        let dummy = makeDummyCriticalSection()
+        let dummyScoped = makeDummyCriticalSectionScopedLockType(dummy)
+        discard dummyScoped
+
+        # A time measurement writes the elapsed seconds into the variable it
+        # was given, when it goes out of scope.
+        var elapsed = -1.0
+        block:
+            let measured = makeScopedTimeMeasurement(elapsed)
+            discard measured
+        doAssert elapsed >= 0.0,
+                 "the measurement left " & $elapsed & " seconds behind"
+
+        # JSONUtils::makeObjectWithKeyFirst reorders a JSON object so one key
+        # comes first.
+        var members = makeCppMap[Identifier, juce_var]()
+        let reordered = JSONUtils.makeObjectWithKeyFirst(
+            members, makeIdentifier(makeString("id")))
+        doAssert reordered.isObject(),
+                 "reordering an empty map did not give an object back"
+
+        Process.makeForegroundProcess()
+
+        # AndroidDocumentIterator's factory. The document is empty on a
+        # desktop build, so the iterator is the end one, but the binding is
+        # compiled either way.
+        let emptyDocument = makeAndroidDocument()
+        let documentIterator = AndroidDocumentIterator.makeNonRecursive(emptyDocument)
+        discard documentIterator
+
+testScopedHelpers()
