@@ -934,6 +934,107 @@ def reachable_public_methods(cursor, seen=None):
 
 #==================================================================================================
 
+def using_declaration_members(cursor):
+    """Members a class hands back out of a base with a using-declaration.
+
+    A class that inherits privately is not a subtype, so nothing of the base
+    comes with it - except what it re-exports this way, which IS callable.
+    TimedCallback re-exports five Timer methods and ResizableWindow re-exports
+    Component::addToDesktop.
+
+    The declaration carries the member's name and a TYPE_REF naming the class
+    it comes from, and is resolved by name against that class. Its
+    OVERLOADED_DECL_REF child would say the same thing, but reading one needs a
+    libclang method the pip package does not expose.
+    """
+    found = []
+    for using in cursor.get_children():
+        if (using.kind != CursorKind.USING_DECLARATION
+                or using.access_specifier != AccessSpecifier.PUBLIC):
+            continue
+        for reference in using.get_children():
+            if reference.kind != CursorKind.TYPE_REF:
+                continue
+            origin = reference.type.get_declaration()
+            if origin is None:
+                continue
+            found += [x for x in origin.get_children()
+                      if x.kind == CursorKind.CXX_METHOD
+                      and x.spelling == using.spelling
+                      and x.access_specifier == AccessSpecifier.PUBLIC]
+    return found
+
+#==================================================================================================
+
+def method_signature(cursor):
+    """A method's identity for the override relation: name, arguments, const."""
+    # Canonical spellings, because the same type is written differently
+    # depending on where it is declared: PopupMenu::LookAndFeelMethods spells
+    # its parameter "const Options &" and LookAndFeel_V2 spells the same one
+    # "const PopupMenu::Options &". Comparing the written form left that pair
+    # looking like two different methods and both were emitted.
+    return (cursor.spelling,
+            tuple(a.type.get_canonical().spelling for a in cursor.get_arguments()),
+            cursor.is_const_method())
+
+#==================================================================================================
+
+def restated_members(cursor, class_map):
+    """Methods this class needs restated because Nim cannot inherit them.
+
+    Nim carries one parent and C++ carries as many as it likes, so everything
+    reachable through a public base that is not the Nim parent is unreachable
+    unless it is written onto the class itself. The C++ call is identical - the
+    base is public either way - so restating changes only whether Nim can see
+    it.
+    """
+    chosen = primary_base(cursor, class_map)
+    already_reachable = (set(reachable_public_methods(chosen))
+                         if chosen is not None else set())
+    declared_here = {x.spelling for x in cursor.get_children()
+                     if x.kind == CursorKind.CXX_METHOD}
+    declared_here |= {x.spelling for x in using_declaration_members(cursor)}
+
+    found = []
+    for b in public_bases(cursor):
+        if chosen is not None and b.get_usr() == chosen.get_usr():
+            continue
+        for name, entries in sorted(reachable_public_methods(b).items()):
+            if name in already_reachable or name in declared_here:
+                continue
+            # Declared by two different classes among the bases, so an
+            # unqualified call is ambiguous in C++ as well. Leaving it out is
+            # what the C++ compiler would say about it.
+            if len({owner for owner, _ in entries}) > 1:
+                continue
+            found += [member for _, member in entries]
+    return found
+
+#==================================================================================================
+
+def restated_by_an_ancestor(cursor, member, class_map):
+    """Whether a Nim ancestor already restates this exact method.
+
+    Emitting it again on the derived class gives Nim two procs with identical
+    parameter types differing only in the receiver, and 2.2.2 calls that
+    ambiguous rather than preferring the nearer one - LookAndFeel_V2 declares
+    its own drawScrollbarButton, and LookAndFeel now restates the one it
+    overrides. Dropping the derived copy loses nothing: the base proc accepts
+    the derived receiver, and C++ dispatches it virtually to the override.
+    """
+    wanted = method_signature(member)
+    ancestor = primary_base(cursor, class_map)
+    seen = set()
+    while ancestor is not None and ancestor.get_usr() not in seen:
+        seen.add(ancestor.get_usr())
+        if any(method_signature(x) == wanted
+               for x in restated_members(ancestor, class_map)):
+            return True
+        ancestor = primary_base(ancestor, class_map)
+    return False
+
+#==================================================================================================
+
 def primary_base(cursor, class_map):
     """The public base that becomes the Nim parent: the one reaching the most.
 
@@ -1691,55 +1792,12 @@ def run_main(juce_module_name, juce_class_name_to_export):
         # the Nim parent - it is not one - so pick the re-exported members up
         # here and emit them as methods of this class.
         class_members = list(c.get_children())
-        for using in c.get_children():
-            if (using.kind != CursorKind.USING_DECLARATION
-                    or using.access_specifier != AccessSpecifier.PUBLIC):
-                continue
-            # The declaration carries the member's name and a TYPE_REF naming
-            # the class it comes from. Resolved by name against that class,
-            # which picks up every overload of it - the OVERLOADED_DECL_REF
-            # child would say the same thing, but reading it needs a libclang
-            # binding method that the pip package does not expose.
-            for reference in using.get_children():
-                if reference.kind != CursorKind.TYPE_REF:
-                    continue
-                origin = reference.type.get_declaration()
-                if origin is None:
-                    continue
-                class_members += [
-                    x for x in origin.get_children()
-                    if x.kind == CursorKind.CXX_METHOD
-                    and x.spelling == using.spelling
-                    and x.access_specifier == AccessSpecifier.PUBLIC]
+        class_members += using_declaration_members(c)
 
-        # Nim carries one parent, so everything reachable through the public
-        # bases the parent is NOT stays unreachable unless it is restated here.
-        # That was 189 methods across 21 classes: setTooltip and getTooltip on
-        # eight widgets, DragAndDropContainer's ten on Toolbar, and the drawing
-        # hooks LookAndFeel gets from its many LookAndFeelMethods interfaces.
-        # The C++ call is the same either way - the base is public - so the
-        # only thing restating them changes is whether Nim can see them.
         inherited_members = set()
-        chosen_base = primary_base(c, class_map)
-        already_reachable = (set(reachable_public_methods(chosen_base))
-                             if chosen_base is not None else set())
-        declared_here = {x.spelling for x in class_members
-                         if x.kind == CursorKind.CXX_METHOD}
-
-        for b in public_bases(c):
-            if chosen_base is not None and b.get_usr() == chosen_base.get_usr():
-                continue
-            for name, entries in sorted(reachable_public_methods(b).items()):
-                if name in already_reachable or name in declared_here:
-                    continue
-                # Declared by two different classes among the bases, so an
-                # unqualified call is ambiguous in C++ as well. Leaving it out
-                # is what the C++ compiler would say about it.
-                if len({owner for owner, _ in entries}) > 1:
-                    continue
-                for _, cursor in entries:
-                    inherited_members.add(cursor.get_usr())
-                    class_members.append(cursor)
+        for member in restated_members(c, class_map):
+            inherited_members.add(member.get_usr())
+            class_members.append(member)
 
         scalar_overloaded = scalar_overloaded_names(
             [x for x in class_members
@@ -1751,6 +1809,15 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 continue
 
             if m.spelling in ["JUCE_DEPRECATED", "JUCE_DEPRECATED_STATIC"]:
+                continue
+
+            # An override of something a Nim ancestor already restates. Emitting
+            # it here would give Nim two procs with identical parameter types
+            # differing only in the receiver, which 2.2.2 rejects as ambiguous
+            # rather than preferring the nearer one. The base proc accepts this
+            # receiver and C++ dispatches it virtually, so nothing is lost.
+            if (m.get_usr() not in inherited_members
+                    and restated_by_an_ancestor(c, m, class_map)):
                 continue
 
             is_static_method = m.is_static_method()
