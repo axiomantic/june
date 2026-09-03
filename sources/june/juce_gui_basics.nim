@@ -1168,6 +1168,7 @@ proc `==`*(this: MouseCursor, `type`: MouseCursorStandardCursorType): bool {.hea
 proc showWaitCursor*(this: typedesc[MouseCursor]) {.header: juce_gui_basics, importcpp: "juce::MouseCursor::showWaitCursor()".}
 proc hideWaitCursor*(this: typedesc[MouseCursor]) {.header: juce_gui_basics, importcpp: "juce::MouseCursor::hideWaitCursor()".}
 
+proc makeMouseListener*(): MouseListener {.header: juce_gui_basics, importcpp: "juce::MouseListener(@)".}  # implicit default constructor
 proc mouseMove*(this: var MouseListener, event: MouseEvent) {.header: juce_gui_basics, importcpp: "#.mouseMove(@)".}
 proc mouseEnter*(this: var MouseListener, event: MouseEvent) {.header: juce_gui_basics, importcpp: "#.mouseEnter(@)".}
 proc mouseExit*(this: var MouseListener, event: MouseEvent) {.header: juce_gui_basics, importcpp: "#.mouseExit(@)".}
@@ -1486,6 +1487,7 @@ proc readFromCache*(this: var ComponentPaintDiagnostics): var bool {.header: juc
 proc `readFromCache=`*(this: var ComponentPaintDiagnostics, value: bool) {.header: juce_gui_basics, importcpp: "#.readFromCache = #".}
 proc `==`*(this: ComponentPaintDiagnostics, other: ComponentPaintDiagnostics): bool {.error: "juce::ComponentPaintDiagnostics defines no operator==; compare a property instead".}
 
+proc makeComponentListener*(): ComponentListener {.header: juce_gui_basics, importcpp: "juce::ComponentListener(@)".}  # implicit default constructor
 proc componentMovedOrResized*(this: var ComponentListener, component: var Component, wasMoved: bool, wasResized: bool) {.header: juce_gui_basics, importcpp: "#.componentMovedOrResized(@)".}
 proc componentBroughtToFront*(this: var ComponentListener, component: var Component) {.header: juce_gui_basics, importcpp: "#.componentBroughtToFront(@)".}
 proc componentVisibilityChanged*(this: var ComponentListener, component: var Component) {.header: juce_gui_basics, importcpp: "#.componentVisibilityChanged(@)".}
@@ -1965,8 +1967,10 @@ proc makeCaretComponent*(keyFocusOwner: ptr Component): CaretComponent {.header:
 proc setCaretPosition*(this: var CaretComponent, characterArea: Rectangle[cint]) {.header: juce_gui_basics, importcpp: "#.setCaretPosition(@)".}
 proc `==`*(this: CaretComponent, other: CaretComponent): bool {.error: "juce::CaretComponent defines no operator==; compare a property instead".}
 
+proc makeKeyboardFocusTraverser*(): KeyboardFocusTraverser {.header: juce_gui_basics, importcpp: "juce::KeyboardFocusTraverser(@)".}  # implicit default constructor
 proc `==`*(this: KeyboardFocusTraverser, other: KeyboardFocusTraverser): bool {.error: "juce::KeyboardFocusTraverser defines no operator==; compare a property instead".}
 
+proc makeSystemClipboard*(): SystemClipboard {.header: juce_gui_basics, importcpp: "juce::SystemClipboard(@)".}  # implicit default constructor
 proc copyTextToClipboard*(this: typedesc[SystemClipboard], text: String) {.header: juce_gui_basics, importcpp: "juce::SystemClipboard::copyTextToClipboard(@)".}
 proc getTextFromClipboard*(this: typedesc[SystemClipboard]): String {.header: juce_gui_basics, importcpp: "juce::SystemClipboard::getTextFromClipboard()".}
 proc `==`*(this: SystemClipboard, other: SystemClipboard): bool {.error: "juce::SystemClipboard defines no operator==; compare a property instead".}
@@ -2879,6 +2883,7 @@ proc moveToAbsolute*(this: var RelativeCoordinate, absoluteTargetPosition: float
 proc getExpression*(this: RelativeCoordinate): Expression {.header: juce_gui_basics, importcpp: "#.getExpression()".}
 proc toString*(this: RelativeCoordinate): String {.header: juce_gui_basics, importcpp: "#.toString()".}
 
+proc makeRelativeCoordinateStrings*(): RelativeCoordinateStrings {.header: juce_gui_basics, importcpp: "juce::RelativeCoordinate::Strings(@)".}  # implicit default constructor
 proc parent*(this: typedesc[RelativeCoordinateStrings]): String {.header: juce_gui_basics, importcpp: "(juce::RelativeCoordinate::Strings::parent)".}
 proc left*(this: typedesc[RelativeCoordinateStrings]): String {.header: juce_gui_basics, importcpp: "(juce::RelativeCoordinate::Strings::left)".}
 proc right*(this: typedesc[RelativeCoordinateStrings]): String {.header: juce_gui_basics, importcpp: "(juce::RelativeCoordinate::Strings::right)".}
@@ -2890,6 +2895,7 @@ proc width*(this: typedesc[RelativeCoordinateStrings]): String {.header: juce_gu
 proc height*(this: typedesc[RelativeCoordinateStrings]): String {.header: juce_gui_basics, importcpp: "(juce::RelativeCoordinate::Strings::height)".}
 proc `==`*(this: RelativeCoordinateStrings, other: RelativeCoordinateStrings): bool {.error: "juce::RelativeCoordinate::Strings defines no operator==; compare a property instead".}
 
+proc makeRelativeCoordinateStandardStrings*(): RelativeCoordinateStandardStrings {.header: juce_gui_basics, importcpp: "juce::RelativeCoordinate::StandardStrings(@)".}  # implicit default constructor
 proc getTypeOf*(this: typedesc[RelativeCoordinateStandardStrings], s: String): RelativeCoordinateStandardStringsType {.header: juce_gui_basics, importcpp: "juce::RelativeCoordinate::StandardStrings::getTypeOf(@)".}
 proc `==`*(this: RelativeCoordinateStandardStrings, other: RelativeCoordinateStandardStrings): bool {.error: "juce::RelativeCoordinate::StandardStrings defines no operator==; compare a property instead".}
 
@@ -3278,6 +3284,7 @@ proc getTooltip*(this: var TextEditor): String {.header: juce_gui_basics, import
 proc setTooltip*(this: var TextEditor, newTooltip: String) {.header: juce_gui_basics, importcpp: "#.setTooltip(@)".}  # inherited from a secondary base
 proc `==`*(this: TextEditor, other: TextEditor): bool {.error: "juce::TextEditor defines no operator==; compare a property instead".}
 
+proc makeTextEditorListener*(): TextEditorListener {.header: juce_gui_basics, importcpp: "juce::TextEditor::Listener(@)".}  # implicit default constructor
 proc textEditorTextChanged*(this: var TextEditorListener, arg1: var TextEditor) {.header: juce_gui_basics, importcpp: "#.textEditorTextChanged(@)".}
 proc textEditorReturnKeyPressed*(this: var TextEditorListener, arg1: var TextEditor) {.header: juce_gui_basics, importcpp: "#.textEditorReturnKeyPressed(@)".}
 proc textEditorEscapeKeyPressed*(this: var TextEditorListener, arg1: var TextEditor) {.header: juce_gui_basics, importcpp: "#.textEditorEscapeKeyPressed(@)".}
@@ -4671,6 +4678,7 @@ proc drawBubble*(this: var BubbleComponentLookAndFeelMethods, g: var Graphics, b
 proc setComponentEffectForBubbleComponent*(this: var BubbleComponentLookAndFeelMethods, bubbleComponent: var BubbleComponent) {.header: juce_gui_basics, importcpp: "#.setComponentEffectForBubbleComponent(@)".}
 proc `==`*(this: BubbleComponentLookAndFeelMethods, other: BubbleComponentLookAndFeelMethods): bool {.error: "juce::BubbleComponent::LookAndFeelMethods defines no operator==; compare a property instead".}
 
+proc makeExtraLookAndFeelBaseClasses*(): ExtraLookAndFeelBaseClasses {.header: juce_gui_basics, importcpp: "juce::ExtraLookAndFeelBaseClasses(@)".}  # implicit default constructor
 proc `==`*(this: ExtraLookAndFeelBaseClasses, other: ExtraLookAndFeelBaseClasses): bool {.error: "juce::ExtraLookAndFeelBaseClasses defines no operator==; compare a property instead".}
 
 proc drawLasso*(this: var ExtraLookAndFeelBaseClassesLassoComponentMethods, arg1: var Graphics, lassoComp: var Component) {.header: juce_gui_basics, importcpp: "#.drawLasso(@)".}
