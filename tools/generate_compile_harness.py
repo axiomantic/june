@@ -152,7 +152,16 @@ for module, text in src.items():
             if not re.fullmatch(r"\w+", cls):
                 skipped["a generic receiver"] += 1
                 continue
-            receiver = f"nowhere[{qualify(cls)}]()[]."
+            if cls in ENUM_CONSTANT:
+                # An enum receiver uses a real enumerator, not nowhere[]. Nim
+                # erases `distinct` when it instantiates a generic, so
+                # nowhere[SomeEnum] and nowhere[cint] render ONE C++ function
+                # and every nowhere[cint] elsewhere in the harness then passes
+                # the enum's type. The enumerator has no such problem, and it
+                # is what a caller would actually write.
+                receiver = f"{ENUM_CONSTANT[cls]}."
+            else:
+                receiver = f"nowhere[{qualify(cls)}]()[]."
 
         arguments, ok = [], True
         for part in parts[1:]:

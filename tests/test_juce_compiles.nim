@@ -21,6 +21,15 @@ proc nowhere[T](): ptr T = cast[ptr T](address)
 
 proc compileChunk0() =
     if address != 0:
+        discard IncrementRef_no.toCint()
+        discard SystemStatsMachineIdFlags_macAddresses.toCint()
+        discard JSONSpacing_none.toCint()
+        discard JSONEncoding_utf8.toCint()
+        discard FileFollowSymlinks_no.toCint()
+        discard ThreadPriority_highest.toCint()
+        discard URLParameterHandling_inAddress.toCint()
+        discard ZipFileOverwriteFiles_no.toCint()
+        discard ZipFileFollowSymlinks_no.toCint()
         discard ByteOrder.swap(0'u16)
         discard ByteOrder.swap(0'i16)
         discard ByteOrder.swap(0'u32)
@@ -412,6 +421,9 @@ proc compileChunk0() =
         nowhere[StringArray]()[].clear()
         nowhere[StringArray]()[].clearQuick()
         nowhere[StringArray]()[].remove(0.cint)
+
+proc compileChunk1() =
+    if address != 0:
         nowhere[StringArray]()[].removeString(nowhere[StringRef]()[], false)
         nowhere[StringArray]()[].removeRange(0.cint, 0.cint)
         nowhere[StringArray]()[].removeDuplicates(false)
@@ -421,9 +433,6 @@ proc compileChunk0() =
         nowhere[StringArray]()[].appendNumbersToDuplicates(false, false, nowhere[CharPointer_UTF8]()[], nowhere[CharPointer_UTF8]()[])
         discard nowhere[StringArray]()[].joinIntoString(nowhere[StringRef]()[], 0.cint, 0.cint)
         nowhere[StringArray]()[].sort(false)
-
-proc compileChunk1() =
-    if address != 0:
         nowhere[StringArray]()[].sortNatural()
         nowhere[StringArray]()[].ensureStorageAllocated(0.cint)
         nowhere[StringArray]()[].minimiseStorageOverheads()
@@ -815,6 +824,9 @@ proc compileChunk1() =
         discard nowhere[InputSource]()[].createInputStreamFor(nowhere[String]()[])
         discard nowhere[InputSource]()[].hashCode()
         discard nowhere[june.File]()[].exists()
+
+proc compileChunk2() =
+    if address != 0:
         discard nowhere[june.File]()[].existsAsFile()
         discard nowhere[june.File]()[].isDirectory()
         discard nowhere[june.File]()[].isRoot()
@@ -824,9 +836,6 @@ proc compileChunk1() =
         discard nowhere[june.File]()[].getFileName()
         discard nowhere[june.File]()[].getRelativePathFrom(nowhere[june.File]()[])
         discard nowhere[june.File]()[].getFileExtension()
-
-proc compileChunk2() =
-    if address != 0:
         discard nowhere[june.File]()[].hasFileExtension(nowhere[StringRef]()[])
         discard nowhere[june.File]()[].withFileExtension(nowhere[StringRef]()[])
         discard nowhere[june.File]()[].getFileNameWithoutExtension()
@@ -1218,6 +1227,9 @@ proc compileChunk2() =
         discard nowhere[DatagramSocket]()[].bindToPort(0.cint)
         discard nowhere[DatagramSocket]()[].bindToPort(0.cint, nowhere[String]()[])
         discard nowhere[DatagramSocket]()[].getBoundPort()
+
+proc compileChunk3() =
+    if address != 0:
         discard nowhere[DatagramSocket]()[].getRawSocketHandle()
         discard nowhere[DatagramSocket]()[].waitUntilReady(false, 0.cint)
         discard nowhere[DatagramSocket]()[].read(cast[pointer](address), 0.cint, false)
@@ -1227,9 +1239,6 @@ proc compileChunk2() =
         discard nowhere[DatagramSocket]()[].joinMulticast(nowhere[String]()[])
         discard nowhere[DatagramSocket]()[].leaveMulticast(nowhere[String]()[])
         discard nowhere[DatagramSocket]()[].setMulticastLoopbackEnabled(false)
-
-proc compileChunk3() =
-    if address != 0:
         discard nowhere[DatagramSocket]()[].setEnablePortReuse(false)
         discard nowhere[URL]()[].toString(false)
         discard nowhere[URL]()[].isEmpty()
@@ -1533,6 +1542,7 @@ proc compileChunk3() =
         discard nowhere[AndroidDocument]()[].moveDocumentFromParentToParent(nowhere[AndroidDocument]()[], nowhere[AndroidDocument]()[])
         discard AndroidDocumentIterator.makeNonRecursive(nowhere[AndroidDocument]()[])
         discard AndroidDocumentIterator.makeRecursive(nowhere[AndroidDocument]()[])
+        discard InterprocessConnectionNotify_no.toCint()
         discard MessageManager.getInstance()
         discard MessageManager.getInstanceWithoutCreating()
         MessageManager.deleteInstance()
@@ -1620,6 +1630,9 @@ proc compileChunk3() =
         nowhere[Timer]()[].timerCallback()
         nowhere[Timer]()[].startTimer(0.cint)
         nowhere[Timer]()[].startTimerHz(0.cint)
+
+proc compileChunk4() =
+    if address != 0:
         nowhere[Timer]()[].stopTimer()
         discard nowhere[Timer]()[].isTimerRunning()
         discard nowhere[Timer]()[].getTimerInterval()
@@ -1630,9 +1643,6 @@ proc compileChunk3() =
         nowhere[TimedCallback]()[].stopTimer()
         discard nowhere[TimedCallback]()[].isTimerRunning()
         discard nowhere[TimedCallback]()[].getTimerInterval()
-
-proc compileChunk4() =
-    if address != 0:
         nowhere[MultiTimer]()[].timerCallback(0.cint)
         nowhere[MultiTimer]()[].startTimer(0.cint, 0.cint)
         nowhere[MultiTimer]()[].stopTimer(0.cint)
@@ -1839,6 +1849,7 @@ proc compileChunk4() =
         discard nowhere[ApplicationProperties]()[].getCommonSettings(false)
         discard nowhere[ApplicationProperties]()[].saveIfNeeded()
         nowhere[ApplicationProperties]()[].closeFiles()
+        discard TypefaceMetricsKind_legacy.toCint()
         discard AffineTransform.identity()
         discard nowhere[AffineTransform]()[].mat00()
         discard nowhere[AffineTransform]()[].mat00()
@@ -2022,6 +2033,9 @@ proc compileChunk4() =
         discard nowhere[Colour]()[].getFloatGreen()
         discard nowhere[Colour]()[].getFloatBlue()
         discard nowhere[Colour]()[].getPixelARGB()
+
+proc compileChunk5() =
+    if address != 0:
         discard nowhere[Colour]()[].getNonPremultipliedPixelARGB()
         discard nowhere[Colour]()[].getARGB()
         discard nowhere[Colour]()[].getAlpha()
@@ -2033,9 +2047,6 @@ proc compileChunk4() =
         discard nowhere[Colour]()[].withMultipliedAlpha(0.0'f32)
         discard nowhere[Colour]()[].overlaidWith(nowhere[Colour]()[])
         discard nowhere[Colour]()[].interpolatedWith(nowhere[Colour]()[], 0.0'f32)
-
-proc compileChunk5() =
-    if address != 0:
         discard nowhere[Colour]()[].getHue()
         discard nowhere[Colour]()[].getSaturation()
         discard nowhere[Colour]()[].getSaturationHSL()
@@ -2425,6 +2436,9 @@ proc compileChunk5() =
         discard nowhere[Font]()[].boldened()
         discard nowhere[Font]()[].isBold()
         nowhere[Font]()[].setItalic(false)
+
+proc compileChunk6() =
+    if address != 0:
         discard nowhere[Font]()[].italicised()
         discard nowhere[Font]()[].isItalic()
         nowhere[Font]()[].setUnderline(false)
@@ -2436,9 +2450,6 @@ proc compileChunk5() =
         discard nowhere[Font]()[].getHorizontalScale()
         discard nowhere[Font]()[].withHorizontalScale(0.0'f32)
         nowhere[Font]()[].setHorizontalScale(0.0'f32)
-
-proc compileChunk6() =
-    if address != 0:
         discard Font.getDefaultMinimumHorizontalScaleFactor()
         Font.setDefaultMinimumHorizontalScaleFactor(0.0'f32)
         discard nowhere[Font]()[].getExtraKerningFactor()
@@ -2620,6 +2631,34 @@ proc compileChunk6() =
         nowhere[DropShadow]()[].drawForRectangle(nowhere[Graphics]()[], nowhere[Rectangle[cint]]()[])
         nowhere[DropShadowEffect]()[].setShadowProperties(nowhere[DropShadow]()[])
         nowhere[GlowEffect]()[].setGlowProperties(0.0'f32, nowhere[Colour]()[], nowhere[Point[cint]]()[])
+        discard AccessibilityActionType_press.toCint()
+        discard AccessibilityEvent_valueChanged.toCint()
+        discard AccessibilityRole_button.toCint()
+        discard MessageBoxIconType_NoIcon.toCint()
+        discard FocusTraverserSkipDisabledComponents_no.toCint()
+        discard ComponentWindowControlKind_client.toCint()
+        discard ComponentFocusContainerType_none.toCint()
+        discard ComponentFocusChangeDirection_unknown.toCint()
+        discard AccessibilityHandlerAnnouncementPriority_low.toCint()
+        discard ViewportScrollOnDragMode_never.toCint()
+        discard PopupMenuOptionsPopupDirection_upwards.toCint()
+        discard ProgressBarStyle_linear.toCint()
+        discard TreeViewItemOpenness_opennessDefault.toCint()
+        discard ComponentPeerStyle_automatic.toCint()
+        discard FlexItemAlignSelf_autoAlign.toCint()
+        discard FlexBoxDirection_row.toCint()
+        discard FlexBoxWrap_noWrap.toCint()
+        discard FlexBoxAlignContent_stretch.toCint()
+        discard FlexBoxAlignItems_stretch.toCint()
+        discard FlexBoxJustifyContent_flexStart.toCint()
+        discard GridItemKeyword_autoValue.toCint()
+        discard GridItemJustifySelf_start.toCint()
+        discard GridItemAlignSelf_start.toCint()
+        discard GridJustifyItems_start.toCint()
+        discard GridAlignItems_start.toCint()
+        discard GridJustifyContent_start.toCint()
+        discard GridAlignContent_start.toCint()
+        discard GridAutoFlow_row.toCint()
         MouseCursor.showWaitCursor()
         MouseCursor.hideWaitCursor()
         nowhere[MouseListener]()[].mouseMove(nowhere[MouseEvent]()[])
@@ -2800,6 +2839,9 @@ proc compileChunk6() =
         discard KeyPress.F24Key()
         discard KeyPress.F25Key()
         discard KeyPress.F26Key()
+
+proc compileChunk7() =
+    if address != 0:
         discard KeyPress.F27Key()
         discard KeyPress.F28Key()
         discard KeyPress.F29Key()
@@ -2839,9 +2881,6 @@ proc compileChunk6() =
         discard KeyPress.createFromDescription(nowhere[String]()[])
         discard nowhere[KeyPress]()[].getTextDescription()
         discard nowhere[KeyPress]()[].getTextDescriptionWithIcons()
-
-proc compileChunk7() =
-    if address != 0:
         discard nowhere[KeyPress]()[].isCurrentlyDown()
         discard KeyPress.isKeyCurrentlyDown(0.cint)
         discard nowhere[KeyListener]()[].keyPressed(nowhere[KeyPress]()[], cast[ptr Component](address))
@@ -3203,6 +3242,9 @@ proc compileChunk7() =
         discard nowhere[DisplaysDisplay]()[].verticalFrequencyHz()
         nowhere[ComponentBoundsConstrainer]()[].setMinimumWidth(0.cint)
         discard nowhere[ComponentBoundsConstrainer]()[].getMinimumWidth()
+
+proc compileChunk8() =
+    if address != 0:
         nowhere[ComponentBoundsConstrainer]()[].setMaximumWidth(0.cint)
         discard nowhere[ComponentBoundsConstrainer]()[].getMaximumWidth()
         nowhere[ComponentBoundsConstrainer]()[].setMinimumHeight(0.cint)
@@ -3242,9 +3284,6 @@ proc compileChunk7() =
         discard nowhere[DragAndDropTargetSourceDetails]()[].localPosition()
         discard nowhere[DragAndDropTargetSourceDetails]()[].localPosition()
         nowhere[DragAndDropContainer]()[].startDragging(nowhere[juce_var]()[], cast[ptr Component](address), nowhere[ScaledImage]()[], false, cast[ptr Point[cint]](address), cast[ptr MouseInputSource](address))
-
-proc compileChunk8() =
-    if address != 0:
         nowhere[DragAndDropContainer]()[].startDragging(nowhere[juce_var]()[], cast[ptr Component](address), nowhere[Image]()[], false, cast[ptr Point[cint]](address), cast[ptr MouseInputSource](address))
         discard nowhere[DragAndDropContainer]()[].isDragAndDropActive()
         discard nowhere[DragAndDropContainer]()[].getNumCurrentDrags()
@@ -3606,6 +3645,9 @@ proc compileChunk8() =
         nowhere[TabbedButtonBarLookAndFeelMethods]()[].drawTabAreaBehindFrontButton(nowhere[TabbedButtonBar]()[], nowhere[Graphics]()[], 0.cint, 0.cint)
         nowhere[TabbedButtonBarLookAndFeelMethods]()[].createTabButtonShape(nowhere[TabBarButton]()[], nowhere[Path]()[], false, false)
         nowhere[TabbedButtonBarLookAndFeelMethods]()[].fillTabButtonShape(nowhere[TabBarButton]()[], nowhere[Graphics]()[], nowhere[Path]()[], false, false)
+
+proc compileChunk9() =
+    if address != 0:
         discard nowhere[TabbedButtonBarLookAndFeelMethods]()[].createTabBarExtrasButton()
         nowhere[TabbedComponent]()[].setOrientation(TabbedButtonBarOrientation_TabsAtTop)
         discard nowhere[TabbedComponent]()[].getOrientation()
@@ -3645,9 +3687,6 @@ proc compileChunk8() =
         discard nowhere[AccessibilityTableInterfaceSpan]()[].begin()
         discard nowhere[AccessibilityTableInterfaceSpan]()[].num()
         discard nowhere[AccessibilityTableInterfaceSpan]()[].num()
-
-proc compileChunk9() =
-    if address != 0:
         discard nowhere[AccessibilityTextInterface]()[].isDisplayingProtectedText()
         discard nowhere[AccessibilityTextInterface]()[].isReadOnly()
         discard nowhere[AccessibilityTextInterface]()[].getTotalNumCharacters()
@@ -4009,6 +4048,9 @@ proc compileChunk9() =
         nowhere[RelativeCoordinatePositionerBase]()[].applyNewBounds(nowhere[Rectangle[cint]]()[])
         discard nowhere[RelativeCoordinatePositionerBase]()[].getComponent()
         discard nowhere[RelativeCoordinatePositionerBaseComponentScope]()[].getSymbolValue(nowhere[String]()[])
+
+proc compileChunk10() =
+    if address != 0:
         nowhere[RelativeCoordinatePositionerBaseComponentScope]()[].visitRelativeScope(nowhere[String]()[], nowhere[ExpressionScopeVisitor]()[])
         discard nowhere[RelativeCoordinatePositionerBaseComponentScope]()[].getScopeUID()
         discard nowhere[RelativeCoordinatePositionerBaseComponentScope]()[].evaluateFunction(nowhere[String]()[], cast[ptr float64](address), 0.cint)
@@ -4048,9 +4090,6 @@ proc compileChunk9() =
         discard nowhere[RelativePointPathCloseSubPath]()[].getControlPoints(nowhere[cint]()[])
         discard nowhere[RelativePointPathCloseSubPath]()[].clone()
         discard nowhere[RelativePointPathCloseSubPath]()[].isDynamic()
-
-proc compileChunk10() =
-    if address != 0:
         discard nowhere[RelativePointPathLineTo]()[].endPoint()
         discard nowhere[RelativePointPathLineTo]()[].endPoint()
         nowhere[RelativePointPathLineTo]()[].addToPath(nowhere[Path]()[], cast[ptr ExpressionScope](address))
@@ -4412,6 +4451,9 @@ proc compileChunk10() =
         discard nowhere[Slider]()[].textFromValueFunction()
         nowhere[Slider]()[].setSliderStyle(SliderSliderStyle_LinearHorizontal)
         discard nowhere[Slider]()[].getSliderStyle()
+
+proc compileChunk11() =
+    if address != 0:
         nowhere[Slider]()[].setRotaryParameters(nowhere[SliderRotaryParameters]()[])
         nowhere[Slider]()[].setRotaryParameters(0.0'f32, 0.0'f32, false)
         discard nowhere[Slider]()[].getRotaryParameters()
@@ -4451,9 +4493,6 @@ proc compileChunk10() =
         discard nowhere[Slider]()[].getMinValue()
         discard nowhere[Slider]()[].getMinValueObject()
         nowhere[Slider]()[].setMinValue(0.0, NotificationType_dontSendNotification, false)
-
-proc compileChunk11() =
-    if address != 0:
         discard nowhere[Slider]()[].getMaxValue()
         discard nowhere[Slider]()[].getMaxValueObject()
         nowhere[Slider]()[].setMaxValue(0.0, NotificationType_dontSendNotification, false)
@@ -4815,6 +4854,9 @@ proc compileChunk11() =
         nowhere[AlertWindow]()[].addCustomComponent(cast[ptr Component](address))
         discard nowhere[AlertWindow]()[].getNumCustomComponents()
         discard nowhere[AlertWindow]()[].getCustomComponent(0.cint)
+
+proc compileChunk12() =
+    if address != 0:
         discard nowhere[AlertWindow]()[].removeCustomComponent(0.cint)
         discard nowhere[AlertWindow]()[].containsAnyExtraComponents()
         AlertWindow.showAsync(nowhere[MessageBoxOptions]()[], cast[ptr ModalComponentManagerCallback](address))
@@ -4854,9 +4896,6 @@ proc compileChunk11() =
         discard nowhere[ComponentPeer]()[].localToGlobal(nowhere[Point[cfloat]]()[])
         discard nowhere[ComponentPeer]()[].globalToLocal(nowhere[Point[cfloat]]()[])
         discard nowhere[ComponentPeer]()[].localToGlobal(nowhere[Point[cint]]()[])
-
-proc compileChunk12() =
-    if address != 0:
         discard nowhere[ComponentPeer]()[].globalToLocal(nowhere[Point[cint]]()[])
         discard nowhere[ComponentPeer]()[].localToGlobal(nowhere[Rectangle[cint]]()[])
         discard nowhere[ComponentPeer]()[].globalToLocal(nowhere[Rectangle[cint]]()[])
@@ -5218,6 +5257,9 @@ proc compileChunk12() =
         nowhere[PropertyPanel]()[].clear()
         nowhere[PropertyPanel]()[].addProperties(nowhere[Array[ptr PropertyComponent]]()[], 0.cint)
         nowhere[PropertyPanel]()[].addSection(nowhere[String]()[], nowhere[Array[ptr PropertyComponent]]()[], false, 0.cint, 0.cint)
+
+proc compileChunk13() =
+    if address != 0:
         nowhere[PropertyPanel]()[].refreshAll()
         discard nowhere[PropertyPanel]()[].isEmpty()
         discard nowhere[PropertyPanel]()[].getTotalContentHeight()
@@ -5257,9 +5299,6 @@ proc compileChunk12() =
         nowhere[ExtraLookAndFeelBaseClassesLassoComponentMethods]()[].drawLasso(nowhere[Graphics]()[], nowhere[Component]()[])
         nowhere[ExtraLookAndFeelBaseClassesKeyMappingEditorComponentMethods]()[].drawKeymapChangeButton(nowhere[Graphics]()[], 0.cint, 0.cint, nowhere[Button]()[], nowhere[String]()[])
         nowhere[ExtraLookAndFeelBaseClassesAudioDeviceSelectorComponentMethods]()[].drawLevelMeter(nowhere[Graphics]()[], 0.cint, 0.cint, 0.0'f32)
-
-proc compileChunk13() =
-    if address != 0:
         discard LookAndFeel.getDefaultLookAndFeel()
         LookAndFeel.setDefaultLookAndFeel(cast[ptr LookAndFeel](address))
         discard nowhere[LookAndFeel]()[].findColour(0.cint)

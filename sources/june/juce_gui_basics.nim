@@ -360,14 +360,24 @@ type
 # and $ so a value can appear in a message. $ prints the number
 # rather than the name: the binding holds the C++ enumerator and
 # there is no table of names on this side to look one up in.
+#
+# A scoped enum - `enum class` in C++ - does not convert to int
+# on its own, so a borrowed $ emits dollar_(int32) over a value
+# clang refuses to narrow, and the error appears at the call
+# site rather than here. Those get toCint, which does the
+# static_cast C++ requires, and a $ written over it.
 proc `==`*(a: AccessibilityActionType, b: AccessibilityActionType): bool {.borrow.}
-proc `$`*(value: AccessibilityActionType): string {.borrow.}
+proc toCint*(this: AccessibilityActionType): cint {.header: juce_gui_basics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: AccessibilityActionType): string = $value.toCint()
 proc `==`*(a: AccessibilityEvent, b: AccessibilityEvent): bool {.borrow.}
-proc `$`*(value: AccessibilityEvent): string {.borrow.}
+proc toCint*(this: AccessibilityEvent): cint {.header: juce_gui_basics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: AccessibilityEvent): string = $value.toCint()
 proc `==`*(a: AccessibilityRole, b: AccessibilityRole): bool {.borrow.}
-proc `$`*(value: AccessibilityRole): string {.borrow.}
+proc toCint*(this: AccessibilityRole): cint {.header: juce_gui_basics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: AccessibilityRole): string = $value.toCint()
 proc `==`*(a: MessageBoxIconType, b: MessageBoxIconType): bool {.borrow.}
-proc `$`*(value: MessageBoxIconType): string {.borrow.}
+proc toCint*(this: MessageBoxIconType): cint {.header: juce_gui_basics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: MessageBoxIconType): string = $value.toCint()
 proc `==`*(a: MouseCursorStandardCursorType, b: MouseCursorStandardCursorType): bool {.borrow.}
 proc `$`*(value: MouseCursorStandardCursorType): string {.borrow.}
 proc `==`*(a: ModifierKeysFlags, b: ModifierKeysFlags): bool {.borrow.}
@@ -375,15 +385,19 @@ proc `$`*(value: ModifierKeysFlags): string {.borrow.}
 proc `==`*(a: MouseInputSourceInputSourceType, b: MouseInputSourceInputSourceType): bool {.borrow.}
 proc `$`*(value: MouseInputSourceInputSourceType): string {.borrow.}
 proc `==`*(a: FocusTraverserSkipDisabledComponents, b: FocusTraverserSkipDisabledComponents): bool {.borrow.}
-proc `$`*(value: FocusTraverserSkipDisabledComponents): string {.borrow.}
+proc toCint*(this: FocusTraverserSkipDisabledComponents): cint {.header: juce_gui_basics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: FocusTraverserSkipDisabledComponents): string = $value.toCint()
 proc `==`*(a: ComponentWindowControlKind, b: ComponentWindowControlKind): bool {.borrow.}
-proc `$`*(value: ComponentWindowControlKind): string {.borrow.}
+proc toCint*(this: ComponentWindowControlKind): cint {.header: juce_gui_basics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: ComponentWindowControlKind): string = $value.toCint()
 proc `==`*(a: ComponentFocusContainerType, b: ComponentFocusContainerType): bool {.borrow.}
-proc `$`*(value: ComponentFocusContainerType): string {.borrow.}
+proc toCint*(this: ComponentFocusContainerType): cint {.header: juce_gui_basics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: ComponentFocusContainerType): string = $value.toCint()
 proc `==`*(a: ComponentFocusChangeType, b: ComponentFocusChangeType): bool {.borrow.}
 proc `$`*(value: ComponentFocusChangeType): string {.borrow.}
 proc `==`*(a: ComponentFocusChangeDirection, b: ComponentFocusChangeDirection): bool {.borrow.}
-proc `$`*(value: ComponentFocusChangeDirection): string {.borrow.}
+proc toCint*(this: ComponentFocusChangeDirection): cint {.header: juce_gui_basics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: ComponentFocusChangeDirection): string = $value.toCint()
 proc `==`*(a: DesktopDisplayOrientation, b: DesktopDisplayOrientation): bool {.borrow.}
 proc `$`*(value: DesktopDisplayOrientation): string {.borrow.}
 proc `==`*(a: CaretComponentColourIds, b: CaretComponentColourIds): bool {.borrow.}
@@ -425,13 +439,16 @@ proc `$`*(value: TabbedButtonBarColourIds): string {.borrow.}
 proc `==`*(a: TabbedComponentColourIds, b: TabbedComponentColourIds): bool {.borrow.}
 proc `$`*(value: TabbedComponentColourIds): string {.borrow.}
 proc `==`*(a: AccessibilityHandlerAnnouncementPriority, b: AccessibilityHandlerAnnouncementPriority): bool {.borrow.}
-proc `$`*(value: AccessibilityHandlerAnnouncementPriority): string {.borrow.}
+proc toCint*(this: AccessibilityHandlerAnnouncementPriority): cint {.header: juce_gui_basics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: AccessibilityHandlerAnnouncementPriority): string = $value.toCint()
 proc `==`*(a: ViewportScrollOnDragMode, b: ViewportScrollOnDragMode): bool {.borrow.}
-proc `$`*(value: ViewportScrollOnDragMode): string {.borrow.}
+proc toCint*(this: ViewportScrollOnDragMode): cint {.header: juce_gui_basics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: ViewportScrollOnDragMode): string = $value.toCint()
 proc `==`*(a: PopupMenuColourIds, b: PopupMenuColourIds): bool {.borrow.}
 proc `$`*(value: PopupMenuColourIds): string {.borrow.}
 proc `==`*(a: PopupMenuOptionsPopupDirection, b: PopupMenuOptionsPopupDirection): bool {.borrow.}
-proc `$`*(value: PopupMenuOptionsPopupDirection): string {.borrow.}
+proc toCint*(this: PopupMenuOptionsPopupDirection): cint {.header: juce_gui_basics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: PopupMenuOptionsPopupDirection): string = $value.toCint()
 proc `==`*(a: RelativeCoordinateStandardStringsType, b: RelativeCoordinateStandardStringsType): bool {.borrow.}
 proc `$`*(value: RelativeCoordinateStandardStringsType): string {.borrow.}
 proc `==`*(a: RelativePointPathElementType, b: RelativePointPathElementType): bool {.borrow.}
@@ -445,7 +462,8 @@ proc `$`*(value: ComboBoxColourIds): string {.borrow.}
 proc `==`*(a: ListBoxColourIds, b: ListBoxColourIds): bool {.borrow.}
 proc `$`*(value: ListBoxColourIds): string {.borrow.}
 proc `==`*(a: ProgressBarStyle, b: ProgressBarStyle): bool {.borrow.}
-proc `$`*(value: ProgressBarStyle): string {.borrow.}
+proc toCint*(this: ProgressBarStyle): cint {.header: juce_gui_basics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: ProgressBarStyle): string = $value.toCint()
 proc `==`*(a: ProgressBarColourIds, b: ProgressBarColourIds): bool {.borrow.}
 proc `$`*(value: ProgressBarColourIds): string {.borrow.}
 proc `==`*(a: SliderSliderStyle, b: SliderSliderStyle): bool {.borrow.}
@@ -473,7 +491,8 @@ proc `$`*(value: ToolbarItemComponentToolbarEditingMode): string {.borrow.}
 proc `==`*(a: ToolbarItemFactorySpecialItemIds, b: ToolbarItemFactorySpecialItemIds): bool {.borrow.}
 proc `$`*(value: ToolbarItemFactorySpecialItemIds): string {.borrow.}
 proc `==`*(a: TreeViewItemOpenness, b: TreeViewItemOpenness): bool {.borrow.}
-proc `$`*(value: TreeViewItemOpenness): string {.borrow.}
+proc toCint*(this: TreeViewItemOpenness): cint {.header: juce_gui_basics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: TreeViewItemOpenness): string = $value.toCint()
 proc `==`*(a: TreeViewColourIds, b: TreeViewColourIds): bool {.borrow.}
 proc `$`*(value: TreeViewColourIds): string {.borrow.}
 proc `==`*(a: AlertWindowColourIds, b: AlertWindowColourIds): bool {.borrow.}
@@ -481,7 +500,8 @@ proc `$`*(value: AlertWindowColourIds): string {.borrow.}
 proc `==`*(a: ComponentPeerStyleFlags, b: ComponentPeerStyleFlags): bool {.borrow.}
 proc `$`*(value: ComponentPeerStyleFlags): string {.borrow.}
 proc `==`*(a: ComponentPeerStyle, b: ComponentPeerStyle): bool {.borrow.}
-proc `$`*(value: ComponentPeerStyle): string {.borrow.}
+proc toCint*(this: ComponentPeerStyle): cint {.header: juce_gui_basics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: ComponentPeerStyle): string = $value.toCint()
 proc `==`*(a: ResizableWindowColourIds, b: ResizableWindowColourIds): bool {.borrow.}
 proc `$`*(value: ResizableWindowColourIds): string {.borrow.}
 proc `==`*(a: DocumentWindowTitleBarButtons, b: DocumentWindowTitleBarButtons): bool {.borrow.}
@@ -517,33 +537,47 @@ proc `$`*(value: BubbleComponentColourIds): string {.borrow.}
 proc `==`*(a: LookAndFeel_V4ColourSchemeUIColour, b: LookAndFeel_V4ColourSchemeUIColour): bool {.borrow.}
 proc `$`*(value: LookAndFeel_V4ColourSchemeUIColour): string {.borrow.}
 proc `==`*(a: FlexItemAlignSelf, b: FlexItemAlignSelf): bool {.borrow.}
-proc `$`*(value: FlexItemAlignSelf): string {.borrow.}
+proc toCint*(this: FlexItemAlignSelf): cint {.header: juce_gui_basics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: FlexItemAlignSelf): string = $value.toCint()
 proc `==`*(a: FlexBoxDirection, b: FlexBoxDirection): bool {.borrow.}
-proc `$`*(value: FlexBoxDirection): string {.borrow.}
+proc toCint*(this: FlexBoxDirection): cint {.header: juce_gui_basics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: FlexBoxDirection): string = $value.toCint()
 proc `==`*(a: FlexBoxWrap, b: FlexBoxWrap): bool {.borrow.}
-proc `$`*(value: FlexBoxWrap): string {.borrow.}
+proc toCint*(this: FlexBoxWrap): cint {.header: juce_gui_basics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: FlexBoxWrap): string = $value.toCint()
 proc `==`*(a: FlexBoxAlignContent, b: FlexBoxAlignContent): bool {.borrow.}
-proc `$`*(value: FlexBoxAlignContent): string {.borrow.}
+proc toCint*(this: FlexBoxAlignContent): cint {.header: juce_gui_basics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: FlexBoxAlignContent): string = $value.toCint()
 proc `==`*(a: FlexBoxAlignItems, b: FlexBoxAlignItems): bool {.borrow.}
-proc `$`*(value: FlexBoxAlignItems): string {.borrow.}
+proc toCint*(this: FlexBoxAlignItems): cint {.header: juce_gui_basics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: FlexBoxAlignItems): string = $value.toCint()
 proc `==`*(a: FlexBoxJustifyContent, b: FlexBoxJustifyContent): bool {.borrow.}
-proc `$`*(value: FlexBoxJustifyContent): string {.borrow.}
+proc toCint*(this: FlexBoxJustifyContent): cint {.header: juce_gui_basics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: FlexBoxJustifyContent): string = $value.toCint()
 proc `==`*(a: GridItemKeyword, b: GridItemKeyword): bool {.borrow.}
-proc `$`*(value: GridItemKeyword): string {.borrow.}
+proc toCint*(this: GridItemKeyword): cint {.header: juce_gui_basics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: GridItemKeyword): string = $value.toCint()
 proc `==`*(a: GridItemJustifySelf, b: GridItemJustifySelf): bool {.borrow.}
-proc `$`*(value: GridItemJustifySelf): string {.borrow.}
+proc toCint*(this: GridItemJustifySelf): cint {.header: juce_gui_basics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: GridItemJustifySelf): string = $value.toCint()
 proc `==`*(a: GridItemAlignSelf, b: GridItemAlignSelf): bool {.borrow.}
-proc `$`*(value: GridItemAlignSelf): string {.borrow.}
+proc toCint*(this: GridItemAlignSelf): cint {.header: juce_gui_basics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: GridItemAlignSelf): string = $value.toCint()
 proc `==`*(a: GridJustifyItems, b: GridJustifyItems): bool {.borrow.}
-proc `$`*(value: GridJustifyItems): string {.borrow.}
+proc toCint*(this: GridJustifyItems): cint {.header: juce_gui_basics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: GridJustifyItems): string = $value.toCint()
 proc `==`*(a: GridAlignItems, b: GridAlignItems): bool {.borrow.}
-proc `$`*(value: GridAlignItems): string {.borrow.}
+proc toCint*(this: GridAlignItems): cint {.header: juce_gui_basics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: GridAlignItems): string = $value.toCint()
 proc `==`*(a: GridJustifyContent, b: GridJustifyContent): bool {.borrow.}
-proc `$`*(value: GridJustifyContent): string {.borrow.}
+proc toCint*(this: GridJustifyContent): cint {.header: juce_gui_basics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: GridJustifyContent): string = $value.toCint()
 proc `==`*(a: GridAlignContent, b: GridAlignContent): bool {.borrow.}
-proc `$`*(value: GridAlignContent): string {.borrow.}
+proc toCint*(this: GridAlignContent): cint {.header: juce_gui_basics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: GridAlignContent): string = $value.toCint()
 proc `==`*(a: GridAutoFlow, b: GridAutoFlow): bool {.borrow.}
-proc `$`*(value: GridAutoFlow): string {.borrow.}
+proc toCint*(this: GridAutoFlow): cint {.header: juce_gui_basics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: GridAutoFlow): string = $value.toCint()
 
 # Bitwise operators for the flag sets among them.
 proc `or`*(a: ModifierKeysFlags, b: ModifierKeysFlags): ModifierKeysFlags {.borrow.}

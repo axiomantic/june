@@ -1550,6 +1550,11 @@ def run_main(juce_module_name, juce_class_name_to_export):
     # satisfies every such pair.
     all_class_decls = []
     emitted_enum_names = []
+    # A C++ SCOPED enum (`enum class`) does not convert to int on its own, so a
+    # borrowed `$` emits dollar_(int32) over a value clang will not narrow and
+    # fails at the call site - the same only-when-called shape as every other
+    # defect on this branch. These get an explicit static_cast instead.
+    scoped_enum_names = set()
     for c in module_classes:
         if juce_class_name_to_export is not None and c.spelling != juce_class_name_to_export:
             continue
@@ -1608,6 +1613,8 @@ def run_main(juce_module_name, juce_class_name_to_export):
     for enum_name, enum_cursor, owner in module_enums:
         qualified = f"juce::{owner}::{enum_cursor.spelling}" if owner else f"juce::{enum_cursor.spelling}"
         emitted_enum_names.append(enum_name)
+        if enum_cursor.is_scoped_enum():
+            scoped_enum_names.add(enum_name)
         all_class_decls.append(nim_enum_def.format(**{
             "enum_name": enum_name,
             "spelling": qualified,
@@ -1640,9 +1647,25 @@ def run_main(juce_module_name, juce_class_name_to_export):
         print("# and $ so a value can appear in a message. $ prints the number")
         print("# rather than the name: the binding holds the C++ enumerator and")
         print("# there is no table of names on this side to look one up in.")
+        print("#")
+        print("# A scoped enum - `enum class` in C++ - does not convert to int")
+        print("# on its own, so a borrowed $ emits dollar_(int32) over a value")
+        print("# clang refuses to narrow, and the error appears at the call")
+        print("# site rather than here. Those get toCint, which does the")
+        print("# static_cast C++ requires, and a $ written over it.")
         for enum_name in emitted_enum_names:
             print(f"proc `==`*(a: {enum_name}, b: {enum_name}): bool {{.borrow.}}")
-            print(f"proc `$`*(value: {enum_name}): string {{.borrow.}}")
+            if enum_name in scoped_enum_names:
+                # The parameter is called `this` so the compile harness treats
+                # toCint as a method and calls it. Named anything else it is a
+                # free function to the harness, which skips those - and an
+                # importcpp nothing calls is an importcpp nothing compiles.
+                print(f"proc toCint*(this: {enum_name}): cint "
+                      f"{{.header: {juce_module_name}, "
+                      f'importcpp: "static_cast<int>(#)".}}')
+                print(f"proc `$`*(value: {enum_name}): string = $value.toCint()")
+            else:
+                print(f"proc `$`*(value: {enum_name}): string {{.borrow.}}")
         print()
 
         # JUCE spells a flag set as a nested enum called Flags, which this

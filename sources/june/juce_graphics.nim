@@ -80,8 +80,15 @@ type
 # and $ so a value can appear in a message. $ prints the number
 # rather than the name: the binding holds the C++ enumerator and
 # there is no table of names on this side to look one up in.
+#
+# A scoped enum - `enum class` in C++ - does not convert to int
+# on its own, so a borrowed $ emits dollar_(int32) over a value
+# clang refuses to narrow, and the error appears at the call
+# site rather than here. Those get toCint, which does the
+# static_cast C++ requires, and a $ written over it.
 proc `==`*(a: TypefaceMetricsKind, b: TypefaceMetricsKind): bool {.borrow.}
-proc `$`*(value: TypefaceMetricsKind): string {.borrow.}
+proc toCint*(this: TypefaceMetricsKind): cint {.header: juce_graphics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: TypefaceMetricsKind): string = $value.toCint()
 proc `==`*(a: JustificationFlags, b: JustificationFlags): bool {.borrow.}
 proc `$`*(value: JustificationFlags): string {.borrow.}
 proc `==`*(a: PathIteratorPathElementType, b: PathIteratorPathElementType): bool {.borrow.}
