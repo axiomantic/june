@@ -5441,26 +5441,282 @@ proc testLookAndFeelDrawingHooks() =
         laf.setComponentEffectForBubbleComponent(bubble[])
         cdelete bubble
 
-    block:
-        let alert = laf.createAlertWindow(
-            makeString("title"), makeString("message"), makeString("ok"),
-            makeString(""), makeString(""), MessageBoxIconType_NoIcon, 1, nil)
-        doAssert not alert.isNil, "createAlertWindow returned nothing"
+    when defined(macosx):
+        # An AlertWindow is a top-level window and building one on the headless
+        # Linux container segfaults, the same reason the DocumentWindow test
+        # above is macOS only. The hooks are still compiled and run on macOS.
+            let alert = laf.createAlertWindow(
+                makeString("title"), makeString("message"), makeString("ok"),
+                makeString(""), makeString(""), MessageBoxIconType_NoIcon, 1, nil)
+            doAssert not alert.isNil, "createAlertWindow returned nothing"
 
-        var layout = makeTextLayout()
-        laf.drawAlertBox(g, alert[], area, layout)
-        discard laf.getAlertBoxWindowFlags()
-        doAssert laf.getAlertWindowButtonHeight() > 0,
-                 "the alert button height is " & $laf.getAlertWindowButtonHeight()
-        doAssert laf.getAlertWindowFont().getHeight() > 0, "the alert font has no height"
-        doAssert laf.getAlertWindowMessageFont().getHeight() > 0,
-                 "the alert message font has no height"
-        doAssert laf.getAlertWindowTitleFont().getHeight() > 0,
-                 "the alert title font has no height"
-        let widths = laf.getWidthsForTextButtons(alert[], makeArray[ptr TextButton]())
-        doAssert widths.size() == 0,
-                 "widths came back for " & $widths.size() & " buttons of none"
-        cdelete alert
+            var layout = makeTextLayout()
+            laf.drawAlertBox(g, alert[], area, layout)
+            discard laf.getAlertBoxWindowFlags()
+            doAssert laf.getAlertWindowButtonHeight() > 0,
+                     "the alert button height is " & $laf.getAlertWindowButtonHeight()
+            doAssert laf.getAlertWindowFont().getHeight() > 0, "the alert font has no height"
+            doAssert laf.getAlertWindowMessageFont().getHeight() > 0,
+                     "the alert message font has no height"
+            doAssert laf.getAlertWindowTitleFont().getHeight() > 0,
+                     "the alert title font has no height"
+            let widths = laf.getWidthsForTextButtons(alert[], makeArray[ptr TextButton]())
+            doAssert widths.size() == 0,
+                     "widths came back for " & $widths.size() & " buttons of none"
+            cdelete alert
+
+    block:
+        var model = newCustomMenuBarModel()
+        var menuBar = makeMenuBarComponent(cast[ptr MenuBarModel](model))
+        var options = makePopupMenuOptions()
+
+        laf.drawMenuBarBackground(g, 64, 24, false, menuBar)
+        laf.drawMenuBarItem(g, 64, 24, 0, makeString("File"), false, false, false, menuBar)
+        laf.drawPopupMenuBackground(g, 64, 64)
+        laf.drawPopupMenuBackgroundWithOptions(g, 64, 64, options)
+        laf.drawPopupMenuColumnSeparatorWithOptions(g, area, options)
+        laf.drawPopupMenuItem(g, area, false, true, false, false, false,
+                              makeString("Open"), makeString("Ctrl+O"), nil, nil)
+        var item = makePopupMenuItem()
+        item.text = makeString("Open")
+        laf.drawPopupMenuItemWithOptions(g, area, false, item, options)
+        laf.drawPopupMenuSectionHeader(g, area, makeString("Section"))
+        laf.drawPopupMenuSectionHeaderWithOptions(g, area, makeString("Section"), options)
+        laf.drawPopupMenuUpDownArrow(g, 64, 16, true)
+        laf.drawPopupMenuUpDownArrowWithOptions(g, 64, 16, true, options)
+
+        doAssert laf.getDefaultMenuBarHeight() > 0,
+                 "the default menu bar height is " & $laf.getDefaultMenuBarHeight()
+
+        var idealWidth, idealHeight: cint
+        laf.getIdealPopupMenuItemSize(makeString("Open"), false, 20, idealWidth, idealHeight)
+        doAssert idealWidth > 0 and idealHeight > 0,
+                 "the ideal item size is " & $idealWidth & "x" & $idealHeight
+        idealWidth = 0
+        laf.getIdealPopupMenuItemSizeWithOptions(makeString("Open"), false, 20,
+                                                 idealWidth, idealHeight, options)
+        doAssert idealWidth > 0, "the ideal item width with options is " & $idealWidth
+        idealWidth = 0
+        laf.getIdealPopupMenuSectionHeaderSizeWithOptions(makeString("Section"), 20,
+                                                          idealWidth, idealHeight, options)
+        doAssert idealWidth > 0, "the ideal header width is " & $idealWidth
+
+        doAssert laf.getMenuBarFont(menuBar, 0, makeString("File")).getHeight() > 0,
+                 "the menu bar font has no height"
+        doAssert laf.getMenuBarItemWidth(menuBar, 0, makeString("File")) > 0,
+                 "the menu bar item width is " &
+                 $laf.getMenuBarItemWidth(menuBar, 0, makeString("File"))
+        discard laf.getMenuWindowFlags()
+        doAssert laf.getParentComponentForMenuOptions(options).isNil,
+                 "options with no parent named one"
+        doAssert laf.getPopupMenuBorderSize() > 0,
+                 "the popup border is " & $laf.getPopupMenuBorderSize()
+        doAssert laf.getPopupMenuBorderSizeWithOptions(options) > 0,
+                 "the popup border with options is " &
+                 $laf.getPopupMenuBorderSizeWithOptions(options)
+        discard laf.getPopupMenuColumnSeparatorWidthWithOptions(options)
+        doAssert laf.getPopupMenuFont().getHeight() > 0, "the popup font has no height"
+
+        var window = newCustomComponent()
+        laf.preparePopupMenuWindow(window[])
+        discard laf.shouldPopupMenuScaleWithTargetComponent(options)
+        cdelete window
+        cdelete model
+
+    block:
+        var combo = makeComboBox(makeString("combo"))
+        var label = makeLabel(makeString("label"), makeString("text"))
+        let textBox = laf.createComboBoxTextBox(combo)
+        doAssert not textBox.isNil, "createComboBoxTextBox returned nothing"
+        cdelete textBox
+        laf.drawComboBox(g, 64, 24, false, 44, 0, 20, 24, combo)
+        laf.drawComboBoxTextWhenNothingSelected(g, combo, label)
+        doAssert laf.getComboBoxFont(combo).getHeight() > 0,
+                 "the combo box font has no height"
+        discard laf.getOptionsForComboBoxPopupMenu(combo, label)
+        laf.positionComboBoxText(combo, label)
+        laf.drawLabel(g, label)
+        doAssert laf.getLabelFont(label).getHeight() > 0, "the label font has no height"
+        discard laf.getLabelBorderSize(label)
+
+    block:
+        var slider = makeSlider(makeString("slider"))
+        slider.setBounds(makeRectangle(0.cint, 0.cint, 64.cint, 24.cint))
+        laf.drawLinearSliderBackground(g, 0, 0, 64, 24, 32.0'f32, 0.0'f32, 64.0'f32,
+                                       SliderSliderStyle_LinearHorizontal, slider)
+        laf.drawLinearSliderOutline(g, 0, 0, 64, 24,
+                                    SliderSliderStyle_LinearHorizontal, slider)
+        laf.drawLinearSliderThumb(g, 0, 0, 64, 24, 32.0'f32, 0.0'f32, 64.0'f32,
+                                  SliderSliderStyle_LinearHorizontal, slider)
+        laf.drawLinearSlider(g, 0, 0, 64, 24, 32.0'f32, 0.0'f32, 64.0'f32,
+                             SliderSliderStyle_LinearHorizontal, slider)
+        laf.drawRotarySlider(g, 0, 0, 64, 64, 0.5'f32, 0.0'f32, 3.14'f32, slider)
+
+        let increment = laf.createSliderButton(slider, true)
+        doAssert not increment.isNil, "createSliderButton returned nothing"
+        cdelete increment
+        let sliderText = laf.createSliderTextBox(slider)
+        doAssert not sliderText.isNil, "createSliderTextBox returned nothing"
+        cdelete sliderText
+        doAssert laf.getSliderEffect(slider).isNil,
+                 "LookAndFeel_V4 supplies a slider effect"
+        discard laf.getSliderLayout(slider)
+        doAssert laf.getSliderPopupFont(slider).getHeight() > 0,
+                 "the slider popup font has no height"
+        discard laf.getSliderPopupPlacement(slider)
+        doAssert laf.getSliderThumbRadius(slider) > 0,
+                 "the slider thumb radius is " & $laf.getSliderThumbRadius(slider)
+
+    when defined(macosx):
+        # Top-level windows again: addToDesktop is false, but building one at
+        # all segfaults on the headless Linux container.
+            # Windows are built with addToDesktop false: a real top-level window
+            # needs a display, and these only have to exist to be drawn into an
+            # image.
+            var window = makeResizableWindow(makeString("window"), false)
+            let border = makeBorderSize(4.cint)
+            laf.drawCornerResizer(g, 16, 16, false, false)
+            laf.drawResizableFrame(g, 64, 64, border)
+            laf.drawResizableWindowBorder(g, 64, 64, border, window)
+            laf.fillResizableWindowBackground(g, 64, 64, border, window)
+
+            var document = makeDocumentWindowImpl(
+                makeString("document"), makeColour(255'u8, 255'u8, 255'u8, 255'u8),
+                DocumentWindowTitleBarButtons_allButtons.cint, false)
+            let closeButton = laf.createDocumentWindowButton(
+                DocumentWindowTitleBarButtons_closeButton.cint)
+            doAssert not closeButton.isNil, "createDocumentWindowButton returned nothing"
+            laf.drawDocumentWindowTitleBar(document, g, 64, 24, 0, 64, addr image, false)
+            laf.positionDocumentWindowButtons(document, 0, 0, 64, 24, nil, nil,
+                                              closeButton, false)
+            cdelete closeButton
+
+    block:
+        laf.drawTooltip(g, makeString("a tip"), 64, 20)
+        let bounds = laf.getTooltipBounds(makeString("a tip"),
+                                          makePoint(10.cint, 10.cint), area)
+        doAssert bounds.getWidth() > 0,
+                 "the tooltip bounds are " & $bounds.getWidth() & " wide"
+
+    block:
+        var tabs = makeTabbedButtonBar(TabbedButtonBarOrientation_TabsAtTop)
+        tabs.setBounds(makeRectangle(0.cint, 0.cint, 64.cint, 24.cint))
+        var tab = makeTabBarButton(makeString("tab"), tabs)
+        var path = makePath()
+        var extra = newCustomComponent()
+        var textArea = makeRectangle(0.cint, 0.cint, 40.cint, 20.cint)
+
+        let extras = laf.createTabBarExtrasButton()
+        doAssert not extras.isNil, "createTabBarExtrasButton returned nothing"
+        cdelete extras
+        laf.createTabButtonShape(tab, path, false, false)
+        doAssert not path.isEmpty(), "createTabButtonShape drew nothing"
+        laf.drawTabAreaBehindFrontButton(tabs, g, 64, 24)
+        laf.drawTabButton(tab, g, false, false)
+        laf.drawTabButtonText(tab, g, false, false)
+        laf.drawTabbedButtonBarBackground(tabs, g)
+        laf.fillTabButtonShape(tab, g, path, false, false)
+        doAssert laf.getTabButtonBestWidth(tab, 24) > 0,
+                 "the best tab width is " & $laf.getTabButtonBestWidth(tab, 24)
+        discard laf.getTabButtonExtraComponentBounds(tab, textArea, extra[])
+        doAssert laf.getTabButtonFont(tab, 24.0'f32).getHeight() > 0,
+                 "the tab font has no height"
+        discard laf.getTabButtonOverlap(24)
+        discard laf.getTabButtonSpaceAroundImage()
+        cdelete extra
+
+    block:
+        let property = newCustomPropertyComponent(makeString("prop"), 20.cint)
+        laf.drawPropertyComponentBackground(g, 64, 20, property[])
+        laf.drawPropertyComponentLabel(g, 64, 20, property[])
+        laf.drawPropertyPanelSectionHeader(g, makeString("Section"), true, 64, 20)
+        discard laf.getPropertyComponentContentPosition(property[])
+        doAssert laf.getPropertyPanelSectionHeaderHeight(makeString("Section")) > 0,
+                 "the section header height is " &
+                 $laf.getPropertyPanelSectionHeaderHeight(makeString("Section"))
+        cdelete property
+
+        var chooser = makeFilenameComponent(
+            makeString("file"), june.File(), true, false, false,
+            makeString("*"), makeString(""), makeString("choose"))
+        let browse = laf.createFilenameComponentBrowseButton(makeString("..."))
+        doAssert not browse.isNil, "createFilenameComponentBrowseButton returned nothing"
+        var filenameBox = makeComboBox(makeString("filename"))
+        chooser.setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 24.cint))
+        laf.layoutFilenameComponent(chooser, addr filenameBox, browse)
+        doAssert filenameBox.getWidth() > 0,
+                 "the filename box was left " & $filenameBox.getWidth() & " wide"
+        cdelete browse
+
+    block:
+        var group = makeGroupComponent(makeString("group"), makeString("Group"))
+        laf.drawGroupComponentOutline(g, 64, 64, makeString("Group"),
+                                      makeJustification(JustificationFlags_centred.cint),
+                                      group)
+
+        var header = makeTableHeaderComponent()
+        laf.drawTableHeaderBackground(g, header)
+        laf.drawTableHeaderColumn(g, header, makeString("Name"), 1, 64, 20,
+                                  false, false, 0)
+
+    block:
+        # With a nil parent the box puts itself on the desktop, which the
+        # headless Linux container cannot do; given a parent it is an ordinary
+        # child component.
+        var parent = newCustomComponent()
+        parent[].setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 200.cint))
+        var content = newCustomComponent()
+        var box = makeCallOutBox(content[], area, cast[ptr Component](parent))
+        var path = makePath()
+        laf.drawCallOutBoxBackground(box, g, path, image)
+        doAssert laf.getCallOutBoxBorderSize(box) > 0,
+                 "the call-out border is " & $laf.getCallOutBoxBorderSize(box)
+        doAssert laf.getCallOutBoxCornerSize(box) > 0.0,
+                 "the call-out corner is " & $laf.getCallOutBoxCornerSize(box)
+        cdelete content
+        cdelete parent
+
+    block:
+        var toolbar = makeToolbar()
+        var item = newCustomToolbarItemComponent(1.cint, makeString("item"), true)
+        let missing = laf.createToolbarMissingItemsButton(toolbar)
+        doAssert not missing.isNil, "createToolbarMissingItemsButton returned nothing"
+        cdelete missing
+        laf.paintToolbarBackground(g, 64, 24, toolbar)
+        laf.paintToolbarButtonBackground(g, 24, 24, false, false, item[])
+        laf.paintToolbarButtonLabel(g, 0, 0, 24, 24, makeString("item"), item[])
+        cdelete item
+
+    block:
+        var panel = makeConcertinaPanel()
+        var header = newCustomComponent()
+        laf.drawConcertinaPanelHeader(g, area, false, false, panel, header[])
+        cdelete header
+
+        var progress = 0.5'f64
+        var bar = makeProgressBar(progress)
+        laf.drawProgressBar(g, bar, 64, 20, 0.5, makeString("50%"))
+        discard laf.getDefaultProgressBarStyle(bar)
+        discard laf.isProgressBarOpaque(bar)
+
+        laf.drawStretchableLayoutResizerBar(g, 8, 64, true, false, false)
+
+        var keyButton = makeTextButton(makeString("key"))
+        laf.drawKeymapChangeButton(g, 64, 20, cast[ptr Button](addr keyButton)[],
+                                   makeString("Ctrl+S"))
+        laf.drawLevelMeter(g, 64, 20, 0.5'f32)
+
+        var lasso = newCustomComponent()
+        laf.drawLasso(g, lasso[])
+        cdelete lasso
+
+        var side = makeSidePanel(makeStringRef(makeString("Panel")), 120.cint, true,
+                                 nil, false)
+        doAssert not laf.getSidePanelDismissButtonShape(side).isEmpty(),
+                 "the side panel dismiss shape is empty"
+        doAssert laf.getSidePanelTitleFont(side).getHeight() > 0,
+                 "the side panel title font has no height"
+        discard laf.getSidePanelTitleJustification(side)
 
     shutdownJuce_GUI()
 
