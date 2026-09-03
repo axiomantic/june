@@ -468,6 +468,13 @@ two apart, so those two are named in the generator with the reason, and
 ``check_handwritten_covered.py`` fails unless a test builds every one of the
 constructors that is emitted.
 
+A bound constant is not checked against C++ unless something reads it. A ``let``
+naming ``juce::NoSuchClass::nope`` compiles clean while nothing touches it,
+which was measured rather than assumed, so 591 of the 635 had never had their
+spelling checked. The suite reads every one and
+``check_handwritten_covered.py`` fails if one is not read. All 635 were
+correct, which is worth knowing rather than assuming.
+
 A nested class is named by its parts joined together, and one of those
 collided with a top-level class: ``juce::MessageManagerLock`` and
 ``juce::MessageManager::Lock`` both flattened to ``MessageManagerLock``. The
