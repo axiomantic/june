@@ -634,32 +634,32 @@ proc canRepresent*(this: typedesc[CharPointer_ASCII], character: WChar): bool {.
 proc isValidString*(this: typedesc[CharPointer_ASCII], dataToTest: ptr char, maxBytesToRead: cint): bool {.header: juce_core, importcpp: "juce::CharPointer_ASCII::isValidString(@)".}
 
 proc makeString*(): String {.header: juce_core, importcpp: "juce::String(@)".}
-proc makeString*(text: constChar): String {.header: juce_core, importcpp: "juce::String((const char *) @)".}
-proc makeString*(text: constChar, maxChars: uint64): String {.header: juce_core, importcpp: "juce::String(@)".}
-proc makeString*(text: ptr WChar): String {.header: juce_core, importcpp: "juce::String((const wchar_t *) @)".}
-proc makeString*(text: ptr WChar, maxChars: uint64): String {.header: juce_core, importcpp: "juce::String(@)".}
-proc makeString*(text: CharPointer_UTF8): String {.header: juce_core, importcpp: "juce::String((juce::CharPointer_UTF8) @)".}
-proc makeString*(text: CharPointer_UTF8, maxChars: uint64): String {.header: juce_core, importcpp: "juce::String(@)".}
-proc makeString*(start: CharPointer_UTF8, `end`: CharPointer_UTF8): String {.header: juce_core, importcpp: "juce::String(@)".}
-proc makeString*(text: CharPointer_UTF16): String {.header: juce_core, importcpp: "juce::String((juce::CharPointer_UTF16) @)".}
-proc makeString*(text: CharPointer_UTF16, maxChars: uint64): String {.header: juce_core, importcpp: "juce::String(@)".}
-proc makeString*(start: CharPointer_UTF16, `end`: CharPointer_UTF16): String {.header: juce_core, importcpp: "juce::String(@)".}
-proc makeString*(text: CharPointer_UTF32): String {.header: juce_core, importcpp: "juce::String((juce::CharPointer_UTF32) @)".}
-proc makeString*(text: CharPointer_UTF32, maxChars: uint64): String {.header: juce_core, importcpp: "juce::String(@)".}
-proc makeString*(start: CharPointer_UTF32, `end`: CharPointer_UTF32): String {.header: juce_core, importcpp: "juce::String(@)".}
-proc makeString*(text: CharPointer_ASCII): String {.header: juce_core, importcpp: "juce::String((juce::CharPointer_ASCII) @)".}
-proc makeString*(arg1: CppString): String {.header: juce_core, importcpp: "juce::String((const std::string &) @)".}
-proc makeString*(arg1: StringRef): String {.header: juce_core, importcpp: "juce::String((juce::StringRef) @)".}
-proc makeString*(decimalInteger: cint): String {.header: juce_core, importcpp: "juce::String((int) @)".}
-proc makeString*(decimalInteger: uint32): String {.header: juce_core, importcpp: "juce::String((unsigned int) @)".}
-proc makeString*(decimalInteger: int16): String {.header: juce_core, importcpp: "juce::String((short) @)".}
-proc makeString*(decimalInteger: uint16): String {.header: juce_core, importcpp: "juce::String((unsigned short) @)".}
-proc makeString*(largeIntegerValue: int64): String {.header: juce_core, importcpp: "juce::String((long long) @)".}
-proc makeString*(largeIntegerValue: uint64): String {.header: juce_core, importcpp: "juce::String((unsigned long long) @)".}
-proc makeString*(floatValue: cfloat): String {.header: juce_core, importcpp: "juce::String((float) @)".}
-proc makeString*(doubleValue: float64): String {.header: juce_core, importcpp: "juce::String((double) @)".}
-proc makeString*(floatValue: cfloat, numberOfDecimalPlaces: cint, useScientificNotation: bool): String {.header: juce_core, importcpp: "juce::String(@)".}
-proc makeString*(doubleValue: float64, numberOfDecimalPlaces: cint, useScientificNotation: bool): String {.header: juce_core, importcpp: "juce::String(@)".}
+proc makeString*(text: constChar): String {.header: juce_core, importcpp: "juce::String((const char *) #)".}
+proc makeString*(text: constChar, maxChars: uint64): String {.header: juce_core, importcpp: "juce::String((const char *) #, (unsigned long) #)".}
+proc makeString*(text: ptr WChar): String {.header: juce_core, importcpp: "juce::String((const wchar_t *) #)".}
+proc makeString*(text: ptr WChar, maxChars: uint64): String {.header: juce_core, importcpp: "juce::String((const wchar_t *) #, (unsigned long) #)".}
+proc makeString*(text: CharPointer_UTF8): String {.header: juce_core, importcpp: "juce::String((juce::CharPointer_UTF8) #)".}
+proc makeString*(text: CharPointer_UTF8, maxChars: uint64): String {.header: juce_core, importcpp: "juce::String((juce::CharPointer_UTF8) #, (unsigned long) #)".}
+proc makeString*(start: CharPointer_UTF8, `end`: CharPointer_UTF8): String {.header: juce_core, importcpp: "juce::String((juce::CharPointer_UTF8) #, (juce::CharPointer_UTF8) #)".}
+proc makeString*(text: CharPointer_UTF16): String {.header: juce_core, importcpp: "juce::String((juce::CharPointer_UTF16) #)".}
+proc makeString*(text: CharPointer_UTF16, maxChars: uint64): String {.header: juce_core, importcpp: "juce::String((juce::CharPointer_UTF16) #, (unsigned long) #)".}
+proc makeString*(start: CharPointer_UTF16, `end`: CharPointer_UTF16): String {.header: juce_core, importcpp: "juce::String((juce::CharPointer_UTF16) #, (juce::CharPointer_UTF16) #)".}
+proc makeString*(text: CharPointer_UTF32): String {.header: juce_core, importcpp: "juce::String((juce::CharPointer_UTF32) #)".}
+proc makeString*(text: CharPointer_UTF32, maxChars: uint64): String {.header: juce_core, importcpp: "juce::String((juce::CharPointer_UTF32) #, (unsigned long) #)".}
+proc makeString*(start: CharPointer_UTF32, `end`: CharPointer_UTF32): String {.header: juce_core, importcpp: "juce::String((juce::CharPointer_UTF32) #, (juce::CharPointer_UTF32) #)".}
+proc makeString*(text: CharPointer_ASCII): String {.header: juce_core, importcpp: "juce::String((juce::CharPointer_ASCII) #)".}
+proc makeString*(arg1: CppString): String {.header: juce_core, importcpp: "juce::String((const std::string &) #)".}
+proc makeString*(arg1: StringRef): String {.header: juce_core, importcpp: "juce::String((juce::StringRef) #)".}
+proc makeString*(decimalInteger: cint): String {.header: juce_core, importcpp: "juce::String((int) #)".}
+proc makeString*(decimalInteger: uint32): String {.header: juce_core, importcpp: "juce::String((unsigned int) #)".}
+proc makeString*(decimalInteger: int16): String {.header: juce_core, importcpp: "juce::String((short) #)".}
+proc makeString*(decimalInteger: uint16): String {.header: juce_core, importcpp: "juce::String((unsigned short) #)".}
+proc makeString*(largeIntegerValue: int64): String {.header: juce_core, importcpp: "juce::String((long long) #)".}
+proc makeString*(largeIntegerValue: uint64): String {.header: juce_core, importcpp: "juce::String((unsigned long long) #)".}
+proc makeString*(floatValue: cfloat): String {.header: juce_core, importcpp: "juce::String((float) #)".}
+proc makeString*(doubleValue: float64): String {.header: juce_core, importcpp: "juce::String((double) #)".}
+proc makeString*(floatValue: cfloat, numberOfDecimalPlaces: cint, useScientificNotation: bool): String {.header: juce_core, importcpp: "juce::String((float) #, (int) #, (bool) #)".}
+proc makeString*(doubleValue: float64, numberOfDecimalPlaces: cint, useScientificNotation: bool): String {.header: juce_core, importcpp: "juce::String((double) #, (int) #, (bool) #)".}
 proc charToString*(this: typedesc[String], character: WChar): String {.header: juce_core, importcpp: "juce::String::charToString(@)".}
 proc hashCode*(this: String): cint {.header: juce_core, importcpp: "#.hashCode()".}
 proc hashCode64*(this: String): int64 {.header: juce_core, importcpp: "#.hashCode64()".}
@@ -810,8 +810,8 @@ proc outputDebugString*(this: typedesc[Logger], text: String) {.header: juce_cor
 proc `==`*(this: Logger, other: Logger): bool {.error: "juce::Logger defines no operator==; compare a property instead".}
 
 proc makeMemoryBlock*(): MemoryBlock {.header: juce_core, importcpp: "juce::MemoryBlock(@)".}
-proc makeMemoryBlock*(initialSize: uint64, initialiseToZero: bool): MemoryBlock {.header: juce_core, importcpp: "juce::MemoryBlock(@)".}
-proc makeMemoryBlock*(dataToInitialiseFrom: constPointer, sizeInBytes: uint64): MemoryBlock {.header: juce_core, importcpp: "juce::MemoryBlock(@)".}
+proc makeMemoryBlock*(initialSize: uint64, initialiseToZero: bool): MemoryBlock {.header: juce_core, importcpp: "juce::MemoryBlock((unsigned long) #, (bool) #)".}
+proc makeMemoryBlock*(dataToInitialiseFrom: constPointer, sizeInBytes: uint64): MemoryBlock {.header: juce_core, importcpp: "juce::MemoryBlock((const void *) #, (unsigned long) #)".}
 proc `MemoryBlock=`*(this: var MemoryBlock, arg1: MemoryBlock): var MemoryBlock {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `==`*(this: MemoryBlock, other: MemoryBlock): bool {.header: juce_core, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: MemoryBlock, other: MemoryBlock): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
@@ -1224,19 +1224,19 @@ proc `command=`*(this: var ConsoleApplicationCommand, value: CppFunctionObjectN1
 proc `==`*(this: ConsoleApplicationCommand, other: ConsoleApplicationCommand): bool {.error: "juce::ConsoleApplication::Command defines no operator==; compare a property instead".}
 
 proc makejuce_var*(): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
-proc makejuce_var*(value: cint): juce_var {.header: juce_core, importcpp: "juce::var((int) @)".}
-proc makejuce_var*(value: int64): juce_var {.header: juce_core, importcpp: "juce::var((long long) @)".}
-proc makejuce_var*(value: bool): juce_var {.header: juce_core, importcpp: "juce::var((bool) @)".}
-proc makejuce_var*(value: float64): juce_var {.header: juce_core, importcpp: "juce::var((double) @)".}
-proc makejuce_var*(value: constChar): juce_var {.header: juce_core, importcpp: "juce::var((const char *) @)".}
-proc makejuce_var*(value: ptr WChar): juce_var {.header: juce_core, importcpp: "juce::var((const wchar_t *) @)".}
-proc makejuce_var*(value: String): juce_var {.header: juce_core, importcpp: "juce::var((const juce::String &) @)".}
-proc makejuce_var*(value: Array[juce_var]): juce_var {.header: juce_core, importcpp: "juce::var((const juce::Array<juce::var> &) @)".}
-proc makejuce_var*(value: StringArray): juce_var {.header: juce_core, importcpp: "juce::var((const juce::StringArray &) @)".}
-proc makejuce_var*(`object`: ptr ReferenceCountedObject): juce_var {.header: juce_core, importcpp: "juce::var((juce::ReferenceCountedObject *) @)".}
-proc makejuce_var*(`method`: CppFunctionObjectR1Ref[juce_var, juce_varNativeFunctionArgs]): juce_var {.header: juce_core, importcpp: "juce::var((std::function<juce::var (const juce::var::NativeFunctionArgs &)>) @)".}
-proc makejuce_var*(binaryData: constPointer, dataSize: uint64): juce_var {.header: juce_core, importcpp: "juce::var(@)".}
-proc makejuce_var*(binaryData: MemoryBlock): juce_var {.header: juce_core, importcpp: "juce::var((const juce::MemoryBlock &) @)".}
+proc makejuce_var*(value: cint): juce_var {.header: juce_core, importcpp: "juce::var((int) #)".}
+proc makejuce_var*(value: int64): juce_var {.header: juce_core, importcpp: "juce::var((long long) #)".}
+proc makejuce_var*(value: bool): juce_var {.header: juce_core, importcpp: "juce::var((bool) #)".}
+proc makejuce_var*(value: float64): juce_var {.header: juce_core, importcpp: "juce::var((double) #)".}
+proc makejuce_var*(value: constChar): juce_var {.header: juce_core, importcpp: "juce::var((const char *) #)".}
+proc makejuce_var*(value: ptr WChar): juce_var {.header: juce_core, importcpp: "juce::var((const wchar_t *) #)".}
+proc makejuce_var*(value: String): juce_var {.header: juce_core, importcpp: "juce::var((const juce::String &) #)".}
+proc makejuce_var*(value: Array[juce_var]): juce_var {.header: juce_core, importcpp: "juce::var((const juce::Array<juce::var> &) #)".}
+proc makejuce_var*(value: StringArray): juce_var {.header: juce_core, importcpp: "juce::var((const juce::StringArray &) #)".}
+proc makejuce_var*(`object`: ptr ReferenceCountedObject): juce_var {.header: juce_core, importcpp: "juce::var((juce::ReferenceCountedObject *) #)".}
+proc makejuce_var*(`method`: CppFunctionObjectR1Ref[juce_var, juce_varNativeFunctionArgs]): juce_var {.header: juce_core, importcpp: "juce::var((std::function<juce::var (const juce::var::NativeFunctionArgs &)>) #)".}
+proc makejuce_var*(binaryData: constPointer, dataSize: uint64): juce_var {.header: juce_core, importcpp: "juce::var((const void *) #, (unsigned long) #)".}
+proc makejuce_var*(binaryData: MemoryBlock): juce_var {.header: juce_core, importcpp: "juce::var((const juce::MemoryBlock &) #)".}
 proc toInt*(this: juce_var): cint {.header: juce_core, importcpp: "static_cast<int>(#)".}
 proc toInt64*(this: juce_var): int64 {.header: juce_core, importcpp: "static_cast<long long>(#)".}
 proc toBool*(this: juce_var): bool {.header: juce_core, importcpp: "static_cast<bool>(#)".}
@@ -1530,9 +1530,9 @@ proc getData*(this: MemoryInputStream): constPointer {.header: juce_core, import
 proc getDataSize*(this: MemoryInputStream): uint64 {.header: juce_core, importcpp: "#.getDataSize()".}
 proc `==`*(this: MemoryInputStream, other: MemoryInputStream): bool {.error: "juce::MemoryInputStream defines no operator==; compare a property instead".}
 
-proc makeMemoryOutputStream*(initialSize: uint64): MemoryOutputStream {.header: juce_core, importcpp: "juce::MemoryOutputStream((unsigned long) @)".}
-proc makeMemoryOutputStream*(memoryBlockToWriteTo: var MemoryBlock, appendToExistingBlockContent: bool): MemoryOutputStream {.header: juce_core, importcpp: "juce::MemoryOutputStream(@)".}
-proc makeMemoryOutputStream*(destBuffer: pointer, destBufferSize: uint64): MemoryOutputStream {.header: juce_core, importcpp: "juce::MemoryOutputStream(@)".}
+proc makeMemoryOutputStream*(initialSize: uint64): MemoryOutputStream {.header: juce_core, importcpp: "juce::MemoryOutputStream((unsigned long) #)".}
+proc makeMemoryOutputStream*(memoryBlockToWriteTo: var MemoryBlock, appendToExistingBlockContent: bool): MemoryOutputStream {.header: juce_core, importcpp: "juce::MemoryOutputStream((juce::MemoryBlock &) #, (bool) #)".}
+proc makeMemoryOutputStream*(destBuffer: pointer, destBufferSize: uint64): MemoryOutputStream {.header: juce_core, importcpp: "juce::MemoryOutputStream((void *) #, (unsigned long) #)".}
 proc getData*(this: MemoryOutputStream): constPointer {.header: juce_core, importcpp: "#.getData()".}
 proc getDataSize*(this: MemoryOutputStream): uint64 {.header: juce_core, importcpp: "#.getDataSize()".}
 proc reset*(this: var MemoryOutputStream) {.header: juce_core, importcpp: "#.reset()".}
@@ -1782,9 +1782,9 @@ proc toVar*(this: typedesc[VariantConverter], s: String): juce_var {.header: juc
 proc `==`*(this: VariantConverter, other: VariantConverter): bool {.error: "juce::VariantConverter defines no operator==; compare a property instead".}
 
 proc makeBigInteger*(): BigInteger {.header: juce_core, importcpp: "juce::BigInteger(@)".}
-proc makeBigInteger*(value: uint32): BigInteger {.header: juce_core, importcpp: "juce::BigInteger((unsigned int) @)".}
-proc makeBigInteger*(value: cint): BigInteger {.header: juce_core, importcpp: "juce::BigInteger((int) @)".}
-proc makeBigInteger*(value: int64): BigInteger {.header: juce_core, importcpp: "juce::BigInteger((long long) @)".}
+proc makeBigInteger*(value: uint32): BigInteger {.header: juce_core, importcpp: "juce::BigInteger((unsigned int) #)".}
+proc makeBigInteger*(value: cint): BigInteger {.header: juce_core, importcpp: "juce::BigInteger((int) #)".}
+proc makeBigInteger*(value: int64): BigInteger {.header: juce_core, importcpp: "juce::BigInteger((long long) #)".}
 proc `BigInteger=`*(this: var BigInteger, arg1: BigInteger): var BigInteger {.header: juce_core, importcpp: "#.operator=(@)".}
 proc swapWith*(this: var BigInteger, arg1: var BigInteger) {.header: juce_core, importcpp: "#.swapWith(@)".}
 proc `[]`*(this: BigInteger, bit: cint): bool {.header: juce_core, importcpp: "#.operator[](@)".}
