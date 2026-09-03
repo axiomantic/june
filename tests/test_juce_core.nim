@@ -2531,3 +2531,47 @@ proc testEveryValueGetter() =
         discard juce_varValue.`getNativeFunction`()
 
 testEveryValueGetter()
+
+# WebInputStream, without connecting ==========================================
+#
+# Everything here is request-side state, so no network is touched: the builders
+# return the stream itself and getRequestHeaders reads back what was set.
+# connect, getStatusCode, getTotalLength, getResponseHeaders and read are left
+# alone. Three of those open a connection without saying so in their name:
+# JUCE's getResponseHeaders, getTotalLength and read each call connect(nullptr)
+# first, so reading a "property" off one of them would go to the network.
+
+proc testWebInputStreamRequestSide() =
+    block:
+        let target = makeURL(makeString("https://example.invalid/api"))
+        var request = makeWebInputStream(target, false)
+
+        # A stream that has not connected is already in the error state: JUCE
+        # reads it straight off the platform implementation, which has nothing
+        # to report success about yet.
+        doAssert request.isError(),
+                 "a stream that never connected reports no error"
+
+        # The builders hand back the same stream, so they chain.
+        discard request
+            .withExtraHeaders(makeString("X-June: 1\r\nX-Other: 2"))
+            .withCustomRequestCommand(makeString("PUT"))
+            .withConnectionTimeout(2500.cint)
+            .withNumRedirectsToFollow(3.cint)
+
+        let headers = request.getRequestHeaders()
+        doAssert headers.size() == 2,
+                 "the request carries " & $headers.size() & " headers"
+        doAssert $headers.getValue(makeString("X-June"), makeString("")) == "1",
+                 "X-June reads " &
+                 $headers.getValue(makeString("X-June"), makeString(""))
+        doAssert $headers.getValue(makeString("X-Other"), makeString("")) == "2",
+                 "X-Other reads " &
+                 $headers.getValue(makeString("X-Other"), makeString(""))
+
+        # Cancelling a stream that never connected is harmless.
+        request.cancel()
+        doAssert request.isError(),
+                 "a cancelled stream does not report an error"
+
+testWebInputStreamRequestSide()
