@@ -264,12 +264,16 @@ iterator items*[T](this: Array[T]): T =
   for index in 0.cint ..< this.size():
     yield this[index]
 
-# OwnedArray holds pointers it owns, so indexing yields a ptr rather than a value.
-proc size*[T](this: OwnedArray[T]): cint {.importcpp: "#.size()".}
-proc isEmpty*[T](this: OwnedArray[T]): bool {.importcpp: "#.isEmpty()".}
-proc `[]`*[T](this: OwnedArray[T], index: cint): ptr T {.importcpp: "#[#]".}
+# OwnedArray holds pointers it owns, so indexing yields a ptr rather than a
+# value. Every one of these takes its receiver by var: OwnedArray deletes its
+# copy constructor, and a by-value receiver copies it, so the whole set could
+# be declared and never called. The only way to reach one is the var getter on
+# the class that owns it, which hands back a var, so nothing is lost.
+proc size*[T](this: var OwnedArray[T]): cint {.importcpp: "#.size()".}
+proc isEmpty*[T](this: var OwnedArray[T]): bool {.importcpp: "#.isEmpty()".}
+proc `[]`*[T](this: var OwnedArray[T], index: cint): ptr T {.importcpp: "#[#]".}
 
-iterator items*[T](this: OwnedArray[T]): ptr T =
+iterator items*[T](this: var OwnedArray[T]): ptr T =
   for index in 0.cint ..< this.size():
     yield this[index]
 

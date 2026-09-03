@@ -1224,9 +1224,9 @@ proc `==`*(this: TextLayoutRun, other: TextLayoutRun): bool {.error: "juce::Text
 
 proc makeTextLayoutLine*(): TextLayoutLine {.header: juce_graphics, importcpp: "juce::TextLayout::Line(@)".}
 proc makeTextLayoutLine*(stringRange: Range[cint], lineOrigin: Point[cfloat], ascent: cfloat, descent: cfloat, leading: cfloat, numRunsToPreallocate: cint): TextLayoutLine {.header: juce_graphics, importcpp: "juce::TextLayout::Line(@)".}
-proc runs*(this: TextLayoutLine): OwnedArray[TextLayoutRun] {.header: juce_graphics, importcpp: "#.runs".}
+# proc runs*(this: TextLayoutLine): OwnedArray[TextLayoutRun] {.header: juce_graphics, importcpp: "#.runs".}  # OwnedArray[TextLayoutRun] has no accessible copy constructor, so it can only be reached through the var getter below
 proc runs*(this: var TextLayoutLine): var OwnedArray[TextLayoutRun] {.header: juce_graphics, importcpp: "#.runs".}
-proc `runs=`*(this: var TextLayoutLine, value: OwnedArray[TextLayoutRun]) {.header: juce_graphics, importcpp: "#.runs = #".}
+# proc `runs=`*(this: var TextLayoutLine, value: OwnedArray[TextLayoutRun]) {.header: juce_graphics, importcpp: "#.runs = #".}  # OwnedArray[TextLayoutRun] has no accessible copy constructor, so it can only be reached through the var getter below
 proc stringRange*(this: TextLayoutLine): Range[cint] {.header: juce_graphics, importcpp: "#.stringRange".}
 proc stringRange*(this: var TextLayoutLine): var Range[cint] {.header: juce_graphics, importcpp: "#.stringRange".}
 proc `stringRange=`*(this: var TextLayoutLine, value: Range[cint]) {.header: juce_graphics, importcpp: "#.stringRange = #".}

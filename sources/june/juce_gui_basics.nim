@@ -2993,9 +2993,9 @@ proc getBoundingBox*(this: typedesc[RelativeParallelogram], parallelogramCorners
 
 proc makeRelativePointPath*(): RelativePointPath {.header: juce_gui_basics, importcpp: "juce::RelativePointPath(@)".}
 proc makeRelativePointPath*(path: Path): RelativePointPath {.header: juce_gui_basics, importcpp: "juce::RelativePointPath(@)".}
-proc elements*(this: RelativePointPath): OwnedArray[RelativePointPathElementBase] {.header: juce_gui_basics, importcpp: "#.elements".}
+# proc elements*(this: RelativePointPath): OwnedArray[RelativePointPathElementBase] {.header: juce_gui_basics, importcpp: "#.elements".}  # OwnedArray[RelativePointPathElementBase] has no accessible copy constructor, so it can only be reached through the var getter below
 proc elements*(this: var RelativePointPath): var OwnedArray[RelativePointPathElementBase] {.header: juce_gui_basics, importcpp: "#.elements".}
-proc `elements=`*(this: var RelativePointPath, value: OwnedArray[RelativePointPathElementBase]) {.header: juce_gui_basics, importcpp: "#.elements = #".}
+# proc `elements=`*(this: var RelativePointPath, value: OwnedArray[RelativePointPathElementBase]) {.header: juce_gui_basics, importcpp: "#.elements = #".}  # OwnedArray[RelativePointPathElementBase] has no accessible copy constructor, so it can only be reached through the var getter below
 proc usesNonZeroWinding*(this: RelativePointPath): bool {.header: juce_gui_basics, importcpp: "#.usesNonZeroWinding".}
 proc usesNonZeroWinding*(this: var RelativePointPath): var bool {.header: juce_gui_basics, importcpp: "#.usesNonZeroWinding".}
 proc `usesNonZeroWinding=`*(this: var RelativePointPath, value: bool) {.header: juce_gui_basics, importcpp: "#.usesNonZeroWinding = #".}
