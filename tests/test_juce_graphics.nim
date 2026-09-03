@@ -1693,3 +1693,149 @@ proc testTextLayoutRunGlyphs() =
              "the run holds " & $run.glyphs().size() & " glyphs"
 
 testTextLayoutRunGlyphs()
+
+# Font's metrics and its style flags. testFont above covers height and bold;
+# this covers the two height scales, the derived metrics, italic, underline,
+# and the horizontal scale and kerning that a caller sets alongside them.
+proc testFontMetrics() =
+    block:
+        var font = makeFont(makeFontOptions(24.0'f32))
+
+        # A font is measured either in pixels or in points, and the two are
+        # related by a factor the font reports.
+        let factor = font.getHeightToPointsFactor()
+        doAssert factor > 0.0'f32, "the height to points factor is " & $factor
+        doAssert abs(font.getHeightInPoints() - 24.0'f32 * factor) < 1.0e-3'f32,
+                 "24 pixels is " & $font.getHeightInPoints() & " points, and the " &
+                 "factor says it should be " & $(24.0'f32 * factor)
+
+        # setPointHeight sets the other scale, and the pixel height follows.
+        font.setPointHeight(36.0'f32)
+        doAssert abs(font.getHeightInPoints() - 36.0'f32) < 1.0e-3'f32,
+                 "the point height is " & $font.getHeightInPoints()
+        doAssert abs(font.getHeight() - 36.0'f32 / factor) < 1.0e-3'f32,
+                 "the pixel height is " & $font.getHeight() & " and not " &
+                 $(36.0'f32 / factor)
+
+        # withPointHeight leaves the receiver alone, as withHeight does.
+        let inPoints = font.withPointHeight(12.0'f32)
+        doAssert abs(inPoints.getHeightInPoints() - 12.0'f32) < 1.0e-3'f32,
+                 "withPointHeight gave " & $inPoints.getHeightInPoints()
+        doAssert abs(font.getHeightInPoints() - 36.0'f32) < 1.0e-3'f32,
+                 "withPointHeight mutated the original"
+
+    block:
+        # Ascent and descent divide the height between them.
+        let font = makeFont(makeFontOptions(32.0'f32))
+        doAssert font.getAscent() > 0.0'f32,
+                 "the ascent is " & $font.getAscent()
+        doAssert font.getDescent() > 0.0'f32,
+                 "the descent is " & $font.getDescent()
+        doAssert abs(font.getAscent() + font.getDescent() - font.getHeight()) <
+                 1.0e-3'f32,
+                 "the ascent " & $font.getAscent() & " and descent " &
+                 $font.getDescent() & " do not add up to the height " &
+                 $font.getHeight()
+
+        # The point forms are equal to the pixel forms, and that is not a
+        # coincidence of this typeface. getAscent scales the raw ascent by
+        # 1/(ascent+descent) and multiplies by the pixel height, while
+        # getAscentInPoints multiplies the raw ascent by the point height,
+        # which is the pixel height times that same 1/(ascent+descent)
+        # (juce_Font.cpp:796 and :827). The two expressions are the same
+        # product in a different order.
+        doAssert abs(font.getAscentInPoints() - font.getAscent()) < 1.0e-3'f32,
+                 "the ascent is " & $font.getAscent() & " but " &
+                 $font.getAscentInPoints() & " in points"
+        doAssert abs(font.getDescentInPoints() - font.getDescent()) < 1.0e-3'f32,
+                 "the descent is " & $font.getDescent() & " but " &
+                 $font.getDescentInPoints() & " in points"
+
+    block:
+        # Italic and underline are independent of one another and of bold.
+        var font = makeFont(makeFontOptions(16.0'f32))
+        doAssert not font.isItalic(), "a plain font is italic"
+        doAssert not font.isUnderlined(), "a plain font is underlined"
+        doAssert not font.isBold(), "a plain font is bold"
+
+        font.setItalic(true)
+        doAssert font.isItalic(), "setItalic did not take"
+        doAssert not font.isBold(), "setItalic made the font bold too"
+        doAssert not font.isUnderlined(), "setItalic underlined the font too"
+
+        font.setUnderline(true)
+        doAssert font.isUnderlined(), "setUnderline did not take"
+        doAssert font.isItalic(), "setUnderline dropped italic"
+
+        # italicised derives a copy; the receiver keeps its own flags.
+        var plain = makeFont(makeFontOptions(16.0'f32))
+        let slanted = plain.italicised()
+        doAssert slanted.isItalic(), "italicised produced an upright font"
+        doAssert not plain.isItalic(), "italicised mutated the original"
+
+        # setStyleFlags replaces the set rather than adding to it.
+        var styled = makeFont(makeFontOptions(16.0'f32))
+        styled.setStyleFlags(FontFontStyleFlags_bold.cint or
+                             FontFontStyleFlags_italic.cint)
+        doAssert styled.isBold() and styled.isItalic(),
+                 "setting two flags at once lost one of them"
+        styled.setStyleFlags(FontFontStyleFlags_plain.cint)
+        doAssert not styled.isBold() and not styled.isItalic(),
+                 "setStyleFlags added to the set instead of replacing it"
+
+    block:
+        # The horizontal scale and the extra kerning both round trip, and the
+        # with- forms leave the receiver alone.
+        var font = makeFont(makeFontOptions(20.0'f32))
+        doAssert font.getHorizontalScale() == 1.0'f32,
+                 "the default horizontal scale is " & $font.getHorizontalScale()
+        doAssert font.getExtraKerningFactor() == 0.0'f32,
+                 "the default kerning is " & $font.getExtraKerningFactor()
+
+        font.setHorizontalScale(1.5'f32)
+        doAssert abs(font.getHorizontalScale() - 1.5'f32) < 1.0e-6'f32,
+                 "the horizontal scale is " & $font.getHorizontalScale()
+        font.setExtraKerningFactor(0.25'f32)
+        doAssert abs(font.getExtraKerningFactor() - 0.25'f32) < 1.0e-6'f32,
+                 "the kerning is " & $font.getExtraKerningFactor()
+
+        let wider = font.withHorizontalScale(2.0'f32)
+        doAssert abs(wider.getHorizontalScale() - 2.0'f32) < 1.0e-6'f32,
+                 "withHorizontalScale gave " & $wider.getHorizontalScale()
+        doAssert abs(font.getHorizontalScale() - 1.5'f32) < 1.0e-6'f32,
+                 "withHorizontalScale mutated the original"
+
+        let kerned = font.withExtraKerningFactor(0.5'f32)
+        doAssert abs(kerned.getExtraKerningFactor() - 0.5'f32) < 1.0e-6'f32,
+                 "withExtraKerningFactor gave " & $kerned.getExtraKerningFactor()
+        doAssert abs(font.getExtraKerningFactor() - 0.25'f32) < 1.0e-6'f32,
+                 "withExtraKerningFactor mutated the original"
+
+        # A wider font is a different font, and equality notices.
+        doAssert not (font == wider), "two fonts of different width are equal"
+        doAssert font == font.withHorizontalScale(1.5'f32),
+                 "a font is not equal to a copy of itself"
+
+    block:
+        # The typeface name and style are text, and a font names the family it
+        # was asked for even before anything is drawn with it.
+        var font = makeFont(makeFontOptions(18.0'f32))
+        font.setTypefaceName(Font.getDefaultMonospacedFontName())
+        doAssert $font.getTypefaceName() == $Font.getDefaultMonospacedFontName(),
+                 "the typeface name reads as " & $font.getTypefaceName()
+
+        doAssert Font.getDefaultSansSerifFontName().isNotEmpty(),
+                 "the default sans serif name is empty"
+        doAssert Font.getDefaultSerifFontName().isNotEmpty(),
+                 "the default serif name is empty"
+        doAssert Font.getDefaultStyle().isNotEmpty(),
+                 "the default style is empty"
+
+        # A font survives a round trip through its own string form.
+        let described = font.toString()
+        doAssert described.isNotEmpty(), "toString gave an empty description"
+        let rebuilt = Font.fromString(described)
+        doAssert $rebuilt.toString() == $described,
+                 "a round trip turned " & $described & " into " & $rebuilt.toString()
+
+testFontMetrics()
