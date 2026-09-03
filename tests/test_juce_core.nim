@@ -2901,3 +2901,39 @@ proc testIntegerLiteralOverloads() =
                  "250ms is " & $RelativeTime.milliseconds(250).inSeconds() & "s"
 
 testIntegerLiteralOverloads()
+
+# Free functions that overload on a scalar =====================================
+#
+# The generator casts each argument to the type its overload declares wherever
+# a set differs only in a scalar, which is what tells C++ which overload a call
+# means. It did that for methods and constructors and not for free functions,
+# and the difference showed on Linux: Nim's uint64 is `unsigned long` there
+# while JUCE's is `unsigned long long`, so countNumberOfBits(someUint64) was
+# ambiguous. Through variables rather than literals, which is what exposes it.
+
+proc testScalarOverloadedFreeFunctions() =
+    block:
+        var wide: uint64 = 255
+        var narrow: uint32 = 255
+        doAssert countNumberOfBits(wide) == 8,
+                 "255 as a uint64 has " & $countNumberOfBits(wide) & " bits set"
+        doAssert countNumberOfBits(narrow) == 8,
+                 "255 as a uint32 has " & $countNumberOfBits(narrow) & " bits set"
+
+        var half: uint64 = 0xFFFFFFFFFFFFFFFF'u64
+        doAssert countNumberOfBits(half) == 64,
+                 "an all-ones uint64 has " & $countNumberOfBits(half) & " bits set"
+
+    block:
+        # operator<< over String gained the same casts.
+        var line = makeString("n=")
+        var big: int64 = 42
+        discard line.shl(big)
+        doAssert $line == "n=42", "the shifted string is " & $line
+
+        var small: cint = 7
+        discard line.shl(makeString(", m="))
+        discard line.shl(small)
+        doAssert $line == "n=42, m=7", "the shifted string is " & $line
+
+testScalarOverloadedFreeFunctions()
