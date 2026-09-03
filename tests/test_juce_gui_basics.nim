@@ -3689,4 +3689,59 @@ proc testFileViews() =
 
 
 testMarkerListValueTreeWrapper()
+# MultiChoicePropertyComponent ================================================
+#
+# A property editor over a Value holding a list of chosen items. It is
+# expandable only when it has more choices than fit, so the two constructions
+# below give different answers to isExpandable - which a component ignoring its
+# choices could not.
+
+proc testMultiChoicePropertyComponent() =
+    initialiseJuce_GUI()
+
+    block:
+        var choices = makeStringArray()
+        for name in ["red", "green", "blue", "cyan", "magenta", "yellow"]:
+            choices.add(makeString(name))
+
+        var values = makeArray[juce_var]()
+        for index in 0 ..< choices.size():
+            values.add(makejuce_var(index))
+
+        var selection = makeValue(makejuce_var(makeString("")))
+        var component = makeMultiChoicePropertyComponent(
+            selection, makeString("Colours"), choices, values, -1.cint)
+
+        doAssert $component.getName() == "Colours",
+                 "the component is called " & $component.getName()
+        doAssert not component.isExpanded(),
+                 "a fresh component is already expanded"
+
+        # Six choices in a component that has not been given a height: JUCE
+        # decides it needs expanding.
+        doAssert component.isExpandable(),
+                 "six choices did not make the component expandable"
+
+        component.setExpanded(true)
+        doAssert component.isExpanded(), "the component did not expand"
+        component.setExpanded(false)
+        doAssert not component.isExpanded(), "the component did not collapse"
+
+        # Two choices fit, so that one is not expandable.
+        var few = makeStringArray()
+        few.add(makeString("on"))
+        few.add(makeString("off"))
+        var fewValues = makeArray[juce_var]()
+        fewValues.add(makejuce_var(0.cint))
+        fewValues.add(makejuce_var(1.cint))
+        var small = makeMultiChoicePropertyComponent(
+            makeValue(makejuce_var(makeString(""))), makeString("Switch"),
+            few, fewValues, -1.cint)
+        doAssert not small.isExpandable(),
+                 "two choices made the component expandable"
+
+    shutdownJuce_GUI()
+
+
 testFileViews()
+testMultiChoicePropertyComponent()
