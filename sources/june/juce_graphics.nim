@@ -631,6 +631,7 @@ proc `==`*(this: JPEGImageFormat, other: JPEGImageFormat): bool {.error: "juce::
 proc makeGIFImageFormat*(): GIFImageFormat {.header: juce_graphics, importcpp: "juce::GIFImageFormat(@)".}
 proc `==`*(this: GIFImageFormat, other: GIFImageFormat): bool {.error: "juce::GIFImageFormat defines no operator==; compare a property instead".}
 
+proc makeGlyphArrangementOptions*(): GlyphArrangementOptions {.header: juce_graphics, importcpp: "juce::GlyphArrangementOptions(@)".}  # implicit default constructor
 proc withLineSpacing*(this: GlyphArrangementOptions, x: cfloat): GlyphArrangementOptions {.header: juce_graphics, importcpp: "#.withLineSpacing(@)".}
 proc withLineHeightMultiple*(this: GlyphArrangementOptions, x: cfloat): GlyphArrangementOptions {.header: juce_graphics, importcpp: "#.withLineHeightMultiple(@)".}
 proc getLineSpacing*(this: GlyphArrangementOptions): cfloat {.header: juce_graphics, importcpp: "#.getLineSpacing()".}

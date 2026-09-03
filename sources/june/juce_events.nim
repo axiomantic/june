@@ -275,6 +275,7 @@ proc sendMessageToWorker*(this: var ChildProcessCoordinator, arg1: MemoryBlock):
 proc sendMessageToSlave*(this: var ChildProcessCoordinator, mb: MemoryBlock): bool {.header: juce_events, importcpp: "#.sendMessageToSlave(@)".}
 proc `==`*(this: ChildProcessCoordinator, other: ChildProcessCoordinator): bool {.error: "juce::ChildProcessCoordinator defines no operator==; compare a property instead".}
 
+proc makeNetworkServiceDiscovery*(): NetworkServiceDiscovery {.header: juce_events, importcpp: "juce::NetworkServiceDiscovery(@)".}  # implicit default constructor
 proc `==`*(this: NetworkServiceDiscovery, other: NetworkServiceDiscovery): bool {.error: "juce::NetworkServiceDiscovery defines no operator==; compare a property instead".}
 
 proc makeNetworkServiceDiscoveryAdvertiser*(serviceTypeUID: String, serviceDescription: String, broadcastPort: cint, connectionPort: cint, minTimeBetweenBroadcasts: RelativeTime): NetworkServiceDiscoveryAdvertiser {.header: juce_events, importcpp: "juce::NetworkServiceDiscovery::Advertiser(@)".}

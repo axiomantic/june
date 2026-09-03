@@ -2692,3 +2692,229 @@ proc testPathShapes() =
                  $fromData.getBounds().getWidth() & " wide"
 
 testPathShapes()
+
+# The remaining Graphics drawing calls, asserted on the pixels as before. Text
+# is asserted by lit-pixel count rather than by shape: what the glyphs look
+# like belongs to the host's fonts, but whether anything was drawn at all, and
+# where, belongs to the binding.
+proc testGraphicsTextAndImages() =
+    block:
+        # A dashed line leaves gaps, so it lights fewer pixels than a solid one
+        # over the same span.
+        let solid = makeImage(ImagePixelFormat_ARGB, 100.cint, 10.cint, true)
+        var g = makeGraphics(solid)
+        g.setColour(Colours_white)
+        g.drawLine(0.0'f32, 5.0'f32, 100.0'f32, 5.0'f32, 1.0'f32)
+
+        let dashed = makeImage(ImagePixelFormat_ARGB, 100.cint, 10.cint, true)
+        var g2 = makeGraphics(dashed)
+        g2.setColour(Colours_white)
+        var pattern = [6.0'f32, 6.0'f32]
+        g2.drawDashedLine(makeLine(0.0'f32, 5.0'f32, 100.0'f32, 5.0'f32),
+                          addr pattern[0], 2.cint, 1.0'f32, 0.cint)
+        doAssert litPixelCount(dashed) > 0, "the dashed line drew nothing"
+        doAssert litPixelCount(dashed) < litPixelCount(solid),
+                 "the dashed line lit " & $litPixelCount(dashed) &
+                 " pixels and the solid one " & $litPixelCount(solid)
+
+    block:
+        # An outlined ellipse and rounded rectangle leave their middles clear.
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        g.setColour(Colours_white)
+        g.drawEllipse(0.0'f32, 0.0'f32, 40.0'f32, 40.0'f32, 1.0'f32)
+        doAssert image.getPixelAt(20.cint, 20.cint).getAlpha() == 0'u8,
+                 "drawEllipse filled the middle"
+        doAssert image.getPixelAt(20.cint, 0.cint).getAlpha() > 0'u8,
+                 "drawEllipse missed the top of the circle"
+
+        let rounded = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g2 = makeGraphics(rounded)
+        g2.setColour(Colours_white)
+        g2.drawRoundedRectangle(0.0'f32, 0.0'f32, 40.0'f32, 40.0'f32, 8.0'f32,
+                                1.0'f32)
+        doAssert rounded.getPixelAt(20.cint, 20.cint).getAlpha() == 0'u8,
+                 "drawRoundedRectangle filled the middle"
+
+        # An arrow is drawn towards its second point, so it is heavier there.
+        let arrow = makeImage(ImagePixelFormat_ARGB, 100.cint, 40.cint, true)
+        var g3 = makeGraphics(arrow)
+        g3.setColour(Colours_white)
+        g3.drawArrow(makeLine(0.0'f32, 20.0'f32, 100.0'f32, 20.0'f32), 2.0'f32,
+                     14.0'f32, 20.0'f32)
+        var nearEnd, nearStart = 0
+        for x in 0.cint ..< 100.cint:
+            for y in 0.cint ..< 40.cint:
+                if arrow.getPixelAt(x, y).getAlpha() > 0'u8:
+                    if x > 80: nearEnd += 1
+                    elif x < 20: nearStart += 1
+        doAssert nearEnd > nearStart,
+                 "the arrowhead is at the start: " & $nearStart &
+                 " pixels there and " & $nearEnd & " at the end"
+
+    block:
+        # The three text calls all put pixels inside the area they were given
+        # and none outside it.
+        let image = makeImage(ImagePixelFormat_ARGB, 120.cint, 60.cint, true)
+        var g = makeGraphics(image)
+        g.setColour(Colours_white)
+        g.setFont(makeFont(makeFontOptions(14.0'f32)))
+
+        g.drawSingleLineText(makeString("single"), 4.cint, 20.cint,
+                             makeJustification(JustificationFlags_left.cint))
+        doAssert litPixelCount(image) > 0, "drawSingleLineText drew nothing"
+
+        let fitted = makeImage(ImagePixelFormat_ARGB, 120.cint, 60.cint, true)
+        var g2 = makeGraphics(fitted)
+        g2.setColour(Colours_white)
+        g2.drawFittedText(makeString("a longer piece of text that must fit"),
+                          makeRectangle(0.cint, 0.cint, 60.cint, 30.cint),
+                          makeJustification(JustificationFlags_centred.cint),
+                          3.cint, 1.0'f32, makeGlyphArrangementOptions())
+        doAssert litPixelCount(fitted) > 0, "drawFittedText drew nothing"
+        for x in 60.cint ..< 120.cint:
+            for y in 0.cint ..< 60.cint:
+                doAssert fitted.getPixelAt(x, y).getAlpha() == 0'u8,
+                         "drawFittedText painted outside its rectangle at " &
+                         $x & "," & $y
+
+        let multi = makeImage(ImagePixelFormat_ARGB, 120.cint, 60.cint, true)
+        var g3 = makeGraphics(multi)
+        g3.setColour(Colours_white)
+        g3.drawMultiLineText(makeString("one two three four five six seven"),
+                             2.cint, 14.cint, 60.cint,
+                             makeJustification(JustificationFlags_left.cint),
+                             0.0'f32)
+        doAssert litPixelCount(multi) > 0, "drawMultiLineText drew nothing"
+
+    block:
+        # The three image calls differ in how they place and scale the source.
+        let source = makeImage(ImagePixelFormat_ARGB, 10.cint, 10.cint, true)
+        var sourceGraphics = makeGraphics(source)
+        sourceGraphics.setColour(Colours_white)
+        sourceGraphics.fillAll()
+
+        # drawImage scales into the destination rectangle.
+        let scaled = makeImage(ImagePixelFormat_ARGB, 60.cint, 60.cint, true)
+        var g = makeGraphics(scaled)
+        g.drawImage(source, 0.cint, 0.cint, 40.cint, 40.cint,
+                    0.cint, 0.cint, 10.cint, 10.cint, false)
+        doAssert scaled.getPixelAt(35.cint, 35.cint).getAlpha() > 0'u8,
+                 "the scaled image did not reach the far corner"
+        doAssert scaled.getPixelAt(50.cint, 50.cint).getAlpha() == 0'u8,
+                 "the scaled image went past its rectangle"
+
+        # drawImageWithin fits it inside, keeping the proportions.
+        let within = makeImage(ImagePixelFormat_ARGB, 60.cint, 60.cint, true)
+        var g2 = makeGraphics(within)
+        g2.drawImageWithin(source, 0.cint, 0.cint, 40.cint, 40.cint,
+                           makeRectanglePlacement(
+                               RectanglePlacementFlags_centred.cint), false)
+        doAssert litPixelCount(within) > 0, "drawImageWithin drew nothing"
+
+        # drawImageTransformed puts it wherever the transform says.
+        let moved = makeImage(ImagePixelFormat_ARGB, 60.cint, 60.cint, true)
+        var g3 = makeGraphics(moved)
+        g3.drawImageTransformed(source,
+                                AffineTransform.translation(40.0'f32, 40.0'f32),
+                                false)
+        doAssert moved.getPixelAt(45.cint, 45.cint).getAlpha() > 0'u8,
+                 "the transformed image did not land where it was moved to"
+        doAssert moved.getPixelAt(5.cint, 5.cint).getAlpha() == 0'u8,
+                 "the transformed image was drawn at the origin too"
+
+        # A tiled fill repeats the source across the whole area.
+        let tiled = makeImage(ImagePixelFormat_ARGB, 60.cint, 60.cint, true)
+        var g4 = makeGraphics(tiled)
+        g4.setTiledImageFill(source, 0.cint, 0.cint, 1.0'f32)
+        g4.fillAll()
+        doAssert tiled.getPixelAt(5.cint, 5.cint).getAlpha() > 0'u8,
+                 "the tiled fill missed the first tile"
+        doAssert tiled.getPixelAt(55.cint, 55.cint).getAlpha() > 0'u8,
+                 "the tiled fill did not repeat to the far corner"
+
+    block:
+        # A checkerboard alternates two colours, so two cells differ.
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        g.fillCheckerBoard(makeRectangle(0.0'f32, 0.0'f32, 40.0'f32, 40.0'f32),
+                           10.0'f32, 10.0'f32, Colours_black, Colours_white)
+        doAssert image.getPixelAt(5.cint, 5.cint) !=
+                 image.getPixelAt(15.cint, 5.cint),
+                 "two neighbouring squares of the checkerboard are the same"
+
+        # A RectangleList fills every rectangle in it and nothing between them.
+        let rects = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g2 = makeGraphics(rects)
+        g2.setColour(Colours_white)
+        var list = makeRectangleList[cint]()
+        list.add(makeRectangle(0.cint, 0.cint, 10.cint, 10.cint))
+        list.add(makeRectangle(30.cint, 30.cint, 10.cint, 10.cint))
+        g2.fillRectList(list)
+        doAssert rects.getPixelAt(5.cint, 5.cint).getAlpha() > 0'u8,
+                 "the first rectangle was not filled"
+        doAssert rects.getPixelAt(35.cint, 35.cint).getAlpha() > 0'u8,
+                 "the second rectangle was not filled"
+        doAssert rects.getPixelAt(20.cint, 20.cint).getAlpha() == 0'u8,
+                 "the gap between the two rectangles was filled"
+
+    block:
+        # A transparency layer composites at the opacity it was opened with.
+        let image = makeImage(ImagePixelFormat_ARGB, 20.cint, 20.cint, true)
+        var g = makeGraphics(image)
+        g.setColour(Colours_white)
+        g.beginTransparencyLayer(0.5'f32)
+        g.fillAll()
+        g.endTransparencyLayer()
+        let alpha = image.getPixelAt(10.cint, 10.cint).getAlpha()
+        doAssert alpha > 100'u8 and alpha < 155'u8,
+                 "a half transparent layer composited to alpha " & $alpha
+
+        # resetToDefaultState puts the colour and opacity back.
+        g.setColour(Colours_red)
+        g.setOpacity(0.1'f32)
+        g.resetToDefaultState()
+        g.fillAll()
+        doAssert image.getPixelAt(10.cint, 10.cint).getAlpha() == 255'u8,
+                 "after resetToDefaultState the fill wrote alpha " &
+                 $image.getPixelAt(10.cint, 10.cint).getAlpha()
+
+        g.setImageResamplingQuality(
+            GraphicsResamplingQuality_highResamplingQuality)
+        doAssert not g.getInternalContext().addr.isNil,
+                 "the graphics has no internal context"
+
+initialiseJuce_GUI()
+testGraphicsTextAndImages()
+shutdownJuce_GUI()
+
+# GlyphArrangementOptions is what drawFittedText takes, and nothing could build
+# one: it has no constructor of its own and its fields are private, so the
+# generator's aggregate rule passed over it and every drawFittedText overload
+# was unreachable.
+proc testGlyphArrangementOptions() =
+    let base = makeGlyphArrangementOptions()
+    doAssert base.getLineSpacing() == 0.0'f32,
+             "the default line spacing is " & $base.getLineSpacing()
+    doAssert base.getLineHeightMultiple() == 1.0'f32,
+             "the default line height multiple is " &
+             $base.getLineHeightMultiple()
+
+    # The with- methods return a new object and leave the receiver alone.
+    let spaced = base.withLineSpacing(4.0'f32)
+    doAssert spaced.getLineSpacing() == 4.0'f32,
+             "the line spacing is " & $spaced.getLineSpacing()
+    doAssert base.getLineSpacing() == 0.0'f32,
+             "withLineSpacing changed the original"
+
+    let taller = base.withLineHeightMultiple(1.5'f32)
+    doAssert taller.getLineHeightMultiple() == 1.5'f32,
+             "the line height multiple is " & $taller.getLineHeightMultiple()
+    doAssert taller.getLineSpacing() == 0.0'f32,
+             "withLineHeightMultiple moved the line spacing too"
+
+    doAssert base == makeGlyphArrangementOptions(),
+             "two default options objects are not equal"
+    doAssert not (base == spaced), "two different options objects are equal"
+
+testGlyphArrangementOptions()

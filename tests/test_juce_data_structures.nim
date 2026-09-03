@@ -589,3 +589,12 @@ proc testFieldRoundTrips() =
         discard value.onDefaultChange()
 
 testFieldRoundTrips()
+
+# ValueTree::Listener gives every method an empty body rather than making it
+# pure, so no Custom subclass is generated and this constructor is the only way
+# to get one. Building it is what compiles its importcpp.
+proc testValueTreeListenerConstructs() =
+  var listener = makeValueTreeListener()
+  doAssert (addr listener) != nil, "the ValueTree listener did not build"
+
+testValueTreeListenerConstructs()

@@ -4493,3 +4493,79 @@ proc testVarTypes() =
              "the restored var reads " & $restored.toString()
 
 testVarTypes()
+
+# The rest of the classes with an implicit default constructor. Requiring a
+# public field found only the AGGREGATES; these are the option structs and the
+# static-function holders, and an option struct nothing can build makes every
+# proc that takes one unreachable. Each is constructed here, which is what
+# compiles its importcpp - the constructor reaches the C++ compiler only at a
+# call site.
+proc testRemainingImplicitConstructors() =
+  block:
+    # The option structs. Each is a parameter of a proc that could not be
+    # called at all before.
+    var jsonFormat = makeJSONFormatOptions()
+    doAssert (addr jsonFormat) != nil, "the JSON format options did not build"
+    doAssert $JSON.toString(makejuce_var(makeString("x")), jsonFormat) == "\"x\"",
+             "JSON.toString gave " &
+             $JSON.toString(makejuce_var(makeString("x")), jsonFormat)
+
+    var socketOptions = makeSocketOptions()
+    var socket = makeDatagramSocket(false, socketOptions)
+    doAssert socket.getBoundPort() == -1,
+             "an unbound socket reports port " & $socket.getBoundPort()
+
+    var realtime = makeThreadRealtimeOptions()
+    doAssert (addr realtime) != nil, "the realtime options did not build"
+
+    var toVarOptions = makeToVarOptions()
+    doAssert (addr toVarOptions) != nil, "the ToVar options did not build"
+
+  block:
+    # The static-function holders. JUCE writes these as classes with nothing
+    # but static members, so C++ never instantiates one - but the binding
+    # declares the type, and a declared type with no constructor is a type
+    # whose importcpp is never compiled.
+    var base64 = makeBase64()
+    doAssert (addr base64) != nil, "Base64 did not build"
+    var characterFunctions = makeCharacterFunctions()
+    doAssert (addr characterFunctions) != nil, "CharacterFunctions did not build"
+    var hashFunctions = makeDefaultHashFunctions()
+    doAssert (addr hashFunctions) != nil, "DefaultHashFunctions did not build"
+    var runtimePermissions = makeRuntimePermissions()
+    doAssert (addr runtimePermissions) != nil, "RuntimePermissions did not build"
+    var androidPermission = makeAndroidDocumentPermission()
+    doAssert (addr androidPermission) != nil,
+             "AndroidDocumentPermission did not build"
+
+    var console = makeConsoleApplication()
+    doAssert console.getCommands().size() == 0'u64,
+             "a new ConsoleApplication holds " & $console.getCommands().size() &
+             " commands"
+
+    var entry = makeDirectoryEntry()
+    doAssert entry.getFile().getFullPathName().isEmpty(),
+             "a default DirectoryEntry names " & $entry.getFile().getFullPathName()
+
+    var newLine = makeNewLine()
+    doAssert (addr newLine) != nil, "NewLine did not build"
+
+    var fromVar = makeFromVar()
+    doAssert (addr fromVar) != nil, "FromVar did not build"
+    var toVar = makeToVar()
+    doAssert (addr toVar) != nil, "ToVar did not build"
+    var reservoir = makeReservoir()
+    doAssert (addr reservoir) != nil, "Reservoir did not build"
+    var nullChecked = makeNullCheckedInvocation()
+    doAssert (addr nullChecked) != nil, "NullCheckedInvocation did not build"
+    var timed = makeTimedDiagnostic()
+    doAssert (addr timed) != nil, "TimedDiagnostic did not build"
+
+  block:
+    # The listener bases. JUCE gives each method an empty body rather than
+    # making it pure, so the generator emits no Custom* subclass and one of
+    # these is the only way to get an instance at all.
+    var webListener = makeWebInputStreamListener()
+    doAssert (addr webListener) != nil, "the WebInputStream listener did not build"
+
+testRemainingImplicitConstructors()

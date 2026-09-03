@@ -603,6 +603,18 @@ no_implicit_default = {
     "ColourLayer": "holds an EdgeTable, which has no default constructor",
     "GlyphLayer": ("holds a std::variant whose first alternative is "
                    "ColourLayer, so its own default is deleted too"),
+    # Seven of these are FORWARD DECLARATIONS whose definition lives in a
+    # platform source file, so the header libclang reads declares the name and
+    # nothing else. The reason recorded beside each is the one clang gave when
+    # the constructor was actually called, not a guess.
+    "AccessibilityNativeHandle": "an incomplete type; defined per platform",
+    "AndroidDocumentInfoArgs": "an incomplete type; defined on Android only",
+    "AndroidDocumentNativeInfo": "an incomplete type; defined on Android only",
+    "FileChooserNative": "an incomplete type; defined per platform",
+    "FontNative": "an incomplete type; defined per platform",
+    "ImagePixelDataNativeExtensions": "an incomplete type; defined per platform",
+    "TypefaceNative": "an incomplete type; defined per platform",
+    "URLDownloadTask": "its operator= is deleted, so Nim cannot assign one",
 }
 
 def unbound_type_reason(rendered, member=False):
@@ -1883,7 +1895,20 @@ def run_main(juce_module_name, juce_class_name_to_export):
         has_public_field = any(x.kind == CursorKind.FIELD_DECL
                                and x.access_specifier == AccessSpecifier.PUBLIC
                                for x in c.get_children())
-        if (not all_constructors and not class_is_abstract and has_public_field
+        # A class with no declared constructors and no pure virtuals is
+        # default-constructible in C++ whether or not its fields are public;
+        # requiring a public field only found the AGGREGATES. It left the
+        # option structs out, and an option struct nothing can build makes
+        # every proc that takes one unreachable - drawFittedText,
+        # JSON's toString, startRealtimeThread and DatagramSocket's
+        # constructor were all in that position.
+        #
+        # Some of these C++ still deletes, usually because a member is not
+        # default-constructible. That only shows at the `new`, so each is
+        # listed in no_implicit_default once the build finds it, and the
+        # coverage gate requires a test to construct every one that stays.
+        if (not all_constructors and not class_is_abstract
+                and class_name not in no_implicit_default
                 and c.spelling not in no_implicit_default):
             declaration = nim_constructor_def.format(**{
                 "comment": "", "class_name": class_name, "method_args": "",
