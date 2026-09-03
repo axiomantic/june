@@ -2189,6 +2189,11 @@ proc testScopedTryLocks() =
         doAssert lock.enter(1000.cint), "the inter-process lock was refused"
         lock.exit()
 
+        # The scoped form takes it on construction and reports that it did.
+        var scoped = makeInterProcessLockScopedLockType(lock)
+        doAssert scoped.isLocked(),
+                 "the scoped inter-process lock was not taken"
+
 testScopedTryLocks()
 
 # File::NaturalFileComparator =================================================
