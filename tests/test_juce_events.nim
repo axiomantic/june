@@ -231,3 +231,38 @@ proc testEveryNoArgConstructorEvents() =
     shutdownJuce_GUI()
 
 testEveryNoArgConstructorEvents()
+
+# LockingAsyncUpdater =========================================================
+#
+# The same shape as AsyncUpdater, but the callback is a std::function rather
+# than a virtual, so it takes a Nim closure directly. handleUpdateNowIfNeeded
+# runs a pending update on this thread, which is what makes it checkable with
+# no message loop.
+
+proc testLockingAsyncUpdater() =
+    initialiseJuce_GUI()
+
+    block:
+        var updates = 0
+        var updater = makeLockingAsyncUpdater(
+            bindClosure(proc() = updates += 1))
+
+        # Nothing pending, so nothing runs.
+        updater.handleUpdateNowIfNeeded()
+        doAssert updates == 0, "an update ran before one was asked for"
+
+        updater.triggerAsyncUpdate()
+        updater.handleUpdateNowIfNeeded()
+        doAssert updates == 1, "the update ran " & $updates & " times"
+
+        # A cancelled update does not run, which is the whole point of
+        # cancelPendingUpdate.
+        updater.triggerAsyncUpdate()
+        updater.cancelPendingUpdate()
+        updater.handleUpdateNowIfNeeded()
+        doAssert updates == 1,
+                 "a cancelled update ran anyway, leaving " & $updates
+
+    shutdownJuce_GUI()
+
+testLockingAsyncUpdater()
