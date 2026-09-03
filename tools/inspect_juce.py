@@ -1057,8 +1057,17 @@ def run_main(juce_module_name, juce_class_name_to_export):
 
     # Store internal mapping tables, build inheritance map
     for c in all_classes:
+        # PUBLIC bases only. A private base is not a subtype anywhere outside
+        # the class, so modelling one as the Nim parent offers every method it
+        # declares and the C++ compiler refuses each call: triggerAsyncUpdate
+        # on an ApplicationCommandManager is "a private member of AsyncUpdater".
+        # Nothing called them, so nothing said so. Fourteen classes inherited
+        # this way, thirteen of them having no public base at all - those now
+        # have no Nim parent, which is what they always were.
         bases = [node.referenced for node in filter(
-            lambda x: x.kind == CursorKind.CXX_BASE_SPECIFIER, c.get_children())]
+            lambda x: (x.kind == CursorKind.CXX_BASE_SPECIFIER
+                       and x.access_specifier == AccessSpecifier.PUBLIC),
+            c.get_children())]
 
         inner_classes = [node for node in filter(
             lambda x: x.access_specifier == AccessSpecifier.PUBLIC and
@@ -1553,17 +1562,30 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 continue
             emitted_signatures.add(field_signature)
 
-            print(nim_field_getter_def.format(**{
-                "comment": field_comment, "field_name": field_name,
-                "class_name": class_name, "field_type": field_type.replace("var ", ""),
-                "juce_module_name": juce_module_name, "juce_spelling": field.spelling,
-                "reason": f"  # {field_reason}" if field_comment else "" }))
+            # A field that IS a non-const reference aliases something the
+            # owner does not own, so handing back a copy of the referent is
+            # wrong twice over: writes through it are lost, and the copy does
+            # not compile at all when the referent is non-copyable. Bind the
+            # reference itself instead. DirectoryContentsDisplayComponent's
+            # directoryContentsList is the one such field JUCE exports, and
+            # DirectoryContentsList is non-copyable.
+            binds_reference = (field.type.kind == TypeKind.LVALUEREFERENCE
+                               and not field.type.get_pointee().is_const_qualified())
+
+            if not binds_reference:
+                print(nim_field_getter_def.format(**{
+                    "comment": field_comment, "field_name": field_name,
+                    "class_name": class_name, "field_type": field_type.replace("var ", ""),
+                    "juce_module_name": juce_module_name, "juce_spelling": field.spelling,
+                    "reason": f"  # {field_reason}" if field_comment else "" }))
 
             # A second getter returning var, so a container field can be
             # mutated in place: box.items.add(x) works on the field itself,
             # where the by-value getter above hands back a copy. Same C++
-            # expression; Nim picks by whether the receiver is mutable.
-            if not (field.type.is_const_qualified() or "&" in field.type.spelling):
+            # expression; Nim picks by whether the receiver is mutable. For a
+            # reference field it is the only getter.
+            if binds_reference or not (field.type.is_const_qualified()
+                                       or "&" in field.type.spelling):
                 print(nim_field_var_getter_def.format(**{
                     "comment": field_comment, "field_name": field_name,
                     "class_name": class_name, "field_type": field_type.replace("var ", ""),
@@ -1585,12 +1607,40 @@ def run_main(juce_module_name, juce_class_name_to_export):
         class_bound_equality = False
         class_has_to_string = False
 
+        # A class that inherits privately can still hand individual members
+        # back out with a using-declaration, and those ARE callable even though
+        # the base is not a subtype: TimedCallback inherits Timer privately and
+        # re-exports five of its methods that way. The base is not modelled as
+        # the Nim parent - it is not one - so pick the re-exported members up
+        # here and emit them as methods of this class.
+        class_members = list(c.get_children())
+        for using in c.get_children():
+            if (using.kind != CursorKind.USING_DECLARATION
+                    or using.access_specifier != AccessSpecifier.PUBLIC):
+                continue
+            # The declaration carries the member's name and a TYPE_REF naming
+            # the class it comes from. Resolved by name against that class,
+            # which picks up every overload of it - the OVERLOADED_DECL_REF
+            # child would say the same thing, but reading it needs a libclang
+            # binding method that the pip package does not expose.
+            for reference in using.get_children():
+                if reference.kind != CursorKind.TYPE_REF:
+                    continue
+                origin = reference.type.get_declaration()
+                if origin is None:
+                    continue
+                class_members += [
+                    x for x in origin.get_children()
+                    if x.kind == CursorKind.CXX_METHOD
+                    and x.spelling == using.spelling
+                    and x.access_specifier == AccessSpecifier.PUBLIC]
+
         scalar_overloaded = scalar_overloaded_names(
-            [x for x in c.get_children()
+            [x for x in class_members
              if x.kind == CursorKind.CXX_METHOD
              and x.access_specifier == AccessSpecifier.PUBLIC])
 
-        for m in filter(lambda x: x.kind == CursorKind.CXX_METHOD, c.get_children()):
+        for m in filter(lambda x: x.kind == CursorKind.CXX_METHOD, class_members):
             if m.access_specifier != AccessSpecifier.PUBLIC:
                 continue
 
