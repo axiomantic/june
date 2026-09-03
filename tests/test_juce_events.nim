@@ -516,3 +516,12 @@ proc testFieldRoundTrips() =
                  "NetworkServiceDiscoveryService.port came back as " & $value.port()
 
 testFieldRoundTrips()
+
+# NetworkServiceDiscovery is a namespace-shaped class: nothing but nested types
+# and static members. The binding still declares it, and a declared type whose
+# constructor is never called is a constructor the C++ compiler never sees.
+proc testNetworkServiceDiscoveryConstructs() =
+  var discovery = makeNetworkServiceDiscovery()
+  doAssert (addr discovery) != nil, "NetworkServiceDiscovery did not build"
+
+testNetworkServiceDiscoveryConstructs()
