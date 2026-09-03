@@ -224,13 +224,36 @@ jobs:
           # setImages takes ownership when it stores a copy, and a closure
           # capturing a ValueTree, whose environment Nim never destructs. Both
           # were wrong beliefs about ownership rather than untidy tests.
+          # Linux runs the suite under a virtual X server. Without one the
+          # tests that construct a window crash rather than fail - an
+          # AlertWindow's CONSTRUCTOR reaches juce_XWindowSystem_linux.cpp and
+          # segfaults - so those would have to be gated off, and the classes
+          # behind a desktop peer would never be exercised at all. xvfb is
+          # already installed above; this is what uses it. On macOS the runner
+          # has a real window server, so `run` is empty there.
+          #
+          # -a picks a free display number rather than assuming :99 is unused,
+          # and --server-args gives a screen large enough that a window is not
+          # clamped by the display size.
+          # An ARRAY, not a string. --server-args carries a value with spaces
+          # in it, and an unquoted string expansion would split that into three
+          # words and hand two of them to nim.
+          run=()
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            command -v xvfb-run > /dev/null || {
+              echo "::error::xvfb-run is not installed, so the suite would run headless without saying so"
+              exit 1
+            }
+            run=(xvfb-run -a --server-args="-screen 0 1920x1080x24")
+          fi
+
           leaked=0
           for test_file in tests/test_juce_*.nim; do
             echo "::group::$test_file"
             # Redirected rather than piped through tee: a pipe hands the
             # step tee's exit status, so whether a failing test is noticed
             # would depend on pipefail being set.
-            "$nim_bin" cpp -r --hints:off "$test_file" > /tmp/test_output 2>&1 \
+            "${run[@]}" "$nim_bin" cpp -r --hints:off "$test_file" > /tmp/test_output 2>&1 \
               || { cat /tmp/test_output; exit 1; }
             cat /tmp/test_output
             if grep -q "Leaked objects detected" /tmp/test_output; then
@@ -244,7 +267,8 @@ jobs:
 
           # The examples are reproduced in the README, so an API change that
           # breaks one breaks the documentation too. Built but not run: they
-          # open a window, and a runner has no display.
+          # open a window and wait for it to be closed, which never happens
+          # unattended - a display would not help.
           #
           # Not -c. That stops after emitting C++ and never invokes the C++
           # compiler, so an example that generates invalid C++ passes it.
