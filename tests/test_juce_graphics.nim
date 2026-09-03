@@ -1845,3 +1845,182 @@ proc testFontMetrics() =
     shutdownJuce_GUI()
 
 testFontMetrics()
+
+# Colour is a value type over a packed ARGB word, with three ways of naming the
+# same colour: bytes, floats, and the HSV/HSL polar forms. The invariant worth
+# asserting is that all three agree, and that the with- forms change one
+# component and leave the rest alone.
+proc testColour() =
+    block:
+        # The bytes go in and come back out unchanged.
+        let orange = Colour.fromRGB(255'u8, 128'u8, 0'u8)
+        doAssert orange.getRed() == 255'u8, "red is " & $orange.getRed()
+        doAssert orange.getGreen() == 128'u8, "green is " & $orange.getGreen()
+        doAssert orange.getBlue() == 0'u8, "blue is " & $orange.getBlue()
+
+        # fromRGB is opaque; fromRGBA carries the alpha through.
+        doAssert orange.getAlpha() == 255'u8,
+                 "fromRGB gave alpha " & $orange.getAlpha()
+        doAssert orange.isOpaque(), "an opaque colour reports transparent"
+        doAssert not orange.isTransparent(), "an opaque colour reports transparent"
+
+        let half = Colour.fromRGBA(255'u8, 128'u8, 0'u8, 128'u8)
+        doAssert half.getAlpha() == 128'u8, "the alpha is " & $half.getAlpha()
+        doAssert not half.isOpaque(), "a half transparent colour reports opaque"
+        doAssert not half.isTransparent(),
+                 "a half transparent colour reports fully transparent"
+
+        let invisible = orange.withAlpha(0'u8)
+        doAssert invisible.isTransparent(),
+                 "a zero alpha colour is not transparent"
+        doAssert invisible.getRed() == 255'u8,
+                 "withAlpha changed the red channel to " & $invisible.getRed()
+
+        # The packed word holds all four channels.
+        doAssert orange.getARGB() == 0xFFFF8000'u32,
+                 "the packed word is " & $orange.getARGB()
+
+        # Two colours built the same way are equal; a different alpha is a
+        # different colour.
+        doAssert orange == Colour.fromRGB(255'u8, 128'u8, 0'u8),
+                 "two identical colours are not equal"
+        doAssert not (orange == half), "alpha is not part of the identity"
+
+    block:
+        # The float channels are the byte channels over 255.
+        let colour = Colour.fromRGB(255'u8, 0'u8, 51'u8)
+        doAssert abs(colour.getFloatRed() - 1.0'f32) < 1.0e-6'f32,
+                 "float red is " & $colour.getFloatRed()
+        doAssert abs(colour.getFloatGreen()) < 1.0e-6'f32,
+                 "float green is " & $colour.getFloatGreen()
+        doAssert abs(colour.getFloatBlue() - 51.0'f32 / 255.0'f32) < 1.0e-6'f32,
+                 "float blue is " & $colour.getFloatBlue()
+        doAssert abs(colour.getFloatAlpha() - 1.0'f32) < 1.0e-6'f32,
+                 "float alpha is " & $colour.getFloatAlpha()
+
+        # And the float constructor is the inverse of the float accessors.
+        let rebuilt = Colour.fromFloatRGBA(colour.getFloatRed(),
+                                           colour.getFloatGreen(),
+                                           colour.getFloatBlue(),
+                                           colour.getFloatAlpha())
+        doAssert rebuilt == colour,
+                 "a round trip through the float channels changed the colour"
+
+    block:
+        # HSV: a pure hue has full saturation and full brightness, and the hue
+        # survives the trip.
+        let red = Colour.fromHSV(0.0'f32, 1.0'f32, 1.0'f32, 1.0'f32)
+        doAssert red.getRed() == 255'u8 and red.getGreen() == 0'u8 and
+                 red.getBlue() == 0'u8,
+                 "hue 0 is not red; it is " & $red.toString()
+        doAssert abs(red.getSaturation() - 1.0'f32) < 1.0e-3'f32,
+                 "the saturation is " & $red.getSaturation()
+        doAssert abs(red.getBrightness() - 1.0'f32) < 1.0e-3'f32,
+                 "the brightness is " & $red.getBrightness()
+
+        # A third of the way round the wheel is green.
+        let green = Colour.fromHSV(1.0'f32 / 3.0'f32, 1.0'f32, 1.0'f32, 1.0'f32)
+        doAssert green.getGreen() == 255'u8 and green.getRed() == 0'u8,
+                 "a third of the way round is not green; it is " & $green.toString()
+
+        # getHSB reports the same three numbers the constructor took.
+        var hue, saturation, brightness: cfloat
+        green.getHSB(hue, saturation, brightness)
+        doAssert abs(hue - 1.0'f32 / 3.0'f32) < 1.0e-2'f32,
+                 "getHSB reported hue " & $hue
+        doAssert abs(saturation - 1.0'f32) < 1.0e-3'f32,
+                 "getHSB reported saturation " & $saturation
+        doAssert abs(brightness - 1.0'f32) < 1.0e-3'f32,
+                 "getHSB reported brightness " & $brightness
+
+        # withRotatedHue walks the wheel, and a full turn comes back.
+        doAssert red.withRotatedHue(1.0'f32 / 3.0'f32) == green,
+                 "rotating red by a third did not give green"
+        doAssert red.withRotatedHue(1.0'f32) == red,
+                 "a full turn did not come back to where it started"
+
+        # The HSL form is a different decomposition of the same colour, and
+        # getHSL reads back what fromHSL was given.
+        let fromHsl = Colour.fromHSL(0.5'f32, 0.8'f32, 0.6'f32, 1.0'f32)
+        var h, s, l: cfloat
+        fromHsl.getHSL(h, s, l)
+        doAssert abs(h - 0.5'f32) < 1.0e-2'f32, "getHSL reported hue " & $h
+        doAssert abs(s - 0.8'f32) < 1.0e-2'f32, "getHSL reported saturation " & $s
+        doAssert abs(l - 0.6'f32) < 1.0e-2'f32, "getHSL reported lightness " & $l
+        doAssert abs(fromHsl.getLightness() - l) < 1.0e-6'f32,
+                 "getLightness and getHSL disagree"
+        doAssert abs(fromHsl.getSaturationHSL() - s) < 1.0e-6'f32,
+                 "getSaturationHSL and getHSL disagree"
+
+    block:
+        # A grey has no saturation, and its three channels are equal.
+        let grey = Colour.greyLevel(0.5'f32)
+        doAssert grey.getRed() == grey.getGreen() and
+                 grey.getGreen() == grey.getBlue(),
+                 "a grey is not neutral: " & $grey.toString()
+        doAssert grey.getSaturation() == 0.0'f32,
+                 "a grey has saturation " & $grey.getSaturation()
+
+        # brighter and darker move the brightness in opposite directions.
+        doAssert grey.brighter().getBrightness() > grey.getBrightness(),
+                 "brighter did not brighten"
+        doAssert grey.darker().getBrightness() < grey.getBrightness(),
+                 "darker did not darken"
+
+        # withBrightness sets it outright, and leaves the hue alone.
+        let blue = Colour.fromHSV(0.6'f32, 1.0'f32, 1.0'f32, 1.0'f32)
+        let dimmed = blue.withBrightness(0.25'f32)
+        doAssert abs(dimmed.getBrightness() - 0.25'f32) < 1.0e-2'f32,
+                 "the brightness is " & $dimmed.getBrightness()
+        doAssert abs(dimmed.getHue() - blue.getHue()) < 1.0e-2'f32,
+                 "withBrightness moved the hue from " & $blue.getHue() &
+                 " to " & $dimmed.getHue()
+        doAssert abs(blue.getBrightness() - 1.0'f32) < 1.0e-3'f32,
+                 "withBrightness mutated the original"
+
+        # withMultipliedBrightness scales it instead.
+        doAssert abs(blue.withMultipliedBrightness(0.5'f32).getBrightness() -
+                     0.5'f32) < 1.0e-2'f32,
+                 "halving the brightness gave " &
+                 $blue.withMultipliedBrightness(0.5'f32).getBrightness()
+
+    block:
+        # Interpolation walks between two colours, and the ends are the colours
+        # themselves.
+        let black = Colour.fromRGB(0'u8, 0'u8, 0'u8)
+        let white = Colour.fromRGB(255'u8, 255'u8, 255'u8)
+        doAssert black.interpolatedWith(white, 0.0'f32) == black,
+                 "interpolating none of the way moved the colour"
+        doAssert black.interpolatedWith(white, 1.0'f32) == white,
+                 "interpolating all of the way did not arrive"
+        let middle = black.interpolatedWith(white, 0.5'f32)
+        doAssert middle.getRed() > 100'u8 and middle.getRed() < 155'u8,
+                 "the midpoint red is " & $middle.getRed()
+
+        # An opaque foreground hides whatever it is laid over.
+        doAssert black.overlaidWith(white) == white,
+                 "an opaque overlay did not cover the background"
+        doAssert black.overlaidWith(white.withAlpha(0'u8)) == black,
+                 "a fully transparent overlay changed the background"
+
+        # contrasting picks a colour that stands against its argument, which is
+        # what a caller uses it for: text over a known background.
+        doAssert white.contrasting().getPerceivedBrightness() <
+                 white.getPerceivedBrightness(),
+                 "the contrast to white is not darker than white"
+        doAssert black.contrasting().getPerceivedBrightness() >
+                 black.getPerceivedBrightness(),
+                 "the contrast to black is not lighter than black"
+
+    block:
+        # A colour survives a round trip through its own string form.
+        let colour = Colour.fromRGBA(18'u8, 52'u8, 86'u8, 120'u8)
+        let text = colour.toString()
+        doAssert Colour.fromString(makeStringRef($text)) == colour,
+                 "a round trip through " & $text & " changed the colour"
+        doAssert colour.toDisplayString(true).isNotEmpty(),
+                 "the display string with alpha is empty"
+        doAssert colour.toDisplayString(false).isNotEmpty(),
+                 "the display string without alpha is empty"
+
+testColour()
