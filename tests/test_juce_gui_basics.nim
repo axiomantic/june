@@ -1,5 +1,6 @@
 
 import june
+import std/os
 
 {.emit: """/*INCLUDESECTION*/
 #include <june.h>
@@ -9593,6 +9594,21 @@ testMultiDocumentPanel()
 # would block or need a desktop, and are left to the compile harness.
 proc testAlertWindowContents() =
     initialiseJuce_GUI()
+
+    # AlertWindow's CONSTRUCTOR reaches the window system - on Linux it trips
+    # assertions in juce_XWindowSystem_linux.cpp and then segfaults on a
+    # runner with no X display. So the whole test is gated on a display
+    # existing, and says out loud when it does not run rather than passing
+    # quietly, because a guard that skips silently reads exactly like a guard
+    # that never fired. The compile harness still covers every AlertWindow
+    # method on every platform.
+    # The check is DISPLAY rather than JUCE's own display list, because
+    # asking JUCE means constructing Desktop, which is itself what queries X.
+    when defined(linux):
+        if getEnv("DISPLAY").len == 0:
+            echo "  skipped testAlertWindowContents: no X display (DISPLAY unset)"
+            shutdownJuce_GUI()
+            return
 
     block:
         var alert = makeAlertWindow(makeString("Title"), makeString("Message"),
