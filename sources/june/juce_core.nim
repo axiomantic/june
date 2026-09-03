@@ -363,14 +363,14 @@ proc `==`*(this: OrderedContainerHelpers, other: OrderedContainerHelpers): bool 
 proc makeScopedAutoReleasePool*(): ScopedAutoReleasePool {.header: juce_core, importcpp: "juce::ScopedAutoReleasePool(@)".}
 proc `==`*(this: ScopedAutoReleasePool, other: ScopedAutoReleasePool): bool {.error: "juce::ScopedAutoReleasePool defines no operator==; compare a property instead".}
 
-proc swap*(this: typedesc[ByteOrder], value: uint16): uint16 {.header: juce_core, importcpp: "juce::ByteOrder::swap((unsigned short) @)".}
-proc swap*(this: typedesc[ByteOrder], value: int16): int16 {.header: juce_core, importcpp: "juce::ByteOrder::swap((short) @)".}
-proc swap*(this: typedesc[ByteOrder], value: uint32): uint32 {.header: juce_core, importcpp: "juce::ByteOrder::swap((unsigned int) @)".}
-proc swap*(this: typedesc[ByteOrder], value: cint): cint {.header: juce_core, importcpp: "juce::ByteOrder::swap((int) @)".}
-proc swap*(this: typedesc[ByteOrder], value: uint64): uint64 {.header: juce_core, importcpp: "juce::ByteOrder::swap((unsigned long long) @)".}
-proc swap*(this: typedesc[ByteOrder], value: int64): int64 {.header: juce_core, importcpp: "juce::ByteOrder::swap((long long) @)".}
-proc swap*(this: typedesc[ByteOrder], value: cfloat): cfloat {.header: juce_core, importcpp: "juce::ByteOrder::swap((float) @)".}
-proc swap*(this: typedesc[ByteOrder], value: float64): float64 {.header: juce_core, importcpp: "juce::ByteOrder::swap((double) @)".}
+proc swap*(this: typedesc[ByteOrder], value: uint16): uint16 {.header: juce_core, importcpp: "(#juce::ByteOrder::swap((unsigned short) #))".}
+proc swap*(this: typedesc[ByteOrder], value: int16): int16 {.header: juce_core, importcpp: "(#juce::ByteOrder::swap((short) #))".}
+proc swap*(this: typedesc[ByteOrder], value: uint32): uint32 {.header: juce_core, importcpp: "(#juce::ByteOrder::swap((unsigned int) #))".}
+proc swap*(this: typedesc[ByteOrder], value: cint): cint {.header: juce_core, importcpp: "(#juce::ByteOrder::swap((int) #))".}
+proc swap*(this: typedesc[ByteOrder], value: uint64): uint64 {.header: juce_core, importcpp: "(#juce::ByteOrder::swap((unsigned long long) #))".}
+proc swap*(this: typedesc[ByteOrder], value: int64): int64 {.header: juce_core, importcpp: "(#juce::ByteOrder::swap((long long) #))".}
+proc swap*(this: typedesc[ByteOrder], value: cfloat): cfloat {.header: juce_core, importcpp: "(#juce::ByteOrder::swap((float) #))".}
+proc swap*(this: typedesc[ByteOrder], value: float64): float64 {.header: juce_core, importcpp: "(#juce::ByteOrder::swap((double) #))".}
 proc littleEndianInt*(this: typedesc[ByteOrder], bytes: constPointer): uint32 {.header: juce_core, importcpp: "juce::ByteOrder::littleEndianInt(@)".}
 proc littleEndianInt64*(this: typedesc[ByteOrder], bytes: constPointer): uint64 {.header: juce_core, importcpp: "juce::ByteOrder::littleEndianInt64(@)".}
 proc littleEndianShort*(this: typedesc[ByteOrder], bytes: constPointer): uint16 {.header: juce_core, importcpp: "juce::ByteOrder::littleEndianShort(@)".}
@@ -391,16 +391,16 @@ proc toUpperCase*(this: typedesc[CharacterFunctions], character: WChar): WChar {
 proc toLowerCase*(this: typedesc[CharacterFunctions], character: WChar): WChar {.header: juce_core, importcpp: "juce::CharacterFunctions::toLowerCase(@)".}
 proc isUpperCase*(this: typedesc[CharacterFunctions], character: WChar): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isUpperCase(@)".}
 proc isLowerCase*(this: typedesc[CharacterFunctions], character: WChar): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isLowerCase(@)".}
-proc isWhitespace*(this: typedesc[CharacterFunctions], character: char): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isWhitespace((char) @)".}
-proc isWhitespace*(this: typedesc[CharacterFunctions], character: WChar): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isWhitespace((wchar_t) @)".}
-proc isDigit*(this: typedesc[CharacterFunctions], character: char): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isDigit((char) @)".}
-proc isDigit*(this: typedesc[CharacterFunctions], character: WChar): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isDigit((wchar_t) @)".}
-proc isLetter*(this: typedesc[CharacterFunctions], character: char): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isLetter((char) @)".}
-proc isLetter*(this: typedesc[CharacterFunctions], character: WChar): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isLetter((wchar_t) @)".}
-proc isLetterOrDigit*(this: typedesc[CharacterFunctions], character: char): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isLetterOrDigit((char) @)".}
-proc isLetterOrDigit*(this: typedesc[CharacterFunctions], character: WChar): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isLetterOrDigit((wchar_t) @)".}
-proc isPrintable*(this: typedesc[CharacterFunctions], character: char): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isPrintable((char) @)".}
-proc isPrintable*(this: typedesc[CharacterFunctions], character: WChar): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isPrintable((wchar_t) @)".}
+proc isWhitespace*(this: typedesc[CharacterFunctions], character: char): bool {.header: juce_core, importcpp: "(#juce::CharacterFunctions::isWhitespace((char) #))".}
+proc isWhitespace*(this: typedesc[CharacterFunctions], character: WChar): bool {.header: juce_core, importcpp: "(#juce::CharacterFunctions::isWhitespace((wchar_t) #))".}
+proc isDigit*(this: typedesc[CharacterFunctions], character: char): bool {.header: juce_core, importcpp: "(#juce::CharacterFunctions::isDigit((char) #))".}
+proc isDigit*(this: typedesc[CharacterFunctions], character: WChar): bool {.header: juce_core, importcpp: "(#juce::CharacterFunctions::isDigit((wchar_t) #))".}
+proc isLetter*(this: typedesc[CharacterFunctions], character: char): bool {.header: juce_core, importcpp: "(#juce::CharacterFunctions::isLetter((char) #))".}
+proc isLetter*(this: typedesc[CharacterFunctions], character: WChar): bool {.header: juce_core, importcpp: "(#juce::CharacterFunctions::isLetter((wchar_t) #))".}
+proc isLetterOrDigit*(this: typedesc[CharacterFunctions], character: char): bool {.header: juce_core, importcpp: "(#juce::CharacterFunctions::isLetterOrDigit((char) #))".}
+proc isLetterOrDigit*(this: typedesc[CharacterFunctions], character: WChar): bool {.header: juce_core, importcpp: "(#juce::CharacterFunctions::isLetterOrDigit((wchar_t) #))".}
+proc isPrintable*(this: typedesc[CharacterFunctions], character: char): bool {.header: juce_core, importcpp: "(#juce::CharacterFunctions::isPrintable((char) #))".}
+proc isPrintable*(this: typedesc[CharacterFunctions], character: WChar): bool {.header: juce_core, importcpp: "(#juce::CharacterFunctions::isPrintable((wchar_t) #))".}
 proc getHexDigitValue*(this: typedesc[CharacterFunctions], digit: WChar): cint {.header: juce_core, importcpp: "juce::CharacterFunctions::getHexDigitValue(@)".}
 proc getUnicodeCharFromWindows1252Codepage*(this: typedesc[CharacterFunctions], windows1252Char: uint8): WChar {.header: juce_core, importcpp: "juce::CharacterFunctions::getUnicodeCharFromWindows1252Codepage(@)".}
 proc isPartOfBasicMultilingualPlane*(this: typedesc[CharacterFunctions], character: WChar): bool {.header: juce_core, importcpp: "juce::CharacterFunctions::isPartOfBasicMultilingualPlane(@)".}
@@ -1383,21 +1383,21 @@ proc equals*(this: DynamicObject, other: DynamicObject): bool {.header: juce_cor
 proc `==`*(this: DynamicObject, other: DynamicObject): bool {.header: juce_core, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: DynamicObject, other: DynamicObject): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 
-proc generateHash*(this: typedesc[DefaultHashFunctions], key: uint32, upperLimit: cint): cint {.header: juce_core, importcpp: "juce::DefaultHashFunctions::generateHash(@)".}
-proc generateHash*(this: typedesc[DefaultHashFunctions], key: cint, upperLimit: cint): cint {.header: juce_core, importcpp: "juce::DefaultHashFunctions::generateHash(@)".}
-proc generateHash*(this: typedesc[DefaultHashFunctions], key: uint64, upperLimit: cint): cint {.header: juce_core, importcpp: "juce::DefaultHashFunctions::generateHash(@)".}
-proc generateHash*(this: typedesc[DefaultHashFunctions], key: int64, upperLimit: cint): cint {.header: juce_core, importcpp: "juce::DefaultHashFunctions::generateHash(@)".}
-proc generateHash*(this: typedesc[DefaultHashFunctions], key: String, upperLimit: cint): cint {.header: juce_core, importcpp: "juce::DefaultHashFunctions::generateHash(@)".}
-proc generateHash*(this: typedesc[DefaultHashFunctions], key: juce_var, upperLimit: cint): cint {.header: juce_core, importcpp: "juce::DefaultHashFunctions::generateHash(@)".}
-proc generateHash*(this: typedesc[DefaultHashFunctions], key: constPointer, upperLimit: cint): cint {.header: juce_core, importcpp: "juce::DefaultHashFunctions::generateHash(@)".}
-proc generateHash*(this: typedesc[DefaultHashFunctions], key: Uuid, upperLimit: cint): cint {.header: juce_core, importcpp: "juce::DefaultHashFunctions::generateHash(@)".}
+proc generateHash*(this: typedesc[DefaultHashFunctions], key: uint32, upperLimit: cint): cint {.header: juce_core, importcpp: "(#juce::DefaultHashFunctions::generateHash((unsigned int) #, (int) #))".}
+proc generateHash*(this: typedesc[DefaultHashFunctions], key: cint, upperLimit: cint): cint {.header: juce_core, importcpp: "(#juce::DefaultHashFunctions::generateHash((int) #, (int) #))".}
+proc generateHash*(this: typedesc[DefaultHashFunctions], key: uint64, upperLimit: cint): cint {.header: juce_core, importcpp: "(#juce::DefaultHashFunctions::generateHash((unsigned long long) #, (int) #))".}
+proc generateHash*(this: typedesc[DefaultHashFunctions], key: int64, upperLimit: cint): cint {.header: juce_core, importcpp: "(#juce::DefaultHashFunctions::generateHash((long long) #, (int) #))".}
+proc generateHash*(this: typedesc[DefaultHashFunctions], key: String, upperLimit: cint): cint {.header: juce_core, importcpp: "(#juce::DefaultHashFunctions::generateHash((const juce::String &) #, (int) #))".}
+proc generateHash*(this: typedesc[DefaultHashFunctions], key: juce_var, upperLimit: cint): cint {.header: juce_core, importcpp: "(#juce::DefaultHashFunctions::generateHash((const juce::var &) #, (int) #))".}
+proc generateHash*(this: typedesc[DefaultHashFunctions], key: constPointer, upperLimit: cint): cint {.header: juce_core, importcpp: "(#juce::DefaultHashFunctions::generateHash((const void *) #, (int) #))".}
+proc generateHash*(this: typedesc[DefaultHashFunctions], key: Uuid, upperLimit: cint): cint {.header: juce_core, importcpp: "(#juce::DefaultHashFunctions::generateHash((const juce::Uuid &) #, (int) #))".}
 proc `==`*(this: DefaultHashFunctions, other: DefaultHashFunctions): bool {.error: "juce::DefaultHashFunctions defines no operator==; compare a property instead".}
 
 proc makeRelativeTime*(): RelativeTime {.header: juce_core, importcpp: "juce::RelativeTime(@)".}
 proc makeRelativeTime*(seconds: float64): RelativeTime {.header: juce_core, importcpp: "juce::RelativeTime(@)".}
 proc `RelativeTime=`*(this: var RelativeTime, other: RelativeTime): var RelativeTime {.header: juce_core, importcpp: "#.operator=(@)".}
-proc milliseconds*(this: typedesc[RelativeTime], milliseconds: cint): RelativeTime {.header: juce_core, importcpp: "juce::RelativeTime::milliseconds((int) @)".}
-proc milliseconds*(this: typedesc[RelativeTime], milliseconds: int64): RelativeTime {.header: juce_core, importcpp: "juce::RelativeTime::milliseconds((long long) @)".}
+proc milliseconds*(this: typedesc[RelativeTime], milliseconds: cint): RelativeTime {.header: juce_core, importcpp: "(#juce::RelativeTime::milliseconds((int) #))".}
+proc milliseconds*(this: typedesc[RelativeTime], milliseconds: int64): RelativeTime {.header: juce_core, importcpp: "(#juce::RelativeTime::milliseconds((long long) #))".}
 proc seconds*(this: typedesc[RelativeTime], seconds: float64): RelativeTime {.header: juce_core, importcpp: "juce::RelativeTime::seconds(@)".}
 proc minutes*(this: typedesc[RelativeTime], numberOfMinutes: float64): RelativeTime {.header: juce_core, importcpp: "juce::RelativeTime::minutes(@)".}
 proc hours*(this: typedesc[RelativeTime], numberOfHours: float64): RelativeTime {.header: juce_core, importcpp: "juce::RelativeTime::hours(@)".}

@@ -106,6 +106,13 @@ move_only_wrappers = ("UniquePtr[", "OptionalScopedPointer[")
 # already used for MessageManager.getInstance.
 nim_static_method_def = """{comment}proc {method_name}*(this: typedesc[{class_name}]{method_args}){method_return} {{.header: {juce_module_name}, importcpp: "{qualified_name}::{juce_spelling}({juce_args})".}}{reason}"""
 
+# The same call with each argument cast to the type its overload declares, for
+# a static method whose overloads differ only in a scalar. The leading `#` is
+# the typedesc, which is compile-time only and expands to nothing: giving it a
+# placeholder of its own inside the parentheses lets the ones after it line up
+# with the real arguments, which is what a bare `#` per parameter could not do.
+nim_static_method_cast_def = """{comment}proc {method_name}*(this: typedesc[{class_name}]{method_args}){method_return} {{.header: {juce_module_name}, importcpp: "(#{qualified_name}::{juce_spelling}({juce_args}))".}}{reason}"""
+
 nim_method_def = """{comment}proc {method_name}*({method_args}){method_return} {{.header: {juce_module_name}, importcpp: "#.{juce_spelling}({juce_args})".}}{reason}"""
 
 # Deliberately not {.constructor.}. That pragma makes Nim emit a C++ declaration,
@@ -2095,23 +2102,22 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 # parameter is the spelling that works. In the instance form the
                 # leading `#.` has already consumed the receiver.
                 #
-                # A static method cannot use `#` at all: its first parameter is
-                # the typedesc, which is compile-time only and expands to
-                # nothing, swallowing a placeholder. `@` skips it, so a
-                # single-argument static method casts the whole expansion. With
-                # more than one argument there is nothing to cast piecewise, and
-                # the call stays ambiguous - loudly, as a C++ error.
-                if is_static_method:
-                    emitted_args = (f"({cpp_argument_types[0]}) @"
-                                    if len(cpp_argument_types) == 1 else "@")
-                else:
-                    emitted_args = ", ".join(
-                        f"({cpp_type}) #" for cpp_type in cpp_argument_types)
+                # `#` takes the next argument in order and a digit after one is
+                # literal text, so one bare `#` per parameter is the spelling
+                # that works. A static method's first parameter is the typedesc,
+                # which is compile-time only and expands to nothing: it gets a
+                # placeholder of its own at the front, inside the parentheses
+                # the cast form adds, so the rest line up.
+                emitted_args = ", ".join(
+                    f"({cpp_type}) #" for cpp_type in cpp_argument_types)
             else:
                 emitted_args = "@" if has_arguments else ""
 
             if is_static_method:
-                declaration = nim_static_method_def.format(**{
+                static_template = (nim_static_method_cast_def
+                                   if has_arguments and m.spelling in scalar_overloaded
+                                   else nim_static_method_def)
+                declaration = static_template.format(**{
                     "comment": comment,
                     "method_name": method_name,
                     "class_name": class_name,

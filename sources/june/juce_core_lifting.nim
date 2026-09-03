@@ -90,3 +90,53 @@ iterator items*(this: MemoryBlock): uint8 =
     let data = cast[ptr UncheckedArray[uint8]](this.getData())
     for index in 0 ..< this.getSize().int:
         yield data[index]
+
+
+# Nim's int into an overloaded JUCE call ======================================
+#
+# JUCE gives String six integer constructors, and a plain Nim integer literal
+# converts to cint, int16, int64, uint16, uint32 and uint64 at equal cost, so
+# `makeString(5)` is ambiguous and a caller has to write `makeString(5.cint)`.
+# A proc taking Nim's own `int` is an exact match for a literal, so it wins
+# outright and the ambiguity does not arise.
+#
+# Only where the overload set has an int64 form and every integer overload
+# returns the same type. Nim's int IS an int64 on the platforms this binding
+# supports, so the conversion is lossless and the meaning is not a choice.
+# ByteOrder.swap has an int64 form but each overload returns its own width,
+# countNumberOfBits, Grid::Px, Grid::Fr and InputStream.read have no int64 form
+# at all, and there is no lossless target for any of them - those still take
+# the width from the caller. check_handwritten_covered.py recomputes this set
+# and fails if it drifts either way.
+
+# Each takes the widened value through a local of declared type. `key.int64` on
+# its own is a no-op conversion Nim elides, and on Linux Nim's int is a C++
+# `long` while its int64 is a `long long`, so what reached the C++ overload set
+# was a `long` - ambiguous between the int64 and uint64 forms. A local forces
+# the declaration g++ needs to see. macOS spells both as `long long` and never
+# showed it.
+
+proc makeString*(largeIntegerValue: int): String =
+    let widened: int64 = largeIntegerValue
+    makeString(widened)
+
+proc makejuce_var*(value: int): juce_var =
+    let widened: int64 = value
+    makejuce_var(widened)
+
+proc `juce_var=`*(this: var juce_var, value: int): var juce_var =
+    let widened: int64 = value
+    `juce_var=`(this, widened)
+
+proc makeBigInteger*(value: int): BigInteger =
+    let widened: int64 = value
+    makeBigInteger(widened)
+
+proc generateHash*(this: typedesc[DefaultHashFunctions], key: int,
+                   upperLimit: cint): cint =
+    let widened: int64 = key
+    DefaultHashFunctions.generateHash(widened, upperLimit)
+
+proc milliseconds*(this: typedesc[RelativeTime], milliseconds: int): RelativeTime =
+    let widened: int64 = milliseconds
+    RelativeTime.milliseconds(widened)
