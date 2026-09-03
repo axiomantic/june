@@ -203,6 +203,22 @@ feel singleton, and both assert at exit if the GUI was never initialised.
 C++ holds only the raw environment pointer, so without that the environment is
 collected as soon as the Nim closure goes out of scope, and the callback then
 reads freed memory -- which shows up as a corrupted capture rather than a crash.
+
+Do not capture a ``String``, an ``Identifier`` or a ``juce_var`` in a closure.
+Convert it first: ``let name = $someString`` captures a Nim string and is safe.
+
+Nim allocates a closure's environment as zeroed memory rather than constructing
+it, and ``String::operator=`` releases whatever the target held before -- from
+zeroed memory that is a null buffer, and the release writes through it. This is
+Nim's closure code generation, not something ``bindClosure`` does: a plain
+``proc() = discard capturedString`` crashes the same way. Types that hold a
+``String`` inherit the problem, which is why ``Identifier`` and ``juce_var``
+are on the list.
+
+Types built on ``ReferenceCountedObjectPtr`` are unaffected, because assigning
+one checks for null first: ``Image``, ``ValueTree`` and ``Font`` capture
+cleanly, as do the plain-value types like ``Colour``, ``Point`` and
+``Rectangle``.
 The cost is one retained environment per bound closure; callbacks are set up
 once, so that is bounded.
 
