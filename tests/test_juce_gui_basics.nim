@@ -5017,3 +5017,45 @@ proc testPointerMembers() =
 testRemainingGuiScopedHelpers()
 testEqualityGuard()
 testPointerMembers()
+
+# Which of several public bases becomes the Nim parent =========================
+#
+# Nim has one parent and C++ has as many as it likes. Taking the first one
+# declared bound TextEditor as a TextInputTarget - the first of its three - and
+# put the whole of Component out of reach: a text box that could not be placed,
+# sized, shown or repainted. The parent is now whichever base reaches the most.
+
+proc testPrimaryBaseIsTheLargest() =
+    initialiseJuce_GUI()
+
+    block:
+        var editor = makeTextEditor(makeString("editor"), WChar(0))
+
+        # Component, reached through the parent rather than declared here.
+        editor.setBounds(makeRectangle(0.cint, 0.cint, 120.cint, 24.cint))
+        doAssert editor.getWidth() == 120,
+                 "the editor is " & $editor.getWidth() & " wide, not 120"
+        doAssert editor.getHeight() == 24,
+                 "the editor is " & $editor.getHeight() & " tall, not 24"
+        doAssert not editor.isVisible(), "an unparented editor reports visible"
+        editor.setName(makeString("field"))
+        doAssert $editor.getName() == "field",
+                 "the name came back as " & $editor.getName()
+
+        # TextEditor's own methods are unaffected.
+        editor.setText(makeString("hello"))
+        doAssert $editor.getText() == "hello",
+                 "the text came back as " & $editor.getText()
+
+    block:
+        # KeyPressMappingSet moved from KeyListener to ChangeBroadcaster the
+        # same way, and ChangeBroadcaster is what callers actually need.
+        var commands = makeApplicationCommandManager()
+        var mappings = makeKeyPressMappingSet(commands)
+        mappings.sendChangeMessage()
+        doAssert compiles(mappings.addChangeListener(nil)),
+                 "ChangeBroadcaster is not reachable on a KeyPressMappingSet"
+
+    shutdownJuce_GUI()
+
+testPrimaryBaseIsTheLargest()
