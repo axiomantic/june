@@ -58,7 +58,7 @@ proc undoCurrentTransactionOnly*(this: var UndoManager): bool {.header: juce_dat
 proc getUndoDescription*(this: UndoManager): String {.header: juce_data_structures, importcpp: "#.getUndoDescription()".}
 proc getUndoDescriptions*(this: UndoManager): StringArray {.header: juce_data_structures, importcpp: "#.getUndoDescriptions()".}
 proc getTimeOfUndoTransaction*(this: UndoManager): Time {.header: juce_data_structures, importcpp: "#.getTimeOfUndoTransaction()".}
-proc getActionsInCurrentTransaction*(this: UndoManager, actionsFound: var Array[ptr UndoableAction]) {.header: juce_data_structures, importcpp: "#.getActionsInCurrentTransaction(@)".}
+proc getActionsInCurrentTransaction*(this: UndoManager, actionsFound: var Array[ConstPtr[UndoableAction]]) {.header: juce_data_structures, importcpp: "#.getActionsInCurrentTransaction(@)".}
 proc getNumActionsInCurrentTransaction*(this: UndoManager): cint {.header: juce_data_structures, importcpp: "#.getNumActionsInCurrentTransaction()".}
 proc canRedo*(this: UndoManager): bool {.header: juce_data_structures, importcpp: "#.canRedo()".}
 proc redo*(this: var UndoManager): bool {.header: juce_data_structures, importcpp: "#.redo()".}

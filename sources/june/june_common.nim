@@ -43,6 +43,11 @@ type ConstPtr*[T] {.importcpp: "const '0 *", nodecl.} = object
 proc isNil*[T](p: ConstPtr[T]): bool {.importcpp: "(# == nullptr)", nodecl.}
 proc `[]`*[T](p: ConstPtr[T]): lent T {.importcpp: "(*#)", nodecl.}
 proc `==`*[T](a: ConstPtr[T], b: ConstPtr[T]): bool {.importcpp: "(# == #)", nodecl.}
+# C++ converts a `T*` to a `const T*` on its own, so the mixed comparison is
+# the one a caller reaches for: a container of ConstPtr holds the same objects
+# something else handed back as a plain pointer.
+proc `==`*[T](a: ConstPtr[T], b: ptr T): bool {.importcpp: "(# == #)", nodecl.}
+proc `==`*[T](a: ptr T, b: ConstPtr[T]): bool {.importcpp: "(# == #)", nodecl.}
 
 proc cnew*[T](x: T): ptr T {.importcpp: "(new '*0#@)", nodecl.}
 proc cdelete*[T](x: ptr T) {.importcpp: "(delete @)", nodecl.}
