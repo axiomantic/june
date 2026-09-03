@@ -2260,3 +2260,118 @@ proc testUrlInputSource() =
                  "sources over different URLs hash the same"
 
 testUrlInputSource()
+
+# Every bound constant ========================================================
+#
+# A `let` with an importcpp is not checked against C++ unless something reads
+# it: a constant naming juce::NoSuchClass::nope compiles clean while nothing
+# touches it. Reading each is what compiles the spelling.
+
+proc testEveryConstantCore() =
+    block:
+        discard IncrementRef_no
+        discard IncrementRef_yes
+        discard SystemStatsOperatingSystemType_UnknownOS
+        discard SystemStatsOperatingSystemType_MacOSX
+        discard SystemStatsOperatingSystemType_Windows
+        discard SystemStatsOperatingSystemType_Linux
+        discard SystemStatsOperatingSystemType_Android
+        discard SystemStatsOperatingSystemType_iOS
+        discard SystemStatsOperatingSystemType_WASM
+        discard SystemStatsOperatingSystemType_MacOSX_10_7
+        discard SystemStatsOperatingSystemType_MacOSX_10_8
+        discard SystemStatsOperatingSystemType_MacOSX_10_9
+        discard SystemStatsOperatingSystemType_MacOSX_10_10
+        discard SystemStatsOperatingSystemType_MacOSX_10_11
+        discard SystemStatsOperatingSystemType_MacOSX_10_12
+        discard SystemStatsOperatingSystemType_MacOSX_10_13
+        discard SystemStatsOperatingSystemType_MacOSX_10_14
+        discard SystemStatsOperatingSystemType_MacOSX_10_15
+        discard SystemStatsOperatingSystemType_MacOS_11
+        discard SystemStatsOperatingSystemType_MacOS_12
+        discard SystemStatsOperatingSystemType_MacOS_13
+        discard SystemStatsOperatingSystemType_MacOS_14
+        discard SystemStatsOperatingSystemType_MacOS_15
+        discard SystemStatsOperatingSystemType_MacOS_26
+        discard SystemStatsOperatingSystemType_Win2000
+        discard SystemStatsOperatingSystemType_WinXP
+        discard SystemStatsOperatingSystemType_WinVista
+        discard SystemStatsOperatingSystemType_Windows7
+        discard SystemStatsOperatingSystemType_Windows8_0
+        discard SystemStatsOperatingSystemType_Windows8_1
+        discard SystemStatsOperatingSystemType_Windows10
+        discard SystemStatsOperatingSystemType_Windows11
+        discard SystemStatsMachineIdFlags_macAddresses
+        discard SystemStatsMachineIdFlags_fileSystemId
+        discard SystemStatsMachineIdFlags_legacyUniqueId
+        discard SystemStatsMachineIdFlags_uniqueId
+        discard JSONSpacing_none
+        discard JSONSpacing_singleLine
+        discard JSONSpacing_multiLine
+        discard JSONEncoding_utf8
+        discard JSONEncoding_ascii
+        discard FileTypesOfFileToFind_findDirectories
+        discard FileTypesOfFileToFind_findFiles
+        discard FileTypesOfFileToFind_findFilesAndDirectories
+        discard FileTypesOfFileToFind_ignoreHiddenFiles
+        discard FileFollowSymlinks_no
+        discard FileFollowSymlinks_noCycles
+        discard FileFollowSymlinks_yes
+        discard FileSpecialLocationType_userHomeDirectory
+        discard FileSpecialLocationType_userDocumentsDirectory
+        discard FileSpecialLocationType_userDesktopDirectory
+        discard FileSpecialLocationType_userMusicDirectory
+        discard FileSpecialLocationType_userMoviesDirectory
+        discard FileSpecialLocationType_userPicturesDirectory
+        discard FileSpecialLocationType_userApplicationDataDirectory
+        discard FileSpecialLocationType_commonApplicationDataDirectory
+        discard FileSpecialLocationType_commonDocumentsDirectory
+        discard FileSpecialLocationType_tempDirectory
+        discard FileSpecialLocationType_currentExecutableFile
+        discard FileSpecialLocationType_currentApplicationFile
+        discard FileSpecialLocationType_invokedExecutableFile
+        discard FileSpecialLocationType_hostApplicationPath
+        discard FileSpecialLocationType_globalApplicationsDirectory
+        discard MemoryMappedFileAccessMode_readOnly
+        discard MemoryMappedFileAccessMode_readWrite
+        discard TemporaryFileOptionFlags_useHiddenFile
+        discard TemporaryFileOptionFlags_putNumbersInBrackets
+        discard ExpressionType_constantType
+        discard ExpressionType_functionType
+        discard ExpressionType_operatorType
+        discard ExpressionType_symbolType
+        discard RuntimePermissionsPermissionID_recordAudio
+        discard RuntimePermissionsPermissionID_bluetoothMidi
+        discard RuntimePermissionsPermissionID_readExternalStorage
+        discard RuntimePermissionsPermissionID_writeExternalStorage
+        discard RuntimePermissionsPermissionID_camera
+        discard RuntimePermissionsPermissionID_readMediaAudio
+        discard RuntimePermissionsPermissionID_readMediaImages
+        discard RuntimePermissionsPermissionID_readMediaVideo
+        discard RuntimePermissionsPermissionID_postNotification
+        discard ChildProcessStreamFlags_wantStdOut
+        discard ChildProcessStreamFlags_wantStdErr
+        discard ProcessProcessPriority_LowPriority
+        discard ProcessProcessPriority_NormalPriority
+        discard ProcessProcessPriority_HighPriority
+        discard ProcessProcessPriority_RealtimePriority
+        discard ThreadPriority_highest
+        discard ThreadPriority_high
+        discard ThreadPriority_normal
+        discard ThreadPriority_low
+        discard ThreadPriority_background
+        discard ThreadPoolJobJobStatus_jobHasFinished
+        discard ThreadPoolJobJobStatus_jobNeedsRunningAgain
+        discard URLParameterHandling_inAddress
+        discard URLParameterHandling_inPostData
+        discard GZIPCompressorOutputStreamWindowBitsValues_windowBitsRaw
+        discard GZIPCompressorOutputStreamWindowBitsValues_windowBitsGZIP
+        discard GZIPDecompressorInputStreamFormat_zlibFormat
+        discard GZIPDecompressorInputStreamFormat_deflateFormat
+        discard GZIPDecompressorInputStreamFormat_gzipFormat
+        discard ZipFileOverwriteFiles_no
+        discard ZipFileOverwriteFiles_yes
+        discard ZipFileFollowSymlinks_no
+        discard ZipFileFollowSymlinks_yes
+
+testEveryConstantCore()
