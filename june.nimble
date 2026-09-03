@@ -13,6 +13,9 @@ srcDir        = "sources"
 
 requires "nim >= 2.2.2"
 
+# Every task below uses `exec`, and nimble 0.22 exits 0 even when an exec
+# raised, so a task's exit code does not report a failure. CI runs the same
+# commands directly for that reason; see the README.
 task test, "Runs the test suite":
   exec "nim cpp -r tests/test_juce_core.nim"
   exec "nim cpp -r tests/test_juce_events.nim"
