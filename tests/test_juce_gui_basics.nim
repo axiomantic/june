@@ -6941,3 +6941,189 @@ proc testLastFields() =
     shutdownJuce_GUI()
 
 testLastFields()
+
+# Component, in behaviour =====================================================
+#
+# 156 of Component's 187 methods had no behavioural test. The compile harness
+# proves each links; what a component answers about its own geometry, its
+# children and its state is what these check. None of it needs a display: a
+# component that is never put on the desktop still has bounds, children and
+# every flag JUCE keeps for it.
+
+proc testComponentGeometry() =
+    initialiseJuce_GUI()
+
+    block:
+        let component = newCustomComponent()
+        component[].setBounds(makeRectangle(10.cint, 20.cint, 100.cint, 50.cint))
+        doAssert component[].getX() == 10 and component[].getY() == 20,
+                 "the top left is " & $component[].getX() & "," & $component[].getY()
+        doAssert component[].getRight() == 110 and component[].getBottom() == 70,
+                 "the bottom right is " & $component[].getRight() & "," & $component[].getBottom()
+        doAssert component[].getBoundsInParent() == makeRectangle(10.cint, 20.cint,
+                                                           100.cint, 50.cint),
+                 "the bounds in the parent are not the bounds that were set"
+
+        component[].setTopLeftPosition(5.cint, 6.cint)
+        doAssert component[].getX() == 5 and component[].getY() == 6,
+                 "after moving, the top left is " & $component[].getX() & "," & $component[].getY()
+        doAssert component[].getWidth() == 100 and component[].getHeight() == 50,
+                 "moving changed the size"
+
+        component[].setTopRightPosition(200.cint, 0.cint)
+        doAssert component[].getRight() == 200,
+                 "after setting the top right, the right edge is " & $component[].getRight()
+
+        component[].setCentrePosition(50.cint, 40.cint)
+        doAssert component[].getBounds().getCentreX() == 50 and
+                 component[].getBounds().getCentreY() == 40,
+                 "the centre is " & $component[].getBounds().getCentreX() & "," &
+                 $component[].getBounds().getCentreY()
+
+        doAssert component[].proportionOfWidth(0.5'f32) == 50,
+                 "half the width is " & $component[].proportionOfWidth(0.5'f32)
+        doAssert component[].proportionOfHeight(0.2'f32) == 10,
+                 "a fifth of the height is " & $component[].proportionOfHeight(0.2'f32)
+
+        # hitTest is the hook a subclass overrides to carve a shape out of its
+        # rectangle, and the default accepts everything - the bounds check
+        # happens before JUCE ever calls it.
+        doAssert component[].hitTest(1.cint, 1.cint),
+                 "hitTest refused a point inside the bounds"
+        doAssert component[].hitTest(500.cint, 500.cint),
+                 "the default hitTest refused a point, so it is not the default"
+
+        # contains is not hitTest. It walks up to a parent, and at the top it
+        # requires a desktop peer (juce_Component.cpp:1355), so a component
+        # that was never put on the desktop contains nothing whatever its
+        # hitTest says.
+        doAssert not component[].contains(makePoint(1.cint, 1.cint)),
+                 "a component with no peer reported that it contains a point"
+
+        cdelete component
+
+    block:
+        # Bounds expressed against a parent.
+        let parent = newCustomComponent()
+        parent[].setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 100.cint))
+
+        let child = newCustomComponent()
+        parent[].addAndMakeVisible(cast[ptr Component](child))
+        child[].setBoundsRelative(0.5'f32, 0.0'f32, 0.5'f32, 1.0'f32)
+        doAssert child[].getX() == 100 and child[].getWidth() == 100,
+                 "the relative bounds gave x=" & $child[].getX() &
+                 " w=" & $child[].getWidth()
+
+        child[].setBoundsInset(makeBorderSize(10.cint))
+        doAssert child[].getBounds() == makeRectangle(10.cint, 10.cint,
+                                                    180.cint, 80.cint),
+                 "the inset bounds are wrong"
+
+        child[].setBoundsToFit(makeRectangle(0.cint, 0.cint, 100.cint, 100.cint),
+                             makeJustification(JustificationFlags_centred.cint),
+                             false)
+        doAssert child[].getWidth() <= 100 and child[].getHeight() <= 100,
+                 "the fitted bounds are larger than the target"
+
+        child[].setCentreRelative(0.5'f32, 0.5'f32)
+        doAssert child[].getBounds().getCentreX() == 100,
+                 "the relative centre is at " & $child[].getBounds().getCentreX()
+
+        cdelete child
+        cdelete parent
+
+    shutdownJuce_GUI()
+
+testComponentGeometry()
+
+proc testComponentHierarchy() =
+    initialiseJuce_GUI()
+
+    block:
+        let parent = newCustomComponent()
+        parent[].setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 100.cint))
+
+        let first = newCustomComponent()
+        let second = newCustomComponent()
+        parent[].addAndMakeVisible(cast[ptr Component](first))
+        parent[].addChildComponent(cast[ptr Component](second))
+
+        doAssert parent[].getNumChildComponents() == 2,
+                 "the parent holds " & $parent[].getNumChildComponents() & " children"
+        doAssert parent[].getChildComponent(0.cint) == cast[ptr Component](first),
+                 "the first child is not the one added first"
+        doAssert parent[].getIndexOfChildComponent(cast[ptr Component](second)) == 1,
+                 "the second child is at index " &
+                 $parent[].getIndexOfChildComponent(cast[ptr Component](second))
+        doAssert parent[].isParentOf(cast[ptr Component](first)),
+                 "the parent does not own the child it was given"
+        doAssert first[].getParentComponent() == cast[ptr Component](parent),
+                 "the child's parent is not the component it was added to"
+        doAssert first[].getTopLevelComponent() == cast[ptr Component](parent),
+                 "the top level component is not the parent"
+        doAssert first[].getParentWidth() == 200 and first[].getParentHeight() == 100,
+                 "the parent's size reads as " & $first[].getParentWidth() & "x" &
+                 $first[].getParentHeight()
+
+        # addAndMakeVisible shows a child; addChildComponent does not.
+        doAssert first[].isVisible(), "the child added visibly is hidden"
+        doAssert not second[].isVisible(), "the child added hidden is visible"
+
+        # An id is set and found again by it.
+        second[].setComponentID(makeString("second"))
+        doAssert $second[].getComponentID() == "second",
+                 "the id is " & $second[].getComponentID()
+        doAssert parent[].findChildWithID(makeStringRef("second")) ==
+                 cast[ptr Component](second),
+                 "findChildWithID found the wrong child"
+
+        let third = newCustomComponent()
+        parent[].addChildAndSetID(cast[ptr Component](third), makeString("third"))
+        doAssert $third[].getComponentID() == "third",
+                 "addChildAndSetID did not set the id"
+
+        # Order: sending one to the back makes it first in the child list.
+        third[].toBack()
+        doAssert parent[].getIndexOfChildComponent(cast[ptr Component](third)) == 0,
+                 "after toBack the child is at " &
+                 $parent[].getIndexOfChildComponent(cast[ptr Component](third))
+        third[].toFront(false)
+        doAssert parent[].getIndexOfChildComponent(cast[ptr Component](third)) == 2,
+                 "after toFront the child is at " &
+                 $parent[].getIndexOfChildComponent(cast[ptr Component](third))
+        third[].toBehind(cast[ptr Component](first))
+        doAssert parent[].getIndexOfChildComponent(cast[ptr Component](third)) <
+                 parent[].getIndexOfChildComponent(cast[ptr Component](first)),
+                 "toBehind did not put it behind"
+
+        parent[].removeChildComponent(cast[ptr Component](second))
+        doAssert parent[].getNumChildComponents() == 2,
+                 "after removing one, the parent holds " &
+                 $parent[].getNumChildComponents()
+        doAssert second[].getParentComponent().isNil,
+                 "the removed child still has a parent"
+
+        parent[].removeAllChildren()
+        doAssert parent[].getNumChildComponents() == 0,
+                 "removeAllChildren left " & $parent[].getNumChildComponents()
+
+        cdelete third
+        cdelete second
+        cdelete first
+        cdelete parent
+
+    block:
+        # deleteAllChildren destroys them, so nothing is deleted here after it.
+        let owner = newCustomComponent()
+        owner[].addAndMakeVisible(cast[ptr Component](newCustomComponent()))
+        owner[].addAndMakeVisible(cast[ptr Component](newCustomComponent()))
+        doAssert owner[].getNumChildComponents() == 2,
+                 "the owner holds " & $owner[].getNumChildComponents() & " children"
+        owner[].deleteAllChildren()
+        doAssert owner[].getNumChildComponents() == 0,
+                 "deleteAllChildren left " & $owner[].getNumChildComponents()
+        cdelete owner
+
+    shutdownJuce_GUI()
+
+testComponentHierarchy()
