@@ -791,6 +791,12 @@ def scalar_overloaded_names(methods):
 # can predict - each of these was found by linking one. One entry per class,
 # holding a set, for the reason skip_class_method's own comment gives.
 undefined_in_juce = {
+    # NativeInfo is `struct NativeInfo;` in the header and defined only in
+    # JUCE's Android sources, so it cannot be returned by value anywhere else.
+    # libclang offers no reliable test for this: get_size() is negative for
+    # every class template instantiation it has not laid out, which withheld
+    # forty perfectly good bindings when it was tried.
+    "AndroidDocument": {"getNativeInfo"},
     "RelativeCoordinate": {"references"},
     "RelativePointPathQuadraticTo": {"createTree"},
     "RelativePointPathCubicTo": {"createTree"},
@@ -1652,6 +1658,10 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 # Only the return position. A `const T*` parameter takes a
                 # plain `ptr T` already, because that conversion is the one
                 # C++ does make.
+                # A return type that C++ only forward declares cannot be
+                # returned by value: AndroidDocument::NativeInfo is declared
+                # and defined nowhere in the header, and the binding for
+                # getNativeInfo is a compile error at every call site.
                 if (m.result_type.kind == TypeKind.POINTER
                         and m.result_type.get_pointee().is_const_qualified()
                         and rendered_return.startswith("ptr ")):

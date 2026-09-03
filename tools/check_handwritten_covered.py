@@ -172,8 +172,15 @@ platform_specific_constructors = {
 def check_no_argument_constructors():
     """Every generated constructor that takes no arguments is called.
 
-    Only the no-argument ones. A sweep that invents arguments was tried and
-    abandoned: a JUCE constructor does real work, and the invented values sent
+    Only constructors, and only the no-argument ones. Sweeping the const
+    getters on every default-constructible class was tried too and abandoned
+    for the same reason: makeThreadPool starts threads, makeStreamingSocket
+    and makeChildProcess do real work, and the process was killed rather than
+    finishing. It did find one thing before it was dropped - AndroidDocument
+    ::getNativeInfo returns a type JUCE only forward declares - and that is
+    named in the generator now.
+
+    A sweep that invents arguments was tried and abandoned: a JUCE constructor does real work, and the invented values sent
     it doing it - a directory handed to ZipFile, an empty name to
     InterProcessLock - until the process was killed. Compiling the importcpp is
     not worth running JUCE against nonsense, so the 191 constructors that take
