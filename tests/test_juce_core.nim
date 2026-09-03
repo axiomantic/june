@@ -2954,3 +2954,46 @@ proc testScalarOverloadedFreeFunctions() =
         doAssert $line == "n=42, m=7", "the shifted string is " & $line
 
 testScalarOverloadedFreeFunctions()
+
+# The pool acts on the status a job returns ====================================
+#
+# ThreadPoolJob::runJob returns a JobStatus, which is a distinct cint, and the
+# handler returns the base scalar so that no Nim closure type names it - Nim
+# renders one closure struct for that and for `proc(): cint`. Setting the
+# handler proves it compiles and running the job proves the body is reached.
+# Neither shows that the value coming back is the value JUCE reads: a cast that
+# swapped jobHasFinished for jobNeedsRunningAgain would run the body either
+# way. The pool re-runs a job that asks for it, so counting the runs is what
+# tells the two apart.
+
+proc testJobStatusIsActedOn() =
+    block:
+        var pool = makeThreadPool()
+        var runs = 0
+
+        let job = newCustomThreadPoolJob(makeString("repeating"))
+        job[].setRunJobHandler(proc(): cint =
+            runs += 1
+            # Three times round, then done. A status JUCE misread as "finished"
+            # would stop after one; one misread as "run again" would never stop.
+            if runs < 3: cint(ThreadPoolJobJobStatus_jobNeedsRunningAgain)
+            else: cint(ThreadPoolJobJobStatus_jobHasFinished))
+
+        pool.addJob(cast[ptr ThreadPoolJob](job), false)
+
+        var waited = 0
+        while runs < 3 and waited < 10_000:
+            sleep(10)
+            waited += 10
+        doAssert runs == 3,
+                 "the job ran " & $runs & " times in " & $waited &
+                 "ms, so the status it returned was not the one JUCE read"
+
+        # Settled: having said it was finished, it is not run again.
+        discard pool.removeAllJobs(true, 2000.cint)
+        sleep(50)
+        doAssert runs == 3,
+                 "the job ran " & $runs & " times after saying it had finished"
+        cdelete job
+
+testJobStatusIsActedOn()
