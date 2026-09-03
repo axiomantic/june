@@ -6107,3 +6107,82 @@ proc testCovariantReturn() =
     shutdownJuce_GUI()
 
 testCovariantReturn()
+
+# What a handler actually receives ============================================
+#
+# A generated handler's parameters carry markers - varref for a mutable
+# reference, constptr for a const one - and the forwarder converts between them
+# and the std::function the C++ side holds. Setting a handler proves the
+# signature matches the virtual, which is what makes the class compile. It says
+# nothing about whether the values arrive intact, and a test that only counts
+# invocations would not notice if they did not.
+#
+# TextEditor::InputFilter::filterNewText is called synchronously as text goes
+# in, takes the editor by mutable reference and the new text by const
+# reference, and returns a String by value. All three directions in one call.
+
+proc testHandlerArgumentsArrive() =
+    initialiseJuce_GUI()
+
+    block:
+        var editor = makeTextEditor(makeString("editor"), WChar(0))
+
+        var calls = 0
+        var seenText = ""
+        var seenEditor: ptr TextEditor = nil
+
+        let filter = newCustomTextEditorInputFilter()
+        filter[].setFilterNewTextHandler(
+            proc(target: ptr TextEditor, newInput: ptr String): String =
+                calls += 1
+                seenText = $newInput[]
+                seenEditor = target
+                # Returned by value, and the editor has to take what comes back
+                # rather than what went in.
+                newInput[].toUpperCase())
+
+        editor.setInputFilter(cast[ptr TextEditorInputFilter](filter), false)
+        editor.insertTextAtCaret(makeString("hello"))
+
+        doAssert calls == 1, "the filter ran " & $calls & " times"
+        doAssert seenText == "hello",
+                 "the filter was given " & seenText & " rather than hello"
+        doAssert seenEditor == addr editor,
+                 "the filter was given a different editor from the one filtering"
+        doAssert $editor.getText() == "HELLO",
+                 "the editor holds " & $editor.getText() &
+                 ", so what the handler returned did not take effect"
+
+        # A second insertion, to show the first was not a coincidence of
+        # ordering and that the text really is the new input each time.
+        editor.insertTextAtCaret(makeString("bye"))
+        doAssert calls == 2, "the filter ran " & $calls & " times in total"
+        doAssert seenText == "bye",
+                 "the second insertion was seen as " & seenText
+        doAssert $editor.getText() == "HELLOBYE",
+                 "the editor holds " & $editor.getText()
+
+        editor.setInputFilter(nil, false)
+        cdelete filter
+
+    block:
+        # A virtual with no handler set. The forwarder returns
+        # june::fallback<R>(), which value-initialises R where it can - so a
+        # cint comes back as 0 rather than as whatever was on the stack.
+        let unset = newCustomTreeViewLookAndFeelMethods()
+        var tree = makeTreeView(makeString("tree"))
+        doAssert unset[].getTreeViewIndentSize(tree) == 0,
+                 "an unset handler returned " &
+                 $unset[].getTreeViewIndentSize(tree) & " rather than 0"
+        doAssert not unset[].areLinesDrawnForTreeView(tree),
+                 "an unset bool handler returned true"
+
+        # And it keeps returning the default rather than latching anything.
+        doAssert unset[].getTreeViewIndentSize(tree) == 0,
+                 "the second call to an unset handler returned " &
+                 $unset[].getTreeViewIndentSize(tree)
+        cdelete unset
+
+    shutdownJuce_GUI()
+
+testHandlerArgumentsArrive()
