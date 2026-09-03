@@ -315,6 +315,108 @@ uncallable_inherited = {
 }
 
 
+# Nim integer types an integer literal converts to at equal cost, which is what
+# makes an overload set of them ambiguous for a plain literal.
+nim_integer_types = {
+    "cint", "int8", "int16", "int32", "int64",
+    "uint8", "uint16", "uint32", "uint64", "csize_t",
+    "cshort", "cushort", "clong", "culong", "clonglong", "culonglong",
+}
+
+# Overload sets where an int-taking forwarder would have no lossless target,
+# with the reason. A caller passes the width for these.
+no_lossless_int_target = {
+    "swap": "each overload returns its own width, so an int form would have to "
+            "pick one return type and no choice is the obvious one",
+    "countNumberOfBits": "takes only uint32 and uint64, and a Nim int is signed",
+    "makeGridPx": "takes only cint and uint64, so neither is lossless for a Nim int",
+    "makeGridFr": "takes only cint and uint64, so neither is lossless for a Nim int",
+    "read": "takes only cint and uint64, and the two overloads return different types",
+}
+
+
+def check_integer_literal_overloads():
+    """Every overload set that can take a Nim int has a proc that does.
+
+    JUCE gives String six integer constructors, and a plain Nim integer literal
+    converts to all of them at equal cost, so `makeString(5)` is ambiguous. A
+    proc taking Nim's own `int` is an exact match and wins outright.
+
+    One is written by hand for each set that has an int64 overload and one
+    return type across its integer overloads, since a Nim int IS an int64 here
+    and the conversion is lossless. This recomputes the set from the generated
+    files, so a JUCE upgrade that adds or removes an overload fails here rather
+    than silently leaving a call ambiguous.
+    """
+    groups = {}
+    for module in ("juce_core", "juce_events", "juce_data_structures",
+                   "juce_graphics", "juce_gui_basics"):
+        for line in open(f"sources/june/{module}.nim"):
+            if not line.startswith("proc "):
+                continue
+            match = re.match(r'^proc (`?[\w=]+`?)\*\((.*?)\)(: [^{]+)? \{', line)
+            if not match:
+                continue
+            name, body, returns = (match.group(1), match.group(2),
+                                   (match.group(3) or "").strip(": ").strip())
+            parts = [p for p in body.split(", ") if ":" in p]
+            types = tuple(p.split(":", 1)[1].strip().split(" =")[0].strip()
+                          for p in parts)
+            names = tuple(p.split(":", 1)[0].strip() for p in parts)
+            if not types:
+                continue
+            receiver = types[0] if names and names[0] == "this" else ""
+            groups.setdefault((name, receiver, len(types)), []).append(
+                (types, returns))
+
+    wanted, unavailable = set(), set()
+    for (name, receiver, arity), rows in groups.items():
+        signatures = {row[0] for row in rows}
+        if len(signatures) < 2:
+            continue
+        for position in range(arity):
+            column = {s[position] for s in signatures}
+            others_fixed = all(len({s[other] for s in signatures}) == 1
+                               for other in range(arity) if other != position)
+            if len(column & nim_integer_types) < 2 or not others_fixed:
+                continue
+            returns = {row[1] for row in rows
+                       if row[0][position] in nim_integer_types}
+            if "int64" in column and len(returns) == 1:
+                wanted.add((name, position))
+            else:
+                unavailable.add(name)
+            break
+
+    written = ""
+    for path in glob.glob("sources/june/*_lifting.nim"):
+        written += open(path).read()
+
+    missing = sorted(name for name, _ in wanted
+                     if not re.search(r"^proc " + re.escape(name) +
+                                      r"\*\([^)]*: int[,)]", written, re.M))
+    if missing:
+        print("These overload sets have an int64 form and one return type, so "
+              "a proc taking Nim's int would resolve a literal, and none is "
+              "written:", file=sys.stderr)
+        for name in missing:
+            print(f"  {name}", file=sys.stderr)
+        return False
+
+    stale = sorted(name for name in no_lossless_int_target
+                   if name not in unavailable)
+    if stale:
+        print("These entries in no_lossless_int_target name a set that now has "
+              "a lossless target, or no longer exists:", file=sys.stderr)
+        for name in stale:
+            print(f"  {name}", file=sys.stderr)
+        return False
+
+    print(f"all {len(wanted)} overload sets that can take a Nim int have a proc "
+          f"that does ({len(unavailable)} have no lossless target)")
+    return True
+
+
 def check_one_declaration_per_signature():
     """No method is declared on both a class and a Nim ancestor.
 
@@ -717,6 +819,7 @@ def main():
     classes_ok = check_classes()
     inherited_ok = check_inherited_methods()
     signatures_ok = check_one_declaration_per_signature()
+    literals_ok = check_integer_literal_overloads()
 
     if (uncovered or stale
             or not licences_ok
@@ -729,7 +832,8 @@ def main():
             or not statics_ok
             or not classes_ok
             or not inherited_ok
-            or not signatures_ok):
+            or not signatures_ok
+            or not literals_ok):
         sys.exit(1)
 
     shared = len(declarations) - len(declared)

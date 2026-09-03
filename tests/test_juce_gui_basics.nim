@@ -2875,9 +2875,10 @@ proc testDrawableButton() =
     initialiseJuce_GUI()
 
     block:
-        # Built on the heap and configured through the pointer, because
-        # setImages takes ownership and cnew's importcpp pattern needs a
-        # constructor call as its argument rather than a name.
+        # Built on the heap because cnew's importcpp pattern needs a
+        # constructor call as its argument rather than a name. setImages does
+        # NOT take ownership - it stores a copy of each drawable
+        # (juce_DrawableButton.cpp:67) - so these two are deleted here.
         let normalHeap = cnew(makeDrawableRectangle())
         normalHeap[].setRectangle(makeParallelogram(
             makeRectangle(0.0'f32, 0.0'f32, 20.0'f32, 20.0'f32)))
@@ -2930,6 +2931,9 @@ proc testDrawableButton() =
                    image.getPixelAt(x.cint, y.cint).getGreen() == 0'u8:
                     reds += 1
         doAssert reds > 0, "the button never painted its normal face"
+
+        cdelete normalHeap
+        cdelete overHeap
 
     shutdownJuce_GUI()
 

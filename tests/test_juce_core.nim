@@ -2796,9 +2796,13 @@ testConstReferenceFunctionObjects()
 # capturing anything holding one. A type built on ReferenceCountedObjectPtr
 # checks for null when it assigns, so those are unaffected.
 #
-# The crash itself cannot be asserted: it takes the process down. What is
-# asserted here is that the types the README calls safe really are, and that
-# the conversion it recommends works.
+# Nothing releases what the object owns either, because the environment is
+# never destructed: capturing an Image or a ValueTree leaks it, which JUCE's
+# leak detector reports by name.
+#
+# Neither the crash nor the leak can be asserted - one takes the process down
+# and the other only shows at exit. What is asserted here is the conversion the
+# README recommends, and that a type owning nothing survives being captured.
 
 proc testWhatAClosureMayCapture() =
     initialiseJuce_GUI()
@@ -2825,13 +2829,77 @@ proc testWhatAClosureMayCapture() =
         doAssert width == 3, "the captured rectangle is " & $width & " wide"
 
     block:
-        # Reference counted ones, which assign through a null check.
+        # A reference counted one does not crash, and it does not get released
+        # either: the environment is never destructed, so JUCE's leak detector
+        # reports the ValueTree at exit. Read what is needed before the closure
+        # and capture that instead.
         let tree = makeValueTree(makeIdentifier(makeString("root")))
-        var typeName = ""
-        let inspect = proc() = typeName = $tree.getType().toString()
+        let typeName = $tree.getType().toString()
+        var seen = ""
+        let inspect = proc() = seen = typeName
         inspect()
-        doAssert typeName == "root", "the captured tree is a " & typeName
+        doAssert seen == "root", "the closure produced " & seen
 
     shutdownJuce_GUI()
 
 testWhatAClosureMayCapture()
+
+# Nim's int into an overloaded JUCE call =======================================
+#
+# JUCE gives String six integer constructors, and a plain Nim integer literal
+# converts to all of them at equal cost, so `makeString(5)` was ambiguous and a
+# caller had to write `makeString(5.cint)`. A proc taking Nim's own `int` is an
+# exact match for a literal and wins outright. Only where the set has an int64
+# form and one return type: a Nim int IS an int64 here, so the conversion is
+# lossless and the target is not a choice.
+
+proc testIntegerLiteralOverloads() =
+    block:
+        doAssert $makeString(5) == "5", "makeString(5) gave " & $makeString(5)
+        doAssert $makeString(-2147483648) == "-2147483648",
+                 "a value below int32 came back as " & $makeString(-2147483648)
+        doAssert $makeString(4294967296) == "4294967296",
+                 "a value above uint32 came back as " & $makeString(4294967296)
+
+    block:
+        let value = makejuce_var(7)
+        doAssert value.isInt64() or value.isInt(),
+                 "makejuce_var(7) is neither an int nor an int64"
+        doAssert $value.toString() == "7", "it holds " & $value.toString()
+
+        var target = makejuce_var()
+        discard `juce_var=`(target, 13)
+        doAssert $target.toString() == "13",
+                 "assigning 13 left " & $target.toString()
+
+    block:
+        doAssert makeBigInteger(9).toInt64() == 9,
+                 "makeBigInteger(9) holds " & $makeBigInteger(9).toInt64()
+
+    block:
+        # Through variables rather than literals. A literal is emitted as one
+        # and C++ resolves it to `int`; a variable carries Nim's own int64,
+        # which is `long` on Linux where JUCE's int64 is `long long`, so the
+        # four integer overloads were ambiguous there until each argument
+        # carried its declared type. A static method with more than one
+        # argument could not cast piecewise before, because the typedesc
+        # swallowed the first placeholder.
+        var key = 11
+        var wide: int64 = 11
+        let limit = 100.cint
+        doAssert DefaultHashFunctions.generateHash(key, limit) ==
+                 DefaultHashFunctions.generateHash(wide, limit),
+                 "the int form hashed differently from the int64 form"
+        doAssert DefaultHashFunctions.generateHash(key, limit) < 100,
+                 "the hash is outside its upper limit"
+
+        var wider: uint64 = 11
+        doAssert DefaultHashFunctions.generateHash(wider, limit) ==
+                 DefaultHashFunctions.generateHash(wide, limit),
+                 "the uint64 form hashed differently from the int64 form"
+
+    block:
+        doAssert RelativeTime.milliseconds(250).inSeconds() == 0.25,
+                 "250ms is " & $RelativeTime.milliseconds(250).inSeconds() & "s"
+
+testIntegerLiteralOverloads()
