@@ -605,14 +605,15 @@ def base_constructors(cursor, declared):
 
 
 # Classes whose generated form does not compile, with the reason each was
-# measured. Nothing in the headers predicts these: Nim hands some objects to a
-# C function by pointer and others by value, and which is which only shows when
-# the generated std::function is assigned. Point<int> by value works and Colour
-# by value does not.
+# measured. Nothing in the headers predicts one: the failure shows only when
+# the generated std::function is assigned, so an entry here is a record of a
+# compile that was actually attempted.
+#
+# Empty. The one entry it held was TreeView::LookAndFeelMethods, whose
+# drawTreeviewPlusMinusBox takes a Colour by value; `inheritable` made Nim hand
+# every object over as a pointer, so the closure's C signature said Colour*
+# where the std::function said Colour. Colour is marked bycopy now.
 unsupported_subclasses = {
-    "TreeViewLookAndFeelMethods":
-        "drawTreeviewPlusMinusBox takes a Colour by value, which Nim hands over "
-        "as a pointer, so the closure does not convert to the std::function",
 }
 
 

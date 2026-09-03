@@ -1416,6 +1416,24 @@ proc newCustomTreeViewItem*(): ptr CustomTreeViewItem {.importcpp: "(new june::C
 proc setMightContainSubItemsHandler*(this: var CustomTreeViewItem, handler: proc(): bool {.closure.}) =
     this.onMightContainSubItems = bindClosure(handler)
 
+defineCppClassInternal CustomTreeViewLookAndFeelMethods of TreeViewLookAndFeelMethods:
+    include "juce_gui_basics/juce_gui_basics.h"
+    cppParent "juce::TreeView::LookAndFeelMethods"
+    proc drawTreeviewPlusMinusBox(arg0: varref[Graphics], area: constptr[Rectangle[cfloat]], backgroundColour: Colour, isItemOpen: bool, isMouseOver: bool) = discard
+    proc areLinesDrawnForTreeView(arg0: varref[TreeView]): bool = discard
+    proc getTreeViewIndentSize(arg0: varref[TreeView]): cint = discard
+
+proc newCustomTreeViewLookAndFeelMethods*(): ptr CustomTreeViewLookAndFeelMethods {.importcpp: "(new june::CustomTreeViewLookAndFeelMethods)".}
+
+proc setDrawTreeviewPlusMinusBoxHandler*(this: var CustomTreeViewLookAndFeelMethods, handler: proc(arg0: ptr Graphics, area: ptr Rectangle[cfloat], backgroundColour: Colour, isItemOpen: bool, isMouseOver: bool) {.closure.}) =
+    this.onDrawTreeviewPlusMinusBox = bindClosure(handler)
+
+proc setAreLinesDrawnForTreeViewHandler*(this: var CustomTreeViewLookAndFeelMethods, handler: proc(arg0: ptr TreeView): bool {.closure.}) =
+    this.onAreLinesDrawnForTreeView = bindClosure(handler)
+
+proc setGetTreeViewIndentSizeHandler*(this: var CustomTreeViewLookAndFeelMethods, handler: proc(arg0: ptr TreeView): cint {.closure.}) =
+    this.onGetTreeViewIndentSize = bindClosure(handler)
+
 # Withheld, with the reason:
 #   AccessibilityTableInterface: Optional<Span> returned by getRowSpan has no Nim spelling
 #   ComponentBuilderImageProvider: const var & in getImageForIdentifier has no Nim spelling
@@ -1425,4 +1443,3 @@ proc setMightContainSubItemsHandler*(this: var CustomTreeViewItem, handler: proc
 #   MultiDocumentPanel: std::function<void (bool)> in tryToCloseDocumentAsync has no Nim spelling
 #   ScrollBarLookAndFeelMethods: drawScrollbar takes 11 arguments, and a std::function Nim can spell carries at most 10 here
 #   SidePanelLookAndFeelMethods: getSidePanelTitleJustification returns Justification, which has no default constructor, and Nim builds a temporary for a closure's result
-#   TreeViewLookAndFeelMethods: drawTreeviewPlusMinusBox takes a Colour by value, which Nim hands over as a pointer, so the closure does not convert to the std::function
