@@ -112,7 +112,7 @@ proc `==`*(this: CallbackMessage, other: CallbackMessage): bool {.error: "juce::
 proc deleteAll*(this: typedesc[DeletedAtShutdown]) {.header: juce_events, importcpp: "juce::DeletedAtShutdown::deleteAll()".}
 proc `==`*(this: DeletedAtShutdown, other: DeletedAtShutdown): bool {.error: "juce::DeletedAtShutdown defines no operator==; compare a property instead".}
 
-# proc createInstance*(this: typedesc[JUCEApplicationBase]): JUCEApplicationBase ()() {.header: juce_events, importcpp: "(juce::JUCEApplicationBase::createInstance)".}  # a type that cannot be spelled in Nim
+# proc createInstance*(this: typedesc[JUCEApplicationBase]): ptr ptr JUCEApplicationBase ()() {.header: juce_events, importcpp: "(juce::JUCEApplicationBase::createInstance)".}  # a type that cannot be spelled in Nim
 proc getInstance*(this: typedesc[JUCEApplicationBase]): ptr JUCEApplicationBase {.header: juce_events, importcpp: "juce::JUCEApplicationBase::getInstance()".}
 proc getApplicationName*(this: var JUCEApplicationBase): String {.header: juce_events, importcpp: "#.getApplicationName()".}
 proc getApplicationVersion*(this: var JUCEApplicationBase): String {.header: juce_events, importcpp: "#.getApplicationVersion()".}

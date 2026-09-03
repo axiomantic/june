@@ -1234,8 +1234,8 @@ proc rotation*(this: MouseEvent): cfloat {.header: juce_gui_basics, importcpp: "
 proc tiltX*(this: MouseEvent): cfloat {.header: juce_gui_basics, importcpp: "#.tiltX".}
 proc tiltY*(this: MouseEvent): cfloat {.header: juce_gui_basics, importcpp: "#.tiltY".}
 proc mouseDownPosition*(this: MouseEvent): Point[cfloat] {.header: juce_gui_basics, importcpp: "#.mouseDownPosition".}
-proc eventComponent*(this: MouseEvent): Component {.header: juce_gui_basics, importcpp: "#.eventComponent".}
-proc originalComponent*(this: MouseEvent): Component {.header: juce_gui_basics, importcpp: "#.originalComponent".}
+proc eventComponent*(this: MouseEvent): ptr Component {.header: juce_gui_basics, importcpp: "#.eventComponent".}
+proc originalComponent*(this: MouseEvent): ptr Component {.header: juce_gui_basics, importcpp: "#.originalComponent".}
 proc eventTime*(this: MouseEvent): Time {.header: juce_gui_basics, importcpp: "#.eventTime".}
 proc mouseDownTime*(this: MouseEvent): Time {.header: juce_gui_basics, importcpp: "#.mouseDownTime".}
 proc source*(this: MouseEvent): MouseInputSource {.header: juce_gui_basics, importcpp: "#.source".}
@@ -2361,7 +2361,7 @@ proc makeStretchableLayoutManager*(): StretchableLayoutManager {.header: juce_gu
 proc setItemLayout*(this: var StretchableLayoutManager, itemIndex: cint, minimumSize: float64, maximumSize: float64, preferredSize: float64) {.header: juce_gui_basics, importcpp: "#.setItemLayout(@)".}
 proc getItemLayout*(this: StretchableLayoutManager, itemIndex: cint, minimumSize: var float64, maximumSize: var float64, preferredSize: var float64): bool {.header: juce_gui_basics, importcpp: "#.getItemLayout(@)".}
 proc clearAllItems*(this: var StretchableLayoutManager) {.header: juce_gui_basics, importcpp: "#.clearAllItems()".}
-proc layOutComponents*(this: var StretchableLayoutManager, components: Component, numComponents: cint, x: cint, y: cint, width: cint, height: cint, vertically: bool, resizeOtherDimension: bool) {.header: juce_gui_basics, importcpp: "#.layOutComponents(@)".}
+proc layOutComponents*(this: var StretchableLayoutManager, components: ptr ptr Component, numComponents: cint, x: cint, y: cint, width: cint, height: cint, vertically: bool, resizeOtherDimension: bool) {.header: juce_gui_basics, importcpp: "#.layOutComponents(@)".}
 proc getItemCurrentPosition*(this: StretchableLayoutManager, itemIndex: cint): cint {.header: juce_gui_basics, importcpp: "#.getItemCurrentPosition(@)".}
 proc getItemCurrentAbsoluteSize*(this: StretchableLayoutManager, itemIndex: cint): cint {.header: juce_gui_basics, importcpp: "#.getItemCurrentAbsoluteSize(@)".}
 proc getItemCurrentRelativeSize*(this: StretchableLayoutManager, itemIndex: cint): float64 {.header: juce_gui_basics, importcpp: "#.getItemCurrentRelativeSize(@)".}

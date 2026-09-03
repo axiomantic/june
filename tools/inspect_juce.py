@@ -209,7 +209,6 @@ def remap_type(t, *args):
 
     parts = list(filter(lambda part: part, t.spelling.split(" ")))
 
-    is_pointer = "*" in parts
     is_const = "const" in parts
 
     result = t.spelling
@@ -218,6 +217,16 @@ def remap_type(t, *args):
     result = result.replace("void *", "pointer")
     result = result.replace("const char *", "kChar")
     result = result.replace("char *", "ptr char")
+    # Counted here, after the replacements above and before the stars are
+    # stripped, so an implicit pointer type does not get a second ptr - `char *`
+    # is already "ptr char" by this point and contributes no star - while a
+    # double pointer gets both. The test this replaces looked for a bare "*"
+    # token in the split spelling, which missed every spelling that glues the
+    # star to another word: `Component *const` and `Component **` each lost
+    # their pointer entirely and bound as the class BY VALUE. MouseEvent's
+    # eventComponent and originalComponent fields and StretchableLayoutManager's
+    # layOutComponents were the three in JUCE's public API.
+    pointer_depth = result.count("*")
     # Extract the type itself
     result = result.replace("const", "")
     result = result.replace("*", "")
@@ -264,9 +273,7 @@ def remap_type(t, *args):
         if "&" in parts:
             result = f"var {result}"
 
-    implicit_pointer_types = ["pointer", "ptr char", "constChar", "constPointer"]
-
-    return f"ptr {result}" if is_pointer and result not in implicit_pointer_types else result
+    return "ptr " * pointer_depth + result
 
 # C++ spellings that must not become Nim's int or float inside a template
 # argument. Nim substitutes the parameter's C++ name into the template, and
