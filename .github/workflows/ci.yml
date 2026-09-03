@@ -118,8 +118,22 @@ jobs:
           path: ~/.nimble/pkgs2
           key: nim-${{ matrix.os }}-${{ matrix.nim-version }}
 
+      # nimble resolves the pinned version against its package list, and when
+      # that list is missing it answers "No nim version matching any version"
+      # and downloads whatever is newest instead. That failed this job twice on
+      # ubuntu, each time leaving a red build over nothing. Refresh the list
+      # first, and retry once, because the failure is intermittent.
+      #
+      # The version is still verified below, where the run step resolves the
+      # compiler by an exact path and fails if it is not there - so a silent
+      # fallback to another Nim cannot pass as the pinned one.
       - name: Install Nim ${{ matrix.nim-version }}
-        run: nimble install -y nim@${{ matrix.nim-version }}
+        run: |
+          install_nim() {
+            nimble refresh -y
+            nimble install -y nim@${{ matrix.nim-version }}
+          }
+          install_nim || { sleep 15; install_nim; }
 
       # The JUCE static library is the slow part of the build and depends only
       # on the submodule revision, not on the Nim version under test. Key the
