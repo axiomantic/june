@@ -3870,4 +3870,59 @@ proc testSmallGuiClasses() =
 
 
 testRelativePointPath()
+# The popup menu iterator and the text editor input filter ====================
+#
+# The iterator walks a menu's items in order, and the filter is what a
+# TextEditor calls to decide what a keystroke is allowed to insert.
+
+proc testMenuIteratorAndInputFilter() =
+    initialiseJuce_GUI()
+
+    block:
+        var menu = makePopupMenu()
+        menu.addItem(1.cint, makeString("Open"))
+        menu.addItem(2.cint, makeString("Save"))
+        var submenu = makePopupMenu()
+        submenu.addItem(3.cint, makeString("Recent"))
+        menu.addSubMenu(makeString("More"), submenu)
+
+        # Not recursive: the sub menu's own item is not visited, so the three
+        # top-level entries are all that come out.
+        var flat = makePopupMenuMenuItemIterator(menu, false)
+        var flatNames: seq[string] = @[]
+        while flat.next():
+            flatNames.add($flat.getItem().text())
+        doAssert flatNames == @["Open", "Save", "More"],
+                 "the flat walk gave " & $flatNames
+
+        # Recursive: the sub menu's item appears too.
+        var deep = makePopupMenuMenuItemIterator(menu, true)
+        var deepCount = 0
+        var sawRecent = false
+        while deep.next():
+            deepCount += 1
+            if $deep.getItem().text() == "Recent": sawRecent = true
+        doAssert deepCount > flatNames.len,
+                 "the recursive walk visited " & $deepCount & " items"
+        doAssert sawRecent, "the recursive walk missed the sub menu's item"
+
+    block:
+        var editor = makeTextEditor(makeString("field"), WChar(0))
+        var filter = makeTextEditorLengthAndCharacterRestriction(
+            5.cint, makeString("0123456789"))
+
+        # Characters outside the allowed set are dropped.
+        doAssert $filter.filterNewText(editor, makeString("12a34")) == "1234",
+                 "the filter passed " &
+                 $filter.filterNewText(editor, makeString("12a34"))
+
+        # And the length limit applies to what is left.
+        doAssert $filter.filterNewText(editor, makeString("123456789")) == "12345",
+                 "the filter passed " &
+                 $filter.filterNewText(editor, makeString("123456789"))
+
+    shutdownJuce_GUI()
+
+
 testSmallGuiClasses()
+testMenuIteratorAndInputFilter()
