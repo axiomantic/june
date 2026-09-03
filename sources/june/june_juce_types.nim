@@ -265,10 +265,18 @@ iterator items*[T](this: Array[T]): T =
     yield this[index]
 
 # OwnedArray holds pointers it owns, so indexing yields a ptr rather than a
-# value. Every one of these takes its receiver by var: OwnedArray deletes its
-# copy constructor, and a by-value receiver copies it, so the whole set could
-# be declared and never called. The only way to reach one is the var getter on
-# the class that owns it, which hands back a var, so nothing is lost.
+# value. It deletes its copy constructor, which takes the same two-part
+# treatment HeapBlock and UniquePtr get: `=copy` is an error, so a copy is
+# refused in Nim's words rather than in a page of C++ template errors, and
+# `=destroy` leaves the destructor to C++.
+#
+# The receivers are var as well. HeapBlock's hooks are enough on their own
+# because nothing hands one out by value, but an OwnedArray is only ever
+# reached through the var getter on the class that owns it - a by-value
+# receiver would ask for the copy the hook then refuses.
+proc `=copy`*[T](dst: var OwnedArray[T], src: OwnedArray[T]) {.error: "an OwnedArray cannot be copied; it owns what it holds".}
+proc `=destroy`*[T](this: var OwnedArray[T]) = discard
+
 proc size*[T](this: var OwnedArray[T]): cint {.importcpp: "#.size()".}
 proc isEmpty*[T](this: var OwnedArray[T]): bool {.importcpp: "#.isEmpty()".}
 proc `[]`*[T](this: var OwnedArray[T], index: cint): ptr T {.importcpp: "#[#]".}
