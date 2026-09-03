@@ -1120,3 +1120,29 @@ proc testNestedSubclassesGraphics() =
     shutdownJuce_GUI()
 
 testNestedSubclassesGraphics()
+
+# Every no-argument constructor ===============================================
+#
+# An importcpp string reaches the C++ compiler only at a call site, so a
+# constructor nothing calls is never compiled. These had no caller.
+
+proc testEveryNoArgConstructorGraphics() =
+    initialiseJuce_GUI()
+    block:
+        discard makePixelARGB()
+        discard makeRectanglePlacement()
+        discard makePNGImageFormat()
+        discard makeJPEGImageFormat()
+        discard makeGIFImageFormat()
+        discard makeSoftwareImageType()
+        discard makeNativeImageType()
+        discard makeAttributedStringAttribute()
+        discard makeGlyphArrangement()
+        discard makeTextLayoutLine()
+        discard makeScaledImage()
+        discard makeDropShadow()
+        discard makeDropShadowEffect()
+        discard makeGlowEffect()
+    shutdownJuce_GUI()
+
+testEveryNoArgConstructorGraphics()

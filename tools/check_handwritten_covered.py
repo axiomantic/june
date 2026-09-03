@@ -157,6 +157,55 @@ uncallable_handlers = {
 }
 
 
+no_argument_constructor = re.compile(r'^proc (make\w+)\*\(\):', re.M)
+
+# A constructor for a class that exists on one platform only. The committed
+# generated files are the macOS output, so these are declared everywhere and
+# defined only there, and a test that called one would not build on Linux.
+platform_specific_constructors = {
+    "makeScopedAutoReleasePool":
+        "juce::ScopedAutoReleasePool is an Objective-C autorelease pool and "
+        "exists on macOS only",
+}
+
+
+def check_no_argument_constructors():
+    """Every generated constructor that takes no arguments is called.
+
+    Only the no-argument ones: a constructor with arguments needs values a
+    check like this cannot invent, and 191 of those are still uncalled. What
+    this covers is the set a sweep can cover, and sweeping it is what found
+    five constructors emitted for a deleted C++ one - JSONUtils,
+    OrderedContainerHelpers, WindowUtils, ContentSharer and String(bool),
+    which JUCE deletes so that a bool does not silently become a String.
+    """
+    emitted = set()
+    for module in ("juce_core", "juce_events", "juce_data_structures",
+                   "juce_graphics", "juce_gui_basics"):
+        emitted.update(no_argument_constructor.findall(
+            open(f"sources/june/{module}.nim").read()))
+
+    used = ""
+    for pattern in ("tests/test_juce_*.nim", "examples/*.nim"):
+        for path in glob.glob(pattern):
+            used += open(path).read()
+
+    uncalled = sorted(name for name in emitted
+                      if name not in platform_specific_constructors
+                      and not re.search(r"\b" + name + r"\b", used))
+    if uncalled:
+        print("These no-argument constructors are never called, so nothing "
+              "compiles them:", file=sys.stderr)
+        for name in uncalled:
+            print(f"  {name}", file=sys.stderr)
+        return False
+
+    print(f"all {len(emitted) - len(platform_specific_constructors)} "
+          f"no-argument constructors are called "
+          f"({len(platform_specific_constructors)} is platform specific)")
+    return True
+
+
 def check_handlers():
     """Every generated handler setter is called by a test.
 
@@ -365,13 +414,15 @@ def main():
     defaults_ok = check_implicit_defaults()
     subclasses_ok = check_subclasses()
     handlers_ok = check_handlers()
+    constructors_ok = check_no_argument_constructors()
 
     if (uncovered or stale
             or not licences_ok
             or not iterators_ok
             or not defaults_ok
             or not subclasses_ok
-            or not handlers_ok):
+            or not handlers_ok
+            or not constructors_ok):
         sys.exit(1)
 
     shared = len(declarations) - len(declared)

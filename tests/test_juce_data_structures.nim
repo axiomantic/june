@@ -386,3 +386,16 @@ proc testNestedSubclassesDataStructures() =
 
 
 testNestedSubclassesDataStructures()
+
+# Every no-argument constructor ===============================================
+#
+# An importcpp string reaches the C++ compiler only at a call site, so a
+# constructor nothing calls is never compiled. These had no caller.
+
+proc testEveryNoArgConstructorDataStructures() =
+
+    block:
+        discard makeApplicationProperties()
+
+
+testEveryNoArgConstructorDataStructures()

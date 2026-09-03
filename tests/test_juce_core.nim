@@ -1836,3 +1836,34 @@ proc testFileSearchPath() =
         doAssert root.deleteRecursively(), "could not remove the temp directory"
 
 testFileSearchPath()
+
+# Every no-argument constructor ===============================================
+#
+# An importcpp string reaches the C++ compiler only at a call site, so a
+# constructor nothing calls is never compiled. These had no caller.
+
+proc testEveryNoArgConstructorCore() =
+
+    block:
+        discard makeCriticalSection()
+        discard makeDummyCriticalSection()
+        discard makeErasedScopeGuard()
+        discard makeRangedDirectoryIterator()
+        discard makeTemporaryFile()
+        discard makeExpressionScope()
+        discard makeChildProcess()
+        discard makeDynamicLibrary()
+        discard makeSpinLock()
+        discard makeReadWriteLock()
+        discard makeMACAddress()
+        discard makeNamedPipe()
+        discard makeStreamingSocket()
+        discard makeDatagramSocket()
+        discard makeUnitTestRunnerTestResult()
+        discard makeZipFileBuilder()
+        discard makeAndroidDocumentInfo()
+        discard makeAndroidDocument()
+        discard makeAndroidDocumentIterator()
+
+
+testEveryNoArgConstructorCore()
