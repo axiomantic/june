@@ -3416,4 +3416,59 @@ proc testNestedSubclassesGuiBasics() =
     shutdownJuce_GUI()
 
 testNestedSubclassesGuiBasics()
+# DrawableComposite ===========================================================
+#
+# A Drawable that holds other Drawables. Its bounding box and content area are
+# derived from the children, so adding one and asking it to refit gives an
+# answer that an empty composite could not.
+
+proc testDrawableComposite() =
+    initialiseJuce_GUI()
+
+    block:
+        var composite = makeDrawableComposite()
+        doAssert composite.getNumChildComponents() == 0,
+                 "a fresh composite holds " &
+                 $composite.getNumChildComponents() & " children"
+
+        composite.setContentArea(makeRectangle(0.0'f32, 0.0'f32, 50.0'f32, 20.0'f32))
+        doAssert composite.getContentArea().getWidth() == 50.0'f32,
+                 "the content area is " & $composite.getContentArea().getWidth() & " wide"
+
+        let child = cnew(makeDrawableRectangle())
+        child[].setRectangle(makeParallelogram(
+            makeRectangle(10.0'f32, 5.0'f32, 30.0'f32, 40.0'f32)))
+        child[].setFill(makeFillType(makeColour(255'u8, 0'u8, 0'u8, 255'u8)))
+        composite.addAndMakeVisible(cast[ptr Component](child))
+        doAssert composite.getNumChildComponents() == 1,
+                 "after adding one the composite holds " &
+                 $composite.getNumChildComponents()
+
+        # Refitting takes its size from the child, so the content area becomes
+        # the child's 30x40 rather than the 50x20 it was set to.
+        composite.resetContentAreaAndBoundingBoxToFitChildren()
+        doAssert composite.getContentArea().getWidth() == 30.0'f32,
+                 "after refitting the content area is " &
+                 $composite.getContentArea().getWidth() & " wide"
+        doAssert composite.getContentArea().getHeight() == 40.0'f32,
+                 "after refitting the content area is " &
+                 $composite.getContentArea().getHeight() & " high"
+
+        # The composite paints its children, so the surface carries the child's
+        # colour.
+        let image = makeImage(ImagePixelFormat_ARGB, 60.cint, 60.cint, true)
+        var context = makeGraphics(image)
+        composite.drawAt(context, 0.0'f32, 0.0'f32, 1.0'f32)
+
+        var reds = 0
+        for x in 0 ..< 60:
+            for y in 0 ..< 60:
+                if image.getPixelAt(x.cint, y.cint).getRed() == 255'u8:
+                    reds += 1
+        doAssert reds > 0, "the composite never painted its child"
+
+    shutdownJuce_GUI()
+
+
 testMarkerList()
+testDrawableComposite()
