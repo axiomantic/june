@@ -4116,3 +4116,116 @@ proc testBigIntegerArithmetic() =
              $restored.toString(10.cint, 0.cint)
 
 testBigIntegerArithmetic()
+
+# URL is a value type built by with- methods that each return a new URL. None
+# of these tests reach the network: every one is parsing or building.
+proc testUrlBuilding() =
+  block:
+    let url = makeURL(makeString(
+        "https://example.com:8080/a/b?first=1&second=two#section"))
+
+    doAssert $url.getScheme() == "https", "the scheme is " & $url.getScheme()
+    doAssert $url.getDomain() == "example.com",
+             "the domain is " & $url.getDomain()
+    doAssert url.getPort() == 8080, "the port is " & $url.getPort()
+    doAssert $url.getSubPath() == "a/b", "the sub path is " & $url.getSubPath()
+    doAssert $url.getAnchorString() == "#section",
+             "the anchor is " & $url.getAnchorString()
+    doAssert $url.getOrigin() == "https://example.com:8080",
+             "the origin is " & $url.getOrigin()
+    doAssert not url.isLocalFile(), "an https URL is a local file"
+
+    # The query is available whole and split into names and values, and the
+    # two agree.
+    # getQueryString appends the anchor to the parameters
+    # (juce_URL.cpp:374), so it is not only the query.
+    doAssert $url.getQueryString() == "?first=1&second=two#section",
+             "the query string is " & $url.getQueryString()
+    doAssert url.getParameterNames().size() == 2,
+             "there are " & $url.getParameterNames().size() & " parameter names"
+    doAssert $url.getParameterNames()[0.cint] == "first",
+             "the first name is " & $url.getParameterNames()[0.cint]
+    doAssert $url.getParameterValues()[1.cint] == "two",
+             "the second value is " & $url.getParameterValues()[1.cint]
+    doAssert url.getParameterValues().size() ==
+             url.getParameterNames().size(),
+             "there are " & $url.getParameterNames().size() & " names and " &
+             $url.getParameterValues().size() & " values"
+
+    # The parent drops the last path segment; a child adds one.
+    doAssert $url.getParentURL().toString(false) == "https://example.com:8080/a",
+             "the parent is " & $url.getParentURL().toString(false)
+    doAssert $url.getChildURL(makeString("c")).toString(false) ==
+             "https://example.com:8080/a/b/c",
+             "the child is " & $url.getChildURL(makeString("c")).toString(false)
+
+  block:
+    # The with- methods return a new URL and leave the receiver alone.
+    let base = makeURL(makeString("https://example.com/start"))
+
+    let withParams = base.withParameter(makeString("q"), makeString("nim"))
+    doAssert $withParams.getQueryString() == "?q=nim",
+             "the query is " & $withParams.getQueryString()
+    doAssert base.getQueryString().isEmpty(),
+             "withParameter changed the original to " & $base.getQueryString()
+
+    doAssert $base.withNewSubPath(makeString("other")).getSubPath() == "other",
+             "withNewSubPath gave " &
+             $base.withNewSubPath(makeString("other")).getSubPath()
+    doAssert $base.getSubPath() == "start",
+             "withNewSubPath changed the original to " & $base.getSubPath()
+
+    let moved = base.withNewDomainAndPath(makeString("other.org/elsewhere"))
+    doAssert $moved.getDomain() == "other.org",
+             "the new domain is " & $moved.getDomain()
+    doAssert $moved.getSubPath() == "elsewhere",
+             "the new path is " & $moved.getSubPath()
+
+    let anchored = base.withAnchor(makeString("top"))
+    doAssert $anchored.getAnchorString() == "#top",
+             "the anchor is " & $anchored.getAnchorString()
+    doAssert base.getAnchorString().isEmpty(),
+             "withAnchor changed the original"
+
+    # POST data is separate from the query string: it does not appear in the
+    # URL's text.
+    let posting = base.withPOSTData(makeString("body=here"))
+    doAssert $posting.getPostData() == "body=here",
+             "the post data is " & $posting.getPostData()
+    doAssert not ($posting.toString(true)).contains("body=here"),
+             "the post data leaked into the URL: " & $posting.toString(true)
+    doAssert posting.getPostDataAsMemoryBlock().getSize() == 9,
+             "the post data measures " &
+             $posting.getPostDataAsMemoryBlock().getSize() & " bytes"
+
+    # toString's argument decides whether the parameters are included.
+    doAssert ($withParams.toString(true)).contains("q=nim"),
+             "toString(true) dropped the parameters: " &
+             $withParams.toString(true)
+    doAssert not ($withParams.toString(false)).contains("q=nim"),
+             "toString(false) kept the parameters: " &
+             $withParams.toString(false)
+
+  block:
+    # A file URL knows it is one, and gives the file back.
+    let file = File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                   .getChildFile(makeString("june_url_test.txt"))
+    let url = makeURL(file)
+    doAssert url.isLocalFile(), "a file URL is not a local file"
+    doAssert url.getLocalFile().getFullPathName() == file.getFullPathName(),
+             "the file came back as " & $url.getLocalFile().getFullPathName()
+    doAssert $url.getScheme() == "file", "the scheme is " & $url.getScheme()
+
+  block:
+    # An empty URL is empty, and a well formed one is not.
+    doAssert makeURL().isEmpty(), "a default URL is not empty"
+    doAssert not makeURL(makeString("https://example.com")).isEmpty(),
+             "a real URL reports empty"
+    doAssert URL.isProbablyAWebsiteURL(makeString("www.example.com")),
+             "a website URL was not recognised"
+    doAssert not URL.isProbablyAWebsiteURL(makeString("not a url at all")),
+             "a sentence was recognised as a website URL"
+    doAssert URL.isProbablyAnEmailAddress(makeString("someone@example.com")),
+             "an email address was not recognised"
+
+testUrlBuilding()
