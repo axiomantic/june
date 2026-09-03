@@ -5059,3 +5059,409 @@ proc testPrimaryBaseIsTheLargest() =
     shutdownJuce_GUI()
 
 testPrimaryBaseIsTheLargest()
+
+# Methods restated from a secondary base ======================================
+#
+# Nim carries one parent. Every one of these reaches its class through a public
+# base that is NOT that parent, so it is not inherited - the generator restates
+# it on the class, and a restatement nobody calls is never handed to the C++
+# compiler. Each is asserted here for that reason.
+
+proc testTooltipsOnWidgets() =
+    initialiseJuce_GUI()
+
+    # SettableTooltipClient is the second public base of every widget below,
+    # so before the restatement none of them could carry a tooltip at all.
+    block:
+        var button = makeTextButton(makeString("press"))
+        button.setTooltip(makeString("a button"))
+        doAssert $button.getTooltip() == "a button",
+                 "Button's tooltip is " & $button.getTooltip()
+
+    block:
+        var label = makeLabel(makeString("label"), makeString("text"))
+        label.setTooltip(makeString("a label"))
+        doAssert $label.getTooltip() == "a label",
+                 "Label's tooltip is " & $label.getTooltip()
+
+    block:
+        var slider = makeSlider(makeString("slider"))
+        slider.setTooltip(makeString("a slider"))
+        doAssert $slider.getTooltip() == "a slider",
+                 "Slider's tooltip is " & $slider.getTooltip()
+
+    block:
+        var image = makeImageComponent(makeString("image"))
+        image.setTooltip(makeString("an image"))
+        doAssert $image.getTooltip() == "an image",
+                 "ImageComponent's tooltip is " & $image.getTooltip()
+
+    block:
+        var box = makeListBox(makeString("list"), nil)
+        box.setTooltip(makeString("a list"))
+        doAssert $box.getTooltip() == "a list",
+                 "ListBox's tooltip is " & $box.getTooltip()
+
+    block:
+        var progress = 0.5'f64
+        var bar = makeProgressBar(progress)
+        bar.setTooltip(makeString("a bar"))
+        doAssert $bar.getTooltip() == "a bar",
+                 "ProgressBar's tooltip is " & $bar.getTooltip()
+
+    block:
+        var tree = makeTreeView(makeString("tree"))
+        tree.setTooltip(makeString("a tree"))
+        doAssert $tree.getTooltip() == "a tree",
+                 "TreeView's tooltip is " & $tree.getTooltip()
+
+    block:
+        var editor = makeTextEditor(makeString("editor"), WChar(0))
+        editor.setTooltip(makeString("an editor"))
+        doAssert $editor.getTooltip() == "an editor",
+                 "TextEditor's tooltip is " & $editor.getTooltip()
+
+    shutdownJuce_GUI()
+
+testTooltipsOnWidgets()
+
+proc testRestatedFromSecondaryBases() =
+    initialiseJuce_GUI()
+
+    block:
+        # AsyncUpdater, ScrollBar's second public base.
+        var bar = makeScrollBar(false)
+        doAssert not bar.isUpdatePending(), "a fresh ScrollBar has an update pending"
+        bar.triggerAsyncUpdate()
+        doAssert bar.isUpdatePending(), "triggerAsyncUpdate left nothing pending"
+        bar.cancelPendingUpdate()
+        doAssert not bar.isUpdatePending(), "cancelPendingUpdate left one pending"
+        bar.triggerAsyncUpdate()
+        bar.handleUpdateNowIfNeeded()
+        doAssert not bar.isUpdatePending(), "handleUpdateNowIfNeeded left one pending"
+
+    block:
+        # ChangeBroadcaster, TabbedButtonBar's second public base.
+        var tabs = makeTabbedButtonBar(TabbedButtonBarOrientation_TabsAtTop)
+        var changed = 0
+        let listener = newCustomChangeListener()
+        listener[].setChangeListenerCallbackHandler(
+            proc(source: ptr ChangeBroadcaster) = changed += 1)
+
+        tabs.addChangeListener(cast[ptr ChangeListener](listener))
+        tabs.sendSynchronousChangeMessage()
+        doAssert changed == 1,
+                 "the synchronous message reached the listener " & $changed & " times"
+
+        # The asynchronous one needs the message loop to have run, and
+        # dispatchPendingMessages is what runs it for this broadcaster.
+        tabs.sendChangeMessage()
+        tabs.dispatchPendingMessages()
+        doAssert changed == 2,
+                 "after dispatching, the listener has been called " & $changed & " times"
+
+        tabs.removeChangeListener(cast[ptr ChangeListener](listener))
+        tabs.sendSynchronousChangeMessage()
+        doAssert changed == 2, "a removed listener was still called"
+
+        tabs.addChangeListener(cast[ptr ChangeListener](listener))
+        tabs.removeAllChangeListeners()
+        tabs.sendSynchronousChangeMessage()
+        doAssert changed == 2, "removeAllChangeListeners left one attached"
+
+        cdelete listener
+        doAssert tabs.getNumTabs() == 0,
+                 "the bar holds " & $tabs.getNumTabs() & " tabs"
+
+    block:
+        # DragAndDropContainer and DragAndDropTarget, Toolbar's second and
+        # third public bases.
+        var toolbar = makeToolbar()
+        doAssert toolbar.getNumCurrentDrags() == 0,
+                 "a fresh toolbar reports " & $toolbar.getNumCurrentDrags() & " drags"
+        doAssert not toolbar.isDragAndDropActive(),
+                 "a fresh toolbar is already dragging"
+        doAssert toolbar.getCurrentDragDescription().isVoid(),
+                 "there is a drag description with no drag"
+        doAssert toolbar.getDragDescriptionForIndex(0).isVoid(),
+                 "there is a drag description for index 0 with no drag"
+        # setDragImageForIndex checks its index, so with no drag in progress
+        # it does nothing. setCurrentDragImage does not check: JUCE writes
+        # through dragImageComponents[0] whether or not one exists, so it can
+        # only be called while a drag is running. See the exclusion table in
+        # tools/check_handwritten_covered.py.
+        toolbar.setDragImageForIndex(0, makeImage(ImagePixelFormat_ARGB, 4, 4, true))
+        doAssert toolbar.shouldDrawDragImageWhenOver(),
+                 "a toolbar declines to draw the drag image"
+
+        let factory = newCustomToolbarItemFactory()
+        var palette = makeToolbarItemPalette(factory[], toolbar)
+        doAssert palette.getNumCurrentDrags() == 0,
+                 "a fresh palette reports " & $palette.getNumCurrentDrags() & " drags"
+        doAssert not palette.isDragAndDropActive(), "a fresh palette is dragging"
+        doAssert palette.getCurrentDragDescription().isVoid(),
+                 "the palette has a drag description with no drag"
+        doAssert palette.getDragDescriptionForIndex(0).isVoid(),
+                 "the palette has a description for index 0 with no drag"
+        palette.setDragImageForIndex(0, makeImage(ImagePixelFormat_ARGB, 4, 4, true))
+
+    block:
+        # DragAndDropTarget, Toolbar's third public base. The details name the
+        # component the drag came from, which is the toolbar itself here.
+        var toolbar = makeToolbar()
+        var details = makeDragAndDropTargetSourceDetails(
+            makejuce_var(makeString("payload")), cast[ptr Component](addr toolbar),
+            makePoint(1.cint, 2.cint))
+        toolbar.itemDragEnter(details)
+        doAssert $details.description.toString() == "payload",
+                 "the details carry " & $details.description.toString()
+
+        var tree = makeTreeView(makeString("tree"))
+        doAssert tree.shouldDrawDragImageWhenOver(),
+                 "a TreeView declines to draw the drag image"
+
+    block:
+        # FileBrowserListener's broadcast helpers, which reach both file views
+        # through DirectoryContentsDisplayComponent rather than through the
+        # ListBox and TreeView they are bound as.
+        var scanner = makeTimeSliceThread(makeString("june-secondary-scan"))
+        doAssert scanner.startThread(), "the scanning thread did not start"
+        var listing = makeDirectoryContentsList(nil, scanner)
+
+        var list = makeFileListComponent(listing)
+        list.sendSelectionChangeMessage()
+        list.sendDoubleClickMessage(june.File())
+        list.sendMouseClickMessage(june.File(), makeMouseEvent(
+            Desktop.getInstance().getMainMouseSource(),
+            makePoint(0.0'f32, 0.0'f32), makeModifierKeys(),
+            1.0'f32, 0.0'f32, 0.0'f32, 0.0'f32, 0.0'f32, nil, nil,
+            Time.getCurrentTime(), makePoint(0.0'f32, 0.0'f32),
+            Time.getCurrentTime(), 1, false))
+
+        var tree = makeFileTreeComponent(listing)
+        tree.sendSelectionChangeMessage()
+        tree.sendDoubleClickMessage(june.File())
+        tree.sendMouseClickMessage(june.File(), makeMouseEvent(
+            Desktop.getInstance().getMainMouseSource(),
+            makePoint(0.0'f32, 0.0'f32), makeModifierKeys(),
+            1.0'f32, 0.0'f32, 0.0'f32, 0.0'f32, 0.0'f32, nil, nil,
+            Time.getCurrentTime(), makePoint(0.0'f32, 0.0'f32),
+            Time.getCurrentTime(), 1, false))
+
+        # Nothing is listening, so the only thing asserted is that the
+        # broadcasts run and leave the component alone.
+        doAssert list.getNumSelectedFiles() == 0,
+                 "the list selected " & $list.getNumSelectedFiles() & " files"
+        doAssert scanner.stopThread(2000.cint), "the scanning thread did not stop"
+
+    block:
+        # FileDragAndDropTarget on the two components that mix it in.
+        var paths = makeFileSearchPathListComponent()
+        paths.setTooltip(makeString("search path"))
+        doAssert $paths.getTooltip() == "search path",
+                 "FileSearchPathListComponent's tooltip is " & $paths.getTooltip()
+        var dropped = makeStringArray()
+        dropped.add(makeString("/tmp/june-dropped.txt"))
+        paths.fileDragEnter(dropped, 1, 1)
+        paths.fileDragMove(dropped, 2, 2)
+        paths.fileDragExit(dropped)
+        doAssert paths.getPath().getNumPaths() == 0,
+                 "a drag that was never dropped added " &
+                 $paths.getPath().getNumPaths() & " paths"
+
+        var chooser = makeFilenameComponent(
+            makeString("file"), june.File(), true, false, false,
+            makeString("*"), makeString(""), makeString("choose"))
+        chooser.fileDragMove(dropped, 3, 3)
+        doAssert $chooser.getTooltip() == "",
+                 "FilenameComponent's tooltip is " & $chooser.getTooltip()
+
+    block:
+        # TextInputTarget, which is what TextEditor used to be bound as.
+        var editor = makeTextEditor(makeString("editor"), WChar(0))
+        editor.setBounds(makeRectangle(0.cint, 0.cint, 100.cint, 20.cint))
+        let caret = editor.getCaretRectangle()
+        doAssert caret.getHeight() > 0,
+                 "the caret is " & $caret.getHeight() & " tall"
+
+    block:
+        # The static half of DragAndDropContainer. A toolbar with no parent has
+        # no container above it.
+        var toolbar = makeToolbar()
+        doAssert Toolbar.findParentDragContainerFor(
+                     cast[ptr Component](addr toolbar)).isNil,
+                 "an unparented toolbar found a drag container above it"
+        doAssert ToolbarItemPalette.findParentDragContainerFor(nil).isNil,
+                 "a nil component found a drag container"
+
+    block:
+        # Expression::Scope, the second public base of the positioner's scope.
+        # min and max are what Scope implements, and they read the parameter
+        # array through the pointer this proc passes - which is the part that
+        # would be wrong if the binding were.
+        var owner = newCustomComponent()
+        var scope = makeRelativeCoordinatePositionerBaseComponentScope(owner[])
+        var numbers = [7.0'f64, 3.0'f64, 5.0'f64]
+        doAssert scope.evaluateFunction(makeString("min"), addr numbers[0], 3) == 3.0,
+                 "min(7, 3, 5) came back as " &
+                 $scope.evaluateFunction(makeString("min"), addr numbers[0], 3)
+        doAssert scope.evaluateFunction(makeString("max"), addr numbers[0], 3) == 7.0,
+                 "max(7, 3, 5) came back as " &
+                 $scope.evaluateFunction(makeString("max"), addr numbers[0], 3)
+
+        # ComponentListener, the positioner's other public base.
+        let positioner = newCustomRelativeCoordinatePositionerBase(owner[])
+        positioner[].applyNewBounds(makeRectangle(0.cint, 0.cint, 30.cint, 40.cint))
+        doAssert positioner[].getComponent().getWidth() == 0,
+                 "applyNewBounds moved the component, which the handler does not"
+        cdelete positioner
+        cdelete owner
+
+    shutdownJuce_GUI()
+
+testRestatedFromSecondaryBases()
+
+# LookAndFeel's drawing hooks ==================================================
+#
+# LookAndFeel inherits a dozen and more LookAndFeelMethods interfaces, one per
+# widget, and Nim can carry only one of them as the parent. The other 128
+# methods are restated on the class, so each needs a call to reach the C++
+# compiler at all. They draw into an off-screen image, which is what makes them
+# safe to run with no display.
+
+proc testLookAndFeelDrawingHooks() =
+    initialiseJuce_GUI()
+
+    var laf = makeLookAndFeel_V4()
+    var image = makeImage(ImagePixelFormat_ARGB, 64, 64, true)
+    var g = makeGraphics(image)
+    let area = makeRectangle(0.cint, 0.cint, 64.cint, 64.cint)
+    let areaF = makeRectangle(0.0'f32, 0.0'f32, 64.0'f32, 64.0'f32)
+
+    block:
+        var bar = makeScrollBar(false)
+        # The thumb size is derived from the bar's own size, so a bar with no
+        # bounds reports zero.
+        bar.setBounds(makeRectangle(0.cint, 0.cint, 20.cint, 60.cint))
+        discard laf.areScrollbarButtonsVisible()
+        laf.drawScrollbar(g, bar, 0, 0, 20, 60, true, 0, 10, false, false)
+        laf.drawScrollbarButton(g, bar, 20, 20, 0, true, false, false)
+        doAssert laf.getDefaultScrollbarWidth() > 0,
+                 "the default scrollbar width is " & $laf.getDefaultScrollbarWidth()
+        doAssert laf.getMinimumScrollbarThumbSize(bar) > 0,
+                 "the minimum thumb size is " & $laf.getMinimumScrollbarThumbSize(bar)
+        discard laf.getScrollbarButtonSize(bar)
+        doAssert laf.getScrollbarEffect().isNil,
+                 "LookAndFeel_V4 supplies a scrollbar effect"
+
+    block:
+        var toggle = makeToggleButton(makeString("toggle"))
+        var text = makeTextButton(makeString("text"))
+        var drawable = makeDrawableButton(makeString("drawable"),
+                                          DrawableButtonButtonStyle_ImageFitted)
+        var plain = newCustomComponent()
+
+        laf.changeToggleButtonWidthToFitText(toggle)
+        laf.drawButtonBackground(g, text, makeColour(200'u8, 200'u8, 200'u8, 255'u8),
+                                 false, false)
+        laf.drawButtonText(g, text, false, false)
+        laf.drawDrawableButton(g, drawable, false, false)
+        laf.drawTickBox(g, plain[], 0.0'f32, 0.0'f32, 16.0'f32, 16.0'f32,
+                        true, true, false, false)
+        laf.drawToggleButton(g, toggle, false, false)
+        doAssert laf.getTextButtonFont(text, 24).getHeight() > 0,
+                 "the text button font has no height"
+        doAssert laf.getTextButtonWidthToFitText(text, 24) > 0,
+                 "the button width to fit is " &
+                 $laf.getTextButtonWidthToFitText(text, 24)
+
+        var imageButton = makeImageButton(makeString("image"))
+        laf.drawImageButton(g, addr image, 0, 0, 16, 16,
+                            makeColour(0'u8, 0'u8, 0'u8, 0'u8), 1.0'f32, imageButton)
+        cdelete plain
+
+    block:
+        var editor = makeTextEditor(makeString("editor"), WChar(0))
+        let caret = laf.createCaretComponent(nil)
+        doAssert not caret.isNil, "createCaretComponent returned nothing"
+        cdelete caret
+        laf.drawTextEditorOutline(g, 64, 20, editor)
+        laf.fillTextEditorBackground(g, 64, 20, editor)
+
+    block:
+        let goUp = laf.createFileBrowserGoUpButton()
+        doAssert not goUp.isNil, "createFileBrowserGoUpButton returned nothing"
+        cdelete goUp
+
+        var header = laf.createFileChooserHeaderText(makeString("title"),
+                                                     makeString("instructions"))
+        doAssert header.getNumAttributes() > 0,
+                 "the header text carries " & $header.getNumAttributes() & " attributes"
+
+        var scanner = makeTimeSliceThread(makeString("june-laf-scan"))
+        doAssert scanner.startThread(), "the scanning thread did not start"
+        var listing = makeDirectoryContentsList(nil, scanner)
+        var list = makeFileListComponent(listing)
+        laf.drawFileBrowserRow(g, 64, 20, june.File(), makeString("one.txt"),
+                               addr image, makeString("1 byte"),
+                               makeString("today"), false, false, 0,
+                               cast[ptr DirectoryContentsDisplayComponent](addr list)[])
+        doAssert not laf.getDefaultDocumentFileImage().isNil,
+                 "there is no default document image"
+        doAssert not laf.getDefaultFolderImage().isNil,
+                 "there is no default folder image"
+
+        var browser = makeFileBrowserComponent(
+            FileBrowserComponentFileChooserFlags_openMode.cint or
+            FileBrowserComponentFileChooserFlags_canSelectFiles.cint,
+            june.File(), nil, nil)
+        # JUCE dereferences the path box, the up button and the filename box
+        # without checking them; the list and the preview are checked.
+        var pathBox = makeComboBox(makeString("path"))
+        var goUpAgain = makeTextButton(makeString("up"))
+        var filenameBox = makeTextEditor(makeString("filename"), WChar(0))
+        browser.setBounds(makeRectangle(0.cint, 0.cint, 300.cint, 200.cint))
+        laf.layoutFileBrowserComponent(browser, nil, nil, addr pathBox,
+                                       addr filenameBox,
+                                       cast[ptr Button](addr goUpAgain))
+        doAssert pathBox.getWidth() > 0,
+                 "the path box was left " & $pathBox.getWidth() & " wide"
+        doAssert scanner.stopThread(2000.cint), "the scanning thread did not stop"
+
+    block:
+        var tree = makeTreeView(makeString("tree"))
+        discard laf.areLinesDrawnForTreeView(tree)
+        laf.drawTreeviewPlusMinusBox(g, areaF, makeColour(255'u8, 255'u8, 255'u8, 255'u8),
+                                     false, false)
+        doAssert laf.getTreeViewIndentSize(tree) > 0,
+                 "the tree indent is " & $laf.getTreeViewIndentSize(tree)
+
+        let bubble = newCustomBubbleComponent()
+        laf.drawBubble(g, bubble[], makePoint(4.0'f32, 4.0'f32), areaF)
+        laf.setComponentEffectForBubbleComponent(bubble[])
+        cdelete bubble
+
+    block:
+        let alert = laf.createAlertWindow(
+            makeString("title"), makeString("message"), makeString("ok"),
+            makeString(""), makeString(""), MessageBoxIconType_NoIcon, 1, nil)
+        doAssert not alert.isNil, "createAlertWindow returned nothing"
+
+        var layout = makeTextLayout()
+        laf.drawAlertBox(g, alert[], area, layout)
+        discard laf.getAlertBoxWindowFlags()
+        doAssert laf.getAlertWindowButtonHeight() > 0,
+                 "the alert button height is " & $laf.getAlertWindowButtonHeight()
+        doAssert laf.getAlertWindowFont().getHeight() > 0, "the alert font has no height"
+        doAssert laf.getAlertWindowMessageFont().getHeight() > 0,
+                 "the alert message font has no height"
+        doAssert laf.getAlertWindowTitleFont().getHeight() > 0,
+                 "the alert title font has no height"
+        let widths = laf.getWidthsForTextButtons(alert[], makeArray[ptr TextButton]())
+        doAssert widths.size() == 0,
+                 "widths came back for " & $widths.size() & " buttons of none"
+        cdelete alert
+
+    shutdownJuce_GUI()
+
+testLookAndFeelDrawingHooks()

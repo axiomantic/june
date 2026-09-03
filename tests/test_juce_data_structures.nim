@@ -435,3 +435,48 @@ proc testValueTreeIterator() =
                  "the begin and end iterators of an empty tree differ"
 
 testValueTreeIterator()
+
+# ChangeBroadcaster on PropertiesFile ==========================================
+#
+# PropertiesFile reaches ChangeBroadcaster through its second public base, so
+# these six are not inherited - the generator restates them on the class, and a
+# restatement nobody calls never reaches the C++ compiler.
+
+proc testPropertiesFileBroadcasts() =
+  initialiseJuce_GUI()
+
+  let settings = june.File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                     .getNonexistentChildFile(makeString("june-props"),
+                                              makeString(".settings"))
+  var options = makePropertiesFileOptions()
+  var file = makePropertiesFile(settings, options)
+
+  var changed = 0
+  let listener = newCustomChangeListener()
+  listener[].setChangeListenerCallbackHandler(
+      proc(source: ptr ChangeBroadcaster) = changed += 1)
+
+  file.addChangeListener(cast[ptr ChangeListener](listener))
+  file.sendSynchronousChangeMessage()
+  doAssert changed == 1,
+           "the synchronous message reached the listener " & $changed & " times"
+
+  file.sendChangeMessage()
+  file.dispatchPendingMessages()
+  doAssert changed == 2,
+           "after dispatching, the listener has been called " & $changed & " times"
+
+  file.removeChangeListener(cast[ptr ChangeListener](listener))
+  file.sendSynchronousChangeMessage()
+  doAssert changed == 2, "a removed listener was still called"
+
+  file.addChangeListener(cast[ptr ChangeListener](listener))
+  file.removeAllChangeListeners()
+  file.sendSynchronousChangeMessage()
+  doAssert changed == 2, "removeAllChangeListeners left one attached"
+
+  cdelete listener
+  discard settings.deleteFile()
+  shutdownJuce_GUI()
+
+testPropertiesFileBroadcasts()
