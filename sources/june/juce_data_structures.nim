@@ -251,4 +251,16 @@ proc `shl`*(arg1: var OutputStream, arg2: Value): var OutputStream {.header: juc
 
 include juce_data_structures_lifting
 
+proc `$`*(this: UndoableAction): string {.error: "juce::UndoableAction has no toString; print a property instead".}
+proc `$`*(this: UndoManager): string {.error: "juce::UndoManager has no toString; print a property instead".}
 proc `$`*(this: Value): string = $this.toString()
+proc `$`*(this: ValueListener): string {.error: "juce::Value::Listener has no toString; print a property instead".}
+proc `$`*(this: ValueValueSource): string {.error: "juce::Value::ValueSource has no toString; print a property instead".}
+proc `$`*(this: ValueTree): string {.error: "juce::ValueTree has no toString; print a property instead".}
+proc `$`*(this: ValueTreeIterator): string {.error: "juce::ValueTree::Iterator has no toString; print a property instead".}
+proc `$`*(this: ValueTreeListener): string {.error: "juce::ValueTree::Listener has no toString; print a property instead".}
+proc `$`*(this: ValueTreeSynchroniser): string {.error: "juce::ValueTreeSynchroniser has no toString; print a property instead".}
+proc `$`*(this: ValueTreePropertyWithDefault): string {.error: "juce::ValueTreePropertyWithDefault has no toString; print a property instead".}
+proc `$`*(this: PropertiesFile): string {.error: "juce::PropertiesFile has no toString; print a property instead".}
+proc `$`*(this: PropertiesFileOptions): string {.error: "juce::PropertiesFile::Options has no toString; print a property instead".}
+proc `$`*(this: ApplicationProperties): string {.error: "juce::ApplicationProperties has no toString; print a property instead".}
