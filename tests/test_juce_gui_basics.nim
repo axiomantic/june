@@ -8690,3 +8690,162 @@ proc testTreeViewItemNumbering() =
     shutdownJuce_GUI()
 
 testTreeViewItemNumbering()
+
+# TextEditor's caret motion. Every one of these moves takes a bool saying
+# whether to extend the selection, and a binding that dropped it would still
+# move the caret, so both are asserted.
+proc testTextEditorCaretMotion() =
+    initialiseJuce_GUI()
+
+    block:
+        var editor = makeTextEditor(makeString("editor"), WChar(0))
+        editor.setBounds(makeRectangle(0.cint, 0.cint, 300.cint, 200.cint))
+        editor.setMultiLine(true, false)
+        editor.setText(makeString("first line\nsecond line\nthird line"), false)
+
+        editor.setCaretPosition(0.cint)
+        doAssert editor.getCaretPosition() == 0,
+                 "the caret is at " & $editor.getCaretPosition()
+
+        discard editor.moveCaretRight(false, false)
+        doAssert editor.getCaretPosition() == 1,
+                 "moving right gave " & $editor.getCaretPosition()
+        discard editor.moveCaretLeft(false, false)
+        doAssert editor.getCaretPosition() == 0,
+                 "moving back left gave " & $editor.getCaretPosition()
+
+        # A move that would leave the text is clamped.
+        discard editor.moveCaretLeft(false, false)
+        doAssert editor.getCaretPosition() == 0,
+                 "moving left from the start gave " & $editor.getCaretPosition()
+
+        # Moving with selectionShouldChange leaves a selection behind; moving
+        # without it does not.
+        doAssert editor.getHighlightedText().isEmpty(),
+                 "there is a selection before anything was extended"
+        discard editor.moveCaretRight(false, true)
+        discard editor.moveCaretRight(false, true)
+        doAssert $editor.getHighlightedText() == "fi",
+                 "extending twice selected " & $editor.getHighlightedText()
+        discard editor.moveCaretRight(false, false)
+        doAssert editor.getHighlightedText().isEmpty(),
+                 "moving without extending left " & $editor.getHighlightedText()
+
+        # The line moves land on the same column of another line.
+        discard editor.moveCaretToStartOfLine(false)
+        doAssert editor.getCaretPosition() == 0,
+                 "the start of the first line is " & $editor.getCaretPosition()
+        discard editor.moveCaretToEndOfLine(false)
+        doAssert editor.getCaretPosition() == 10,
+                 "the end of the first line is " & $editor.getCaretPosition()
+
+        discard editor.moveCaretDown(false)
+        doAssert editor.getCaretPosition() > 10,
+                 "moving down gave " & $editor.getCaretPosition()
+        let onSecondLine = editor.getCaretPosition()
+        discard editor.moveCaretUp(false)
+        doAssert editor.getCaretPosition() < onSecondLine,
+                 "moving back up gave " & $editor.getCaretPosition()
+
+        discard editor.moveCaretToEnd(false)
+        doAssert editor.getCaretPosition() == editor.getTotalNumChars(),
+                 "the end is " & $editor.getCaretPosition() & " of " &
+                 $editor.getTotalNumChars()
+        discard editor.moveCaretToTop(false)
+        doAssert editor.getCaretPosition() == 0,
+                 "the top is " & $editor.getCaretPosition()
+
+        # selectAll takes the lot, and it is the whole text that comes back.
+        discard editor.selectAll()
+        doAssert $editor.getHighlightedText() == $editor.getText(),
+                 "selectAll selected " & $editor.getHighlightedText()
+
+    block:
+        # Deleting works from either side of the caret.
+        var editor = makeTextEditor(makeString("editor"), WChar(0))
+        editor.setText(makeString("abcdef"), false)
+        editor.setCaretPosition(3.cint)
+
+        discard editor.deleteBackwards(false)
+        doAssert $editor.getText() == "abdef",
+                 "deleting backwards gave " & $editor.getText()
+        doAssert editor.getCaretPosition() == 2,
+                 "the caret is at " & $editor.getCaretPosition()
+
+        discard editor.deleteForwards(false)
+        doAssert $editor.getText() == "abef",
+                 "deleting forwards gave " & $editor.getText()
+        doAssert editor.getCaretPosition() == 2,
+                 "deleting forwards moved the caret to " &
+                 $editor.getCaretPosition()
+
+        # Undo works on TRANSACTIONS, not on keystrokes: JUCE groups edits made
+        # close together into one, so a single undo reverses both deletions
+        # rather than the last one.
+        doAssert editor.undo(), "undo refused"
+        doAssert $editor.getText() == "abcdef",
+                 "one undo gave " & $editor.getText()
+        doAssert editor.redo(), "redo refused"
+        doAssert $editor.getText() == "abef",
+                 "redo gave " & $editor.getText()
+
+    block:
+        # An input filter rejects what it is told to. The length restriction
+        # filter is the one JUCE ships.
+        var editor = makeTextEditor(makeString("editor"), WChar(0))
+        var filter = makeTextEditorLengthAndCharacterRestriction(
+                         5.cint, makeString("abcdef"))
+        editor.setInputFilter(cast[ptr TextEditorInputFilter](addr filter), false)
+        doAssert editor.getInputFilter() ==
+                 cast[ptr TextEditorInputFilter](addr filter),
+                 "the filter did not take"
+
+        # setText goes STRAIGHT to insert() and is not filtered
+        # (juce_TextEditor.cpp:547); insertTextAtCaret is the filtered door.
+        editor.setText(makeString("abcdefghij"), false)
+        doAssert editor.getTotalNumChars() == 10,
+                 "setText was filtered down to " & $editor.getTotalNumChars() &
+                 " characters"
+
+        editor.clear()
+        editor.insertTextAtCaret(makeString("abcdefghij"))
+        doAssert editor.getTotalNumChars() <= 5,
+                 "the filter let " & $editor.getTotalNumChars() & " characters in"
+        doAssert not ($editor.getText()).contains("g"),
+                 "a disallowed character got through: " & $editor.getText()
+
+        editor.setInputFilter(nil, false)
+        doAssert editor.getInputFilter().isNil, "the filter was not cleared"
+
+    block:
+        # The remaining layout properties round trip.
+        var editor = makeTextEditor(makeString("editor"), WChar(0))
+        editor.setLineSpacing(1.5'f32)
+        doAssert abs(editor.getLineSpacing() - 1.5'f32) < 1.0e-6'f32,
+                 "the line spacing is " & $editor.getLineSpacing()
+
+        doAssert not editor.getClicksOutsideDismissVirtualKeyboard(),
+                 "a click outside dismisses the keyboard by default"
+        editor.setClicksOutsideDismissVirtualKeyboard(true)
+        doAssert editor.getClicksOutsideDismissVirtualKeyboard(),
+                 "the switch stayed off"
+
+        editor.setKeyboardType(
+            TextInputTargetVirtualKeyboardType_numericKeyboard)
+        doAssert editor.getKeyboardType() ==
+                 TextInputTargetVirtualKeyboardType_numericKeyboard,
+                 "the keyboard type did not read back"
+
+        # The text extent grows with the text.
+        editor.setText(makeString("x"), false)
+        let narrow = editor.getTextWidth()
+        editor.setText(makeString("xxxxxxxxxxxxxxxxxxxx"), false)
+        doAssert editor.getTextWidth() > narrow,
+                 "twenty characters measure " & $editor.getTextWidth() &
+                 " and one measures " & $narrow
+        doAssert editor.getTextHeight() > 0,
+                 "the text is " & $editor.getTextHeight() & " tall"
+
+    shutdownJuce_GUI()
+
+testTextEditorCaretMotion()
