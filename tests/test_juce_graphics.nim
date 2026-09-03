@@ -1375,3 +1375,70 @@ proc testScopedSaveState() =
                  "the clip outlived the scope that set it"
 
 testScopedSaveState()
+
+# The graphics iterators yield exactly what their containers hold ==============
+#
+# Each is a hand-written loop over the indexed accessors, so an off-by-one has
+# nothing to disagree with it. The count is checked against the container's own
+# answer, and the order against indexed access.
+
+proc testGraphicsIteratorsAreComplete() =
+    block:
+        var glyphs = makeGlyphArrangement()
+        glyphs.addLineOfText(makeFont(makeFontOptions()), makeString("abcdef"),
+                             0.0'f32, 10.0'f32)
+        doAssert glyphs.getNumGlyphs() > 0, "the arrangement laid out no glyphs"
+
+        var walked = 0
+        var lastX = -1.0'f32
+        for glyph in glyphs:
+            doAssert glyph.getLeft() >= lastX,
+                     "glyph " & $walked & " starts left of the one before it"
+            lastX = glyph.getLeft()
+            walked += 1
+        doAssert walked == glyphs.getNumGlyphs().int,
+                 "GlyphArrangement yielded " & $walked & " of " &
+                 $glyphs.getNumGlyphs()
+
+    block:
+        var region: RectangleList[cint]
+        for index in 0 ..< 4:
+            region.add(makeRectangle((index * 20).cint, 0.cint, 10.cint, 10.cint))
+
+        var seen: seq[cint] = @[]
+        for rectangle in region:
+            seen.add(rectangle.getX())
+        doAssert seen.len == region.getNumRectangles().int,
+                 "RectangleList yielded " & $seen.len & " of " &
+                 $region.getNumRectangles()
+        for index in 0 ..< seen.len:
+            doAssert seen[index] == region.getRectangle(index.cint).getX(),
+                     "RectangleList yielded x=" & $seen[index] & " at " & $index
+
+    block:
+        # An OwnedArray is only ever handed out by JUCE, and a laid-out line of
+        # text is where one with anything in it comes from.
+        var text = makeAttributedString(makeString("one two three"))
+        var layout = makeTextLayout()
+        layout.createLayout(text, 200.0'f32)
+        doAssert layout.getNumLines() > 0, "the layout produced no lines"
+
+        # The var getter, which hands back the field itself. There is no
+        # by-value one: OwnedArray deletes its copy constructor, so the
+        # generator withholds that getter with the reason on the line.
+        var line = layout.getLine(0.cint)
+        doAssert line.runs().size() > 0, "the line holds no runs"
+
+        var walked = 0
+        for run in line.runs():
+            doAssert not run.isNil, "a run came back nil"
+            walked += 1
+        doAssert walked == line.runs().size().int,
+                 "OwnedArray yielded " & $walked & " of " & $line.runs().size()
+
+# Bracketed, like the other tests that reach a Font: the shared typeface cache
+# is torn down by the GUI shutdown, and built outside one it is reported as a
+# leak at exit.
+initialiseJuce_GUI()
+testGraphicsIteratorsAreComplete()
+shutdownJuce_GUI()

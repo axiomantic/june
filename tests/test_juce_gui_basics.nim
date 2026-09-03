@@ -5757,6 +5757,19 @@ proc testContainersOfPointers() =
         let traversed = traverser.getAllComponents(cast[ptr Component](parent))
         doAssert traversed.size() == 2,
                  "the traverser found " & $traversed.size() & " components"
+
+        # And the CppVector iterator yields exactly what the vector holds. It
+        # is the only way to reach one with anything in it: nothing in the
+        # binding can push onto a std::vector, so JUCE has to fill it.
+        var iterated: seq[ptr Component] = @[]
+        for component in traversed:
+            iterated.add(component)
+        doAssert iterated.len == traversed.size().int,
+                 "the iterator yielded " & $iterated.len & " of " &
+                 $traversed.size()
+        for index in 0 ..< iterated.len:
+            doAssert iterated[index] == traversed[index.csize_t],
+                     "the iterator yielded a different component at " & $index
         doAssert traversed[0.csize_t] == cast[ptr Component](first),
                  "the first traversed component is not the first child"
         doAssert traversed[1.csize_t] == cast[ptr Component](second),
