@@ -323,8 +323,18 @@ no_lossless_int_target = {
 }
 
 
-# A field accessor a test cannot reach, with the reason it cannot.
-unreachable_fields = {}
+# A field accessor a test cannot reach, with the reason it cannot. The reason
+# has to be why a test cannot, not that nobody has written one.
+unreachable_fields = {
+    "clip":
+        "belongs to ColourLayer, which holds an EdgeTable and so has no "
+        "default constructor, and JUCE hands one out from nothing that is "
+        "bound",
+    "directoryContentsList":
+        "belongs to DirectoryContentsDisplayComponent, which is a secondary "
+        "base of FileListComponent and FileTreeComponent; Nim carries one "
+        "parent and both take the other, so no bound class reaches the field",
+}
 
 field_getter = re.compile(
     r'^proc (\w+)\*\(this: (?:var )?(\w+)\)[^{]*\{[^}]*importcpp: "#\.\1"', re.M)
@@ -344,6 +354,14 @@ def check_field_accessors():
     Identified by the shape of the importcpp rather than the signature: a
     getter is a bare member read and a setter a member assignment, which is
     what tells them apart from an ordinary method.
+
+    Keyed on the field's NAME, because the receiver's type is not written at
+    the call site and this reads the test source rather than compiling it. Two
+    classes with a field of the same name therefore cover each other:
+    FlexBox.alignContent and Grid.alignContent are one entry here, and only one
+    of them has to be assigned. Verified against a name that belongs to a
+    single class - removing the assignment to
+    ComponentPaintDiagnostics.wroteToCache makes this fail and name it.
     """
     getters, setters = set(), set()
     for module in ("juce_core", "juce_events", "juce_data_structures",

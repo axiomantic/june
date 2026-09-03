@@ -3291,3 +3291,61 @@ proc testFieldRoundTrips() =
                  "ZipFileZipEntry.uncompressedSize came back as " & $value.uncompressedSize()
 
 testFieldRoundTrips()
+
+# The remaining core fields ====================================================
+
+proc testRemainingCoreFields() =
+    block:
+        var list = makeArgumentList(makeString("june"), makeStringArray())
+        list.executableName = makeString("renamed")
+        list.arguments = makeArray[ArgumentListArgument]()
+        doAssert $list.executableName() == "renamed",
+                 "the executable is " & $list.executableName()
+        doAssert list.arguments().size() == 0,
+                 "the list holds " & $list.arguments().size() & " arguments"
+
+    block:
+        var options = makeThreadPoolOptions()
+        options.desiredThreadPriority = ThreadPriority_normal
+        doAssert options.desiredThreadPriority() == ThreadPriority_normal,
+                 "the priority did not come back as it was set"
+
+    block:
+        var format = makeXmlElementTextFormat()
+        format.newLineChars = cast[constChar](cstring("\n"))
+        discard format.newLineChars()
+
+    block:
+        var symbol = makeExpressionSymbol(makeString("a scope"), makeString("a name"))
+        symbol.scopeUID = makeString("another scope")
+        doAssert $symbol.scopeUID() == "another scope",
+                 "the scope uid is " & $symbol.scopeUID()
+
+    block:
+        var diff = makeTextDiff(makeString("one"), makeString("two"))
+        diff.changes = makeArray[TextDiffChange]()
+        doAssert diff.changes().size() == 0,
+                 "the diff holds " & $diff.changes().size() & " changes"
+
+testRemainingCoreFields()
+
+# juce::var's native function arguments ========================================
+#
+# What a native function registered on a DynamicObject is handed. The struct
+# holds a reference member, which is why its std::function is bound over a
+# const reference rather than by value.
+
+proc testNativeFunctionArgsFields() =
+    var arguments = makejuce_var(7.cint)
+    var args = makejuce_varNativeFunctionArgs(makejuce_var(1.cint),
+                                              addr arguments, 1.cint)
+    args.numArguments = 3.cint
+    args.arguments = addr arguments
+    doAssert args.numArguments() == 3,
+             "the argument count is " & $args.numArguments()
+    doAssert args.arguments() == addr arguments,
+             "the argument pointer is not the one it was set to"
+    doAssert args.thisObject().toInt() == 1,
+             "thisObject holds " & $args.thisObject().toString()
+
+testNativeFunctionArgsFields()
