@@ -5453,6 +5453,16 @@ proc `==`*(this: ScopedDPIAwarenessDisabler, other: ScopedDPIAwarenessDisabler):
 
 proc `==`*(this: AccessibilityNativeHandle, other: AccessibilityNativeHandle): bool {.error: "juce::AccessibilityNativeHandle defines no operator==; compare a property instead".}
 
+let StandardApplicationCommandIDs_quit* {.header: juce_gui_basics, importcpp: "juce::StandardApplicationCommandIDs::quit".}: cint
+let StandardApplicationCommandIDs_del* {.header: juce_gui_basics, importcpp: "juce::StandardApplicationCommandIDs::del".}: cint
+let StandardApplicationCommandIDs_cut* {.header: juce_gui_basics, importcpp: "juce::StandardApplicationCommandIDs::cut".}: cint
+let StandardApplicationCommandIDs_copy* {.header: juce_gui_basics, importcpp: "juce::StandardApplicationCommandIDs::copy".}: cint
+let StandardApplicationCommandIDs_paste* {.header: juce_gui_basics, importcpp: "juce::StandardApplicationCommandIDs::paste".}: cint
+let StandardApplicationCommandIDs_selectAll* {.header: juce_gui_basics, importcpp: "juce::StandardApplicationCommandIDs::selectAll".}: cint
+let StandardApplicationCommandIDs_deselectAll* {.header: juce_gui_basics, importcpp: "juce::StandardApplicationCommandIDs::deselectAll".}: cint
+let StandardApplicationCommandIDs_undo* {.header: juce_gui_basics, importcpp: "juce::StandardApplicationCommandIDs::undo".}: cint
+let StandardApplicationCommandIDs_redo* {.header: juce_gui_basics, importcpp: "juce::StandardApplicationCommandIDs::redo".}: cint
+
 proc createSnapshotOfNativeWindow*(nativeWindowHandle: pointer): Image {.header: juce_gui_basics, importcpp: "juce::createSnapshotOfNativeWindow(@)".}
 # proc operator""_px*(px: long double): GridPx {.header: juce_gui_basics, importcpp: "juce::operator""_px(@)".}  # an operator with no Nim spelling
 # proc operator""_px*(px: uint64): GridPx {.header: juce_gui_basics, importcpp: "juce::operator""_px(@)".}  # an operator with no Nim spelling
