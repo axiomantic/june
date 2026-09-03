@@ -829,7 +829,7 @@ proc multiplyAllAlphas*(this: var ImagePixelData, amount: cfloat) {.header: juce
 proc desaturateInArea*(this: var ImagePixelData, bounds: Rectangle[cint]) {.header: juce_graphics, importcpp: "#.desaturateInArea(@)".}
 proc desaturate*(this: var ImagePixelData) {.header: juce_graphics, importcpp: "#.desaturate()".}
 proc sendDataChangeMessage*(this: var ImagePixelData) {.header: juce_graphics, importcpp: "#.sendDataChangeMessage()".}
-proc getNativeExtensions*(this: var ImagePixelData): ImagePixelDataNativeExtensions {.header: juce_graphics, importcpp: "#.getNativeExtensions()".}
+# proc getNativeExtensions*(this: var ImagePixelData): ImagePixelDataNativeExtensions {.header: juce_graphics, importcpp: "#.getNativeExtensions()".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
 proc `==`*(this: ImagePixelData, other: ImagePixelData): bool {.error: "juce::ImagePixelData defines no operator==; compare a property instead".}
 
 proc imageDataChanged*(this: var ImagePixelDataListener, arg1: ptr ImagePixelData) {.header: juce_graphics, importcpp: "#.imageDataChanged(@)".}
@@ -1009,7 +1009,7 @@ proc makeFont*(typefaceName: String, fontHeight: cfloat, styleFlags: cint): Font
 proc makeFont*(typefaceName: String, typefaceStyle: String, fontHeight: cfloat): Font {.header: juce_graphics, importcpp: "juce::Font((const juce::String &) #, (const juce::String &) #, (float) #)".}
 proc makeFont*(typeface: ReferenceCountedObjectPtr[Typeface]): Font {.header: juce_graphics, importcpp: "juce::Font((const juce::ReferenceCountedObjectPtr<juce::Typeface> &) #)".}
 proc makeFont*(): Font {.header: juce_graphics, importcpp: "juce::Font(@)".}
-proc `Font=`*(this: var Font, other: Font): var Font {.header: juce_graphics, importcpp: "#.operator=(@)".}
+proc `Font=`*(this: var Font, other: Font): var Font {.header: juce_graphics, importcpp: "#.operator=(std::move(#))".}
 proc `==`*(this: Font, other: Font): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: Font, other: Font): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc setTypefaceName*(this: var Font, faceName: String) {.header: juce_graphics, importcpp: "#.setTypefaceName(@)".}
@@ -1075,7 +1075,7 @@ proc findAllTypefaceStyles*(this: typedesc[Font], family: String): StringArray {
 proc findSuitableFontForText*(this: Font, text: String, language: String): Font {.header: juce_graphics, importcpp: "#.findSuitableFontForText(@)".}
 proc toString*(this: Font): String {.header: juce_graphics, importcpp: "#.toString()".}
 proc fromString*(this: typedesc[Font], fontDescription: String): Font {.header: juce_graphics, importcpp: "juce::Font::fromString(@)".}
-proc getNativeDetails*(this: Font): FontNative {.header: juce_graphics, importcpp: "#.getNativeDetails()".}
+# proc getNativeDetails*(this: Font): FontNative {.header: juce_graphics, importcpp: "#.getNativeDetails()".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
 proc getHeightToPointsFactor*(this: Font): cfloat {.header: juce_graphics, importcpp: "#.getHeightToPointsFactor()".}
 
 proc `==`*(this: FontNative, other: FontNative): bool {.error: "juce::Font::Native defines no operator==; compare a property instead".}
@@ -1178,7 +1178,7 @@ proc getWidth*(this: TextLayout): cfloat {.header: juce_graphics, importcpp: "#.
 proc getHeight*(this: TextLayout): cfloat {.header: juce_graphics, importcpp: "#.getHeight()".}
 proc getNumLines*(this: TextLayout): cint {.header: juce_graphics, importcpp: "#.getNumLines()".}
 proc getLine*(this: TextLayout, index: cint): var TextLayoutLine {.header: juce_graphics, importcpp: "#.getLine(@)".}
-proc addLine*(this: var TextLayout, arg1: UniquePtr[TextLayoutLine]) {.header: juce_graphics, importcpp: "#.addLine(@)".}
+proc addLine*(this: var TextLayout, arg1: UniquePtr[TextLayoutLine]) {.header: juce_graphics, importcpp: "#.addLine(std::move(#))".}
 proc ensureStorageAllocated*(this: var TextLayout, numLinesNeeded: cint) {.header: juce_graphics, importcpp: "#.ensureStorageAllocated(@)".}
 # proc begin*(this: var TextLayout): iterator {.header: juce_graphics, importcpp: "#.begin()".}  # a C++ iterator; loop with the Nim iterator instead
 # proc begin*(this: TextLayout): _iterator {.header: juce_graphics, importcpp: "#.begin()".}  # a C++ iterator; loop with the Nim iterator instead

@@ -82,7 +82,7 @@ proc `==`*(this: MessageManager, other: MessageManager): bool {.error: "juce::Me
 # proc makeMessageManagerMessageBase*(): MessageManagerMessageBase {.header: juce_events, importcpp: "juce::MessageManager::MessageBase(@)".}  # MessageManagerMessageBase is abstract; build a CustomMessageManagerMessageBase instead
 proc messageCallback*(this: var MessageManagerMessageBase) {.header: juce_events, importcpp: "#.messageCallback()".}
 proc post*(this: var MessageManagerMessageBase): bool {.header: juce_events, importcpp: "#.post()".}
-proc `MessageManagerMessageBase=`*(this: var MessageManagerMessageBase, arg1: MessageManagerMessageBase): var MessageManagerMessageBase {.header: juce_events, importcpp: "#.operator=(@)".}
+# proc `MessageManagerMessageBase=`*(this: var MessageManagerMessageBase, arg1: MessageManagerMessageBase): var MessageManagerMessageBase {.header: juce_events, importcpp: "#.operator=(@)".}  # JUCE deletes it
 proc `==`*(this: MessageManagerMessageBase, other: MessageManagerMessageBase): bool {.error: "juce::MessageManager::MessageBase defines no operator==; compare a property instead".}
 
 proc makeMessageManagerInnerLock*(): MessageManagerInnerLock {.header: juce_events, importcpp: "juce::MessageManager::Lock(@)".}
@@ -153,7 +153,7 @@ proc sendCommandLineToPreexistingInstance*(this: var JUCEApplicationBase): bool 
 proc `==`*(this: JUCEApplicationBase, other: JUCEApplicationBase): bool {.error: "juce::JUCEApplicationBase defines no operator==; compare a property instead".}
 
 proc makeScopedJuceInitialiser_GUI*(): ScopedJuceInitialiser_GUI {.header: juce_events, importcpp: "juce::ScopedJuceInitialiser_GUI(@)".}
-proc `ScopedJuceInitialiser_GUI=`*(this: var ScopedJuceInitialiser_GUI, arg1: ScopedJuceInitialiser_GUI): var ScopedJuceInitialiser_GUI {.header: juce_events, importcpp: "#.operator=(@)".}
+# proc `ScopedJuceInitialiser_GUI=`*(this: var ScopedJuceInitialiser_GUI, arg1: ScopedJuceInitialiser_GUI): var ScopedJuceInitialiser_GUI {.header: juce_events, importcpp: "#.operator=(@)".}  # JUCE deletes it
 proc `==`*(this: ScopedJuceInitialiser_GUI, other: ScopedJuceInitialiser_GUI): bool {.error: "juce::ScopedJuceInitialiser_GUI defines no operator==; compare a property instead".}
 
 # proc makeMountedVolumeListChangeDetector*(): MountedVolumeListChangeDetector {.header: juce_events, importcpp: "juce::MountedVolumeListChangeDetector(@)".}  # MountedVolumeListChangeDetector is abstract; build a CustomMountedVolumeListChangeDetector instead
@@ -179,7 +179,7 @@ proc handleAsyncUpdate*(this: var AsyncUpdater) {.header: juce_events, importcpp
 proc `==`*(this: AsyncUpdater, other: AsyncUpdater): bool {.error: "juce::AsyncUpdater defines no operator==; compare a property instead".}
 
 proc makeLockingAsyncUpdater*(callbackToUse: CppFunctionObjectN0): LockingAsyncUpdater {.header: juce_events, importcpp: "juce::LockingAsyncUpdater(@)".}
-proc `LockingAsyncUpdater=`*(this: var LockingAsyncUpdater, other: LockingAsyncUpdater): var LockingAsyncUpdater {.header: juce_events, importcpp: "#.operator=(@)".}
+proc `LockingAsyncUpdater=`*(this: var LockingAsyncUpdater, other: LockingAsyncUpdater): var LockingAsyncUpdater {.header: juce_events, importcpp: "#.operator=(std::move(#))".}
 proc triggerAsyncUpdate*(this: var LockingAsyncUpdater) {.header: juce_events, importcpp: "#.triggerAsyncUpdate()".}
 proc cancelPendingUpdate*(this: var LockingAsyncUpdater) {.header: juce_events, importcpp: "#.cancelPendingUpdate()".}
 proc handleUpdateNowIfNeeded*(this: var LockingAsyncUpdater) {.header: juce_events, importcpp: "#.handleUpdateNowIfNeeded()".}
