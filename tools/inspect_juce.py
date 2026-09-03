@@ -1116,6 +1116,30 @@ def passed_by_value_to_a_virtual(index, juce_args, base_path):
 
 #==================================================================================================
 
+# Nested namespaces inside juce:: that JUCE keeps private. Everything else
+# nested there is either template machinery with nothing to bind or real API:
+# juce::Colours holds 286 named colours and juce::StandardApplicationCommandIDs
+# holds the ids ApplicationCommandManager expects.
+private_namespaces = {"detail", "internal"}
+
+
+def nested_namespaces(juce_namespace):
+    """The juce:: sub-namespaces whose public constants and functions bind."""
+    found = []
+    seen = set()
+    for entry in juce_namespace:
+        for node in entry.get_children():
+            if (node.kind == CursorKind.NAMESPACE and node.spelling
+                    and node.spelling not in private_namespaces
+                    and node.spelling not in seen):
+                seen.add(node.spelling)
+                found.append(node)
+            elif node.kind == CursorKind.NAMESPACE and node.spelling in seen:
+                found.append(node)
+    return found
+
+#==================================================================================================
+
 def run_main(juce_module_name, juce_class_name_to_export):
     class_map = {}
     class_inheritance_map = {}
@@ -1198,6 +1222,14 @@ def run_main(juce_module_name, juce_class_name_to_export):
     for entry in juce_namespace:
         all_functions += [node for node in filter(
             lambda x: x.kind == CursorKind.FUNCTION_DECL, entry.get_children())]
+
+    # And the ones a nested namespace holds. juce::Colours::findColourForName is
+    # the only one today. Its Nim name and its C++ spelling both carry the
+    # namespace, so the emit loop below reads the prefix off the cursor rather
+    # than assuming juce:: throughout.
+    for namespace in nested_namespaces(juce_namespace):
+        all_functions += [node for node in namespace.get_children()
+                          if node.kind == CursorKind.FUNCTION_DECL]
 
     # And the function templates. A C++ template parameter becomes a Nim
     # generic one and the C++ compiler deduces it from the call, which is what
@@ -2152,6 +2184,46 @@ def run_main(juce_module_name, juce_class_name_to_export):
 
         print()
 
+    # Constants a nested namespace holds. juce::Colours is 286 named Colour
+    # values and juce::StandardApplicationCommandIDs is the nine ids
+    # ApplicationCommandManager expects; neither was reachable, because the
+    # walk above only ever looked inside juce:: itself. Named
+    # <Namespace>_<name>, which is the shape the enum constants already use.
+    for namespace in nested_namespaces(juce_namespace):
+        constants = []
+        for node in namespace.get_children():
+            if not declared_in_this_module(node):
+                continue
+
+            if node.kind == CursorKind.VAR_DECL and node.spelling:
+                variable_type = remap_type(node.type, {}, enum_remap, class_juce_map,
+                                           global_nested_remap, unambiguous_nested_remap)
+                if not type_is_declared(variable_type, declared_type_names):
+                    continue
+                constants.append(nim_enum_constant_def.format(**{
+                    "constant_name": f"{namespace.spelling}_{remap_identifier(node.spelling)}",
+                    "enum_name": variable_type,
+                    "spelling": f"juce::{namespace.spelling}::{node.spelling}",
+                    "juce_module_name": juce_module_name }))
+
+            elif node.kind == CursorKind.ENUM_DECL:
+                # An enum in a namespace is bound as plain integers: unnamed it
+                # has no type to name, and named it would collide with the
+                # class-owned enums the table above already keys by bare name.
+                scope = (f"juce::{namespace.spelling}::{node.spelling}::"
+                         if node.is_scoped_enum()
+                         else f"juce::{namespace.spelling}::")
+                constants += [nim_enum_constant_def.format(**{
+                    "constant_name": f"{namespace.spelling}_{remap_identifier(e.spelling)}",
+                    "enum_name": "cint",
+                    "spelling": f"{scope}{e.spelling}",
+                    "juce_module_name": juce_module_name })
+                    for e in node.get_children()
+                    if e.kind == CursorKind.ENUM_CONSTANT_DECL]
+
+        if constants:
+            print("\n".join(constants) + "\n")
+
     # Free functions in the juce namespace. These were collected and then
     # discarded, so countNumberOfBits, findHighestSetBit and the rest had no
     # binding at all.
@@ -2159,7 +2231,16 @@ def run_main(juce_module_name, juce_class_name_to_export):
         if not declared_in_this_module(function) or not function.spelling:
             continue
 
-        function_name = remap_identifier(function.spelling)
+        # juce:: itself contributes no prefix; a nested namespace contributes
+        # its own name, so Colours::red is Colours_red - the same shape the
+        # enum constants already use.
+        owner = function.semantic_parent
+        namespace_prefix = ""
+        if (owner is not None and owner.kind == CursorKind.NAMESPACE
+                and owner.spelling and owner.spelling != "juce"):
+            namespace_prefix = f"{owner.spelling}_"
+
+        function_name = namespace_prefix + remap_identifier(function.spelling)
         comment, reason = "", ""
 
         # JUCE declares String's ==, < and + as free functions rather than
@@ -2208,7 +2289,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
             "function_args": ", ".join(function_args),
             "function_return": function_return,
             "juce_module_name": juce_module_name,
-            "juce_spelling": function.spelling,
+            "juce_spelling": namespace_prefix.replace("_", "::") + function.spelling,
             "juce_args": "@" if function_args else "",
             "reason": f"  # {reason}" if comment and reason else "" }))
 
