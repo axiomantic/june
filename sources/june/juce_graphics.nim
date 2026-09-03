@@ -438,10 +438,10 @@ proc makeColour*(alpha: PixelAlpha): Colour {.header: juce_graphics, importcpp: 
 proc fromRGB*(this: typedesc[Colour], red: uint8, green: uint8, blue: uint8): Colour {.header: juce_graphics, importcpp: "juce::Colour::fromRGB(@)".}
 proc fromRGBA*(this: typedesc[Colour], red: uint8, green: uint8, blue: uint8, alpha: uint8): Colour {.header: juce_graphics, importcpp: "juce::Colour::fromRGBA(@)".}
 proc fromFloatRGBA*(this: typedesc[Colour], red: cfloat, green: cfloat, blue: cfloat, alpha: cfloat): Colour {.header: juce_graphics, importcpp: "juce::Colour::fromFloatRGBA(@)".}
-proc fromHSV*(this: typedesc[Colour], hue: cfloat, saturation: cfloat, brightness: cfloat, alpha: cfloat): Colour {.header: juce_graphics, importcpp: "juce::Colour::fromHSV(@)".}
-proc fromHSV*(this: typedesc[Colour], hue: cfloat, saturation: cfloat, brightness: cfloat, alpha: uint8): Colour {.header: juce_graphics, importcpp: "juce::Colour::fromHSV(@)".}
-proc fromHSL*(this: typedesc[Colour], hue: cfloat, saturation: cfloat, lightness: cfloat, alpha: cfloat): Colour {.header: juce_graphics, importcpp: "juce::Colour::fromHSL(@)".}
-proc fromHSL*(this: typedesc[Colour], hue: cfloat, saturation: cfloat, lightness: cfloat, alpha: uint8): Colour {.header: juce_graphics, importcpp: "juce::Colour::fromHSL(@)".}
+proc fromHSV*(this: typedesc[Colour], hue: cfloat, saturation: cfloat, brightness: cfloat, alpha: cfloat): Colour {.header: juce_graphics, importcpp: "(#juce::Colour::fromHSV((float) #, (float) #, (float) #, (float) #))".}
+proc fromHSV*(this: typedesc[Colour], hue: cfloat, saturation: cfloat, brightness: cfloat, alpha: uint8): Colour {.header: juce_graphics, importcpp: "(#juce::Colour::fromHSV((float) #, (float) #, (float) #, (unsigned char) #))".}
+proc fromHSL*(this: typedesc[Colour], hue: cfloat, saturation: cfloat, lightness: cfloat, alpha: cfloat): Colour {.header: juce_graphics, importcpp: "(#juce::Colour::fromHSL((float) #, (float) #, (float) #, (float) #))".}
+proc fromHSL*(this: typedesc[Colour], hue: cfloat, saturation: cfloat, lightness: cfloat, alpha: uint8): Colour {.header: juce_graphics, importcpp: "(#juce::Colour::fromHSL((float) #, (float) #, (float) #, (unsigned char) #))".}
 proc `Colour=`*(this: var Colour, arg1: Colour): var Colour {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc `==`*(this: Colour, other: Colour): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: Colour, other: Colour): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
