@@ -4109,4 +4109,67 @@ proc testBailOutCheckerAndFriends() =
 
 when defined(macosx):
     testDocumentWindow()
+# SliderPropertyComponent and the positioner scope ============================
+#
+# A slider bound to a Value, and the expression scope a relative coordinate
+# resolves against. The scope is what makes "parent.width" mean something.
+
+proc testSliderPropertyAndScope() =
+    initialiseJuce_GUI()
+
+    block:
+        var backing = makeValue(makejuce_var(0.0))
+        var slider = makeSliderPropertyComponent(
+            backing, makeString("Gain"), 0.0, 10.0, 0.5, 1.0, false)
+
+        doAssert $slider.getName() == "Gain",
+                 "the component is called " & $slider.getName()
+
+        # setValue on the base class does nothing: JUCE declares it as an
+        # empty function for a subclass to override, and getValue reads the
+        # slider. The way in is the Value the slider was bound to.
+        slider.setValue(4.5)
+        doAssert slider.getValue() == 0.0,
+                 "the base setValue moved the slider to " & $slider.getValue()
+
+        backing.setValue(makejuce_var(4.5))
+        doAssert slider.getValue() == 4.5,
+                 "the slider did not follow its Value, reading " & $slider.getValue()
+
+        # Neither the interval nor the range applies to a value arriving this
+        # way: the slider mirrors the Value verbatim. Both constrain a user
+        # dragging the slider, not the Value it is attached to, which is worth
+        # knowing before trusting the range as a validation.
+        backing.setValue(makejuce_var(4.7))
+        doAssert slider.getValue() == 4.7,
+                 "the interval snapped 4.7 to " & $slider.getValue()
+
+        backing.setValue(makejuce_var(99.0))
+        doAssert slider.getValue() == 99.0,
+                 "the range clamped 99 to " & $slider.getValue()
+
+    block:
+        # A component scope resolves the symbols a relative coordinate names.
+        var owner = newCustomComponent()
+        owner[].setBounds(makeRectangle(0.cint, 0.cint, 120.cint, 40.cint))
+
+        let scope = makeRelativeCoordinatePositionerBaseComponentScope(
+            cast[ptr Component](owner)[])
+        doAssert $scope.getScopeUID() != "", "the scope has no identifier"
+
+        # "width" is the owner's own width, which the scope knows.
+        let width = scope.getSymbolValue(makeString("width"))
+        doAssert width.evaluate() == 120.0,
+                 "the scope resolved width to " & $width.evaluate()
+
+        let height = scope.getSymbolValue(makeString("height"))
+        doAssert height.evaluate() == 40.0,
+                 "the scope resolved height to " & $height.evaluate()
+
+        cdelete owner
+
+    shutdownJuce_GUI()
+
+
 testBailOutCheckerAndFriends()
+testSliderPropertyAndScope()
