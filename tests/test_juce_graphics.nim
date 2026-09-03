@@ -1201,3 +1201,64 @@ proc testPathStrokeType() =
                  "the thickness reads " & $thin.getStrokeThickness()
 
 testPathStrokeType()
+
+# Font feature settings =======================================================
+#
+# OpenType feature tags, which are four characters packed into a uint32. The
+# round trip through toString is what says the packing is right, and the
+# settings reach a Font through its options.
+
+proc testFontFeatureSettings() =
+    block:
+        # 'liga', the standard ligature feature, big-endian in the tag word.
+        let liga = makeFontFeatureTag(0x6C696761'u32)
+        doAssert $liga.toString() == "liga",
+                 "the tag spells " & $liga.toString()
+        doAssert liga.getTag() == 0x6C696761'u32,
+                 "the tag reads back as " & $liga.getTag()
+
+        let kern = makeFontFeatureTag(0x6B65726E'u32)
+        doAssert $kern.toString() == "kern", "the tag spells " & $kern.toString()
+        doAssert kern < liga, "kern does not sort before liga"
+
+        var setting = makeFontFeatureSetting(liga, 1'u32)
+        doAssert $setting.tag().toString() == "liga",
+                 "the setting is for " & $setting.tag().toString()
+        doAssert setting.value() == 1'u32,
+                 "the setting holds " & $setting.value()
+
+        setting.value = 0'u32
+        doAssert setting.value() == 0'u32,
+                 "after turning it off the setting holds " & $setting.value()
+
+    block:
+        # A font carries the settings its options were given.
+        let plain = makeFontOptions()
+        doAssert plain.getFeatureSettings().size() == 0.csize_t,
+                 "fresh options carry " &
+                 $plain.getFeatureSettings().size().int & " settings"
+
+        let withLigatures = plain.withFeatureSetting(
+            makeFontFeatureSetting(makeFontFeatureTag(0x6C696761'u32), 1'u32))
+        doAssert withLigatures.getFeatureSettings().size() == 1.csize_t,
+                 "the options carry " &
+                 $withLigatures.getFeatureSettings().size().int & " settings"
+        doAssert $withLigatures.getFeatureSettings()[0.csize_t].tag().toString() == "liga",
+                 "the setting is for " &
+                 $withLigatures.getFeatureSettings()[0.csize_t].tag().toString()
+
+        # withFeatureSetting copies rather than mutating, like the other
+        # withX builders.
+        doAssert plain.getFeatureSettings().size() == 0.csize_t,
+                 "withFeatureSetting changed the options it was called on"
+
+        var font = makeFont(withLigatures)
+        doAssert font.getFeatureSettings().size() == 1.csize_t,
+                 "the font carries " & $font.getFeatureSettings().size().int & " settings"
+
+        font.removeFeatureSetting(makeFontFeatureTag(0x6C696761'u32))
+        doAssert font.getFeatureSettings().size() == 0.csize_t,
+                 "after removing it the font carries " &
+                 $font.getFeatureSettings().size().int & " settings"
+
+testFontFeatureSettings()
