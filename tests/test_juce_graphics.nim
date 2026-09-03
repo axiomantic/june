@@ -1146,3 +1146,58 @@ proc testEveryNoArgConstructorGraphics() =
     shutdownJuce_GUI()
 
 testEveryNoArgConstructorGraphics()
+
+# PathStrokeType ==============================================================
+#
+# Turns a line into the outline of a stroked line. A thicker stroke has to give
+# a taller outline, which a stroke that ignored its thickness could not.
+
+proc testPathStrokeType() =
+    block:
+        var line = makePath()
+        line.startNewSubPath(0.0'f32, 10.0'f32)
+        line.lineTo(100.0'f32, 10.0'f32)
+        doAssert line.getBounds().getHeight() == 0.0'f32,
+                 "a horizontal line is " & $line.getBounds().getHeight() & " high"
+
+        var thin = makePathStrokeType(2.0'f32)
+        doAssert thin.getStrokeThickness() == 2.0'f32,
+                 "the stroke is " & $thin.getStrokeThickness() & " thick"
+
+        var thinOutline = makePath()
+        thin.createStrokedPath(thinOutline, line, makeAffineTransform())
+        doAssert thinOutline.getBounds().getHeight() == 2.0'f32,
+                 "a 2px stroke gave an outline " &
+                 $thinOutline.getBounds().getHeight() & " high"
+
+        # A thicker stroke gives a taller outline: a different answer, not
+        # merely a non-empty one.
+        var thick = makePathStrokeType(8.0'f32, PathStrokeTypeJointStyle_curved,
+                                       PathStrokeTypeEndCapStyle_rounded)
+        doAssert thick.getJointStyle() == PathStrokeTypeJointStyle_curved,
+                 "the joint style did not stick"
+        doAssert thick.getEndStyle() == PathStrokeTypeEndCapStyle_rounded,
+                 "the end cap style did not stick"
+
+        var thickOutline = makePath()
+        thick.createStrokedPath(thickOutline, line, makeAffineTransform())
+        doAssert thickOutline.getBounds().getHeight() == 8.0'f32,
+                 "an 8px stroke gave an outline " &
+                 $thickOutline.getBounds().getHeight() & " high"
+
+        # Rounded caps stick out past the line's own ends; butt caps do not.
+        var butt = makePathStrokeType(8.0'f32, PathStrokeTypeJointStyle_mitered,
+                                      PathStrokeTypeEndCapStyle_butt)
+        var buttOutline = makePath()
+        butt.createStrokedPath(buttOutline, line, makeAffineTransform())
+        doAssert buttOutline.getBounds().getWidth() == 100.0'f32,
+                 "butt caps gave a width of " & $buttOutline.getBounds().getWidth()
+        doAssert thickOutline.getBounds().getWidth() > 100.0'f32,
+                 "rounded caps gave a width of " &
+                 $thickOutline.getBounds().getWidth()
+
+        thin.setStrokeThickness(5.0'f32)
+        doAssert thin.getStrokeThickness() == 5.0'f32,
+                 "the thickness reads " & $thin.getStrokeThickness()
+
+testPathStrokeType()
