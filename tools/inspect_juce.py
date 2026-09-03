@@ -870,6 +870,35 @@ def use_system_libclang():
 
 #==================================================================================================
 
+def reachable_method_count(class_spelling, class_map, class_inheritance_map,
+                           seen=None):
+    """Public methods on a class and on everything it publicly inherits.
+
+    Used to pick which of several public bases becomes the Nim parent. Keyed on
+    the bare spelling, like the rest of the generator's tables, so two nested
+    classes of the same name share a count; that only ever moves the choice
+    between bases of one class, never makes an unrelated one unreachable.
+    """
+    seen = seen if seen is not None else set()
+    if class_spelling in seen:
+        return 0
+    seen.add(class_spelling)
+
+    cursor = class_map.get(class_spelling)
+    if cursor is None:
+        return 0
+
+    total = len([x for x in cursor.get_children()
+                 if x.kind == CursorKind.CXX_METHOD
+                 and x.access_specifier == AccessSpecifier.PUBLIC])
+    for b in class_inheritance_map.get(class_spelling, ()):
+        if b is not None:
+            total += reachable_method_count(b.spelling, class_map,
+                                            class_inheritance_map, seen)
+    return total
+
+#==================================================================================================
+
 def run_main(juce_module_name, juce_class_name_to_export):
     class_map = {}
     class_inheritance_map = {}
@@ -1106,11 +1135,23 @@ def run_main(juce_module_name, juce_class_name_to_export):
         emitted_types.add(c.spelling)
 
         class_name = remap_exported_class_name(c.spelling)
-        base = None
-        for b in class_inheritance_map[c.spelling]:
-            if b is not None and b.spelling in class_map and b.spelling != c.spelling:
-                base = remap_exported_class_name(b.spelling)
-                break
+
+        # Nim has one parent and C++ has as many as it likes, so where a class
+        # has several public bases the choice decides what stays reachable.
+        # Taking the first one declared bound TextEditor as a TextInputTarget
+        # and put the whole of Component out of reach - no setBounds, no
+        # repaint, a text box that cannot be placed. Take the base that reaches
+        # the most instead, which loses the least in every case: TextEditor
+        # gives up TextInputTarget's 13 methods rather than Component's 203,
+        # and the other two classes this moves - KeyPressMappingSet and
+        # RelativeCoordinatePositionerBase - improve the same way.
+        candidates = [b for b in class_inheritance_map[c.spelling]
+                      if b is not None and b.spelling in class_map
+                      and b.spelling != c.spelling]
+        base = (remap_exported_class_name(
+                    max(candidates, key=lambda b: reachable_method_count(
+                        b.spelling, class_map, class_inheritance_map)).spelling)
+                if candidates else None)
 
         all_class_decls.append(nim_class_def.format(**{
             "class_name": class_name,

@@ -51,7 +51,7 @@ type
   ApplicationCommandTargetInvocationInfo* {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandTarget::InvocationInfo", inheritable, pure.} = object
   ApplicationCommandManager* {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandManager", inheritable, pure.} = object
   ApplicationCommandManagerListener* {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandManagerListener", inheritable, pure.} = object
-  KeyPressMappingSet* {.header: juce_gui_basics, importcpp: "juce::KeyPressMappingSet", inheritable, pure.} = object of KeyListener
+  KeyPressMappingSet* {.header: juce_gui_basics, importcpp: "juce::KeyPressMappingSet", inheritable, pure.} = object of ChangeBroadcaster
   Button* {.header: juce_gui_basics, importcpp: "juce::Button", inheritable, pure.} = object of Component
   ButtonListener* {.header: juce_gui_basics, importcpp: "juce::Button::Listener", inheritable, pure.} = object
   ButtonLookAndFeelMethods* {.header: juce_gui_basics, importcpp: "juce::Button::LookAndFeelMethods", inheritable, pure.} = object
@@ -138,7 +138,7 @@ type
   DrawablePath* {.header: juce_gui_basics, importcpp: "juce::DrawablePath", inheritable, pure.} = object of DrawableShape
   DrawableRectangle* {.header: juce_gui_basics, importcpp: "juce::DrawableRectangle", inheritable, pure.} = object of DrawableShape
   DrawableText* {.header: juce_gui_basics, importcpp: "juce::DrawableText", inheritable, pure.} = object of Drawable
-  TextEditor* {.header: juce_gui_basics, importcpp: "juce::TextEditor", inheritable, pure.} = object of TextInputTarget
+  TextEditor* {.header: juce_gui_basics, importcpp: "juce::TextEditor", inheritable, pure.} = object of Component
   TextEditorListener* {.header: juce_gui_basics, importcpp: "juce::TextEditor::Listener", inheritable, pure.} = object
   TextEditorInputFilter* {.header: juce_gui_basics, importcpp: "juce::TextEditor::InputFilter", inheritable, pure.} = object
   TextEditorLengthAndCharacterRestriction* {.header: juce_gui_basics, importcpp: "juce::TextEditor::LengthAndCharacterRestriction", inheritable, pure.} = object
