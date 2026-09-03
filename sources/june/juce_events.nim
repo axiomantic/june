@@ -5,7 +5,8 @@ const juce_events = "../../JUCE/modules/juce_events/juce_events.h"
 type
   MessageManager* {.header: juce_events, importcpp: "juce::MessageManager", inheritable, pure.} = object
   MessageManagerMessageBase* {.header: juce_events, importcpp: "juce::MessageManager::MessageBase", inheritable, pure.} = object
-  MessageManagerLock* {.header: juce_events, importcpp: "juce::MessageManager::Lock", inheritable, pure.} = object
+  MessageManagerInnerLock* {.header: juce_events, importcpp: "juce::MessageManager::Lock", inheritable, pure.} = object
+  MessageManagerLock* {.header: juce_events, importcpp: "juce::MessageManagerLock", inheritable, pure.} = object
   Message* {.header: juce_events, importcpp: "juce::Message", inheritable, pure.} = object
   MessageListener* {.header: juce_events, importcpp: "juce::MessageListener", inheritable, pure.} = object
   CallbackMessage* {.header: juce_events, importcpp: "juce::CallbackMessage", inheritable, pure.} = object
@@ -76,6 +77,13 @@ proc messageCallback*(this: var MessageManagerMessageBase) {.header: juce_events
 proc post*(this: var MessageManagerMessageBase): bool {.header: juce_events, importcpp: "#.post()".}
 proc `MessageManagerMessageBase=`*(this: var MessageManagerMessageBase, arg1: MessageManagerMessageBase): var MessageManagerMessageBase {.header: juce_events, importcpp: "#.operator=(@)".}
 proc `==`*(this: MessageManagerMessageBase, other: MessageManagerMessageBase): bool {.error: "juce::MessageManager::MessageBase defines no operator==; compare a property instead".}
+
+proc makeMessageManagerInnerLock*(): MessageManagerInnerLock {.header: juce_events, importcpp: "juce::MessageManager::Lock(@)".}
+proc enter*(this: MessageManagerInnerLock) {.header: juce_events, importcpp: "#.enter()".}
+proc tryEnter*(this: MessageManagerInnerLock): bool {.header: juce_events, importcpp: "#.tryEnter()".}
+proc exit*(this: MessageManagerInnerLock) {.header: juce_events, importcpp: "#.exit()".}
+proc abort*(this: MessageManagerInnerLock) {.header: juce_events, importcpp: "#.abort()".}
+proc `==`*(this: MessageManagerInnerLock, other: MessageManagerInnerLock): bool {.error: "juce::MessageManager::Lock defines no operator==; compare a property instead".}
 
 proc makeMessageManagerLock*(threadToCheckForExitSignal: ptr Thread): MessageManagerLock {.header: juce_events, importcpp: "juce::MessageManagerLock(@)".}
 proc makeMessageManagerLock*(jobToCheckForExitSignal: ptr ThreadPoolJob): MessageManagerLock {.header: juce_events, importcpp: "juce::MessageManagerLock(@)".}

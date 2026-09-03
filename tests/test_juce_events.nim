@@ -255,3 +255,30 @@ proc testLockingAsyncUpdater() =
     shutdownJuce_GUI()
 
 testLockingAsyncUpdater()
+
+# MessageManagerLock ==========================================================
+#
+# Taking the message thread's lock. On the message thread itself - which is
+# where a test runs - it is granted at once, and lockWasGained says so.
+
+proc testMessageManagerLock() =
+    initialiseJuce_GUI()
+
+    block:
+        let lock = makeMessageManagerLock(cast[ptr june.Thread](nil))
+        doAssert lock.lockWasGained(),
+                 "the message manager lock was refused on the message thread"
+
+        # juce::MessageManager::Lock is a different class from
+        # juce::MessageManagerLock, and both used to flatten to the same Nim
+        # name: the type was declared as the nested one while every method
+        # bound onto it came from the top-level one, so this constructor could
+        # not be called at all.
+        let inner = makeMessageManagerInnerLock()
+        doAssert inner.tryEnter(),
+                 "a fresh MessageManager::Lock refused tryEnter"
+        inner.exit()
+
+    shutdownJuce_GUI()
+
+testMessageManagerLock()

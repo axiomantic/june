@@ -4172,4 +4172,40 @@ proc testSliderPropertyAndScope() =
 
 
 testBailOutCheckerAndFriends()
+# MultiDocumentPanelWindow ====================================================
+#
+# macOS only, for the reason the DocumentWindow test gives: it is a top-level
+# window and the headless Linux container segfaults on one.
+
+when defined(macosx):
+    proc testMultiDocumentPanelWindow() =
+        initialiseJuce_GUI()
+
+        block:
+            var window = makeMultiDocumentPanelWindow(
+                makeColour(30'u8, 30'u8, 30'u8, 255'u8))
+            window.setName(makeString("Document 1"))
+            doAssert $window.getName() == "Document 1",
+                     "the window is called " & $window.getName()
+
+            window.setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 150.cint))
+            doAssert window.getWidth() == 200,
+                     "the window is " & $window.getWidth() & " wide"
+
+            # It is a ResizableWindow, so it carries a content component.
+            var content = newCustomComponent()
+            window.setContentNonOwned(cast[ptr Component](content), false)
+            doAssert window.getContentComponent() == cast[ptr Component](content),
+                     "the window holds another content component"
+
+            window.clearContentComponent()
+            doAssert window.getContentComponent() == nil,
+                     "clearing left a content component"
+            cdelete content
+
+        shutdownJuce_GUI()
+
+
 testSliderPropertyAndScope()
+when defined(macosx):
+    testMultiDocumentPanelWindow()
