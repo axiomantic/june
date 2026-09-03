@@ -53,9 +53,12 @@ jobs:
             PYTHONPATH=tools python3 tools/generate_subclasses.py --module "$module" \
               > "sources/june/${module}_subclasses.nim" || exit 1
           done
+          # The compile harness is generated from the emitted bindings, so a
+          # generator change that adds or withholds one has to change it too.
+          PYTHONPATH=tools python3 tools/generate_compile_harness.py || exit 1
           # git diff exits 1 when anything differs, which fails the job and
           # prints exactly what drifted.
-          git diff --exit-code -- sources/june/
+          git diff --exit-code -- sources/june/ tests/test_juce_compiles.nim
 
   test:
     name: nim ${{ matrix.nim-version }} / ${{ matrix.os }}
