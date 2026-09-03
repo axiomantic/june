@@ -4358,3 +4358,140 @@ proc testStreamPrimitives() =
              "the newline string did not read back"
 
 testStreamPrimitives()
+
+# juce_var is a tagged union. Exactly one predicate answers for any value, and
+# the equality operators differ in whether they let the tags differ - which is
+# the distinction a caller has to know.
+proc testVarTypes() =
+  block:
+    # Each constructor sets exactly one tag.
+    let nothing = makejuce_var()
+    doAssert nothing.isVoid(), "a default var is not void"
+    doAssert not nothing.isUndefined(), "a void var is undefined"
+    doAssert not nothing.isInt(), "a void var is an int"
+
+    let whole = makejuce_var(7.cint)
+    doAssert whole.isInt(), "an int var is not an int"
+    doAssert not whole.isDouble(), "an int var is a double"
+    doAssert not whole.isBool(), "an int var is a bool"
+    doAssert not whole.isString(), "an int var is a string"
+
+    let wide = makejuce_var(9876543210'i64)
+    doAssert wide.isInt64(), "an int64 var is not an int64"
+    doAssert not wide.isInt(), "an int64 var is also an int"
+
+    let flag = makejuce_var(true)
+    doAssert flag.isBool(), "a bool var is not a bool"
+    doAssert not flag.isInt(), "a bool var is an int"
+
+    let fractional = makejuce_var(1.5)
+    doAssert fractional.isDouble(), "a double var is not a double"
+    doAssert not fractional.isInt(), "a double var is an int"
+
+    let text = makejuce_var(makeString("hello"))
+    doAssert text.isString(), "a string var is not a string"
+    doAssert not text.isArray(), "a string var is an array"
+
+    var bytes = makeMemoryBlock(8'u64, true)
+    let binary = makejuce_var(bytes)
+    doAssert binary.isBinaryData(), "a binary var is not binary data"
+    doAssert not binary.getBinaryData().isNil,
+             "a binary var has no data behind it"
+    doAssert binary.getBinaryData()[].getSize() == 8'u64,
+             "the binary data measures " & $binary.getBinaryData()[].getSize()
+
+    # A var that holds nothing has no object or array behind it either.
+    doAssert nothing.getArray().isNil, "a void var has an array"
+    doAssert nothing.getObject().isNil, "a void var has an object"
+    doAssert nothing.getDynamicObject().isNil, "a void var has a dynamic object"
+    doAssert not nothing.isMethod(), "a void var is a method"
+
+  block:
+    # equals compares by VALUE across types; equalsWithSameType also requires
+    # the tags to match. hasSameTypeAs asks about the tag alone.
+    let whole = makejuce_var(1.cint)
+    let fractional = makejuce_var(1.0)
+    let flag = makejuce_var(true)
+
+    doAssert whole.equals(fractional),
+             "1 and 1.0 do not compare equal by value"
+    doAssert not whole.equalsWithSameType(fractional),
+             "1 and 1.0 compare equal with the same type"
+    doAssert not whole.hasSameTypeAs(fractional),
+             "an int and a double have the same type"
+    doAssert whole.hasSameTypeAs(makejuce_var(2.cint)),
+             "two ints have different types"
+
+    doAssert whole.equals(flag), "1 and true do not compare equal by value"
+    doAssert not whole.equalsWithSameType(flag),
+             "1 and true compare equal with the same type"
+
+  block:
+    # An array var carries its elements, and the array operations move them
+    # about without changing the tag.
+    var list = makejuce_var(makeArray[juce_var]())
+    doAssert list.isArray(), "an array var is not an array"
+    doAssert list.size() == 0, "a new array holds " & $list.size() & " elements"
+
+    list.append(makejuce_var(10.cint))
+    list.append(makejuce_var(30.cint))
+    doAssert list.size() == 2, "the array holds " & $list.size() & " elements"
+    doAssert list[0.cint].toInt() == 10,
+             "element 0 is " & $list[0.cint].toInt()
+
+    list.insert(1.cint, makejuce_var(20.cint))
+    doAssert list.size() == 3, "after the insert there are " & $list.size()
+    doAssert list[1.cint].toInt() == 20,
+             "the inserted element is " & $list[1.cint].toInt()
+    doAssert list[2.cint].toInt() == 30,
+             "the insert did not push the last element along; it is " &
+             $list[2.cint].toInt()
+
+    doAssert list.indexOf(makejuce_var(30.cint)) == 2,
+             "30 is at index " & $list.indexOf(makejuce_var(30.cint))
+    doAssert list.indexOf(makejuce_var(99.cint)) == -1,
+             "an absent value is at index " &
+             $list.indexOf(makejuce_var(99.cint))
+
+    list.remove(0.cint)
+    doAssert list.size() == 2, "after the remove there are " & $list.size()
+    doAssert list[0.cint].toInt() == 20,
+             "the survivor is " & $list[0.cint].toInt()
+
+    # resize grows with void elements and shrinks by dropping them.
+    list.resize(5.cint)
+    doAssert list.size() == 5, "after growing there are " & $list.size()
+    doAssert list[4.cint].isVoid(),
+             "the grown elements are not void"
+    list.resize(1.cint)
+    doAssert list.size() == 1, "after shrinking there are " & $list.size()
+    doAssert list[0.cint].toInt() == 20,
+             "shrinking dropped the wrong end; the survivor is " &
+             $list[0.cint].toInt()
+
+    # The elements are reachable as a span too, and it agrees with size().
+    doAssert list.getArrayElements().size() == 1'u64,
+             "the span holds " & $list.getArrayElements().size() & " elements"
+
+    # clone copies the array rather than sharing it.
+    var copied = list.clone()
+    copied.append(makejuce_var(99.cint))
+    doAssert list.size() == 1,
+             "appending to the clone changed the original to " & $list.size()
+
+  block:
+    # A var survives a round trip through a stream, tag and all.
+    var buffer = makeMemoryBlock(0'u64, false)
+    block:
+      var output = makeMemoryOutputStream(buffer, false)
+      makejuce_var(makeString("carried")).writeToStream(output)
+      output.flush()
+
+    var input = makeMemoryInputStream(buffer, false)
+    let restored = juce_var.readFromStream(input)
+    doAssert restored.isString(),
+             "the restored var is not a string"
+    doAssert $restored.toString() == "carried",
+             "the restored var reads " & $restored.toString()
+
+testVarTypes()
