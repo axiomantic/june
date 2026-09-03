@@ -160,10 +160,15 @@ platform_specific_constructors = {
 def check_no_argument_constructors():
     """Every generated constructor that takes no arguments is called.
 
-    Only the no-argument ones: a constructor with arguments needs values a
-    check like this cannot invent, and 191 of those are still uncalled. What
-    this covers is the set a sweep can cover, and sweeping it is what found
-    five constructors emitted for a deleted C++ one - JSONUtils,
+    Only the no-argument ones. A sweep that invents arguments was tried and
+    abandoned: a JUCE constructor does real work, and the invented values sent
+    it doing it - a directory handed to ZipFile, an empty name to
+    InterProcessLock - until the process was killed. Compiling the importcpp is
+    not worth running JUCE against nonsense, so the 191 constructors that take
+    arguments stay uncovered unless a test has a real reason to build one.
+
+    Sweeping the no-argument ones is what found five constructors emitted for a
+    deleted C++ one - JSONUtils,
     OrderedContainerHelpers, WindowUtils, ContentSharer and String(bool),
     which JUCE deletes so that a bool does not silently become a String.
     """
