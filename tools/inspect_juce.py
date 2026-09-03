@@ -1733,8 +1733,13 @@ def run_main(juce_module_name, juce_class_name_to_export):
 
             # A constructor has no receiver, so `@` is the whole argument list
             # and only a single-argument one can be cast as a unit.
-            if len(ctor_cpp_types) == 1 and ctor.spelling in scalar_overloaded_ctors:
-                ctor_juce_args = f"({ctor_cpp_types[0]}) @"
+            # One bare `#` per parameter, so each argument carries the type its
+            # overload declares. A constructor has no typedesc to swallow the
+            # first placeholder, which is what limited the static form, so
+            # arity makes no difference here.
+            if ctor_cpp_types and ctor.spelling in scalar_overloaded_ctors:
+                ctor_juce_args = ", ".join(f"({cpp_type}) #"
+                                           for cpp_type in ctor_cpp_types)
             else:
                 ctor_juce_args = "@"
 

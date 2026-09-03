@@ -419,15 +419,15 @@ proc desaturate*(this: var PixelAlpha) {.header: juce_graphics, importcpp: "#.de
 proc `==`*(this: PixelAlpha, other: PixelAlpha): bool {.error: "juce::PixelAlpha defines no operator==; compare a property instead".}
 
 proc makeColour*(): Colour {.header: juce_graphics, importcpp: "juce::Colour(@)".}
-proc makeColour*(argb: uint32): Colour {.header: juce_graphics, importcpp: "juce::Colour((unsigned int) @)".}
-proc makeColour*(red: uint8, green: uint8, blue: uint8): Colour {.header: juce_graphics, importcpp: "juce::Colour(@)".}
-proc makeColour*(red: uint8, green: uint8, blue: uint8, alpha: uint8): Colour {.header: juce_graphics, importcpp: "juce::Colour(@)".}
-proc makeColour*(red: uint8, green: uint8, blue: uint8, alpha: cfloat): Colour {.header: juce_graphics, importcpp: "juce::Colour(@)".}
-proc makeColour*(hue: cfloat, saturation: cfloat, brightness: cfloat, alpha: uint8): Colour {.header: juce_graphics, importcpp: "juce::Colour(@)".}
-proc makeColour*(hue: cfloat, saturation: cfloat, brightness: cfloat, alpha: cfloat): Colour {.header: juce_graphics, importcpp: "juce::Colour(@)".}
-proc makeColour*(argb: PixelARGB): Colour {.header: juce_graphics, importcpp: "juce::Colour((juce::PixelARGB) @)".}
-proc makeColour*(rgb: PixelRGB): Colour {.header: juce_graphics, importcpp: "juce::Colour((juce::PixelRGB) @)".}
-proc makeColour*(alpha: PixelAlpha): Colour {.header: juce_graphics, importcpp: "juce::Colour((juce::PixelAlpha) @)".}
+proc makeColour*(argb: uint32): Colour {.header: juce_graphics, importcpp: "juce::Colour((unsigned int) #)".}
+proc makeColour*(red: uint8, green: uint8, blue: uint8): Colour {.header: juce_graphics, importcpp: "juce::Colour((unsigned char) #, (unsigned char) #, (unsigned char) #)".}
+proc makeColour*(red: uint8, green: uint8, blue: uint8, alpha: uint8): Colour {.header: juce_graphics, importcpp: "juce::Colour((unsigned char) #, (unsigned char) #, (unsigned char) #, (unsigned char) #)".}
+proc makeColour*(red: uint8, green: uint8, blue: uint8, alpha: cfloat): Colour {.header: juce_graphics, importcpp: "juce::Colour((unsigned char) #, (unsigned char) #, (unsigned char) #, (float) #)".}
+proc makeColour*(hue: cfloat, saturation: cfloat, brightness: cfloat, alpha: uint8): Colour {.header: juce_graphics, importcpp: "juce::Colour((float) #, (float) #, (float) #, (unsigned char) #)".}
+proc makeColour*(hue: cfloat, saturation: cfloat, brightness: cfloat, alpha: cfloat): Colour {.header: juce_graphics, importcpp: "juce::Colour((float) #, (float) #, (float) #, (float) #)".}
+proc makeColour*(argb: PixelARGB): Colour {.header: juce_graphics, importcpp: "juce::Colour((juce::PixelARGB) #)".}
+proc makeColour*(rgb: PixelRGB): Colour {.header: juce_graphics, importcpp: "juce::Colour((juce::PixelRGB) #)".}
+proc makeColour*(alpha: PixelAlpha): Colour {.header: juce_graphics, importcpp: "juce::Colour((juce::PixelAlpha) #)".}
 proc fromRGB*(this: typedesc[Colour], red: uint8, green: uint8, blue: uint8): Colour {.header: juce_graphics, importcpp: "juce::Colour::fromRGB(@)".}
 proc fromRGBA*(this: typedesc[Colour], red: uint8, green: uint8, blue: uint8, alpha: uint8): Colour {.header: juce_graphics, importcpp: "juce::Colour::fromRGBA(@)".}
 proc fromFloatRGBA*(this: typedesc[Colour], red: cfloat, green: cfloat, blue: cfloat, alpha: cfloat): Colour {.header: juce_graphics, importcpp: "juce::Colour::fromFloatRGBA(@)".}
@@ -953,11 +953,11 @@ proc `==`*(this: Typeface, other: Typeface): bool {.error: "juce::Typeface defin
 proc `==`*(this: TypefaceNative, other: TypefaceNative): bool {.error: "juce::Typeface::Native defines no operator==; compare a property instead".}
 
 proc makeFontOptions*(): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions(@)".}
-proc makeFontOptions*(fontHeight: cfloat): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions((float) @)".}
-proc makeFontOptions*(fontHeight: cfloat, styleFlags: cint): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions(@)".}
-proc makeFontOptions*(typefaceName: String, fontHeight: cfloat, styleFlags: cint): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions(@)".}
-proc makeFontOptions*(typefaceName: String, typefaceStyle: String, fontHeight: cfloat): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions(@)".}
-proc makeFontOptions*(typeface: ReferenceCountedObjectPtr[Typeface]): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions((const juce::ReferenceCountedObjectPtr<juce::Typeface> &) @)".}
+proc makeFontOptions*(fontHeight: cfloat): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions((float) #)".}
+proc makeFontOptions*(fontHeight: cfloat, styleFlags: cint): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions((float) #, (int) #)".}
+proc makeFontOptions*(typefaceName: String, fontHeight: cfloat, styleFlags: cint): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions((const juce::String &) #, (float) #, (int) #)".}
+proc makeFontOptions*(typefaceName: String, typefaceStyle: String, fontHeight: cfloat): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions((const juce::String &) #, (const juce::String &) #, (float) #)".}
+proc makeFontOptions*(typeface: ReferenceCountedObjectPtr[Typeface]): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions((const juce::ReferenceCountedObjectPtr<juce::Typeface> &) #)".}
 proc withName*(this: FontOptions, x: String): FontOptions {.header: juce_graphics, importcpp: "#.withName(@)".}
 proc withStyle*(this: FontOptions, x: String): FontOptions {.header: juce_graphics, importcpp: "#.withStyle(@)".}
 proc withTypeface*(this: FontOptions, x: ReferenceCountedObjectPtr[Typeface]): FontOptions {.header: juce_graphics, importcpp: "#.withTypeface(@)".}
@@ -996,11 +996,11 @@ proc `<=`*(this: FontOptions, other: FontOptions): bool {.header: juce_graphics,
 # proc operator>*(this: FontOptions, other: FontOptions): bool {.header: juce_graphics, importcpp: "#.operator>(@)".}  # Nim derives > and >= from < and <=
 # proc operator>=*(this: FontOptions, other: FontOptions): bool {.header: juce_graphics, importcpp: "#.operator>=(@)".}  # Nim derives > and >= from < and <=
 
-proc makeFont*(options: FontOptions): Font {.header: juce_graphics, importcpp: "juce::Font((juce::FontOptions) @)".}
-proc makeFont*(fontHeight: cfloat, styleFlags: cint): Font {.header: juce_graphics, importcpp: "juce::Font(@)".}
-proc makeFont*(typefaceName: String, fontHeight: cfloat, styleFlags: cint): Font {.header: juce_graphics, importcpp: "juce::Font(@)".}
-proc makeFont*(typefaceName: String, typefaceStyle: String, fontHeight: cfloat): Font {.header: juce_graphics, importcpp: "juce::Font(@)".}
-proc makeFont*(typeface: ReferenceCountedObjectPtr[Typeface]): Font {.header: juce_graphics, importcpp: "juce::Font((const juce::ReferenceCountedObjectPtr<juce::Typeface> &) @)".}
+proc makeFont*(options: FontOptions): Font {.header: juce_graphics, importcpp: "juce::Font((juce::FontOptions) #)".}
+proc makeFont*(fontHeight: cfloat, styleFlags: cint): Font {.header: juce_graphics, importcpp: "juce::Font((float) #, (int) #)".}
+proc makeFont*(typefaceName: String, fontHeight: cfloat, styleFlags: cint): Font {.header: juce_graphics, importcpp: "juce::Font((const juce::String &) #, (float) #, (int) #)".}
+proc makeFont*(typefaceName: String, typefaceStyle: String, fontHeight: cfloat): Font {.header: juce_graphics, importcpp: "juce::Font((const juce::String &) #, (const juce::String &) #, (float) #)".}
+proc makeFont*(typeface: ReferenceCountedObjectPtr[Typeface]): Font {.header: juce_graphics, importcpp: "juce::Font((const juce::ReferenceCountedObjectPtr<juce::Typeface> &) #)".}
 proc makeFont*(): Font {.header: juce_graphics, importcpp: "juce::Font(@)".}
 proc `Font=`*(this: var Font, other: Font): var Font {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc `==`*(this: Font, other: Font): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
