@@ -5868,3 +5868,56 @@ proc testFileChooserLaunchAsync() =
     shutdownJuce_GUI()
 
 testFileChooserLaunchAsync()
+
+# TreeView::LookAndFeelMethods ================================================
+#
+# The last interface that could not be subclassed. Its drawTreeviewPlusMinusBox
+# takes a Colour by value, and `inheritable` made Nim hand every object over as
+# a pointer, so the closure's C signature said Colour* where the std::function
+# said Colour. Colour is now marked bycopy, which is how C++ passes it anyway.
+
+proc testTreeViewLookAndFeelMethods() =
+    initialiseJuce_GUI()
+
+    block:
+        var image = makeImage(ImagePixelFormat_ARGB, 32, 32, true)
+        var g = makeGraphics(image)
+
+        var drawn = 0
+        var seenBackground = makeColour(0'u8, 0'u8, 0'u8, 0'u8)
+        var seenOpen = false
+
+        let methods = newCustomTreeViewLookAndFeelMethods()
+        methods[].setDrawTreeviewPlusMinusBoxHandler(
+            proc(context: ptr Graphics, area: ptr Rectangle[cfloat],
+                 background: Colour, isItemOpen: bool, isMouseOver: bool) =
+                drawn += 1
+                seenBackground = background
+                seenOpen = isItemOpen)
+        methods[].setAreLinesDrawnForTreeViewHandler(
+            proc(tree: ptr TreeView): bool = true)
+        methods[].setGetTreeViewIndentSizeHandler(
+            proc(tree: ptr TreeView): cint = 17)
+
+        # The Colour has to arrive with its channels intact, which is the whole
+        # point of passing it by value rather than through a pointer.
+        let background = makeColour(12'u8, 34'u8, 56'u8, 255'u8)
+        methods[].drawTreeviewPlusMinusBox(
+            g, makeRectangle(0.0'f32, 0.0'f32, 16.0'f32, 16.0'f32),
+            background, true, false)
+
+        doAssert drawn == 1, "the handler ran " & $drawn & " times"
+        doAssert seenBackground == background,
+                 "the colour arrived as " & $seenBackground.getRed() & "," &
+                 $seenBackground.getGreen() & "," & $seenBackground.getBlue()
+        doAssert seenOpen, "isItemOpen arrived false"
+
+        var tree = makeTreeView(makeString("tree"))
+        doAssert methods[].areLinesDrawnForTreeView(tree), "the lines handler said no"
+        doAssert methods[].getTreeViewIndentSize(tree) == 17,
+                 "the indent came back as " & $methods[].getTreeViewIndentSize(tree)
+        cdelete methods
+
+    shutdownJuce_GUI()
+
+testTreeViewLookAndFeelMethods()

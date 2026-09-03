@@ -50,7 +50,7 @@ include {juce_module_name}_lifting
 # inheritable lifts Nim's refusal to write `object of X`; pure stops it adding
 # an RTTI field to the layout. Without pure, Nim value-initialises these as
 # {(&NTIv2_...)}, and C++ rejects it: JUCE's classes have no such member.
-nim_class_def = """  {class_name}{export} {{.header: {juce_module_name}, importcpp: "{spelling}", inheritable, pure.}} = object{base}"""
+nim_class_def = """  {class_name}{export} {{.header: {juce_module_name}, importcpp: "{spelling}", inheritable, pure{by_copy}.}} = object{base}"""
 
 nim_template_def = """{comment}proc {function_name}*[{generics}]({function_args}){function_return} {{.header: {juce_module_name}, importcpp: "juce::{juce_spelling}(@)".}}{reason}"""
 
@@ -1077,6 +1077,51 @@ def primary_base(cursor, class_map):
 
 #==================================================================================================
 
+def passed_by_value_to_a_virtual(index, juce_args, base_path):
+    """Classes JUCE passes BY VALUE into a virtual, which must not be pointers.
+
+    `inheritable` makes Nim hand an object over as a pointer, which is right
+    for the classes a generated subclass overrides but wrong for a small value
+    a virtual takes by value: the closure's C signature then says Colour* where
+    the std::function says Colour, and the assignment does not compile.
+    TreeView::LookAndFeelMethods was withheld for exactly that. `bycopy` says
+    to pass the value, which is what C++ does with it anyway.
+
+    Computed rather than listed, so a JUCE upgrade that adds one is covered.
+    The generic types this also finds - Point and Rectangle - are declared by
+    hand in june_juce_types and are unaffected by what is returned here.
+
+    Read from juce_gui_basics whichever module is being generated, because it
+    includes the other four and the two ends of this relation are rarely in the
+    same one: Colour is declared in juce_graphics and passed by value to a
+    virtual in juce_gui_basics, so a per-module parse finds neither end.
+    """
+    found = set()
+    translation_unit = index.parse(
+        os.path.join(base_path, "JUCE/modules/juce_gui_basics/juce_gui_basics.h"),
+        args=juce_args)
+
+    def visit(cursor):
+        for child in cursor.get_children():
+            if (child.kind in (CursorKind.CLASS_DECL, CursorKind.STRUCT_DECL)
+                    and child.is_definition()):
+                for member in child.get_children():
+                    if (member.kind != CursorKind.CXX_METHOD
+                            or not member.is_pure_virtual_method()):
+                        continue
+                    for argument in member.get_arguments():
+                        declaration = argument.type.get_declaration()
+                        if (declaration is not None and declaration.spelling
+                                and declaration.kind in (CursorKind.CLASS_DECL,
+                                                         CursorKind.STRUCT_DECL)):
+                            found.add(declaration.spelling)
+            visit(child)
+
+    visit(translation_unit.cursor)
+    return found
+
+#==================================================================================================
+
 def run_main(juce_module_name, juce_class_name_to_export):
     class_map = {}
     class_inheritance_map = {}
@@ -1204,6 +1249,8 @@ def run_main(juce_module_name, juce_class_name_to_export):
     for entry in juce_namespace:
         all_classes += [node for node in filter(
             lambda x: x.kind == CursorKind.CLASS_DECL or x.kind == CursorKind.STRUCT_DECL, entry.get_children())]
+
+    by_value_classes = passed_by_value_to_a_virtual(index, juce_args, base_path)
 
     # A module header pulls in the modules it depends on, so the translation
     # unit holds their classes too. Bind only what this module declares, and
@@ -1346,6 +1393,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
             "spelling": f"juce::{c.spelling}",
             "juce_module_name": juce_module_name,
             "export": "*" if class_is_exported(c.spelling) else "",
+            "by_copy": ", bycopy" if c.spelling in by_value_classes else "",
             "base": f" of {base}" if base else "" }))
 
         for _, inner_name, inner_path in nested_class_descendants(
@@ -1358,6 +1406,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 "spelling": inner_path,
                 "juce_module_name": juce_module_name,
                 "export": "*",
+                "by_copy": "",
                 "base": "" }))
 
     for enum_name, enum_cursor, owner in module_enums:
