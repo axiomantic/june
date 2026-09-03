@@ -3756,3 +3756,214 @@ proc testFileMetadataAndVolumes() =
     doAssert root.deleteRecursively(), "could not remove the temp directory"
 
 testFileMetadataAndVolumes()
+
+# XmlElement's child list and attribute list are both ordered, and both are
+# edited through methods that take a raw pointer and take ownership of it.
+# testXmlRoundTrip above covers building and parsing; this covers editing.
+proc testXmlElementEditing() =
+  block:
+    # The attribute list keeps insertion order, and reads back by name or by
+    # index.
+    var element = makeXmlElement(makeString("node"))
+    doAssert element.getNumAttributes() == 0,
+             "a new element holds " & $element.getNumAttributes() & " attributes"
+
+    element.setAttribute(makeIdentifier("first"), makeString("one"))
+    element.setAttribute(makeIdentifier("second"), 2.cint)
+    element.setAttribute(makeIdentifier("third"), 3.5)
+
+    doAssert element.getNumAttributes() == 3,
+             "the element holds " & $element.getNumAttributes() & " attributes"
+    doAssert $element.getAttributeName(0.cint) == "first",
+             "attribute 0 is named " & $element.getAttributeName(0.cint)
+    doAssert $element.getAttributeValue(1.cint) == "2",
+             "attribute 1 reads as " & $element.getAttributeValue(1.cint)
+
+    # Each typed getter parses the stored text.
+    doAssert element.getIntAttribute("second", 0.cint) == 2,
+             "the int attribute is " & $element.getIntAttribute("second", 0.cint)
+    doAssert abs(element.getDoubleAttribute("third", 0.0) - 3.5) < 1.0e-9,
+             "the double attribute is " & $element.getDoubleAttribute("third", 0.0)
+
+    # A missing attribute gives the default rather than an error.
+    doAssert not element.hasAttribute("absent"), "a missing attribute exists"
+    doAssert element.getIntAttribute("absent", 42.cint) == 42,
+             "the default was not returned"
+    doAssert $element.getStringAttribute("absent", makeString("fallback")) ==
+             "fallback", "the string default was not returned"
+
+    # Setting the same name again replaces rather than appends.
+    element.setAttribute(makeIdentifier("first"), makeString("replaced"))
+    doAssert element.getNumAttributes() == 3,
+             "replacing an attribute left " & $element.getNumAttributes()
+    doAssert $element.getStringAttribute("first") == "replaced",
+             "the attribute reads as " & $element.getStringAttribute("first")
+
+    doAssert element.compareAttribute("first", "replaced"),
+             "compareAttribute denied the value it holds"
+    doAssert not element.compareAttribute("first", "REPLACED"),
+             "compareAttribute ignored case when it was told not to"
+    doAssert element.compareAttribute("first", "REPLACED", true),
+             "compareAttribute honoured case when it was told to ignore it"
+
+    element.removeAttribute(makeIdentifier("second"))
+    doAssert element.getNumAttributes() == 2,
+             "after removing one there are " & $element.getNumAttributes()
+    doAssert not element.hasAttribute("second"), "the removed attribute is back"
+
+    element.removeAllAttributes()
+    doAssert element.getNumAttributes() == 0,
+             "removeAllAttributes left " & $element.getNumAttributes()
+
+  block:
+    # The child list is ordered, and the three ways of adding a child put it in
+    # three different places.
+    var root = makeXmlElement(makeString("root"))
+    let middle = root.createNewChildElement("middle")
+    doAssert root.getNumChildElements() == 1,
+             "createNewChildElement gave " & $root.getNumChildElements() & " children"
+    doAssert middle != nil, "createNewChildElement returned nothing"
+
+    root.addChildElement(cnew makeXmlElement(makeString("last")))
+    root.prependChildElement(cnew makeXmlElement(makeString("first")))
+    root.insertChildElement(cnew makeXmlElement(makeString("second")), 1.cint)
+
+    doAssert root.getNumChildElements() == 4,
+             "the root holds " & $root.getNumChildElements() & " children"
+    doAssert $root.getChildElement(0.cint)[].getTagName() == "first",
+             "child 0 is " & $root.getChildElement(0.cint)[].getTagName()
+    doAssert $root.getChildElement(1.cint)[].getTagName() == "second",
+             "child 1 is " & $root.getChildElement(1.cint)[].getTagName()
+    doAssert $root.getChildElement(2.cint)[].getTagName() == "middle",
+             "child 2 is " & $root.getChildElement(2.cint)[].getTagName()
+    doAssert $root.getChildElement(3.cint)[].getTagName() == "last",
+             "child 3 is " & $root.getChildElement(3.cint)[].getTagName()
+
+    # The list is also walked by following each element to the next.
+    doAssert $root.getFirstChildElement()[].getTagName() == "first",
+             "the first child is " & $root.getFirstChildElement()[].getTagName()
+    doAssert $root.getFirstChildElement()[].getNextElement()[].getTagName() ==
+             "second",
+             "the second child is reached as " &
+             $root.getFirstChildElement()[].getNextElement()[].getTagName()
+
+    doAssert root.containsChildElement(middle),
+             "the root does not contain a child it made"
+    doAssert root.findParentElementOf(middle) == addr root,
+             "findParentElementOf did not find the root"
+    doAssert root.getChildByName("middle") == middle,
+             "getChildByName found a different element"
+    doAssert root.getChildByName("absent") == nil,
+             "getChildByName invented a child"
+
+    # An attribute finds a child too.
+    middle[].setAttribute(makeIdentifier("id"), makeString("target"))
+    doAssert root.getChildByAttribute("id", "target") == middle,
+             "getChildByAttribute found the wrong child"
+    doAssert root.getChildByAttribute("id", "other") == nil,
+             "getChildByAttribute invented a child"
+
+    root.removeChildElement(middle, true)
+    doAssert root.getNumChildElements() == 3,
+             "after removing one there are " & $root.getNumChildElements()
+    doAssert root.getChildByName("middle") == nil, "the removed child is back"
+
+    root.deleteAllChildElements()
+    doAssert root.getNumChildElements() == 0,
+             "deleteAllChildElements left " & $root.getNumChildElements()
+
+  block:
+    # A tag name may carry a namespace, and the accessors split it.
+    var element = makeXmlElement(makeString("juce:widget"))
+    doAssert $element.getTagName() == "juce:widget",
+             "the tag name is " & $element.getTagName()
+    doAssert $element.getNamespace() == "juce",
+             "the namespace is " & $element.getNamespace()
+    doAssert $element.getTagNameWithoutNamespace() == "widget",
+             "the local name is " & $element.getTagNameWithoutNamespace()
+    doAssert element.hasTagName("juce:widget"),
+             "hasTagName denied the full name"
+    doAssert not element.hasTagName("widget"),
+             "hasTagName accepted the name without its namespace"
+    doAssert element.hasTagNameIgnoringNamespace("widget"),
+             "hasTagNameIgnoringNamespace refused the local name"
+
+    element.setTagName("other")
+    doAssert $element.getTagName() == "other",
+             "setTagName left the name as " & $element.getTagName()
+
+    # A name with no colon has no namespace, but JUCE does not report an empty
+    # one: getNamespace takes everything up to the first colon and
+    # getTagNameWithoutNamespace everything after the last
+    # (juce_XmlElement.cpp:490 and :495), so both give back the whole name.
+    doAssert $element.getNamespace() == "other",
+             "a name with no colon reports the namespace " & $element.getNamespace()
+    doAssert $element.getTagNameWithoutNamespace() == "other",
+             "a name with no colon has the local name " &
+             $element.getTagNameWithoutNamespace()
+
+  block:
+    # Text is held in child elements of its own, which is why getText is empty
+    # on the element that owns the text and getAllSubText is not.
+    var root = makeXmlElement(makeString("root"))
+    root.addTextElement(makeString("hello "))
+    root.addTextElement(makeString("world"))
+
+    doAssert not root.isTextElement(), "an element with text is a text element"
+    doAssert root.getText().isEmpty(),
+             "the owning element's own text is " & $root.getText()
+    doAssert $root.getAllSubText() == "hello world",
+             "the collected text is " & $root.getAllSubText()
+    doAssert root.getFirstChildElement()[].isTextElement(),
+             "the text child is not a text element"
+    doAssert $root.getFirstChildElement()[].getText() == "hello ",
+             "the text child holds " & $root.getFirstChildElement()[].getText()
+
+    # setText belongs to a TEXT element, not to the element that owns one: on
+    # anything else it trips a jassert and changes nothing
+    # (juce_XmlElement.cpp:934). So it is the child that is rewritten.
+    root.getFirstChildElement()[].setText(makeString("HELLO "))
+    doAssert $root.getAllSubText() == "HELLO world",
+             "setText on the text child left " & $root.getAllSubText()
+
+    root.deleteAllTextElements()
+    doAssert root.getAllSubText().isEmpty(),
+             "deleteAllTextElements left " & $root.getAllSubText()
+
+    # A named child's text is reached in one call, with a default when it is
+    # not there.
+    let child = root.createNewChildElement("label")
+    child[].addTextElement(makeString("caption"))
+    doAssert $root.getChildElementAllSubText("label", makeString("")) == "caption",
+             "the child's text reads as " &
+             $root.getChildElementAllSubText("label", makeString(""))
+    doAssert $root.getChildElementAllSubText("absent", makeString("none")) == "none",
+             "the default was not returned for a missing child"
+
+  block:
+    # isEquivalentTo compares structure, and attribute order is only ignored
+    # when it is told to ignore it.
+    var first = makeXmlElement(makeString("node"))
+    first.setAttribute(makeIdentifier("a"), makeString("1"))
+    first.setAttribute(makeIdentifier("b"), makeString("2"))
+
+    var same = makeXmlElement(makeString("node"))
+    same.setAttribute(makeIdentifier("a"), makeString("1"))
+    same.setAttribute(makeIdentifier("b"), makeString("2"))
+    doAssert first.isEquivalentTo(addr same, false),
+             "two identical elements are not equivalent"
+
+    var reordered = makeXmlElement(makeString("node"))
+    reordered.setAttribute(makeIdentifier("b"), makeString("2"))
+    reordered.setAttribute(makeIdentifier("a"), makeString("1"))
+    doAssert not first.isEquivalentTo(addr reordered, false),
+             "attribute order was ignored when it should not have been"
+    doAssert first.isEquivalentTo(addr reordered, true),
+             "attribute order mattered when it should have been ignored"
+
+    var different = makeXmlElement(makeString("node"))
+    different.setAttribute(makeIdentifier("a"), makeString("9"))
+    doAssert not first.isEquivalentTo(addr different, true),
+             "elements with different values are equivalent"
+
+testXmlElementEditing()
