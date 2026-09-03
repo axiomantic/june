@@ -2918,3 +2918,148 @@ proc testGlyphArrangementOptions() =
     doAssert not (base == spaced), "two different options objects are equal"
 
 testGlyphArrangementOptions()
+
+# The rest of Font: the typeface style, the fallback list, the overrides and
+# the two setters that behave differently from the ones they resemble.
+proc testFontTypefaceAndOverrides() =
+    initialiseJuce_GUI()
+
+    block:
+        var font = makeFont(makeFontOptions(20.0'f32))
+        doAssert font.getTypefaceStyle().isNotEmpty(),
+                 "a new font has no typeface style"
+
+        # The available styles are whatever the host has for that family, so
+        # what is asserted is that the list is non-empty and that the current
+        # style is one of them.
+        let styles = font.getAvailableStyles()
+        doAssert styles.size() > 0,
+                 "the font's family offers " & $styles.size() & " styles"
+        doAssert styles.contains(font.getTypefaceStyle()),
+                 "the current style " & $font.getTypefaceStyle() &
+                 " is not among the ones on offer"
+
+        # withTypefaceStyle returns a new font; setTypefaceStyle changes this
+        # one. Both are asserted against the same style so the pair cannot
+        # disagree.
+        let wanted = styles[styles.size() - 1]
+        let restyled = font.withTypefaceStyle(wanted)
+        doAssert $restyled.getTypefaceStyle() == $wanted,
+                 "withTypefaceStyle gave " & $restyled.getTypefaceStyle()
+        doAssert $font.getTypefaceStyle() != $wanted or styles.size() == 1,
+                 "withTypefaceStyle changed the original"
+
+        font.setTypefaceStyle(wanted)
+        doAssert $font.getTypefaceStyle() == $wanted,
+                 "setTypefaceStyle gave " & $font.getTypefaceStyle()
+
+        doAssert not font.getTypefacePtr().isNil,
+                 "the font has no typeface behind it"
+        doAssert font.getMetricsKind() == TypefaceMetricsKind_portable or
+                 font.getMetricsKind() == TypefaceMetricsKind_legacy,
+                 "the metrics kind is neither of the two JUCE defines"
+
+    block:
+        # setHeightWithoutChangingWidth is the one that is NOT setHeight: it
+        # compensates the horizontal scale so the text keeps its width.
+        var plain = makeFont(makeFontOptions(20.0'f32))
+        var compensated = makeFont(makeFontOptions(20.0'f32))
+
+        plain.setHeight(40.0'f32)
+        compensated.setHeightWithoutChangingWidth(40.0'f32)
+
+        doAssert plain.getHeight() == compensated.getHeight(),
+                 "the two fonts are different heights: " & $plain.getHeight() &
+                 " and " & $compensated.getHeight()
+        doAssert plain.getHorizontalScale() != compensated.getHorizontalScale(),
+                 "both fonts have horizontal scale " &
+                 $plain.getHorizontalScale()
+        doAssert abs(compensated.getHorizontalScale() - 0.5'f32) < 1.0e-6'f32,
+                 "doubling the height compensated the scale to " &
+                 $compensated.getHorizontalScale() & " rather than halving it"
+
+        # setSizeAndStyle sets four things at once, and each reads back.
+        var styled = makeFont(makeFontOptions(10.0'f32))
+        styled.setSizeAndStyle(24.0'f32, FontFontStyleFlags_bold.cint,
+                               1.25'f32, 0.5'f32)
+        doAssert styled.getHeight() == 24.0'f32,
+                 "the height is " & $styled.getHeight()
+        doAssert styled.isBold(), "the style flags did not take"
+        doAssert abs(styled.getHorizontalScale() - 1.25'f32) < 1.0e-6'f32,
+                 "the horizontal scale is " & $styled.getHorizontalScale()
+        doAssert abs(styled.getExtraKerningFactor() - 0.5'f32) < 1.0e-6'f32,
+                 "the kerning is " & $styled.getExtraKerningFactor()
+
+    block:
+        # The ascent and descent overrides replace the typeface's own metrics,
+        # and an empty optional means "use the typeface's".
+        var font = makeFont(makeFontOptions(32.0'f32))
+        doAssert not font.getAscentOverride().hasValue(),
+                 "a new font overrides its ascent"
+        doAssert not font.getDescentOverride().hasValue(),
+                 "a new font overrides its descent"
+
+        let natural = font.getAscent()
+        font.setAscentOverride(makeCppOptional(0.9'f32))
+        doAssert font.getAscentOverride().hasValue(),
+                 "setAscentOverride did not take"
+        doAssert font.getAscentOverride().value() == 0.9'f32,
+                 "the override reads back as " & $font.getAscentOverride().value()
+        doAssert font.getAscent() != natural,
+                 "overriding the ascent left it at " & $font.getAscent()
+
+        font.setDescentOverride(makeCppOptional(0.1'f32))
+        doAssert font.getDescentOverride().value() == 0.1'f32,
+                 "the descent override reads back as " &
+                 $font.getDescentOverride().value()
+
+        font.setAscentOverride(makeCppOptionalEmpty[cfloat]())
+        doAssert not font.getAscentOverride().hasValue(),
+                 "an empty optional did not clear the override"
+
+        # The ascent does NOT come back yet: the two overrides are not
+        # independent. getAscent scales the raw ascent by 1/(ascent+descent)
+        # (juce_Font.cpp:796), so a descent override moves the ascent too.
+        # Both have to be cleared.
+        doAssert font.getAscent() != natural,
+                 "the ascent returned while the descent was still overridden"
+        font.setDescentOverride(makeCppOptionalEmpty[cfloat]())
+        doAssert font.getAscent() == natural,
+                 "clearing both overrides left the ascent at " & $font.getAscent()
+
+    block:
+        # The fallback list is consulted when a glyph is missing, and it round
+        # trips as a StringArray.
+        var font = makeFont(makeFontOptions(16.0'f32))
+        doAssert font.getFallbackEnabled(), "fallbacks start disabled"
+        font.setFallbackEnabled(false)
+        doAssert not font.getFallbackEnabled(), "the switch stayed on"
+        font.setFallbackEnabled(true)
+
+        doAssert font.getPreferredFallbackFamilies().size() == 0,
+                 "a new font names " &
+                 $font.getPreferredFallbackFamilies().size() & " fallbacks"
+
+        var families = makeStringArray()
+        families.add(Font.getDefaultMonospacedFontName())
+        families.add(Font.getDefaultSerifFontName())
+        font.setPreferredFallbackFamilies(families)
+        doAssert font.getPreferredFallbackFamilies().size() == 2,
+                 "the font names " &
+                 $font.getPreferredFallbackFamilies().size() & " fallbacks"
+        doAssert $font.getPreferredFallbackFamilies()[0.cint] ==
+                 $Font.getDefaultMonospacedFontName(),
+                 "the first fallback is " &
+                 $font.getPreferredFallbackFamilies()[0.cint]
+
+        # findSuitableFontForText answers with a font that can draw the text.
+        # For plain ASCII that is the font itself.
+        let suitable = font.findSuitableFontForText(makeString("abc"),
+                                                    makeString(""))
+        doAssert suitable.getHeight() == font.getHeight(),
+                 "the suitable font is " & $suitable.getHeight() &
+                 " tall and the original " & $font.getHeight()
+
+    shutdownJuce_GUI()
+
+testFontTypefaceAndOverrides()
