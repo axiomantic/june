@@ -10542,3 +10542,170 @@ proc testAccessibleStateFlagPairing() =
     shutdownJuce_GUI()
 
 testAccessibleStateFlagPairing()
+
+# TextEditor's clipboard, its coordinate lookups and the callbacks it stores.
+# The clipboard is the process-wide one, so cut and copy are asserted through
+# what a subsequent paste puts back rather than by reading the system.
+proc testTextEditorClipboardAndGeometry() =
+    initialiseJuce_GUI()
+
+    block:
+        var editor = makeTextEditor(makeString("editor"), WChar(0))
+        editor.setBounds(makeRectangle(0.cint, 0.cint, 300.cint, 100.cint))
+        editor.setText(makeString("hello world"), false)
+
+        # copy leaves the text alone; cut removes the selection.
+        editor.setHighlightedRegion(makeRange(0.cint, 5.cint))
+        editor.copy()
+        doAssert $editor.getText() == "hello world",
+                 "copy changed the text to " & $editor.getText()
+
+        editor.cut()
+        doAssert $editor.getText() == " world",
+                 "cut gave " & $editor.getText()
+
+        # And what was cut comes back through paste.
+        editor.setCaretPosition(0.cint)
+        editor.paste()
+        doAssert $editor.getText() == "hello world",
+                 "pasting what was cut gave " & $editor.getText()
+
+        # The named variants go to the same place.
+        editor.setHighlightedRegion(makeRange(0.cint, 5.cint))
+        discard editor.copyToClipboard()
+        editor.setHighlightedRegion(makeRange(0.cint, 0.cint))
+        editor.setCaretPosition(editor.getTotalNumChars())
+        discard editor.pasteFromClipboard()
+        doAssert $editor.getText() == "hello worldhello",
+                 "pasteFromClipboard gave " & $editor.getText()
+
+        editor.setText(makeString("abc"), false)
+        discard editor.selectAll()
+        discard editor.cutToClipboard()
+        doAssert editor.isEmpty(),
+                 "cutToClipboard left " & $editor.getText()
+
+    block:
+        # The coordinate lookups. A point inside the text gives an index, and
+        # the caret rectangle for that index sits back at the point.
+        var editor = makeTextEditor(makeString("editor"), WChar(0))
+        editor.setBounds(makeRectangle(0.cint, 0.cint, 300.cint, 100.cint))
+        editor.setFont(makeFont(makeFontOptions(16.0'f32)))
+        editor.setText(makeString("hello world"), false)
+
+        doAssert editor.getTextIndexAt(0.cint, 5.cint) == 0,
+                 "the far left is index " & $editor.getTextIndexAt(0.cint, 5.cint)
+        doAssert editor.getTextIndexAt(makePoint(0.cint, 5.cint)) ==
+                 editor.getTextIndexAt(0.cint, 5.cint),
+                 "the Point overload disagrees with the x/y one"
+        doAssert editor.getTextIndexAt(2000.cint, 5.cint) ==
+                 editor.getTotalNumChars(),
+                 "a point past the end is index " &
+                 $editor.getTextIndexAt(2000.cint, 5.cint)
+
+        # getCharIndexForPoint clamps rather than refusing, so a point far
+        # outside still names a character.
+        let clamped = editor.getCharIndexForPoint(makePoint(-100.cint, -100.cint))
+        doAssert clamped >= 0 and clamped <= editor.getTotalNumChars(),
+                 "a point far outside gave index " & $clamped
+
+        # The caret rectangle moves right as the index does.
+        let atStart = editor.getCaretRectangleForCharIndex(0.cint)
+        let atEnd = editor.getCaretRectangleForCharIndex(
+                        editor.getTotalNumChars())
+        doAssert atEnd.getX() > atStart.getX(),
+                 "the caret at the end sits at x=" & $atEnd.getX() &
+                 " and at the start " & $atStart.getX()
+        doAssert atStart.getHeight() > 0,
+                 "the caret is " & $atStart.getHeight() & " tall"
+
+        # The text bounds cover the characters they are asked about, and a
+        # longer range covers more.
+        let firstWord = editor.getTextBounds(makeRange(0.cint, 5.cint))
+        let wholeLine = editor.getTextBounds(
+                            makeRange(0.cint, editor.getTotalNumChars()))
+        doAssert firstWord.getBounds().getWidth() > 0,
+                 "the first word measures " &
+                 $firstWord.getBounds().getWidth() & " wide"
+        doAssert wholeLine.getBounds().getWidth() >
+                 firstWord.getBounds().getWidth(),
+                 "the whole line is " & $wholeLine.getBounds().getWidth() &
+                 " wide and the first word " &
+                 $firstWord.getBounds().getWidth()
+
+    block:
+        # The stored callbacks. Each is a separate std::function, and setting
+        # one must not overwrite another.
+        var editor = makeTextEditor(makeString("editor"), WChar(0))
+        var textChanges, returns, escapes, focusLosses = 0
+        editor.onTextChange = bindClosure(proc() = textChanges += 1)
+        editor.onReturnKey = bindClosure(proc() = returns += 1)
+        editor.onEscapeKey = bindClosure(proc() = escapes += 1)
+        editor.onFocusLost = bindClosure(proc() = focusLosses += 1)
+
+        editor.onReturnKey.invoke()
+        doAssert returns == 1, "the return callback ran " & $returns & " times"
+        doAssert textChanges == 0 and escapes == 0 and focusLosses == 0,
+                 "invoking one callback ran another"
+
+        editor.onEscapeKey.invoke()
+        doAssert escapes == 1, "the escape callback ran " & $escapes & " times"
+        editor.onFocusLost.invoke()
+        doAssert focusLosses == 1,
+                 "the focus callback ran " & $focusLosses & " times"
+        editor.onTextChange.invoke()
+        doAssert textChanges == 1,
+                 "the text callback ran " & $textChanges & " times"
+
+    block:
+        # The remaining switches and the whole-text restyling.
+        var editor = makeTextEditor(makeString("editor"), WChar(0))
+        editor.setBounds(makeRectangle(0.cint, 0.cint, 300.cint, 100.cint))
+        editor.setText(makeString("styled"), false)
+
+        editor.applyFontToAllText(makeFont(makeFontOptions(21.0'f32)), true)
+        doAssert editor.getFont().getHeight() == 21.0'f32,
+                 "applyFontToAllText left the font at " &
+                 $editor.getFont().getHeight()
+        editor.applyColourToAllText(Colours_hotpink, true)
+
+        editor.setEscapeAndReturnKeysConsumed(false)
+        editor.setSelectAllWhenFocused(true)
+        editor.setScrollToShowCursor(true)
+        editor.setTemporaryUnderlining(makeArray[Range[cint]]())
+        editor.setInputRestrictions(4.cint, makeString("abcd"))
+
+        # The restriction is an input filter, so it applies at the caret and
+        # not to setText.
+        editor.clear()
+        editor.insertTextAtCaret(makeString("abcdefgh"))
+        doAssert editor.getTotalNumChars() <= 4,
+                 "the restriction let " & $editor.getTotalNumChars() &
+                 " characters in"
+
+        # These have no reader; what is asserted is that they run and leave the
+        # editor consistent.
+        editor.setText(makeString("one\ntwo\nthree\nfour\nfive"), false)
+        editor.setMultiLine(true, false)
+        discard editor.pageDown(false)
+        discard editor.pageUp(false)
+        discard editor.scrollDown()
+        discard editor.scrollUp()
+        editor.scrollEditorToPositionCaret(0.cint, 0.cint)
+        doAssert $editor.getText() == "one\ntwo\nthree\nfour\nfive",
+                 "scrolling changed the text to " & $editor.getText()
+
+        # isTextInputActive is not about FOCUS. It is "not read-only, and
+        # either clicks outside do not dismiss the keyboard or the last click
+        # was in here" (juce_TextEditor.cpp:346), and both halves are true for
+        # a plain writable editor.
+        doAssert editor.isTextInputActive(),
+                 "a writable editor is not taking input"
+        editor.setReadOnly(true)
+        doAssert not editor.isTextInputActive(),
+                 "a read-only editor is still taking input"
+        editor.setReadOnly(false)
+
+    shutdownJuce_GUI()
+
+testTextEditorClipboardAndGeometry()
