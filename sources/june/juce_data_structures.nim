@@ -69,7 +69,7 @@ proc getValue*(this: Value): juce_var {.header: juce_data_structures, importcpp:
 proc toString*(this: Value): String {.header: juce_data_structures, importcpp: "#.toString()".}
 proc setValue*(this: var Value, newValue: juce_var) {.header: juce_data_structures, importcpp: "#.setValue(@)".}
 proc `Value=`*(this: var Value, newValue: juce_var): var Value {.header: juce_data_structures, importcpp: "#.operator=(@)".}
-proc `Value=`*(this: var Value, arg1: Value): var Value {.header: juce_data_structures, importcpp: "#.operator=(@)".}
+proc `Value=`*(this: var Value, arg1: Value): var Value {.header: juce_data_structures, importcpp: "#.operator=(std::move(#))".}
 proc referTo*(this: var Value, valueToReferTo: Value) {.header: juce_data_structures, importcpp: "#.referTo(@)".}
 proc refersToSameSourceAs*(this: Value, other: Value): bool {.header: juce_data_structures, importcpp: "#.refersToSameSourceAs(@)".}
 proc `==`*(this: Value, other: Value): bool {.header: juce_data_structures, importcpp: "#.operator==(@)".}

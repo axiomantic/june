@@ -72,11 +72,9 @@ type
   FileInputSource* {.header: juce_core, importcpp: "juce::FileInputSource", inheritable, pure.} = object of InputSource
   FileLogger* {.header: juce_core, importcpp: "juce::FileLogger", inheritable, pure.} = object of Logger
   JSONUtils* {.header: juce_core, importcpp: "juce::JSONUtils", inheritable, pure.} = object
-  SerialisationTraits* {.header: juce_core, importcpp: "juce::SerialisationTraits", inheritable, pure.} = object
   ToVarOptions* {.header: juce_core, importcpp: "juce::ToVarOptions", inheritable, pure.} = object
   ToVar* {.header: juce_core, importcpp: "juce::ToVar", inheritable, pure.} = object
   FromVar* {.header: juce_core, importcpp: "juce::FromVar", inheritable, pure.} = object
-  VariantConverter* {.header: juce_core, importcpp: "juce::VariantConverter", inheritable, pure.} = object
   BigInteger* {.header: juce_core, importcpp: "juce::BigInteger", inheritable, pure.} = object
   Expression* {.header: juce_core, importcpp: "juce::Expression", inheritable, pure.} = object
   ExpressionScope* {.header: juce_core, importcpp: "juce::Expression::Scope", inheritable, pure.} = object
@@ -867,7 +865,7 @@ proc `==`*(this: NullCheckedInvocation, other: NullCheckedInvocation): bool {.er
 
 proc makeErasedScopeGuard*(): ErasedScopeGuard {.header: juce_core, importcpp: "juce::ErasedScopeGuard(@)".}
 proc makeErasedScopeGuard*(d: CppFunctionObjectN0): ErasedScopeGuard {.header: juce_core, importcpp: "juce::ErasedScopeGuard(@)".}
-proc `ErasedScopeGuard=`*(this: var ErasedScopeGuard, other: ErasedScopeGuard): var ErasedScopeGuard {.header: juce_core, importcpp: "#.operator=(@)".}
+proc `ErasedScopeGuard=`*(this: var ErasedScopeGuard, other: ErasedScopeGuard): var ErasedScopeGuard {.header: juce_core, importcpp: "#.operator=(std::move(#))".}
 proc reset*(this: var ErasedScopeGuard) {.header: juce_core, importcpp: "#.reset()".}
 proc release*(this: var ErasedScopeGuard) {.header: juce_core, importcpp: "#.release()".}
 proc `==`*(this: ErasedScopeGuard, other: ErasedScopeGuard): bool {.error: "juce::ErasedScopeGuard defines no operator==; compare a property instead".}
@@ -1191,7 +1189,7 @@ proc addHelpCommand*(this: var ConsoleApplication, helpArgument: String, helpMes
 proc printCommandList*(this: ConsoleApplication, arg1: ArgumentList) {.header: juce_core, importcpp: "#.printCommandList(@)".}
 proc printCommandDetails*(this: ConsoleApplication, arg1: ArgumentList, arg2: ConsoleApplicationCommand) {.header: juce_core, importcpp: "#.printCommandDetails(@)".}
 proc fail*(this: typedesc[ConsoleApplication], errorMessage: String, returnCode: cint = 1) {.header: juce_core, importcpp: "juce::ConsoleApplication::fail(@)".}
-proc invokeCatchingFailures*(this: typedesc[ConsoleApplication], functionToCall: CppFunctionObjectR0[cint]): cint {.header: juce_core, importcpp: "juce::ConsoleApplication::invokeCatchingFailures(@)".}
+proc invokeCatchingFailures*(this: typedesc[ConsoleApplication], functionToCall: CppFunctionObjectR0[cint]): cint {.header: juce_core, importcpp: "(#juce::ConsoleApplication::invokeCatchingFailures(std::move(#)))".}
 proc findAndRunCommand*(this: ConsoleApplication, arg1: ArgumentList, optionMustBeFirstArg: bool = false): cint {.header: juce_core, importcpp: "#.findAndRunCommand(@)".}
 # proc findAndRunCommand*(this: ConsoleApplication, argc: cint, argv: ptr char[]): cint {.header: juce_core, importcpp: "#.findAndRunCommand(@)".}  # a C array parameter; every one of these has an overload taking a String or a value instead
 proc findCommand*(this: ConsoleApplication, arg1: ArgumentList, optionMustBeFirstArg: bool): ConstPtr[ConsoleApplicationCommand] {.header: juce_core, importcpp: "#.findCommand(@)".}
@@ -1757,9 +1755,6 @@ proc makeObjectWithKeyFirst*(this: typedesc[JSONUtils], source: CppMap[Identifie
 proc deepEqual*(this: typedesc[JSONUtils], a: juce_var, b: juce_var): bool {.header: juce_core, importcpp: "juce::JSONUtils::deepEqual(@)".}
 proc `==`*(this: JSONUtils, other: JSONUtils): bool {.error: "juce::JSONUtils defines no operator==; compare a property instead".}
 
-# proc marshallingVersion*(this: typedesc[SerialisationTraits]): nullopt_t {.header: juce_core, importcpp: "(juce::SerialisationTraits::marshallingVersion)".}  # std::nullopt_t, which is a tag rather than a value Nim can pass
-proc `==`*(this: SerialisationTraits, other: SerialisationTraits): bool {.error: "juce::SerialisationTraits defines no operator==; compare a property instead".}
-
 proc withExplicitVersion*(this: ToVarOptions, x: CppOptional[cint]): ToVarOptions {.header: juce_core, importcpp: "#.withExplicitVersion(@)".}
 proc withVersionIncluded*(this: ToVarOptions, x: bool): ToVarOptions {.header: juce_core, importcpp: "#.withVersionIncluded(@)".}
 proc getExplicitVersion*(this: ToVarOptions): CppOptional[CppOptional[cint]] {.header: juce_core, importcpp: "#.getExplicitVersion()".}
@@ -1770,15 +1765,11 @@ proc `==`*(this: ToVar, other: ToVar): bool {.error: "juce::ToVar defines no ope
 
 proc `==`*(this: FromVar, other: FromVar): bool {.error: "juce::FromVar defines no operator==; compare a property instead".}
 
-proc fromVar*(this: typedesc[VariantConverter], v: juce_var): String {.header: juce_core, importcpp: "juce::VariantConverter::fromVar(@)".}
-proc toVar*(this: typedesc[VariantConverter], s: String): juce_var {.header: juce_core, importcpp: "juce::VariantConverter::toVar(@)".}
-proc `==`*(this: VariantConverter, other: VariantConverter): bool {.error: "juce::VariantConverter defines no operator==; compare a property instead".}
-
 proc makeBigInteger*(): BigInteger {.header: juce_core, importcpp: "juce::BigInteger(@)".}
 proc makeBigInteger*(value: uint32): BigInteger {.header: juce_core, importcpp: "juce::BigInteger((unsigned int) #)".}
 proc makeBigInteger*(value: cint): BigInteger {.header: juce_core, importcpp: "juce::BigInteger((int) #)".}
 proc makeBigInteger*(value: int64): BigInteger {.header: juce_core, importcpp: "juce::BigInteger((long long) #)".}
-proc `BigInteger=`*(this: var BigInteger, arg1: BigInteger): var BigInteger {.header: juce_core, importcpp: "#.operator=(@)".}
+proc `BigInteger=`*(this: var BigInteger, arg1: BigInteger): var BigInteger {.header: juce_core, importcpp: "#.operator=(std::move(#))".}
 proc swapWith*(this: var BigInteger, arg1: var BigInteger) {.header: juce_core, importcpp: "#.swapWith(@)".}
 proc `[]`*(this: BigInteger, bit: cint): bool {.header: juce_core, importcpp: "#.operator[](@)".}
 proc isZero*(this: BigInteger): bool {.header: juce_core, importcpp: "#.isZero()".}
@@ -2582,7 +2573,7 @@ proc `==`*(this: ZipFileZipEntry, other: ZipFileZipEntry): bool {.error: "juce::
 proc makeZipFileBuilder*(): ZipFileBuilder {.header: juce_core, importcpp: "juce::ZipFile::Builder(@)".}
 proc addFile*(this: var ZipFileBuilder, fileToAdd: File, compressionLevel: cint, storedPathName: String) {.header: juce_core, importcpp: "#.addFile(@)".}
 proc addEntry*(this: var ZipFileBuilder, streamToRead: ptr InputStream, compressionLevel: cint, storedPathName: String, fileModificationTime: Time) {.header: juce_core, importcpp: "#.addEntry(@)".}
-proc addEntry*(this: var ZipFileBuilder, streamToRead: UniquePtr[InputStream], compressionLevel: cint, storedPathName: String, fileModificationTime: Time) {.header: juce_core, importcpp: "#.addEntry(@)".}
+proc addEntry*(this: var ZipFileBuilder, streamToRead: UniquePtr[InputStream], compressionLevel: cint, storedPathName: String, fileModificationTime: Time) {.header: juce_core, importcpp: "#.addEntry(std::move(#), #, #, #)".}
 proc writeToStream*(this: ZipFileBuilder, target: var OutputStream, progress: ptr float64): bool {.header: juce_core, importcpp: "#.writeToStream(@)".}
 proc `==`*(this: ZipFileBuilder, other: ZipFileBuilder): bool {.error: "juce::ZipFile::Builder defines no operator==; compare a property instead".}
 
@@ -2937,11 +2928,9 @@ proc `$`*(this: WildcardFileFilter): string {.error: "juce::WildcardFileFilter h
 proc `$`*(this: FileInputSource): string {.error: "juce::FileInputSource has no toString; print a property instead".}
 proc `$`*(this: FileLogger): string {.error: "juce::FileLogger has no toString; print a property instead".}
 proc `$`*(this: JSONUtils): string {.error: "juce::JSONUtils has no toString; print a property instead".}
-proc `$`*(this: SerialisationTraits): string {.error: "juce::SerialisationTraits has no toString; print a property instead".}
 proc `$`*(this: ToVarOptions): string {.error: "juce::ToVarOptions has no toString; print a property instead".}
 proc `$`*(this: ToVar): string {.error: "juce::ToVar has no toString; print a property instead".}
 proc `$`*(this: FromVar): string {.error: "juce::FromVar has no toString; print a property instead".}
-proc `$`*(this: VariantConverter): string {.error: "juce::VariantConverter has no toString; print a property instead".}
 proc `$`*(this: BigInteger): string {.error: "juce::BigInteger has no toString; print a property instead".}
 proc `$`*(this: Expression): string = $this.toString()
 proc `$`*(this: ExpressionScope): string {.error: "juce::Expression::Scope has no toString; print a property instead".}

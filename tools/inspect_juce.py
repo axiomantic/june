@@ -247,6 +247,18 @@ def remap_type(t, *args):
         template_spelling = target.spelling
         if template_spelling.startswith("const "):
             template_spelling = template_spelling[len("const "):]
+
+        # The canonical spelling as well as the written one. libclang reports a
+        # nested type as the header spells it - std::optional<Style> inside
+        # ProgressBar - and the table that renames an instantiation is keyed on
+        # the qualified form, which is the only one that identifies it.
+        canonical_spelling = target.get_canonical().spelling
+        if canonical_spelling.startswith("const "):
+            canonical_spelling = canonical_spelling[len("const "):]
+        renamed = template_instantiation_renames.get(canonical_spelling)
+        if renamed is not None:
+            return f"{prefix}{renamed[0]}"
+
         mapped = remap_template(template_spelling, *args)
         # std::function over a const reference is a different C++ type from one
         # over a value, and where the argument holds a reference member - as
@@ -376,6 +388,26 @@ def split_template_args(text):
         args.append(current.strip())
     return args
 
+# Template instantiations that must not be spelled as a Nim generic, with the
+# Nim type each becomes and the module that declares it.
+#
+# Nim collapses a `distinct cint` onto its base when it instantiates a generic,
+# so CppOptional[cint] and CppOptional[ProgressBarStyle] render one C++ type -
+# whichever is emitted first - and a program using both gets std::optional<int>
+# where std::optional<juce::ProgressBar::Style> is wanted. That is the same
+# erasure that made one Nim closure struct serve `proc(): cint` and
+# `proc(): SomeEnum`, which bindEnumClosure works around for the function
+# objects; a container has no such hook, so it gets a type of its own.
+#
+# Found by compiling both instantiations in one program. Alone, either
+# compiles.
+template_instantiation_renames = {
+    "std::optional<juce::ProgressBar::Style>": (
+        "ProgressBarStyleOptional", "juce_gui_basics"),
+}
+
+#==================================================================================================
+
 def remap_template(spelling, *args):
     """Convert a C++ template spelling to Nim, or return None if it cannot be.
 
@@ -388,6 +420,10 @@ def remap_template(spelling, *args):
     # types JUCE uses it with, so unwrapping it resolves the type the way the
     # explicitly typed overload of the same method already resolves.
     spelling = re.sub(r"(?:std::)?decay_t\s*<\s*([^<>]*?)\s*>", r"\1", spelling)
+
+    renamed = template_instantiation_renames.get(spelling.strip())
+    if renamed is not None:
+        return renamed[0]
 
     match = re.match(r"^([A-Za-z_][A-Za-z0-9_:]*)\s*<(.*)>$", spelling.strip())
     if not match:
@@ -840,9 +876,41 @@ undefined_in_juce = {
     # JUCE's Android sources, so it cannot be returned by value anywhere else.
     # libclang offers no reliable test for this: get_size() is negative for
     # every class template instantiation it has not laid out, which withheld
-    # forty perfectly good bindings when it was tried.
+    # forty perfectly good bindings when it was tried, and asking the return
+    # type's declaration whether it is a definition flags fourteen methods that
+    # work - getAllComponents and getChildren among them - while missing the
+    # two below entirely.
     "AndroidDocument": {"getNativeInfo"},
+    # `class Native;` and `class ImagePixelDataNativeExtensions;` in their
+    # headers, defined in the per-platform sources. Both were found by
+    # compiling a call: "calling 'getNativeDetails' with incomplete return
+    # type".
+    "Font": {"getNativeDetails"},
+    "ImagePixelData": {"getNativeExtensions"},
     "RelativeCoordinate": {"references"},
+    # JUCE keeps the removed shape of these as a [[deprecated]] declaration
+    # with no definition, so a call compiles and the link fails. An entry can
+    # name one overload rather than the method, because the replacement sits
+    # beside it: Slider::setValue(double, NotificationType) is the one to use
+    # and works.
+    #
+    # Measured by linking, not derived. 46 methods carry [[deprecated]] and 22
+    # of those have a non-deprecated sibling, but only these eleven are
+    # undefined - the rest are deprecated and still implemented, and
+    # withholding them on either rule would take working bindings with them.
+    "Slider": {
+        ("setValue", ("double", "bool")),
+        ("setValue", ("double", "bool", "bool")),
+        ("setMinValue", ("double", "bool")),
+        ("setMinValue", ("double", "bool", "bool")),
+        ("setMinValue", ("double", "bool", "bool", "bool")),
+        ("setMaxValue", ("double", "bool")),
+        ("setMaxValue", ("double", "bool", "bool")),
+        ("setMaxValue", ("double", "bool", "bool", "bool")),
+        ("setMinAndMaxValues", ("double", "double", "bool")),
+        ("setMinAndMaxValues", ("double", "double", "bool", "bool")),
+    },
+    "ListBox": {("setSelectedRows", ("const SparseSet<int> &", "bool"))},
     "RelativePointPathQuadraticTo": {"createTree"},
     "RelativePointPathCubicTo": {"createTree"},
 }
@@ -902,6 +970,23 @@ def use_system_libclang():
         if os.path.exists(candidate):
             clang.cindex.Config.set_library_file(candidate)
             return
+
+#==================================================================================================
+
+def is_template_specialization(cursor):
+    """Whether this class is an explicit specialization of a class template.
+
+    libclang reports one as an ordinary STRUCT_DECL carrying the template's
+    bare name, so the generator bound juce::VariantConverter<String> as a class
+    called VariantConverter and emitted its statics. C++ then refuses the call:
+    "use of class template 'juce::VariantConverter' requires template
+    arguments". get_num_template_arguments answers -1 for a class that is not
+    one and the count for a class that is, which separates them exactly.
+    """
+    try:
+        return cursor.get_num_template_arguments() >= 0
+    except Exception:
+        return False
 
 #==================================================================================================
 
@@ -1468,6 +1553,8 @@ def run_main(juce_module_name, juce_class_name_to_export):
     for c in module_classes:
         if juce_class_name_to_export is not None and c.spelling != juce_class_name_to_export:
             continue
+        if is_template_specialization(c):
+            continue
         if c.spelling.startswith("this_will_fail_to_link") or c.spelling in emitted_types:
             continue
         emitted_types.add(c.spelling)
@@ -1506,6 +1593,17 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 "export": "*",
                 "by_copy": "",
                 "base": "" }))
+
+    # The instantiations that get a type of their own rather than a Nim
+    # generic. Declared here so the module that uses them declares them.
+    for cpp_spelling, (nim_name, owning_module) in sorted(
+            template_instantiation_renames.items()):
+        if owning_module != juce_module_name:
+            continue
+        all_class_decls.append(
+            f'  {nim_name}* {{.header: "<optional>", '
+            f'importcpp: "{cpp_spelling}", bycopy.}} = object')
+        declared_type_names.add(nim_name)
 
     for enum_name, enum_cursor, owner in module_enums:
         qualified = f"juce::{owner}::{enum_cursor.spelling}" if owner else f"juce::{enum_cursor.spelling}"
@@ -1665,6 +1763,8 @@ def run_main(juce_module_name, juce_class_name_to_export):
         if juce_class_name_to_export is not None and c.spelling != juce_class_name_to_export:
             continue
 
+        if is_template_specialization(c):
+            continue
         if c.spelling.startswith("this_will_fail_to_link"):
             continue
 
@@ -2038,6 +2138,15 @@ def run_main(juce_module_name, juce_class_name_to_export):
 
             comment = ""
 
+            # A method JUCE deletes. It is declared so that calling it is an
+            # error rather than silently reaching an overload that means
+            # something else: Component::contains(int, int) is deleted because
+            # the two-coordinate form was removed and the Point one is what to
+            # use. A binding for it compiles and fails at the call.
+            deleted_reason = "JUCE deletes it" if m.is_deleted_method() else ""
+            if deleted_reason:
+                comment = "# "
+
             # A static method's receiver is the class itself rather than a
             # value, so it carries no `this` argument into the C++ call.
             args = ([] if is_static_method
@@ -2093,7 +2202,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 # where the generated call sits - juce_wchar does not.
                 cpp_argument_types.append(arg.type.get_canonical().spelling)
 
-            reason = ""
+            reason = deleted_reason
             return_type = ""
             if m.result_type.spelling != "void":
                 rendered_return = remap_type(
@@ -2127,7 +2236,10 @@ def run_main(juce_module_name, juce_class_name_to_export):
             if (m.spelling in ["begin", "end", "cbegin", "cend"]
                     or m.spelling.endswith("Iterator")):
                 comment, reason = "# ", "a C++ iterator; loop with the Nim iterator instead"
-            elif m.spelling in undefined_in_juce.get(class_name, ()):
+            elif (m.spelling in undefined_in_juce.get(class_name, ())
+                    or (m.spelling, tuple(a.type.spelling
+                                          for a in m.get_arguments()))
+                        in undefined_in_juce.get(class_name, ())):
                 comment = "# "
                 reason = ("declared in JUCE's header and defined nowhere in "
                           "JUCE 8.0.15, so calling it fails to link")
@@ -2170,6 +2282,27 @@ def run_main(juce_module_name, juce_class_name_to_export):
             # argument cast to the type this overload declares, or C++ cannot
             # tell which one the call means.
             has_arguments = len(args) > (0 if is_static_method else 1)
+            # Either reason to write one placeholder per parameter rather than
+            # `@`. A static method needs the parenthesised form when it does,
+            # because its typedesc consumes the first placeholder and expands
+            # to nothing.
+            # An rvalue reference will not bind to an lvalue, and Nim hands
+            # over an lvalue, so a parameter declared `T&&` needs the move as
+            # much as a move-only wrapper does. Three of the four JUCE methods
+            # with one also declare a const-reference overload, which the two
+            # collapse onto, so only ConsoleApplication::invokeCatchingFailures
+            # was uncallable.
+            def moves(nim_type, cpp_type):
+                return (nim_type.startswith(move_only_wrappers)
+                        or cpp_type.rstrip().endswith("&&"))
+
+            moves_an_argument = has_arguments and any(
+                moves(nim_type, cpp_type) for nim_type, cpp_type
+                in zip(argument_types, cpp_argument_types))
+            per_argument = (has_arguments
+                            and (m.spelling in scalar_overloaded
+                                 or moves_an_argument))
+
             if has_arguments and m.spelling in scalar_overloaded:
                 # `#` takes the next argument in order, and a digit after it is
                 # literal text rather than an index, so one bare `#` per
@@ -2184,12 +2317,25 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 # the cast form adds, so the rest line up.
                 emitted_args = ", ".join(
                     f"({cpp_type}) #" for cpp_type in cpp_argument_types)
+            elif moves_an_argument:
+                # A move-only wrapper cannot be passed by copy, and `@` copies:
+                # every method taking a std::unique_ptr was rejected at its
+                # call site, the same way nine field setters were before them.
+                # One placeholder per parameter, with the move where it is
+                # needed. A static method's typedesc expands to nothing and
+                # takes a placeholder of its own, which the cast form supplies
+                # by wrapping the call in parentheses - the move form has no
+                # such wrapper, so a static method with a move-only parameter
+                # would need one; none exists in JUCE.
+                emitted_args = ", ".join(
+                    "std::move(#)" if moves(nim_type, cpp_type) else "#"
+                    for nim_type, cpp_type
+                    in zip(argument_types, cpp_argument_types))
             else:
                 emitted_args = "@" if has_arguments else ""
 
             if is_static_method:
-                static_template = (nim_static_method_cast_def
-                                   if has_arguments and m.spelling in scalar_overloaded
+                static_template = (nim_static_method_cast_def if per_argument
                                    else nim_static_method_def)
                 declaration = static_template.format(**{
                     "comment": comment,
