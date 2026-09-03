@@ -304,6 +304,68 @@ uncallable_inherited = {
 }
 
 
+def check_one_declaration_per_signature():
+    """No method is declared on both a class and a Nim ancestor.
+
+    An override has the same parameter types as the virtual it overrides, so
+    emitting both leaves Nim two procs differing only in the receiver. On the
+    derived class itself the nearer one wins; on anything below it neither is
+    nearer, and Nim 2.2.2 refuses the call as ambiguous. `paint` on a
+    TableListBox was in that state, along with 50 others.
+
+    Nothing catches this at generation time, and nothing catches it at compile
+    time either unless a test happens to make the call on a deep enough
+    receiver. It is a property of the emitted text, so it is checked here.
+    """
+    parents, procedures = {}, {}
+    for module in ("juce_core", "juce_events", "juce_data_structures",
+                   "juce_graphics", "juce_gui_basics"):
+        text = open(f"sources/june/{module}.nim").read()
+        parents.update(re.findall(r'^  (\w+)\*[^=\n]*= object of (\w+)', text, re.M))
+        for line in text.splitlines():
+            match = re.match(r'^proc (`?[\w=]+`?)\*\(this: (?:var )?(\w+)([,)])(.*)', line)
+            if not match:
+                continue
+            name, receiver, separator, rest = match.groups()
+            if separator == ")":
+                arguments = ()
+            else:
+                body = rest.rsplit("):", 1)[0] if "):" in rest else rest.rsplit(")", 1)[0]
+                arguments = tuple(part.split(":", 1)[1].strip().split(" =")[0].strip()
+                                  for part in body.split(", ") if ":" in part)
+            procedures.setdefault((name, receiver), set()).add(arguments)
+
+    def ancestors(name):
+        found, seen = [], set()
+        while name in parents and name not in seen:
+            seen.add(name)
+            name = parents[name]
+            found.append(name)
+        return found
+
+    clashes = []
+    for (name, receiver), signatures in sorted(procedures.items()):
+        for ancestor in ancestors(receiver):
+            shared = signatures & procedures.get((name, ancestor), set())
+            if shared:
+                clashes.append(f"{name} on {receiver} and on {ancestor}")
+                break
+
+    if clashes:
+        print("These are declared with the same argument types on a class and "
+              "on one of its Nim ancestors, so a call on anything below the "
+              "class is ambiguous:", file=sys.stderr)
+        for clash in clashes[:20]:
+            print(f"  {clash}", file=sys.stderr)
+        if len(clashes) > 20:
+            print(f"  ... and {len(clashes) - 20} more", file=sys.stderr)
+        return False
+
+    print(f"no method is declared on both a class and a Nim ancestor "
+          f"({len(procedures)} class-and-name pairs checked)")
+    return True
+
+
 def check_inherited_methods():
     """Every method restated from a secondary base is called by a test.
 
@@ -635,6 +697,7 @@ def main():
     statics_ok = check_static_variables()
     classes_ok = check_classes()
     inherited_ok = check_inherited_methods()
+    signatures_ok = check_one_declaration_per_signature()
 
     if (uncovered or stale
             or not licences_ok
@@ -646,7 +709,8 @@ def main():
             or not constants_ok
             or not statics_ok
             or not classes_ok
-            or not inherited_ok):
+            or not inherited_ok
+            or not signatures_ok):
         sys.exit(1)
 
     print(f"all {len(declared)} hand-written binding names are called "
