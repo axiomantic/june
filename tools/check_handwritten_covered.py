@@ -324,6 +324,79 @@ no_lossless_int_target = {
 }
 
 
+# A field accessor a test cannot reach, with the reason it cannot.
+unreachable_fields = {}
+
+field_getter = re.compile(
+    r'^proc (\w+)\*\(this: (?:var )?(\w+)\)[^{]*\{[^}]*importcpp: "#\.\1"', re.M)
+field_setter = re.compile(
+    r'^proc `(\w+)=`\*\(this: var (\w+)[^{]*\{[^}]*importcpp: "#\.\1 = ', re.M)
+
+
+def check_field_accessors():
+    """Every public field is written and read by a test.
+
+    A field getter and setter are importcpp procs like any other: they reach
+    the C++ compiler only where something calls them, so a setter nothing
+    assigns is never compiled. Nine of them assigned a move-only wrapper by
+    copy and were rejected at every call site, and two more named a type with
+    no copy constructor at all - each found by writing the assignment.
+
+    Identified by the shape of the importcpp rather than the signature: a
+    getter is a bare member read and a setter a member assignment, which is
+    what tells them apart from an ordinary method.
+    """
+    getters, setters = set(), set()
+    for module in ("juce_core", "juce_events", "juce_data_structures",
+                   "juce_graphics", "juce_gui_basics"):
+        text = open(f"sources/june/{module}.nim").read()
+        getters.update(name for name, _ in field_getter.findall(text))
+        setters.update(name for name, _ in field_setter.findall(text))
+
+    used = ""
+    for pattern in ("tests/test_juce_*.nim", "examples/*.nim"):
+        for path in glob.glob(pattern):
+            used += open(path).read()
+
+    unread = sorted(name for name in getters
+                    if name not in unreachable_fields
+                    and not re.search(r"\." + name + r"\b", used))
+    unwritten = sorted(name for name in setters
+                       if name not in unreachable_fields
+                       and not re.search(r"\." + name + r"\s*=[^=]", used))
+
+    stale = sorted(name for name in unreachable_fields
+                   if name not in getters and name not in setters)
+    if stale:
+        print("These entries in unreachable_fields name no field accessor:",
+              file=sys.stderr)
+        for name in stale:
+            print(f"  {name}", file=sys.stderr)
+        return False
+
+    if unread or unwritten:
+        if unread:
+            print("These field getters are never read, so nothing compiles "
+                  "them:", file=sys.stderr)
+            for name in unread[:20]:
+                print(f"  {name}", file=sys.stderr)
+            if len(unread) > 20:
+                print(f"  ... and {len(unread) - 20} more", file=sys.stderr)
+        if unwritten:
+            print("These field setters are never assigned, so nothing "
+                  "compiles them:", file=sys.stderr)
+            for name in unwritten[:20]:
+                print(f"  {name}", file=sys.stderr)
+            if len(unwritten) > 20:
+                print(f"  ... and {len(unwritten) - 20} more", file=sys.stderr)
+        return False
+
+    print(f"all {len(getters)} field getters are read and all {len(setters)} "
+          f"field setters are assigned by a test "
+          f"({len(unreachable_fields)} listed as unreachable)")
+    return True
+
+
 def check_integer_literal_overloads():
     """Every overload set that can take a Nim int has a proc that does.
 
@@ -819,6 +892,7 @@ def main():
     inherited_ok = check_inherited_methods()
     signatures_ok = check_one_declaration_per_signature()
     literals_ok = check_integer_literal_overloads()
+    fields_ok = check_field_accessors()
 
     if (uncovered or stale
             or not licences_ok
@@ -832,7 +906,8 @@ def main():
             or not classes_ok
             or not inherited_ok
             or not signatures_ok
-            or not literals_ok):
+            or not literals_ok
+            or not fields_ok):
         sys.exit(1)
 
     print(f"all {len(declared)} hand-written binding names are called "

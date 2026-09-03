@@ -560,3 +560,32 @@ proc testValueTreeIteratorsAreComplete() =
              "properties yielded " & names[index] & " at " & $index
 
 testValueTreeIteratorsAreComplete()
+
+
+# Every public field round-trips ===============================================
+#
+# A field getter and setter are importcpp procs like any other: they reach the
+# C++ compiler only where something calls them, so a setter nothing assigns is
+# never compiled. Each is set to a distinctive value and read back; where the
+# field's type compares, the read is asserted against what went in.
+
+proc testFieldRoundTrips() =
+    block:
+        var value = makePropertiesFileOptions()
+        value.doNotSave = true
+        doAssert value.doNotSave() == true,
+                 "PropertiesFileOptions.doNotSave came back as " & $value.doNotSave()
+        value.ignoreCaseOfKeyNames = true
+        doAssert value.ignoreCaseOfKeyNames() == true,
+                 "PropertiesFileOptions.ignoreCaseOfKeyNames came back as " & $value.ignoreCaseOfKeyNames()
+        value.millisecondsBeforeSaving = 7.cint
+        doAssert value.millisecondsBeforeSaving() == 7.cint,
+                 "PropertiesFileOptions.millisecondsBeforeSaving came back as " & $value.millisecondsBeforeSaving()
+        value.osxLibrarySubFolder = makeString("a value")
+        discard value.osxLibrarySubFolder()
+    block:
+        var value = makeValueTreePropertyWithDefault()
+        value.onDefaultChange = bindClosure(proc() = discard)
+        discard value.onDefaultChange()
+
+testFieldRoundTrips()

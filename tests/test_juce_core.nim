@@ -3164,3 +3164,130 @@ proc testGeneratedConstructorsForward() =
         cdelete unitTest
 
 testGeneratedConstructorsForward()
+
+
+# Every public field round-trips ===============================================
+#
+# A field getter and setter are importcpp procs like any other: they reach the
+# C++ compiler only where something calls them, so a setter nothing assigns is
+# never compiled. This family has already produced defects on this branch -
+# nine setters that assigned a move-only wrapper by copy, and two whose type
+# could not be copied at all - and 518 accessors had nothing touching them.
+#
+# Each is set to a distinctive value and read back. Where the field's type
+# compares, the read is asserted against what went in; where it does not, the
+# read is what puts the getter in front of the compiler.
+
+proc testFieldRoundTrips() =
+    block:
+        var value = makeConsoleApplicationCommand()
+        value.argumentDescription = makeString("a value")
+        doAssert value.argumentDescription() == makeString("a value"),
+                 "ConsoleApplicationCommand.argumentDescription did not come back as it was set"
+        value.longDescription = makeString("a value")
+        doAssert value.longDescription() == makeString("a value"),
+                 "ConsoleApplicationCommand.longDescription did not come back as it was set"
+        value.shortDescription = makeString("a value")
+        doAssert value.shortDescription() == makeString("a value"),
+                 "ConsoleApplicationCommand.shortDescription did not come back as it was set"
+    block:
+        var value = makeIPAddress()
+        value.isIPv6 = true
+        doAssert value.isIPv6() == true,
+                 "IPAddress.isIPv6 came back as " & $value.isIPv6()
+    block:
+        var value = makePerformanceCounterStatistics()
+        value.maximumSeconds = 2.5
+        doAssert value.maximumSeconds() == 2.5,
+                 "PerformanceCounterStatistics.maximumSeconds came back as " & $value.maximumSeconds()
+        value.minimumSeconds = 2.5
+        doAssert value.minimumSeconds() == 2.5,
+                 "PerformanceCounterStatistics.minimumSeconds came back as " & $value.minimumSeconds()
+        value.numRuns = 8'i64
+        doAssert value.numRuns() == 8'i64,
+                 "PerformanceCounterStatistics.numRuns came back as " & $value.numRuns()
+        value.totalSeconds = 2.5
+        doAssert value.totalSeconds() == 2.5,
+                 "PerformanceCounterStatistics.totalSeconds came back as " & $value.totalSeconds()
+    block:
+        var value = makeStringArray()
+        value.strings = makeArray[String]()
+        discard value.strings()
+    block:
+        var value = makeTextDiffChange()
+        value.length = 7.cint
+        doAssert value.length() == 7.cint,
+                 "TextDiffChange.length came back as " & $value.length()
+        value.start = 7.cint
+        doAssert value.start() == 7.cint,
+                 "TextDiffChange.start came back as " & $value.start()
+    block:
+        var value = makeThreadPoolOptions()
+        value.numberOfThreads = 7.cint
+        doAssert value.numberOfThreads() == 7.cint,
+                 "ThreadPoolOptions.numberOfThreads came back as " & $value.numberOfThreads()
+        value.threadStackSizeBytes = 6'u64
+        doAssert value.threadStackSizeBytes() == 6'u64,
+                 "ThreadPoolOptions.threadStackSizeBytes came back as " & $value.threadStackSizeBytes()
+    block:
+        var value = makeURLDownloadTaskOptions()
+        value.listener = nil
+        discard value.listener()
+        value.sharedContainer = makeString("a value")
+        doAssert value.sharedContainer() == makeString("a value"),
+                 "URLDownloadTaskOptions.sharedContainer did not come back as it was set"
+        value.usePost = true
+        doAssert value.usePost() == true,
+                 "URLDownloadTaskOptions.usePost came back as " & $value.usePost()
+    block:
+        var value = makeUnitTestRunnerTestResult()
+        value.endTime = makeTime()
+        discard value.endTime()
+        value.failures = 7.cint
+        doAssert value.failures() == 7.cint,
+                 "UnitTestRunnerTestResult.failures came back as " & $value.failures()
+        value.messages = makeStringArray()
+        discard value.messages()
+        value.passes = 7.cint
+        doAssert value.passes() == 7.cint,
+                 "UnitTestRunnerTestResult.passes came back as " & $value.passes()
+        value.startTime = makeTime()
+        discard value.startTime()
+        value.subcategoryName = makeString("a value")
+        doAssert value.subcategoryName() == makeString("a value"),
+                 "UnitTestRunnerTestResult.subcategoryName did not come back as it was set"
+        value.unitTestName = makeString("a value")
+        doAssert value.unitTestName() == makeString("a value"),
+                 "UnitTestRunnerTestResult.unitTestName did not come back as it was set"
+    block:
+        var value = makeXmlElementTextFormat()
+        value.addDefaultHeader = true
+        doAssert value.addDefaultHeader() == true,
+                 "XmlElementTextFormat.addDefaultHeader came back as " & $value.addDefaultHeader()
+        value.customEncoding = makeString("a value")
+        doAssert value.customEncoding() == makeString("a value"),
+                 "XmlElementTextFormat.customEncoding did not come back as it was set"
+        value.customHeader = makeString("a value")
+        doAssert value.customHeader() == makeString("a value"),
+                 "XmlElementTextFormat.customHeader did not come back as it was set"
+        value.dtd = makeString("a value")
+        doAssert value.dtd() == makeString("a value"),
+                 "XmlElementTextFormat.dtd did not come back as it was set"
+        value.lineWrapLength = 7.cint
+        doAssert value.lineWrapLength() == 7.cint,
+                 "XmlElementTextFormat.lineWrapLength came back as " & $value.lineWrapLength()
+    block:
+        var value = makeZipFileZipEntry()
+        value.externalFileAttributes = 5'u32
+        doAssert value.externalFileAttributes() == 5'u32,
+                 "ZipFileZipEntry.externalFileAttributes came back as " & $value.externalFileAttributes()
+        value.fileTime = makeTime()
+        discard value.fileTime()
+        value.isSymbolicLink = true
+        doAssert value.isSymbolicLink() == true,
+                 "ZipFileZipEntry.isSymbolicLink came back as " & $value.isSymbolicLink()
+        value.uncompressedSize = 8'i64
+        doAssert value.uncompressedSize() == 8'i64,
+                 "ZipFileZipEntry.uncompressedSize came back as " & $value.uncompressedSize()
+
+testFieldRoundTrips()
