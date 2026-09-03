@@ -4935,5 +4935,68 @@ proc testEqualityGuard() =
     shutdownJuce_GUI()
 
 
+# Pointer-typed members ========================================================
+#
+# remap_type decided pointer-ness by looking for a bare "*" token in the split
+# type spelling. "Component *const" tokenizes to ["Component", "*const"] and
+# "Component **" to ["Component", "**"], so neither matched and both lost their
+# pointer, binding as the class BY VALUE. Component is non-copyable, so the
+# result could not compile - but an importcpp proc reaches the C++ compiler only
+# where it is called, and nothing called these.
+
+proc testPointerMembers() =
+    initialiseJuce_GUI()
+
+    block:
+        # MouseEvent's two Component* const fields. The assertion is pointer
+        # identity, which is the whole content of the field.
+        let target = newCustomComponent()
+        let other = newCustomComponent()
+        let event = makeMouseEvent(Desktop.getInstance().getMainMouseSource(),
+                                   makePoint(3.0'f32, 4.0'f32), makeModifierKeys(),
+                                   1.0'f32, 0.0'f32, 0.0'f32, 0.0'f32, 0.0'f32,
+                                   cast[ptr Component](target),
+                                   cast[ptr Component](other),
+                                   Time.getCurrentTime(),
+                                   makePoint(3.0'f32, 4.0'f32),
+                                   Time.getCurrentTime(), 1, false)
+
+        doAssert event.eventComponent == cast[ptr Component](target),
+                 "eventComponent is not the component the event was built with"
+        doAssert event.originalComponent == cast[ptr Component](other),
+                 "originalComponent is not the originator it was built with"
+        doAssert event.eventComponent != event.originalComponent,
+                 "the two component fields returned the same pointer"
+
+        cdelete target
+        cdelete other
+
+    block:
+        # StretchableLayoutManager::layOutComponents takes Component**. Laying
+        # two 40-unit items across 80 units places the second at x = 40, so the
+        # array is read as an array rather than as one component.
+        var manager = makeStretchableLayoutManager()
+        manager.setItemLayout(0, 20.0, 60.0, 40.0)
+        manager.setItemLayout(1, 20.0, 60.0, 40.0)
+
+        let first = newCustomComponent()
+        let second = newCustomComponent()
+        var items = [cast[ptr Component](first), cast[ptr Component](second)]
+        manager.layOutComponents(addr items[0], 2, 0, 0, 80, 10, false, true)
+
+        doAssert first[].getWidth() == 40,
+                 "the first item is " & $first[].getWidth() & " wide, not 40"
+        doAssert second[].getWidth() == 40,
+                 "the second item is " & $second[].getWidth() & " wide, not 40"
+        doAssert second[].getX() == 40,
+                 "the second item starts at " & $second[].getX() & ", not 40"
+
+        cdelete first
+        cdelete second
+
+    shutdownJuce_GUI()
+
+
 testRemainingGuiScopedHelpers()
 testEqualityGuard()
+testPointerMembers()
