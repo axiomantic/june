@@ -2784,3 +2784,52 @@ proc testConstReferenceFunctionObjects() =
                  "the command saw the executable as " & received
 
 testConstReferenceFunctionObjects()
+
+# What a closure may capture ===================================================
+#
+# Nim allocates a closure's environment as zeroed memory rather than
+# constructing it, and String::operator= releases whatever the target held
+# before (juce_String.cpp:274). From zeroed memory that is a null buffer and
+# the release writes through it, so capturing a String crashes - as does
+# capturing anything holding one. A type built on ReferenceCountedObjectPtr
+# checks for null when it assigns, so those are unaffected.
+#
+# The crash itself cannot be asserted: it takes the process down. What is
+# asserted here is that the types the README calls safe really are, and that
+# the conversion it recommends works.
+
+proc testWhatAClosureMayCapture() =
+    initialiseJuce_GUI()
+
+    block:
+        # The recommended conversion: a Nim string, not a juce::String.
+        let name = $makeString("Ada")
+        var greeted = ""
+        let greet = proc() = greeted = "hello " & name
+        greet()
+        doAssert greeted == "hello Ada", "the closure produced " & greeted
+
+    block:
+        # Plain-value types.
+        let colour = makeColour(10'u8, 20'u8, 30'u8, 255'u8)
+        let bounds = makeRectangle(1.cint, 2.cint, 3.cint, 4.cint)
+        var red = 0'u8
+        var width = 0.cint
+        let read = proc() =
+            red = colour.getRed()
+            width = bounds.getWidth()
+        read()
+        doAssert red == 10, "the captured colour reports red " & $red
+        doAssert width == 3, "the captured rectangle is " & $width & " wide"
+
+    block:
+        # Reference counted ones, which assign through a null check.
+        let tree = makeValueTree(makeIdentifier(makeString("root")))
+        var typeName = ""
+        let inspect = proc() = typeName = $tree.getType().toString()
+        inspect()
+        doAssert typeName == "root", "the captured tree is a " & typeName
+
+    shutdownJuce_GUI()
+
+testWhatAClosureMayCapture()
