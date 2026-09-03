@@ -1,5 +1,6 @@
 
 import std/os
+import std/strutils
 
 import june
 
@@ -2030,3 +2031,40 @@ proc testCompressionAndSubregion() =
                  "the subregion reads " & $middle.readEntireStreamAsString()
 
 testCompressionAndSubregion()
+
+# FileLogger ==================================================================
+#
+# Writes through to a file, so the assertions read the file back rather than
+# asking the logger what it thinks it wrote.
+
+proc testFileLogger() =
+    block:
+        let root = june.File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                       .getNonexistentChildFile(makeString("june-logs"), makeString(""))
+        doAssert root.createDirectory().wasOk(), "could not make the temp directory"
+        let logFile = root.getChildFile(makeStringRef("session.log"))
+
+        block:
+            var logger = makeFileLogger(logFile, makeString("welcome"), 0'i64)
+            doAssert logger.getLogFile() == logFile,
+                     "the logger writes to " & $logger.getLogFile().getFullPathName()
+            logger.logMessage(makeString("first message"))
+            logger.logMessage(makeString("second message"))
+
+        doAssert logFile.existsAsFile(), "the logger never created its file"
+        let written = logFile.loadFileAsString()
+        doAssert "welcome" in $written,
+                 "the welcome message is missing from the log"
+        doAssert "first message" in $written,
+                 "the first message is missing from the log"
+        doAssert "second message" in $written,
+                 "the second message is missing from the log"
+
+        # Order matters: a log that appended in the wrong order would still
+        # contain both.
+        doAssert ($written).find("first message") < ($written).find("second message"),
+                 "the messages are in the wrong order"
+
+        doAssert root.deleteRecursively(), "could not remove the temp directory"
+
+testFileLogger()
