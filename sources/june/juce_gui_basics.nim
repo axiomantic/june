@@ -1399,7 +1399,7 @@ proc `==`*(this: KeyListener, other: KeyListener): bool {.error: "juce::KeyListe
 proc getDefaultComponent*(this: var ComponentTraverser, parentComponent: ptr Component): ptr Component {.header: juce_gui_basics, importcpp: "#.getDefaultComponent(@)".}
 proc getNextComponent*(this: var ComponentTraverser, current: ptr Component): ptr Component {.header: juce_gui_basics, importcpp: "#.getNextComponent(@)".}
 proc getPreviousComponent*(this: var ComponentTraverser, current: ptr Component): ptr Component {.header: juce_gui_basics, importcpp: "#.getPreviousComponent(@)".}
-proc getAllComponents*(this: var ComponentTraverser, parentComponent: ptr Component): CppVector[Component] {.header: juce_gui_basics, importcpp: "#.getAllComponents(@)".}
+proc getAllComponents*(this: var ComponentTraverser, parentComponent: ptr Component): CppVector[ptr Component] {.header: juce_gui_basics, importcpp: "#.getAllComponents(@)".}
 proc `==`*(this: ComponentTraverser, other: ComponentTraverser): bool {.error: "juce::ComponentTraverser defines no operator==; compare a property instead".}
 
 proc makeFocusTraverser*(): FocusTraverser {.header: juce_gui_basics, importcpp: "juce::FocusTraverser(@)".}
@@ -1407,7 +1407,7 @@ proc makeFocusTraverser*(skipDisabledComponents: FocusTraverserSkipDisabledCompo
 proc getDefaultComponent*(this: var FocusTraverser, parentComponent: ptr Component): ptr Component {.header: juce_gui_basics, importcpp: "#.getDefaultComponent(@)".}
 proc getNextComponent*(this: var FocusTraverser, current: ptr Component): ptr Component {.header: juce_gui_basics, importcpp: "#.getNextComponent(@)".}
 proc getPreviousComponent*(this: var FocusTraverser, current: ptr Component): ptr Component {.header: juce_gui_basics, importcpp: "#.getPreviousComponent(@)".}
-proc getAllComponents*(this: var FocusTraverser, parentComponent: ptr Component): CppVector[Component] {.header: juce_gui_basics, importcpp: "#.getAllComponents(@)".}
+proc getAllComponents*(this: var FocusTraverser, parentComponent: ptr Component): CppVector[ptr Component] {.header: juce_gui_basics, importcpp: "#.getAllComponents(@)".}
 proc `==`*(this: FocusTraverser, other: FocusTraverser): bool {.error: "juce::FocusTraverser defines no operator==; compare a property instead".}
 
 # proc singletonHolder*(this: typedesc[ModalComponentManager]): juce::SingletonHolder<ModalComponentManager, juce::DummyCriticalSection, false> {.header: juce_gui_basics, importcpp: "(juce::ModalComponentManager::singletonHolder)".}  # JUCE's SingletonHolder, which is reached through the singleton it holds
@@ -1544,7 +1544,7 @@ proc getParentMonitorArea*(this: Component): Rectangle[cint] {.header: juce_gui_
 proc getNumChildComponents*(this: Component): cint {.header: juce_gui_basics, importcpp: "#.getNumChildComponents()".}
 proc getChildComponent*(this: Component, index: cint): ptr Component {.header: juce_gui_basics, importcpp: "#.getChildComponent(@)".}
 proc getIndexOfChildComponent*(this: Component, child: ptr Component): cint {.header: juce_gui_basics, importcpp: "#.getIndexOfChildComponent(@)".}
-proc getChildren*(this: Component): Array[Component] {.header: juce_gui_basics, importcpp: "#.getChildren()".}
+proc getChildren*(this: Component): Array[ptr Component] {.header: juce_gui_basics, importcpp: "#.getChildren()".}
 proc findChildWithID*(this: Component, componentID: StringRef): ptr Component {.header: juce_gui_basics, importcpp: "#.findChildWithID(@)".}
 proc addChildComponent*(this: var Component, child: ptr Component, zOrder: cint = -1) {.header: juce_gui_basics, importcpp: "#.addChildComponent(@)".}
 proc addChildComponent*(this: var Component, child: var Component, zOrder: cint = -1) {.header: juce_gui_basics, importcpp: "#.addChildComponent(@)".}
@@ -1949,7 +1949,7 @@ proc `==`*(this: CaretComponent, other: CaretComponent): bool {.error: "juce::Ca
 proc getDefaultComponent*(this: var KeyboardFocusTraverser, parentComponent: ptr Component): ptr Component {.header: juce_gui_basics, importcpp: "#.getDefaultComponent(@)".}
 proc getNextComponent*(this: var KeyboardFocusTraverser, current: ptr Component): ptr Component {.header: juce_gui_basics, importcpp: "#.getNextComponent(@)".}
 proc getPreviousComponent*(this: var KeyboardFocusTraverser, current: ptr Component): ptr Component {.header: juce_gui_basics, importcpp: "#.getPreviousComponent(@)".}
-proc getAllComponents*(this: var KeyboardFocusTraverser, parentComponent: ptr Component): CppVector[Component] {.header: juce_gui_basics, importcpp: "#.getAllComponents(@)".}
+proc getAllComponents*(this: var KeyboardFocusTraverser, parentComponent: ptr Component): CppVector[ptr Component] {.header: juce_gui_basics, importcpp: "#.getAllComponents(@)".}
 proc `==`*(this: KeyboardFocusTraverser, other: KeyboardFocusTraverser): bool {.error: "juce::KeyboardFocusTraverser defines no operator==; compare a property instead".}
 
 proc copyTextToClipboard*(this: typedesc[SystemClipboard], text: String) {.header: juce_gui_basics, importcpp: "juce::SystemClipboard::copyTextToClipboard(@)".}
@@ -2122,6 +2122,7 @@ proc isConnectedOnBottom*(this: Button): bool {.header: juce_gui_basics, importc
 proc setState*(this: var Button, newState: ButtonButtonState) {.header: juce_gui_basics, importcpp: "#.setState(@)".}
 proc getState*(this: Button): ButtonButtonState {.header: juce_gui_basics, importcpp: "#.getState()".}
 proc setToggleState*(this: var Button, arg1: bool, arg2: bool) {.header: juce_gui_basics, importcpp: "#.setToggleState(@)".}
+proc getTooltip*(this: var Button): String {.header: juce_gui_basics, importcpp: "#.getTooltip()".}  # inherited from a secondary base
 proc `==`*(this: Button, other: Button): bool {.error: "juce::Button defines no operator==; compare a property instead".}
 
 proc buttonClicked*(this: var ButtonListener, arg1: ptr Button) {.header: juce_gui_basics, importcpp: "#.buttonClicked(@)".}
@@ -2343,6 +2344,10 @@ proc resized*(this: var ScrollBar) {.header: juce_gui_basics, importcpp: "#.resi
 proc parentHierarchyChanged*(this: var ScrollBar) {.header: juce_gui_basics, importcpp: "#.parentHierarchyChanged()".}
 proc setVisible*(this: var ScrollBar, arg1: bool) {.header: juce_gui_basics, importcpp: "#.setVisible(@)".}
 proc createAccessibilityHandler*(this: var ScrollBar): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc cancelPendingUpdate*(this: var ScrollBar) {.header: juce_gui_basics, importcpp: "#.cancelPendingUpdate()".}  # inherited from a secondary base
+proc handleUpdateNowIfNeeded*(this: var ScrollBar) {.header: juce_gui_basics, importcpp: "#.handleUpdateNowIfNeeded()".}  # inherited from a secondary base
+proc isUpdatePending*(this: ScrollBar): bool {.header: juce_gui_basics, importcpp: "#.isUpdatePending()".}  # inherited from a secondary base
+proc triggerAsyncUpdate*(this: var ScrollBar) {.header: juce_gui_basics, importcpp: "#.triggerAsyncUpdate()".}  # inherited from a secondary base
 proc `==`*(this: ScrollBar, other: ScrollBar): bool {.error: "juce::ScrollBar defines no operator==; compare a property instead".}
 
 proc scrollBarMoved*(this: var ScrollBarListener, scrollBarThatHasMoved: ptr ScrollBar, newRangeStart: float64) {.header: juce_gui_basics, importcpp: "#.scrollBarMoved(@)".}
@@ -2430,6 +2435,12 @@ proc paint*(this: var TabbedButtonBar, arg1: var Graphics) {.header: juce_gui_ba
 proc resized*(this: var TabbedButtonBar) {.header: juce_gui_basics, importcpp: "#.resized()".}
 proc lookAndFeelChanged*(this: var TabbedButtonBar) {.header: juce_gui_basics, importcpp: "#.lookAndFeelChanged()".}
 proc createAccessibilityHandler*(this: var TabbedButtonBar): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc addChangeListener*(this: var TabbedButtonBar, listener: ptr ChangeListener) {.header: juce_gui_basics, importcpp: "#.addChangeListener(@)".}  # inherited from a secondary base
+proc dispatchPendingMessages*(this: var TabbedButtonBar) {.header: juce_gui_basics, importcpp: "#.dispatchPendingMessages()".}  # inherited from a secondary base
+proc removeAllChangeListeners*(this: var TabbedButtonBar) {.header: juce_gui_basics, importcpp: "#.removeAllChangeListeners()".}  # inherited from a secondary base
+proc removeChangeListener*(this: var TabbedButtonBar, listener: ptr ChangeListener) {.header: juce_gui_basics, importcpp: "#.removeChangeListener(@)".}  # inherited from a secondary base
+proc sendChangeMessage*(this: var TabbedButtonBar) {.header: juce_gui_basics, importcpp: "#.sendChangeMessage()".}  # inherited from a secondary base
+proc sendSynchronousChangeMessage*(this: var TabbedButtonBar) {.header: juce_gui_basics, importcpp: "#.sendSynchronousChangeMessage()".}  # inherited from a secondary base
 proc `==`*(this: TabbedButtonBar, other: TabbedButtonBar): bool {.error: "juce::TabbedButtonBar defines no operator==; compare a property instead".}
 
 proc getTabButtonSpaceAroundImage*(this: var TabbedButtonBarLookAndFeelMethods): cint {.header: juce_gui_basics, importcpp: "#.getTabButtonSpaceAroundImage()".}
@@ -2478,7 +2489,7 @@ proc `==`*(this: TabbedComponent, other: TabbedComponent): bool {.error: "juce::
 
 proc getDisclosureLevel*(this: AccessibilityCellInterface): cint {.header: juce_gui_basics, importcpp: "#.getDisclosureLevel()".}
 proc getTableHandler*(this: AccessibilityCellInterface): ConstPtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.getTableHandler()".}
-proc getDisclosedRows*(this: AccessibilityCellInterface): CppVector[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.getDisclosedRows()".}
+proc getDisclosedRows*(this: AccessibilityCellInterface): CppVector[ptr AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.getDisclosedRows()".}
 proc `==`*(this: AccessibilityCellInterface, other: AccessibilityCellInterface): bool {.error: "juce::AccessibilityCellInterface defines no operator==; compare a property instead".}
 
 proc getNumRows*(this: AccessibilityTableInterface): cint {.header: juce_gui_basics, importcpp: "#.getNumRows()".}
@@ -2611,7 +2622,7 @@ proc getTableInterface*(this: AccessibilityHandler): ptr AccessibilityTableInter
 proc getCellInterface*(this: AccessibilityHandler): ptr AccessibilityCellInterface {.header: juce_gui_basics, importcpp: "#.getCellInterface()".}
 proc getTextInterface*(this: AccessibilityHandler): ptr AccessibilityTextInterface {.header: juce_gui_basics, importcpp: "#.getTextInterface()".}
 proc getParent*(this: AccessibilityHandler): ptr AccessibilityHandler {.header: juce_gui_basics, importcpp: "#.getParent()".}
-proc getChildren*(this: AccessibilityHandler): CppVector[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.getChildren()".}
+proc getChildren*(this: AccessibilityHandler): CppVector[ptr AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.getChildren()".}
 proc isParentOf*(this: AccessibilityHandler, possibleChild: ptr AccessibilityHandler): bool {.header: juce_gui_basics, importcpp: "#.isParentOf(@)".}
 proc getChildAt*(this: var AccessibilityHandler, screenPoint: Point[cint]): ptr AccessibilityHandler {.header: juce_gui_basics, importcpp: "#.getChildAt(@)".}
 proc getChildFocus*(this: var AccessibilityHandler): ptr AccessibilityHandler {.header: juce_gui_basics, importcpp: "#.getChildFocus()".}
@@ -3042,12 +3053,15 @@ proc markerListBeingDeleted*(this: var RelativeCoordinatePositionerBase, arg1: p
 proc apply*(this: var RelativeCoordinatePositionerBase) {.header: juce_gui_basics, importcpp: "#.apply()".}
 proc addCoordinate*(this: var RelativeCoordinatePositionerBase, arg1: RelativeCoordinate): bool {.header: juce_gui_basics, importcpp: "#.addCoordinate(@)".}
 proc addPoint*(this: var RelativeCoordinatePositionerBase, arg1: RelativePoint): bool {.header: juce_gui_basics, importcpp: "#.addPoint(@)".}
+proc applyNewBounds*(this: var RelativeCoordinatePositionerBase, newBounds: Rectangle[cint]) {.header: juce_gui_basics, importcpp: "#.applyNewBounds(@)".}  # inherited from a secondary base
+proc getComponent*(this: RelativeCoordinatePositionerBase): var Component {.header: juce_gui_basics, importcpp: "#.getComponent()".}  # inherited from a secondary base
 proc `==`*(this: RelativeCoordinatePositionerBase, other: RelativeCoordinatePositionerBase): bool {.error: "juce::RelativeCoordinatePositionerBase defines no operator==; compare a property instead".}
 
 proc makeRelativeCoordinatePositionerBaseComponentScope*(arg1: var Component): RelativeCoordinatePositionerBaseComponentScope {.header: juce_gui_basics, importcpp: "juce::RelativeCoordinatePositionerBase::ComponentScope(@)".}
 proc getSymbolValue*(this: RelativeCoordinatePositionerBaseComponentScope, symbol: String): Expression {.header: juce_gui_basics, importcpp: "#.getSymbolValue(@)".}
 proc visitRelativeScope*(this: RelativeCoordinatePositionerBaseComponentScope, scopeName: String, arg2: var ExpressionScopeVisitor) {.header: juce_gui_basics, importcpp: "#.visitRelativeScope(@)".}
 proc getScopeUID*(this: RelativeCoordinatePositionerBaseComponentScope): String {.header: juce_gui_basics, importcpp: "#.getScopeUID()".}
+proc evaluateFunction*(this: RelativeCoordinatePositionerBaseComponentScope, functionName: String, parameters: ptr float64, numParameters: cint): float64 {.header: juce_gui_basics, importcpp: "#.evaluateFunction(@)".}  # inherited from a secondary base
 proc `==`*(this: RelativeCoordinatePositionerBaseComponentScope, other: RelativeCoordinatePositionerBaseComponentScope): bool {.error: "juce::RelativeCoordinatePositionerBase::ComponentScope defines no operator==; compare a property instead".}
 
 proc makeRelativeParallelogram*(): RelativeParallelogram {.header: juce_gui_basics, importcpp: "juce::RelativeParallelogram(@)".}
@@ -3105,12 +3119,14 @@ proc `startPos=`*(this: var RelativePointPathStartSubPath, value: RelativePoint)
 proc addToPath*(this: RelativePointPathStartSubPath, path: var Path, arg2: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.addToPath(@)".}
 proc getControlPoints*(this: var RelativePointPathStartSubPath, numPoints: var cint): ptr RelativePoint {.header: juce_gui_basics, importcpp: "#.getControlPoints(@)".}
 proc clone*(this: RelativePointPathStartSubPath): ptr RelativePointPathElementBase {.header: juce_gui_basics, importcpp: "#.clone()".}
+proc isDynamic*(this: var RelativePointPathStartSubPath): bool {.header: juce_gui_basics, importcpp: "#.isDynamic()".}  # inherited from a secondary base
 proc `==`*(this: RelativePointPathStartSubPath, other: RelativePointPathStartSubPath): bool {.error: "juce::RelativePointPath::StartSubPath defines no operator==; compare a property instead".}
 
 proc makeRelativePointPathCloseSubPath*(): RelativePointPathCloseSubPath {.header: juce_gui_basics, importcpp: "juce::RelativePointPath::CloseSubPath(@)".}
 proc addToPath*(this: RelativePointPathCloseSubPath, path: var Path, arg2: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.addToPath(@)".}
 proc getControlPoints*(this: var RelativePointPathCloseSubPath, numPoints: var cint): ptr RelativePoint {.header: juce_gui_basics, importcpp: "#.getControlPoints(@)".}
 proc clone*(this: RelativePointPathCloseSubPath): ptr RelativePointPathElementBase {.header: juce_gui_basics, importcpp: "#.clone()".}
+proc isDynamic*(this: var RelativePointPathCloseSubPath): bool {.header: juce_gui_basics, importcpp: "#.isDynamic()".}  # inherited from a secondary base
 proc `==`*(this: RelativePointPathCloseSubPath, other: RelativePointPathCloseSubPath): bool {.error: "juce::RelativePointPath::CloseSubPath defines no operator==; compare a property instead".}
 
 proc makeRelativePointPathLineTo*(endPoint: RelativePoint): RelativePointPathLineTo {.header: juce_gui_basics, importcpp: "juce::RelativePointPath::LineTo(@)".}
@@ -3120,6 +3136,7 @@ proc `endPoint=`*(this: var RelativePointPathLineTo, value: RelativePoint) {.hea
 proc addToPath*(this: RelativePointPathLineTo, path: var Path, arg2: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.addToPath(@)".}
 proc getControlPoints*(this: var RelativePointPathLineTo, numPoints: var cint): ptr RelativePoint {.header: juce_gui_basics, importcpp: "#.getControlPoints(@)".}
 proc clone*(this: RelativePointPathLineTo): ptr RelativePointPathElementBase {.header: juce_gui_basics, importcpp: "#.clone()".}
+proc isDynamic*(this: var RelativePointPathLineTo): bool {.header: juce_gui_basics, importcpp: "#.isDynamic()".}  # inherited from a secondary base
 proc `==`*(this: RelativePointPathLineTo, other: RelativePointPathLineTo): bool {.error: "juce::RelativePointPath::LineTo defines no operator==; compare a property instead".}
 
 proc makeRelativePointPathQuadraticTo*(controlPoint: RelativePoint, endPoint: RelativePoint): RelativePointPathQuadraticTo {.header: juce_gui_basics, importcpp: "juce::RelativePointPath::QuadraticTo(@)".}
@@ -3130,6 +3147,7 @@ proc makeRelativePointPathQuadraticTo*(controlPoint: RelativePoint, endPoint: Re
 proc addToPath*(this: RelativePointPathQuadraticTo, path: var Path, arg2: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.addToPath(@)".}
 proc getControlPoints*(this: var RelativePointPathQuadraticTo, numPoints: var cint): ptr RelativePoint {.header: juce_gui_basics, importcpp: "#.getControlPoints(@)".}
 proc clone*(this: RelativePointPathQuadraticTo): ptr RelativePointPathElementBase {.header: juce_gui_basics, importcpp: "#.clone()".}
+proc isDynamic*(this: var RelativePointPathQuadraticTo): bool {.header: juce_gui_basics, importcpp: "#.isDynamic()".}  # inherited from a secondary base
 proc `==`*(this: RelativePointPathQuadraticTo, other: RelativePointPathQuadraticTo): bool {.error: "juce::RelativePointPath::QuadraticTo defines no operator==; compare a property instead".}
 
 proc makeRelativePointPathCubicTo*(controlPoint1: RelativePoint, controlPoint2: RelativePoint, endPoint: RelativePoint): RelativePointPathCubicTo {.header: juce_gui_basics, importcpp: "juce::RelativePointPath::CubicTo(@)".}
@@ -3140,6 +3158,7 @@ proc makeRelativePointPathCubicTo*(controlPoint1: RelativePoint, controlPoint2: 
 proc addToPath*(this: RelativePointPathCubicTo, path: var Path, arg2: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.addToPath(@)".}
 proc getControlPoints*(this: var RelativePointPathCubicTo, numPoints: var cint): ptr RelativePoint {.header: juce_gui_basics, importcpp: "#.getControlPoints(@)".}
 proc clone*(this: RelativePointPathCubicTo): ptr RelativePointPathElementBase {.header: juce_gui_basics, importcpp: "#.clone()".}
+proc isDynamic*(this: var RelativePointPathCubicTo): bool {.header: juce_gui_basics, importcpp: "#.isDynamic()".}  # inherited from a secondary base
 proc `==`*(this: RelativePointPathCubicTo, other: RelativePointPathCubicTo): bool {.error: "juce::RelativePointPath::CubicTo defines no operator==; compare a property instead".}
 
 proc setFill*(this: var DrawableShape, newFill: FillType) {.header: juce_gui_basics, importcpp: "#.setFill(@)".}
@@ -3358,6 +3377,9 @@ proc isTextInputActive*(this: TextEditor): bool {.header: juce_gui_basics, impor
 proc setTemporaryUnderlining*(this: var TextEditor, arg1: Array[Range[cint]]) {.header: juce_gui_basics, importcpp: "#.setTemporaryUnderlining(@)".}
 proc getKeyboardType*(this: var TextEditor): TextInputTargetVirtualKeyboardType {.header: juce_gui_basics, importcpp: "#.getKeyboardType()".}
 proc createAccessibilityHandler*(this: var TextEditor): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc getCaretRectangle*(this: TextEditor): Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.getCaretRectangle()".}  # inherited from a secondary base
+proc getTooltip*(this: var TextEditor): String {.header: juce_gui_basics, importcpp: "#.getTooltip()".}  # inherited from a secondary base
+proc setTooltip*(this: var TextEditor, newTooltip: String) {.header: juce_gui_basics, importcpp: "#.setTooltip(@)".}  # inherited from a secondary base
 proc `==`*(this: TextEditor, other: TextEditor): bool {.error: "juce::TextEditor defines no operator==; compare a property instead".}
 
 proc textEditorTextChanged*(this: var TextEditorListener, arg1: var TextEditor) {.header: juce_gui_basics, importcpp: "#.textEditorTextChanged(@)".}
@@ -3416,6 +3438,8 @@ proc hideEditor*(this: var Label, discardCurrentEditorContents: bool) {.header: 
 proc isBeingEdited*(this: Label): bool {.header: juce_gui_basics, importcpp: "#.isBeingEdited()".}
 proc getCurrentTextEditor*(this: Label): ptr TextEditor {.header: juce_gui_basics, importcpp: "#.getCurrentTextEditor()".}
 proc createAccessibilityHandler*(this: var Label): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc getTooltip*(this: var Label): String {.header: juce_gui_basics, importcpp: "#.getTooltip()".}  # inherited from a secondary base
+proc setTooltip*(this: var Label, newTooltip: String) {.header: juce_gui_basics, importcpp: "#.setTooltip(@)".}  # inherited from a secondary base
 proc `==`*(this: Label, other: Label): bool {.error: "juce::Label defines no operator==; compare a property instead".}
 
 proc labelTextChanged*(this: var LabelListener, labelThatHasChanged: ptr Label) {.header: juce_gui_basics, importcpp: "#.labelTextChanged(@)".}
@@ -3512,6 +3536,8 @@ proc setImagePlacement*(this: var ImageComponent, newPlacement: RectanglePlaceme
 proc getImagePlacement*(this: ImageComponent): RectanglePlacement {.header: juce_gui_basics, importcpp: "#.getImagePlacement()".}
 proc paint*(this: var ImageComponent, arg1: var Graphics) {.header: juce_gui_basics, importcpp: "#.paint(@)".}
 proc createAccessibilityHandler*(this: var ImageComponent): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc getTooltip*(this: var ImageComponent): String {.header: juce_gui_basics, importcpp: "#.getTooltip()".}  # inherited from a secondary base
+proc setTooltip*(this: var ImageComponent, newTooltip: String) {.header: juce_gui_basics, importcpp: "#.setTooltip(@)".}  # inherited from a secondary base
 proc `==`*(this: ImageComponent, other: ImageComponent): bool {.error: "juce::ImageComponent defines no operator==; compare a property instead".}
 
 proc getNumRows*(this: var ListBoxModel): cint {.header: juce_gui_basics, importcpp: "#.getNumRows()".}
@@ -3589,6 +3615,8 @@ proc startDragAndDrop*(this: var ListBox, arg1: MouseEvent, rowsToDrag: SparseSe
 proc createAccessibilityHandler*(this: var ListBox): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
 proc setSelectedRows*(this: var ListBox, arg1: SparseSet[cint], arg2: bool) {.header: juce_gui_basics, importcpp: "#.setSelectedRows(@)".}
 proc getModel*(this: ListBox): ptr ListBoxModel {.header: juce_gui_basics, importcpp: "#.getModel()".}
+proc getTooltip*(this: var ListBox): String {.header: juce_gui_basics, importcpp: "#.getTooltip()".}  # inherited from a secondary base
+proc setTooltip*(this: var ListBox, newTooltip: String) {.header: juce_gui_basics, importcpp: "#.setTooltip(@)".}  # inherited from a secondary base
 proc `==`*(this: ListBox, other: ListBox): bool {.error: "juce::ListBox defines no operator==; compare a property instead".}
 
 proc makeProgressBar*(progress: var float64): ProgressBar {.header: juce_gui_basics, importcpp: "juce::ProgressBar(@)".}
@@ -3599,6 +3627,8 @@ proc setStyle*(this: var ProgressBar, newStyle: CppOptional[ProgressBarStyle]) {
 proc getStyle*(this: ProgressBar): CppOptional[ProgressBarStyle] {.header: juce_gui_basics, importcpp: "#.getStyle()".}
 proc getResolvedStyle*(this: ProgressBar): ProgressBarStyle {.header: juce_gui_basics, importcpp: "#.getResolvedStyle()".}
 proc createAccessibilityHandler*(this: var ProgressBar): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc getTooltip*(this: var ProgressBar): String {.header: juce_gui_basics, importcpp: "#.getTooltip()".}  # inherited from a secondary base
+proc setTooltip*(this: var ProgressBar, newTooltip: String) {.header: juce_gui_basics, importcpp: "#.setTooltip(@)".}  # inherited from a secondary base
 proc `==`*(this: ProgressBar, other: ProgressBar): bool {.error: "juce::ProgressBar defines no operator==; compare a property instead".}
 
 proc drawProgressBar*(this: var ProgressBarLookAndFeelMethods, arg1: var Graphics, arg2: var ProgressBar, width: cint, height: cint, progress: float64, textToShow: String) {.header: juce_gui_basics, importcpp: "#.drawProgressBar(@)".}
@@ -3728,6 +3758,8 @@ proc setMaxValue*(this: var Slider, arg1: float64, arg2: bool, arg3: bool) {.hea
 proc setMaxValue*(this: var Slider, arg1: float64, arg2: bool) {.header: juce_gui_basics, importcpp: "#.setMaxValue(@)".}
 proc setMinAndMaxValues*(this: var Slider, arg1: float64, arg2: float64, arg3: bool, arg4: bool) {.header: juce_gui_basics, importcpp: "#.setMinAndMaxValues(@)".}
 proc setMinAndMaxValues*(this: var Slider, arg1: float64, arg2: float64, arg3: bool) {.header: juce_gui_basics, importcpp: "#.setMinAndMaxValues(@)".}
+proc getTooltip*(this: var Slider): String {.header: juce_gui_basics, importcpp: "#.getTooltip()".}  # inherited from a secondary base
+proc setTooltip*(this: var Slider, newTooltip: String) {.header: juce_gui_basics, importcpp: "#.setTooltip(@)".}  # inherited from a secondary base
 proc `==`*(this: Slider, other: Slider): bool {.error: "juce::Slider defines no operator==; compare a property instead".}
 
 proc makeSliderRotaryParameters*(): SliderRotaryParameters {.header: juce_gui_basics, importcpp: "juce::Slider::RotaryParameters(@)".}  # implicit default constructor
@@ -3906,6 +3938,21 @@ proc lookAndFeelChanged*(this: var Toolbar) {.header: juce_gui_basics, importcpp
 proc updateAllItemPositions*(this: var Toolbar, animate: bool) {.header: juce_gui_basics, importcpp: "#.updateAllItemPositions(@)".}
 proc createItem*(this: typedesc[Toolbar], arg1: var ToolbarItemFactory, itemId: cint): ptr ToolbarItemComponent {.header: juce_gui_basics, importcpp: "juce::Toolbar::createItem(@)".}
 proc createAccessibilityHandler*(this: var Toolbar): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc findParentDragContainerFor*(this: typedesc[Toolbar], childComponent: ptr Component): ptr DragAndDropContainer {.header: juce_gui_basics, importcpp: "juce::Toolbar::findParentDragContainerFor(@)".}  # inherited from a secondary base
+proc getCurrentDragDescription*(this: Toolbar): juce_var {.header: juce_gui_basics, importcpp: "#.getCurrentDragDescription()".}  # inherited from a secondary base
+proc getDragDescriptionForIndex*(this: Toolbar, index: cint): juce_var {.header: juce_gui_basics, importcpp: "#.getDragDescriptionForIndex(@)".}  # inherited from a secondary base
+proc getNumCurrentDrags*(this: Toolbar): cint {.header: juce_gui_basics, importcpp: "#.getNumCurrentDrags()".}  # inherited from a secondary base
+proc isDragAndDropActive*(this: Toolbar): bool {.header: juce_gui_basics, importcpp: "#.isDragAndDropActive()".}  # inherited from a secondary base
+proc performExternalDragDropOfFiles*(this: typedesc[Toolbar], files: StringArray, canMoveFiles: bool, sourceComponent: ptr Component = nil, callback: CppFunctionObjectN0): bool {.header: juce_gui_basics, importcpp: "juce::Toolbar::performExternalDragDropOfFiles(@)".}  # inherited from a secondary base
+proc performExternalDragDropOfText*(this: typedesc[Toolbar], text: String, sourceComponent: ptr Component = nil, callback: CppFunctionObjectN0): bool {.header: juce_gui_basics, importcpp: "juce::Toolbar::performExternalDragDropOfText(@)".}  # inherited from a secondary base
+proc setCurrentDragImage*(this: var Toolbar, newImage: ScaledImage) {.header: juce_gui_basics, importcpp: "#.setCurrentDragImage(@)".}  # inherited from a secondary base
+proc setCurrentDragImage*(this: var Toolbar, newImage: Image) {.header: juce_gui_basics, importcpp: "#.setCurrentDragImage(@)".}  # inherited from a secondary base
+proc setDragImageForIndex*(this: var Toolbar, index: cint, newImage: ScaledImage) {.header: juce_gui_basics, importcpp: "#.setDragImageForIndex(@)".}  # inherited from a secondary base
+proc setDragImageForIndex*(this: var Toolbar, index: cint, newImage: Image) {.header: juce_gui_basics, importcpp: "#.setDragImageForIndex(@)".}  # inherited from a secondary base
+proc startDragging*(this: var Toolbar, sourceDescription: juce_var, sourceComponent: ptr Component, dragImage: ScaledImage, allowDraggingToOtherJuceWindows: bool = false, imageOffsetFromMouse: ptr Point[cint] = nil, inputSourceCausingDrag: ptr MouseInputSource = nil) {.header: juce_gui_basics, importcpp: "#.startDragging(@)".}  # inherited from a secondary base
+proc startDragging*(this: var Toolbar, sourceDescription: juce_var, sourceComponent: ptr Component, dragImage: Image, allowDraggingToOtherJuceWindows: bool = false, imageOffsetFromMouse: ptr Point[cint] = nil, inputSourceCausingDrag: ptr MouseInputSource = nil) {.header: juce_gui_basics, importcpp: "#.startDragging(@)".}  # inherited from a secondary base
+proc itemDragEnter*(this: var Toolbar, dragSourceDetails: DragAndDropTargetSourceDetails) {.header: juce_gui_basics, importcpp: "#.itemDragEnter(@)".}  # inherited from a secondary base
+proc shouldDrawDragImageWhenOver*(this: var Toolbar): bool {.header: juce_gui_basics, importcpp: "#.shouldDrawDragImageWhenOver()".}  # inherited from a secondary base
 proc `==`*(this: Toolbar, other: Toolbar): bool {.error: "juce::Toolbar defines no operator==; compare a property instead".}
 
 proc paintToolbarBackground*(this: var ToolbarLookAndFeelMethods, arg1: var Graphics, width: cint, height: cint, arg4: var Toolbar) {.header: juce_gui_basics, importcpp: "#.paintToolbarBackground(@)".}
@@ -3940,6 +3987,19 @@ proc `==`*(this: ToolbarItemFactory, other: ToolbarItemFactory): bool {.error: "
 proc makeToolbarItemPalette*(factory: var ToolbarItemFactory, toolbar: var Toolbar): ToolbarItemPalette {.header: juce_gui_basics, importcpp: "juce::ToolbarItemPalette(@)".}
 proc resized*(this: var ToolbarItemPalette) {.header: juce_gui_basics, importcpp: "#.resized()".}
 proc createAccessibilityHandler*(this: var ToolbarItemPalette): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc findParentDragContainerFor*(this: typedesc[ToolbarItemPalette], childComponent: ptr Component): ptr DragAndDropContainer {.header: juce_gui_basics, importcpp: "juce::ToolbarItemPalette::findParentDragContainerFor(@)".}  # inherited from a secondary base
+proc getCurrentDragDescription*(this: ToolbarItemPalette): juce_var {.header: juce_gui_basics, importcpp: "#.getCurrentDragDescription()".}  # inherited from a secondary base
+proc getDragDescriptionForIndex*(this: ToolbarItemPalette, index: cint): juce_var {.header: juce_gui_basics, importcpp: "#.getDragDescriptionForIndex(@)".}  # inherited from a secondary base
+proc getNumCurrentDrags*(this: ToolbarItemPalette): cint {.header: juce_gui_basics, importcpp: "#.getNumCurrentDrags()".}  # inherited from a secondary base
+proc isDragAndDropActive*(this: ToolbarItemPalette): bool {.header: juce_gui_basics, importcpp: "#.isDragAndDropActive()".}  # inherited from a secondary base
+proc performExternalDragDropOfFiles*(this: typedesc[ToolbarItemPalette], files: StringArray, canMoveFiles: bool, sourceComponent: ptr Component = nil, callback: CppFunctionObjectN0): bool {.header: juce_gui_basics, importcpp: "juce::ToolbarItemPalette::performExternalDragDropOfFiles(@)".}  # inherited from a secondary base
+proc performExternalDragDropOfText*(this: typedesc[ToolbarItemPalette], text: String, sourceComponent: ptr Component = nil, callback: CppFunctionObjectN0): bool {.header: juce_gui_basics, importcpp: "juce::ToolbarItemPalette::performExternalDragDropOfText(@)".}  # inherited from a secondary base
+proc setCurrentDragImage*(this: var ToolbarItemPalette, newImage: ScaledImage) {.header: juce_gui_basics, importcpp: "#.setCurrentDragImage(@)".}  # inherited from a secondary base
+proc setCurrentDragImage*(this: var ToolbarItemPalette, newImage: Image) {.header: juce_gui_basics, importcpp: "#.setCurrentDragImage(@)".}  # inherited from a secondary base
+proc setDragImageForIndex*(this: var ToolbarItemPalette, index: cint, newImage: ScaledImage) {.header: juce_gui_basics, importcpp: "#.setDragImageForIndex(@)".}  # inherited from a secondary base
+proc setDragImageForIndex*(this: var ToolbarItemPalette, index: cint, newImage: Image) {.header: juce_gui_basics, importcpp: "#.setDragImageForIndex(@)".}  # inherited from a secondary base
+proc startDragging*(this: var ToolbarItemPalette, sourceDescription: juce_var, sourceComponent: ptr Component, dragImage: ScaledImage, allowDraggingToOtherJuceWindows: bool = false, imageOffsetFromMouse: ptr Point[cint] = nil, inputSourceCausingDrag: ptr MouseInputSource = nil) {.header: juce_gui_basics, importcpp: "#.startDragging(@)".}  # inherited from a secondary base
+proc startDragging*(this: var ToolbarItemPalette, sourceDescription: juce_var, sourceComponent: ptr Component, dragImage: Image, allowDraggingToOtherJuceWindows: bool = false, imageOffsetFromMouse: ptr Point[cint] = nil, inputSourceCausingDrag: ptr MouseInputSource = nil) {.header: juce_gui_basics, importcpp: "#.startDragging(@)".}  # inherited from a secondary base
 proc `==`*(this: ToolbarItemPalette, other: ToolbarItemPalette): bool {.error: "juce::ToolbarItemPalette defines no operator==; compare a property instead".}
 
 proc makeBurgerMenuComponent*(model: ptr MenuBarModel): BurgerMenuComponent {.header: juce_gui_basics, importcpp: "juce::BurgerMenuComponent(@)".}
@@ -4068,6 +4128,9 @@ proc itemDragMove*(this: var TreeView, arg1: DragAndDropTargetSourceDetails) {.h
 proc itemDragExit*(this: var TreeView, arg1: DragAndDropTargetSourceDetails) {.header: juce_gui_basics, importcpp: "#.itemDragExit(@)".}
 proc itemDropped*(this: var TreeView, arg1: DragAndDropTargetSourceDetails) {.header: juce_gui_basics, importcpp: "#.itemDropped(@)".}
 proc createAccessibilityHandler*(this: var TreeView): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
+proc getTooltip*(this: var TreeView): String {.header: juce_gui_basics, importcpp: "#.getTooltip()".}  # inherited from a secondary base
+proc setTooltip*(this: var TreeView, newTooltip: String) {.header: juce_gui_basics, importcpp: "#.setTooltip(@)".}  # inherited from a secondary base
+proc shouldDrawDragImageWhenOver*(this: var TreeView): bool {.header: juce_gui_basics, importcpp: "#.shouldDrawDragImageWhenOver()".}  # inherited from a secondary base
 proc `==`*(this: TreeView, other: TreeView): bool {.error: "juce::TreeView defines no operator==; compare a property instead".}
 
 proc drawTreeviewPlusMinusBox*(this: var TreeViewLookAndFeelMethods, arg1: var Graphics, area: Rectangle[cfloat], backgroundColour: Colour, isItemOpen: bool, isMouseOver: bool) {.header: juce_gui_basics, importcpp: "#.drawTreeviewPlusMinusBox(@)".}
@@ -4154,7 +4217,7 @@ proc `==`*(this: AlertWindow, other: AlertWindow): bool {.error: "juce::AlertWin
 proc createAlertWindow*(this: var AlertWindowLookAndFeelMethods, title: String, message: String, button1: String, button2: String, button3: String, iconType: MessageBoxIconType, numButtons: cint, associatedComponent: ptr Component): ptr AlertWindow {.header: juce_gui_basics, importcpp: "#.createAlertWindow(@)".}
 proc drawAlertBox*(this: var AlertWindowLookAndFeelMethods, arg1: var Graphics, arg2: var AlertWindow, textArea: Rectangle[cint], arg4: var TextLayout) {.header: juce_gui_basics, importcpp: "#.drawAlertBox(@)".}
 proc getAlertBoxWindowFlags*(this: var AlertWindowLookAndFeelMethods): cint {.header: juce_gui_basics, importcpp: "#.getAlertBoxWindowFlags()".}
-proc getWidthsForTextButtons*(this: var AlertWindowLookAndFeelMethods, arg1: var AlertWindow, arg2: Array[TextButton]): Array[cint] {.header: juce_gui_basics, importcpp: "#.getWidthsForTextButtons(@)".}
+proc getWidthsForTextButtons*(this: var AlertWindowLookAndFeelMethods, arg1: var AlertWindow, arg2: Array[ptr TextButton]): Array[cint] {.header: juce_gui_basics, importcpp: "#.getWidthsForTextButtons(@)".}
 proc getAlertWindowButtonHeight*(this: var AlertWindowLookAndFeelMethods): cint {.header: juce_gui_basics, importcpp: "#.getAlertWindowButtonHeight()".}
 proc getAlertWindowTitleFont*(this: var AlertWindowLookAndFeelMethods): Font {.header: juce_gui_basics, importcpp: "#.getAlertWindowTitleFont()".}
 proc getAlertWindowMessageFont*(this: var AlertWindowLookAndFeelMethods): Font {.header: juce_gui_basics, importcpp: "#.getAlertWindowMessageFont()".}
@@ -4643,6 +4706,11 @@ proc getSelectedFile*(this: FileListComponent, index: cint = 0): File {.header: 
 proc deselectAllFiles*(this: var FileListComponent) {.header: juce_gui_basics, importcpp: "#.deselectAllFiles()".}
 proc scrollToTop*(this: var FileListComponent) {.header: juce_gui_basics, importcpp: "#.scrollToTop()".}
 proc setSelectedFile*(this: var FileListComponent, arg1: File) {.header: juce_gui_basics, importcpp: "#.setSelectedFile(@)".}
+proc addListener*(this: var FileListComponent, listener: ptr FileBrowserListener) {.header: juce_gui_basics, importcpp: "#.addListener(@)".}  # inherited from a secondary base
+proc removeListener*(this: var FileListComponent, listener: ptr FileBrowserListener) {.header: juce_gui_basics, importcpp: "#.removeListener(@)".}  # inherited from a secondary base
+proc sendDoubleClickMessage*(this: var FileListComponent, arg1: File) {.header: juce_gui_basics, importcpp: "#.sendDoubleClickMessage(@)".}  # inherited from a secondary base
+proc sendMouseClickMessage*(this: var FileListComponent, arg1: File, arg2: MouseEvent) {.header: juce_gui_basics, importcpp: "#.sendMouseClickMessage(@)".}  # inherited from a secondary base
+proc sendSelectionChangeMessage*(this: var FileListComponent) {.header: juce_gui_basics, importcpp: "#.sendSelectionChangeMessage()".}  # inherited from a secondary base
 proc `==`*(this: FileListComponent, other: FileListComponent): bool {.error: "juce::FileListComponent defines no operator==; compare a property instead".}
 
 proc filenameComponentChanged*(this: var FilenameComponentListener, fileComponentThatHasChanged: ptr FilenameComponent) {.header: juce_gui_basics, importcpp: "#.filenameComponentChanged(@)".}
@@ -4671,6 +4739,8 @@ proc filesDropped*(this: var FilenameComponent, arg1: StringArray, arg2: cint, a
 proc fileDragEnter*(this: var FilenameComponent, arg1: StringArray, arg2: cint, arg3: cint) {.header: juce_gui_basics, importcpp: "#.fileDragEnter(@)".}
 proc fileDragExit*(this: var FilenameComponent, arg1: StringArray) {.header: juce_gui_basics, importcpp: "#.fileDragExit(@)".}
 proc createKeyboardFocusTraverser*(this: var FilenameComponent): UniquePtr[ComponentTraverser] {.header: juce_gui_basics, importcpp: "#.createKeyboardFocusTraverser()".}
+proc getTooltip*(this: var FilenameComponent): String {.header: juce_gui_basics, importcpp: "#.getTooltip()".}  # inherited from a secondary base
+proc fileDragMove*(this: var FilenameComponent, files: StringArray, x: cint, y: cint) {.header: juce_gui_basics, importcpp: "#.fileDragMove(@)".}  # inherited from a secondary base
 proc `==`*(this: FilenameComponent, other: FilenameComponent): bool {.error: "juce::FilenameComponent defines no operator==; compare a property instead".}
 
 proc createFilenameComponentBrowseButton*(this: var FilenameComponentLookAndFeelMethods, text: String): ptr Button {.header: juce_gui_basics, importcpp: "#.createFilenameComponentBrowseButton(@)".}
@@ -4695,6 +4765,11 @@ proc resized*(this: var FileSearchPathListComponent) {.header: juce_gui_basics, 
 proc paint*(this: var FileSearchPathListComponent, arg1: var Graphics) {.header: juce_gui_basics, importcpp: "#.paint(@)".}
 proc isInterestedInFileDrag*(this: var FileSearchPathListComponent, arg1: StringArray): bool {.header: juce_gui_basics, importcpp: "#.isInterestedInFileDrag(@)".}
 proc filesDropped*(this: var FileSearchPathListComponent, files: StringArray, arg2: cint, arg3: cint) {.header: juce_gui_basics, importcpp: "#.filesDropped(@)".}
+proc getTooltip*(this: var FileSearchPathListComponent): String {.header: juce_gui_basics, importcpp: "#.getTooltip()".}  # inherited from a secondary base
+proc setTooltip*(this: var FileSearchPathListComponent, newTooltip: String) {.header: juce_gui_basics, importcpp: "#.setTooltip(@)".}  # inherited from a secondary base
+proc fileDragEnter*(this: var FileSearchPathListComponent, files: StringArray, x: cint, y: cint) {.header: juce_gui_basics, importcpp: "#.fileDragEnter(@)".}  # inherited from a secondary base
+proc fileDragExit*(this: var FileSearchPathListComponent, files: StringArray) {.header: juce_gui_basics, importcpp: "#.fileDragExit(@)".}  # inherited from a secondary base
+proc fileDragMove*(this: var FileSearchPathListComponent, files: StringArray, x: cint, y: cint) {.header: juce_gui_basics, importcpp: "#.fileDragMove(@)".}  # inherited from a secondary base
 proc `==`*(this: FileSearchPathListComponent, other: FileSearchPathListComponent): bool {.error: "juce::FileSearchPathListComponent defines no operator==; compare a property instead".}
 
 proc makeFileTreeComponent*(listToShow: var DirectoryContentsList): FileTreeComponent {.header: juce_gui_basics, importcpp: "juce::FileTreeComponent(@)".}
@@ -4708,6 +4783,11 @@ proc setDragAndDropDescription*(this: var FileTreeComponent, description: String
 proc getDragAndDropDescription*(this: FileTreeComponent): String {.header: juce_gui_basics, importcpp: "#.getDragAndDropDescription()".}
 proc setItemHeight*(this: var FileTreeComponent, newHeight: cint) {.header: juce_gui_basics, importcpp: "#.setItemHeight(@)".}
 proc getItemHeight*(this: FileTreeComponent): cint {.header: juce_gui_basics, importcpp: "#.getItemHeight()".}
+proc addListener*(this: var FileTreeComponent, listener: ptr FileBrowserListener) {.header: juce_gui_basics, importcpp: "#.addListener(@)".}  # inherited from a secondary base
+proc removeListener*(this: var FileTreeComponent, listener: ptr FileBrowserListener) {.header: juce_gui_basics, importcpp: "#.removeListener(@)".}  # inherited from a secondary base
+proc sendDoubleClickMessage*(this: var FileTreeComponent, arg1: File) {.header: juce_gui_basics, importcpp: "#.sendDoubleClickMessage(@)".}  # inherited from a secondary base
+proc sendMouseClickMessage*(this: var FileTreeComponent, arg1: File, arg2: MouseEvent) {.header: juce_gui_basics, importcpp: "#.sendMouseClickMessage(@)".}  # inherited from a secondary base
+proc sendSelectionChangeMessage*(this: var FileTreeComponent) {.header: juce_gui_basics, importcpp: "#.sendSelectionChangeMessage()".}  # inherited from a secondary base
 proc `==`*(this: FileTreeComponent, other: FileTreeComponent): bool {.error: "juce::FileTreeComponent defines no operator==; compare a property instead".}
 
 proc makeImagePreviewComponent*(): ImagePreviewComponent {.header: juce_gui_basics, importcpp: "juce::ImagePreviewComponent(@)".}
@@ -4730,6 +4810,8 @@ proc refresh*(this: var PropertyComponent) {.header: juce_gui_basics, importcpp:
 proc paint*(this: var PropertyComponent, arg1: var Graphics) {.header: juce_gui_basics, importcpp: "#.paint(@)".}
 proc resized*(this: var PropertyComponent) {.header: juce_gui_basics, importcpp: "#.resized()".}
 proc enablementChanged*(this: var PropertyComponent) {.header: juce_gui_basics, importcpp: "#.enablementChanged()".}
+proc getTooltip*(this: var PropertyComponent): String {.header: juce_gui_basics, importcpp: "#.getTooltip()".}  # inherited from a secondary base
+proc setTooltip*(this: var PropertyComponent, newTooltip: String) {.header: juce_gui_basics, importcpp: "#.setTooltip(@)".}  # inherited from a secondary base
 proc `==`*(this: PropertyComponent, other: PropertyComponent): bool {.error: "juce::PropertyComponent defines no operator==; compare a property instead".}
 
 proc drawPropertyPanelSectionHeader*(this: var PropertyComponentLookAndFeelMethods, arg1: var Graphics, name: String, isOpen: bool, width: cint, height: cint) {.header: juce_gui_basics, importcpp: "#.drawPropertyPanelSectionHeader(@)".}
@@ -4764,8 +4846,8 @@ proc `==`*(this: ChoicePropertyComponent, other: ChoicePropertyComponent): bool 
 proc makePropertyPanel*(): PropertyPanel {.header: juce_gui_basics, importcpp: "juce::PropertyPanel(@)".}
 proc makePropertyPanel*(name: String): PropertyPanel {.header: juce_gui_basics, importcpp: "juce::PropertyPanel(@)".}
 proc clear*(this: var PropertyPanel) {.header: juce_gui_basics, importcpp: "#.clear()".}
-proc addProperties*(this: var PropertyPanel, newPropertyComponents: Array[PropertyComponent], extraPaddingBetweenComponents: cint = 0) {.header: juce_gui_basics, importcpp: "#.addProperties(@)".}
-proc addSection*(this: var PropertyPanel, sectionTitle: String, newPropertyComponents: Array[PropertyComponent], shouldSectionInitiallyBeOpen: bool = true, indexToInsertAt: cint = -1, extraPaddingBetweenComponents: cint = 0) {.header: juce_gui_basics, importcpp: "#.addSection(@)".}
+proc addProperties*(this: var PropertyPanel, newPropertyComponents: Array[ptr PropertyComponent], extraPaddingBetweenComponents: cint = 0) {.header: juce_gui_basics, importcpp: "#.addProperties(@)".}
+proc addSection*(this: var PropertyPanel, sectionTitle: String, newPropertyComponents: Array[ptr PropertyComponent], shouldSectionInitiallyBeOpen: bool = true, indexToInsertAt: cint = -1, extraPaddingBetweenComponents: cint = 0) {.header: juce_gui_basics, importcpp: "#.addSection(@)".}
 proc refreshAll*(this: PropertyPanel) {.header: juce_gui_basics, importcpp: "#.refreshAll()".}
 proc isEmpty*(this: PropertyPanel): bool {.header: juce_gui_basics, importcpp: "#.isEmpty()".}
 proc getTotalContentHeight*(this: PropertyPanel): cint {.header: juce_gui_basics, importcpp: "#.getTotalContentHeight()".}
@@ -4832,6 +4914,11 @@ proc getNextCommandTarget*(this: var JUCEApplicationImpl): ptr ApplicationComman
 proc getCommandInfo*(this: var JUCEApplicationImpl, arg1: cint, arg2: var ApplicationCommandInfo) {.header: juce_gui_basics, importcpp: "#.getCommandInfo(@)".}
 proc getAllCommands*(this: var JUCEApplicationImpl, arg1: var Array[cint]) {.header: juce_gui_basics, importcpp: "#.getAllCommands(@)".}
 proc perform*(this: var JUCEApplicationImpl, arg1: ApplicationCommandTargetInvocationInfo): bool {.header: juce_gui_basics, importcpp: "#.perform(@)".}
+proc findFirstTargetParentComponent*(this: var JUCEApplicationImpl): ptr ApplicationCommandTarget {.header: juce_gui_basics, importcpp: "#.findFirstTargetParentComponent()".}  # inherited from a secondary base
+proc getTargetForCommand*(this: var JUCEApplicationImpl, commandID: cint): ptr ApplicationCommandTarget {.header: juce_gui_basics, importcpp: "#.getTargetForCommand(@)".}  # inherited from a secondary base
+proc invoke*(this: var JUCEApplicationImpl, invocationInfo: ApplicationCommandTargetInvocationInfo, asynchronously: bool): bool {.header: juce_gui_basics, importcpp: "#.invoke(@)".}  # inherited from a secondary base
+proc invokeDirectly*(this: var JUCEApplicationImpl, commandID: cint, asynchronously: bool): bool {.header: juce_gui_basics, importcpp: "#.invokeDirectly(@)".}  # inherited from a secondary base
+proc isCommandActive*(this: var JUCEApplicationImpl, commandID: cint): bool {.header: juce_gui_basics, importcpp: "#.isCommandActive(@)".}  # inherited from a secondary base
 proc `==`*(this: JUCEApplicationImpl, other: JUCEApplicationImpl): bool {.error: "juce::JUCEApplication defines no operator==; compare a property instead".}
 
 proc setAllowedPlacement*(this: var BubbleComponent, newPlacement: cint) {.header: juce_gui_basics, importcpp: "#.setAllowedPlacement(@)".}
@@ -4878,6 +4965,139 @@ proc createFocusOutlineForComponent*(this: var LookAndFeel, arg1: var Component)
 proc getMouseCursorFor*(this: var LookAndFeel, arg1: var Component): MouseCursor {.header: juce_gui_basics, importcpp: "#.getMouseCursorFor(@)".}
 proc createGraphicsContext*(this: var LookAndFeel, imageToRenderOn: Image, origin: Point[cint], initialClip: RectangleList[cint]): UniquePtr[LowLevelGraphicsContext] {.header: juce_gui_basics, importcpp: "#.createGraphicsContext(@)".}
 proc playAlertSound*(this: var LookAndFeel) {.header: juce_gui_basics, importcpp: "#.playAlertSound()".}
+proc areScrollbarButtonsVisible*(this: var LookAndFeel): bool {.header: juce_gui_basics, importcpp: "#.areScrollbarButtonsVisible()".}  # inherited from a secondary base
+proc drawScrollbar*(this: var LookAndFeel, g: var Graphics, scrollbar: var ScrollBar, x: cint, y: cint, width: cint, height: cint, isScrollbarVertical: bool, thumbStartPosition: cint, thumbSize: cint, isMouseOver: bool, isMouseDown: bool) {.header: juce_gui_basics, importcpp: "#.drawScrollbar(@)".}  # inherited from a secondary base
+proc drawScrollbarButton*(this: var LookAndFeel, g: var Graphics, scrollbar: var ScrollBar, width: cint, height: cint, buttonDirection: cint, isScrollbarVertical: bool, isMouseOverButton: bool, isButtonDown: bool) {.header: juce_gui_basics, importcpp: "#.drawScrollbarButton(@)".}  # inherited from a secondary base
+proc getDefaultScrollbarWidth*(this: var LookAndFeel): cint {.header: juce_gui_basics, importcpp: "#.getDefaultScrollbarWidth()".}  # inherited from a secondary base
+proc getMinimumScrollbarThumbSize*(this: var LookAndFeel, arg1: var ScrollBar): cint {.header: juce_gui_basics, importcpp: "#.getMinimumScrollbarThumbSize(@)".}  # inherited from a secondary base
+proc getScrollbarButtonSize*(this: var LookAndFeel, arg1: var ScrollBar): cint {.header: juce_gui_basics, importcpp: "#.getScrollbarButtonSize(@)".}  # inherited from a secondary base
+proc getScrollbarEffect*(this: var LookAndFeel): ptr ImageEffectFilter {.header: juce_gui_basics, importcpp: "#.getScrollbarEffect()".}  # inherited from a secondary base
+proc changeToggleButtonWidthToFitText*(this: var LookAndFeel, arg1: var ToggleButton) {.header: juce_gui_basics, importcpp: "#.changeToggleButtonWidthToFitText(@)".}  # inherited from a secondary base
+proc drawButtonBackground*(this: var LookAndFeel, arg1: var Graphics, arg2: var Button, backgroundColour: Colour, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.header: juce_gui_basics, importcpp: "#.drawButtonBackground(@)".}  # inherited from a secondary base
+proc drawButtonText*(this: var LookAndFeel, arg1: var Graphics, arg2: var TextButton, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.header: juce_gui_basics, importcpp: "#.drawButtonText(@)".}  # inherited from a secondary base
+proc drawDrawableButton*(this: var LookAndFeel, arg1: var Graphics, arg2: var DrawableButton, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.header: juce_gui_basics, importcpp: "#.drawDrawableButton(@)".}  # inherited from a secondary base
+proc drawTickBox*(this: var LookAndFeel, arg1: var Graphics, arg2: var Component, x: cfloat, y: cfloat, w: cfloat, h: cfloat, ticked: bool, isEnabled: bool, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.header: juce_gui_basics, importcpp: "#.drawTickBox(@)".}  # inherited from a secondary base
+proc drawToggleButton*(this: var LookAndFeel, arg1: var Graphics, arg2: var ToggleButton, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.header: juce_gui_basics, importcpp: "#.drawToggleButton(@)".}  # inherited from a secondary base
+proc getTextButtonFont*(this: var LookAndFeel, arg1: var TextButton, buttonHeight: cint): Font {.header: juce_gui_basics, importcpp: "#.getTextButtonFont(@)".}  # inherited from a secondary base
+proc getTextButtonWidthToFitText*(this: var LookAndFeel, arg1: var TextButton, buttonHeight: cint): cint {.header: juce_gui_basics, importcpp: "#.getTextButtonWidthToFitText(@)".}  # inherited from a secondary base
+proc drawImageButton*(this: var LookAndFeel, arg1: var Graphics, arg2: ptr Image, imageX: cint, imageY: cint, imageW: cint, imageH: cint, overlayColour: Colour, imageOpacity: cfloat, arg9: var ImageButton) {.header: juce_gui_basics, importcpp: "#.drawImageButton(@)".}  # inherited from a secondary base
+proc createCaretComponent*(this: var LookAndFeel, keyFocusOwner: ptr Component): ptr CaretComponent {.header: juce_gui_basics, importcpp: "#.createCaretComponent(@)".}  # inherited from a secondary base
+proc drawTextEditorOutline*(this: var LookAndFeel, arg1: var Graphics, width: cint, height: cint, arg4: var TextEditor) {.header: juce_gui_basics, importcpp: "#.drawTextEditorOutline(@)".}  # inherited from a secondary base
+proc fillTextEditorBackground*(this: var LookAndFeel, arg1: var Graphics, width: cint, height: cint, arg4: var TextEditor) {.header: juce_gui_basics, importcpp: "#.fillTextEditorBackground(@)".}  # inherited from a secondary base
+proc createFileBrowserGoUpButton*(this: var LookAndFeel): ptr Button {.header: juce_gui_basics, importcpp: "#.createFileBrowserGoUpButton()".}  # inherited from a secondary base
+proc createFileChooserHeaderText*(this: var LookAndFeel, title: String, instructions: String): AttributedString {.header: juce_gui_basics, importcpp: "#.createFileChooserHeaderText(@)".}  # inherited from a secondary base
+proc drawFileBrowserRow*(this: var LookAndFeel, arg1: var Graphics, width: cint, height: cint, file: File, filename: String, optionalIcon: ptr Image, fileSizeDescription: String, fileTimeDescription: String, isDirectory: bool, isItemSelected: bool, itemIndex: cint, arg12: var DirectoryContentsDisplayComponent) {.header: juce_gui_basics, importcpp: "#.drawFileBrowserRow(@)".}  # inherited from a secondary base
+proc getDefaultDocumentFileImage*(this: var LookAndFeel): ConstPtr[Drawable] {.header: juce_gui_basics, importcpp: "#.getDefaultDocumentFileImage()".}  # inherited from a secondary base
+proc getDefaultFolderImage*(this: var LookAndFeel): ConstPtr[Drawable] {.header: juce_gui_basics, importcpp: "#.getDefaultFolderImage()".}  # inherited from a secondary base
+proc layoutFileBrowserComponent*(this: var LookAndFeel, browserComp: var FileBrowserComponent, fileListComponent: ptr DirectoryContentsDisplayComponent, previewComp: ptr FilePreviewComponent, currentPathBox: ptr ComboBox, filenameBox: ptr TextEditor, goUpButton: ptr Button) {.header: juce_gui_basics, importcpp: "#.layoutFileBrowserComponent(@)".}  # inherited from a secondary base
+proc areLinesDrawnForTreeView*(this: var LookAndFeel, arg1: var TreeView): bool {.header: juce_gui_basics, importcpp: "#.areLinesDrawnForTreeView(@)".}  # inherited from a secondary base
+proc drawTreeviewPlusMinusBox*(this: var LookAndFeel, arg1: var Graphics, area: Rectangle[cfloat], backgroundColour: Colour, isItemOpen: bool, isMouseOver: bool) {.header: juce_gui_basics, importcpp: "#.drawTreeviewPlusMinusBox(@)".}  # inherited from a secondary base
+proc getTreeViewIndentSize*(this: var LookAndFeel, arg1: var TreeView): cint {.header: juce_gui_basics, importcpp: "#.getTreeViewIndentSize(@)".}  # inherited from a secondary base
+proc drawBubble*(this: var LookAndFeel, g: var Graphics, bubbleComponent: var BubbleComponent, positionOfTip: Point[cfloat], body: Rectangle[cfloat]) {.header: juce_gui_basics, importcpp: "#.drawBubble(@)".}  # inherited from a secondary base
+proc setComponentEffectForBubbleComponent*(this: var LookAndFeel, bubbleComponent: var BubbleComponent) {.header: juce_gui_basics, importcpp: "#.setComponentEffectForBubbleComponent(@)".}  # inherited from a secondary base
+proc createAlertWindow*(this: var LookAndFeel, title: String, message: String, button1: String, button2: String, button3: String, iconType: MessageBoxIconType, numButtons: cint, associatedComponent: ptr Component): ptr AlertWindow {.header: juce_gui_basics, importcpp: "#.createAlertWindow(@)".}  # inherited from a secondary base
+proc drawAlertBox*(this: var LookAndFeel, arg1: var Graphics, arg2: var AlertWindow, textArea: Rectangle[cint], arg4: var TextLayout) {.header: juce_gui_basics, importcpp: "#.drawAlertBox(@)".}  # inherited from a secondary base
+proc getAlertBoxWindowFlags*(this: var LookAndFeel): cint {.header: juce_gui_basics, importcpp: "#.getAlertBoxWindowFlags()".}  # inherited from a secondary base
+proc getAlertWindowButtonHeight*(this: var LookAndFeel): cint {.header: juce_gui_basics, importcpp: "#.getAlertWindowButtonHeight()".}  # inherited from a secondary base
+proc getAlertWindowFont*(this: var LookAndFeel): Font {.header: juce_gui_basics, importcpp: "#.getAlertWindowFont()".}  # inherited from a secondary base
+proc getAlertWindowMessageFont*(this: var LookAndFeel): Font {.header: juce_gui_basics, importcpp: "#.getAlertWindowMessageFont()".}  # inherited from a secondary base
+proc getAlertWindowTitleFont*(this: var LookAndFeel): Font {.header: juce_gui_basics, importcpp: "#.getAlertWindowTitleFont()".}  # inherited from a secondary base
+proc getWidthsForTextButtons*(this: var LookAndFeel, arg1: var AlertWindow, arg2: Array[ptr TextButton]): Array[cint] {.header: juce_gui_basics, importcpp: "#.getWidthsForTextButtons(@)".}  # inherited from a secondary base
+proc drawMenuBarBackground*(this: var LookAndFeel, arg1: var Graphics, width: cint, height: cint, isMouseOverBar: bool, arg5: var MenuBarComponent) {.header: juce_gui_basics, importcpp: "#.drawMenuBarBackground(@)".}  # inherited from a secondary base
+proc drawMenuBarItem*(this: var LookAndFeel, arg1: var Graphics, width: cint, height: cint, itemIndex: cint, itemText: String, isMouseOverItem: bool, isMenuOpen: bool, isMouseOverBar: bool, arg9: var MenuBarComponent) {.header: juce_gui_basics, importcpp: "#.drawMenuBarItem(@)".}  # inherited from a secondary base
+proc drawPopupMenuBackground*(this: var LookAndFeel, arg1: var Graphics, width: cint, height: cint) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuBackground(@)".}  # inherited from a secondary base
+proc drawPopupMenuBackgroundWithOptions*(this: var LookAndFeel, arg1: var Graphics, width: cint, height: cint, arg4: PopupMenuOptions) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuBackgroundWithOptions(@)".}  # inherited from a secondary base
+proc drawPopupMenuColumnSeparatorWithOptions*(this: var LookAndFeel, g: var Graphics, bounds: Rectangle[cint], arg3: PopupMenuOptions) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuColumnSeparatorWithOptions(@)".}  # inherited from a secondary base
+proc drawPopupMenuItem*(this: var LookAndFeel, arg1: var Graphics, area: Rectangle[cint], isSeparator: bool, isActive: bool, isHighlighted: bool, isTicked: bool, hasSubMenu: bool, text: String, shortcutKeyText: String, icon: ptr Drawable, textColour: ptr Colour) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuItem(@)".}  # inherited from a secondary base
+proc drawPopupMenuItemWithOptions*(this: var LookAndFeel, arg1: var Graphics, area: Rectangle[cint], isHighlighted: bool, item: PopupMenuItem, arg5: PopupMenuOptions) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuItemWithOptions(@)".}  # inherited from a secondary base
+proc drawPopupMenuSectionHeader*(this: var LookAndFeel, arg1: var Graphics, arg2: Rectangle[cint], arg3: String) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuSectionHeader(@)".}  # inherited from a secondary base
+proc drawPopupMenuSectionHeaderWithOptions*(this: var LookAndFeel, arg1: var Graphics, area: Rectangle[cint], sectionName: String, arg4: PopupMenuOptions) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuSectionHeaderWithOptions(@)".}  # inherited from a secondary base
+proc drawPopupMenuUpDownArrow*(this: var LookAndFeel, arg1: var Graphics, width: cint, height: cint, isScrollUpArrow: bool) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuUpDownArrow(@)".}  # inherited from a secondary base
+proc drawPopupMenuUpDownArrowWithOptions*(this: var LookAndFeel, arg1: var Graphics, width: cint, height: cint, isScrollUpArrow: bool, arg5: PopupMenuOptions) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuUpDownArrowWithOptions(@)".}  # inherited from a secondary base
+proc getDefaultMenuBarHeight*(this: var LookAndFeel): cint {.header: juce_gui_basics, importcpp: "#.getDefaultMenuBarHeight()".}  # inherited from a secondary base
+proc getIdealPopupMenuItemSize*(this: var LookAndFeel, text: String, isSeparator: bool, standardMenuItemHeight: cint, idealWidth: var cint, idealHeight: var cint) {.header: juce_gui_basics, importcpp: "#.getIdealPopupMenuItemSize(@)".}  # inherited from a secondary base
+proc getIdealPopupMenuItemSizeWithOptions*(this: var LookAndFeel, text: String, isSeparator: bool, standardMenuItemHeight: cint, idealWidth: var cint, idealHeight: var cint, arg6: PopupMenuOptions) {.header: juce_gui_basics, importcpp: "#.getIdealPopupMenuItemSizeWithOptions(@)".}  # inherited from a secondary base
+proc getIdealPopupMenuSectionHeaderSizeWithOptions*(this: var LookAndFeel, text: String, standardMenuItemHeight: cint, idealWidth: var cint, idealHeight: var cint, arg5: PopupMenuOptions) {.header: juce_gui_basics, importcpp: "#.getIdealPopupMenuSectionHeaderSizeWithOptions(@)".}  # inherited from a secondary base
+proc getMenuBarFont*(this: var LookAndFeel, arg1: var MenuBarComponent, itemIndex: cint, itemText: String): Font {.header: juce_gui_basics, importcpp: "#.getMenuBarFont(@)".}  # inherited from a secondary base
+proc getMenuBarItemWidth*(this: var LookAndFeel, arg1: var MenuBarComponent, itemIndex: cint, itemText: String): cint {.header: juce_gui_basics, importcpp: "#.getMenuBarItemWidth(@)".}  # inherited from a secondary base
+proc getMenuWindowFlags*(this: var LookAndFeel): cint {.header: juce_gui_basics, importcpp: "#.getMenuWindowFlags()".}  # inherited from a secondary base
+proc getParentComponentForMenuOptions*(this: var LookAndFeel, options: PopupMenuOptions): ptr Component {.header: juce_gui_basics, importcpp: "#.getParentComponentForMenuOptions(@)".}  # inherited from a secondary base
+proc getPopupMenuBorderSize*(this: var LookAndFeel): cint {.header: juce_gui_basics, importcpp: "#.getPopupMenuBorderSize()".}  # inherited from a secondary base
+proc getPopupMenuBorderSizeWithOptions*(this: var LookAndFeel, arg1: PopupMenuOptions): cint {.header: juce_gui_basics, importcpp: "#.getPopupMenuBorderSizeWithOptions(@)".}  # inherited from a secondary base
+proc getPopupMenuColumnSeparatorWidthWithOptions*(this: var LookAndFeel, arg1: PopupMenuOptions): cint {.header: juce_gui_basics, importcpp: "#.getPopupMenuColumnSeparatorWidthWithOptions(@)".}  # inherited from a secondary base
+proc getPopupMenuFont*(this: var LookAndFeel): Font {.header: juce_gui_basics, importcpp: "#.getPopupMenuFont()".}  # inherited from a secondary base
+proc preparePopupMenuWindow*(this: var LookAndFeel, newWindow: var Component) {.header: juce_gui_basics, importcpp: "#.preparePopupMenuWindow(@)".}  # inherited from a secondary base
+proc shouldPopupMenuScaleWithTargetComponent*(this: var LookAndFeel, options: PopupMenuOptions): bool {.header: juce_gui_basics, importcpp: "#.shouldPopupMenuScaleWithTargetComponent(@)".}  # inherited from a secondary base
+proc createComboBoxTextBox*(this: var LookAndFeel, arg1: var ComboBox): ptr Label {.header: juce_gui_basics, importcpp: "#.createComboBoxTextBox(@)".}  # inherited from a secondary base
+proc drawComboBox*(this: var LookAndFeel, arg1: var Graphics, width: cint, height: cint, isButtonDown: bool, buttonX: cint, buttonY: cint, buttonW: cint, buttonH: cint, arg9: var ComboBox) {.header: juce_gui_basics, importcpp: "#.drawComboBox(@)".}  # inherited from a secondary base
+proc drawComboBoxTextWhenNothingSelected*(this: var LookAndFeel, arg1: var Graphics, arg2: var ComboBox, arg3: var Label) {.header: juce_gui_basics, importcpp: "#.drawComboBoxTextWhenNothingSelected(@)".}  # inherited from a secondary base
+proc getComboBoxFont*(this: var LookAndFeel, arg1: var ComboBox): Font {.header: juce_gui_basics, importcpp: "#.getComboBoxFont(@)".}  # inherited from a secondary base
+proc getOptionsForComboBoxPopupMenu*(this: var LookAndFeel, arg1: var ComboBox, arg2: var Label): PopupMenuOptions {.header: juce_gui_basics, importcpp: "#.getOptionsForComboBoxPopupMenu(@)".}  # inherited from a secondary base
+proc positionComboBoxText*(this: var LookAndFeel, arg1: var ComboBox, labelToPosition: var Label) {.header: juce_gui_basics, importcpp: "#.positionComboBoxText(@)".}  # inherited from a secondary base
+proc drawLabel*(this: var LookAndFeel, arg1: var Graphics, arg2: var Label) {.header: juce_gui_basics, importcpp: "#.drawLabel(@)".}  # inherited from a secondary base
+proc getLabelBorderSize*(this: var LookAndFeel, arg1: var Label): BorderSize[cint] {.header: juce_gui_basics, importcpp: "#.getLabelBorderSize(@)".}  # inherited from a secondary base
+proc getLabelFont*(this: var LookAndFeel, arg1: var Label): Font {.header: juce_gui_basics, importcpp: "#.getLabelFont(@)".}  # inherited from a secondary base
+proc createSliderButton*(this: var LookAndFeel, arg1: var Slider, isIncrement: bool): ptr Button {.header: juce_gui_basics, importcpp: "#.createSliderButton(@)".}  # inherited from a secondary base
+proc createSliderTextBox*(this: var LookAndFeel, arg1: var Slider): ptr Label {.header: juce_gui_basics, importcpp: "#.createSliderTextBox(@)".}  # inherited from a secondary base
+proc drawLinearSlider*(this: var LookAndFeel, arg1: var Graphics, x: cint, y: cint, width: cint, height: cint, sliderPos: cfloat, minSliderPos: cfloat, maxSliderPos: cfloat, arg9: SliderSliderStyle, arg10: var Slider) {.header: juce_gui_basics, importcpp: "#.drawLinearSlider(@)".}  # inherited from a secondary base
+proc drawLinearSliderBackground*(this: var LookAndFeel, arg1: var Graphics, x: cint, y: cint, width: cint, height: cint, sliderPos: cfloat, minSliderPos: cfloat, maxSliderPos: cfloat, arg9: SliderSliderStyle, arg10: var Slider) {.header: juce_gui_basics, importcpp: "#.drawLinearSliderBackground(@)".}  # inherited from a secondary base
+proc drawLinearSliderOutline*(this: var LookAndFeel, arg1: var Graphics, x: cint, y: cint, width: cint, height: cint, arg6: SliderSliderStyle, arg7: var Slider) {.header: juce_gui_basics, importcpp: "#.drawLinearSliderOutline(@)".}  # inherited from a secondary base
+proc drawLinearSliderThumb*(this: var LookAndFeel, arg1: var Graphics, x: cint, y: cint, width: cint, height: cint, sliderPos: cfloat, minSliderPos: cfloat, maxSliderPos: cfloat, arg9: SliderSliderStyle, arg10: var Slider) {.header: juce_gui_basics, importcpp: "#.drawLinearSliderThumb(@)".}  # inherited from a secondary base
+proc drawRotarySlider*(this: var LookAndFeel, arg1: var Graphics, x: cint, y: cint, width: cint, height: cint, sliderPosProportional: cfloat, rotaryStartAngle: cfloat, rotaryEndAngle: cfloat, arg9: var Slider) {.header: juce_gui_basics, importcpp: "#.drawRotarySlider(@)".}  # inherited from a secondary base
+proc getSliderEffect*(this: var LookAndFeel, arg1: var Slider): ptr ImageEffectFilter {.header: juce_gui_basics, importcpp: "#.getSliderEffect(@)".}  # inherited from a secondary base
+proc getSliderLayout*(this: var LookAndFeel, arg1: var Slider): SliderSliderLayout {.header: juce_gui_basics, importcpp: "#.getSliderLayout(@)".}  # inherited from a secondary base
+proc getSliderPopupFont*(this: var LookAndFeel, arg1: var Slider): Font {.header: juce_gui_basics, importcpp: "#.getSliderPopupFont(@)".}  # inherited from a secondary base
+proc getSliderPopupPlacement*(this: var LookAndFeel, arg1: var Slider): cint {.header: juce_gui_basics, importcpp: "#.getSliderPopupPlacement(@)".}  # inherited from a secondary base
+proc getSliderThumbRadius*(this: var LookAndFeel, arg1: var Slider): cint {.header: juce_gui_basics, importcpp: "#.getSliderThumbRadius(@)".}  # inherited from a secondary base
+proc drawCornerResizer*(this: var LookAndFeel, arg1: var Graphics, w: cint, h: cint, isMouseOver: bool, isMouseDragging: bool) {.header: juce_gui_basics, importcpp: "#.drawCornerResizer(@)".}  # inherited from a secondary base
+proc drawResizableFrame*(this: var LookAndFeel, arg1: var Graphics, w: cint, h: cint, arg4: BorderSize[cint]) {.header: juce_gui_basics, importcpp: "#.drawResizableFrame(@)".}  # inherited from a secondary base
+proc drawResizableWindowBorder*(this: var LookAndFeel, arg1: var Graphics, w: cint, h: cint, border: BorderSize[cint], arg5: var ResizableWindow) {.header: juce_gui_basics, importcpp: "#.drawResizableWindowBorder(@)".}  # inherited from a secondary base
+proc fillResizableWindowBackground*(this: var LookAndFeel, arg1: var Graphics, w: cint, h: cint, arg4: BorderSize[cint], arg5: var ResizableWindow) {.header: juce_gui_basics, importcpp: "#.fillResizableWindowBackground(@)".}  # inherited from a secondary base
+proc createDocumentWindowButton*(this: var LookAndFeel, buttonType: cint): ptr Button {.header: juce_gui_basics, importcpp: "#.createDocumentWindowButton(@)".}  # inherited from a secondary base
+proc drawDocumentWindowTitleBar*(this: var LookAndFeel, arg1: var DocumentWindowImpl, arg2: var Graphics, w: cint, h: cint, titleSpaceX: cint, titleSpaceW: cint, icon: ptr Image, drawTitleTextOnLeft: bool) {.header: juce_gui_basics, importcpp: "#.drawDocumentWindowTitleBar(@)".}  # inherited from a secondary base
+proc positionDocumentWindowButtons*(this: var LookAndFeel, arg1: var DocumentWindowImpl, titleBarX: cint, titleBarY: cint, titleBarW: cint, titleBarH: cint, minimiseButton: ptr Button, maximiseButton: ptr Button, closeButton: ptr Button, positionTitleBarButtonsOnLeft: bool) {.header: juce_gui_basics, importcpp: "#.positionDocumentWindowButtons(@)".}  # inherited from a secondary base
+proc drawTooltip*(this: var LookAndFeel, arg1: var Graphics, text: String, width: cint, height: cint) {.header: juce_gui_basics, importcpp: "#.drawTooltip(@)".}  # inherited from a secondary base
+proc getTooltipBounds*(this: var LookAndFeel, tipText: String, screenPos: Point[cint], parentArea: Rectangle[cint]): Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.getTooltipBounds(@)".}  # inherited from a secondary base
+proc createTabBarExtrasButton*(this: var LookAndFeel): ptr Button {.header: juce_gui_basics, importcpp: "#.createTabBarExtrasButton()".}  # inherited from a secondary base
+proc createTabButtonShape*(this: var LookAndFeel, arg1: var TabBarButton, path: var Path, isMouseOver: bool, isMouseDown: bool) {.header: juce_gui_basics, importcpp: "#.createTabButtonShape(@)".}  # inherited from a secondary base
+proc drawTabAreaBehindFrontButton*(this: var LookAndFeel, arg1: var TabbedButtonBar, arg2: var Graphics, w: cint, h: cint) {.header: juce_gui_basics, importcpp: "#.drawTabAreaBehindFrontButton(@)".}  # inherited from a secondary base
+proc drawTabButton*(this: var LookAndFeel, arg1: var TabBarButton, arg2: var Graphics, isMouseOver: bool, isMouseDown: bool) {.header: juce_gui_basics, importcpp: "#.drawTabButton(@)".}  # inherited from a secondary base
+proc drawTabButtonText*(this: var LookAndFeel, arg1: var TabBarButton, arg2: var Graphics, isMouseOver: bool, isMouseDown: bool) {.header: juce_gui_basics, importcpp: "#.drawTabButtonText(@)".}  # inherited from a secondary base
+proc drawTabbedButtonBarBackground*(this: var LookAndFeel, arg1: var TabbedButtonBar, arg2: var Graphics) {.header: juce_gui_basics, importcpp: "#.drawTabbedButtonBarBackground(@)".}  # inherited from a secondary base
+proc fillTabButtonShape*(this: var LookAndFeel, arg1: var TabBarButton, arg2: var Graphics, path: Path, isMouseOver: bool, isMouseDown: bool) {.header: juce_gui_basics, importcpp: "#.fillTabButtonShape(@)".}  # inherited from a secondary base
+proc getTabButtonBestWidth*(this: var LookAndFeel, arg1: var TabBarButton, tabDepth: cint): cint {.header: juce_gui_basics, importcpp: "#.getTabButtonBestWidth(@)".}  # inherited from a secondary base
+proc getTabButtonExtraComponentBounds*(this: var LookAndFeel, arg1: TabBarButton, textArea: var Rectangle[cint], extraComp: var Component): Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.getTabButtonExtraComponentBounds(@)".}  # inherited from a secondary base
+proc getTabButtonFont*(this: var LookAndFeel, arg1: var TabBarButton, height: cfloat): Font {.header: juce_gui_basics, importcpp: "#.getTabButtonFont(@)".}  # inherited from a secondary base
+proc getTabButtonOverlap*(this: var LookAndFeel, tabDepth: cint): cint {.header: juce_gui_basics, importcpp: "#.getTabButtonOverlap(@)".}  # inherited from a secondary base
+proc getTabButtonSpaceAroundImage*(this: var LookAndFeel): cint {.header: juce_gui_basics, importcpp: "#.getTabButtonSpaceAroundImage()".}  # inherited from a secondary base
+proc drawPropertyComponentBackground*(this: var LookAndFeel, arg1: var Graphics, width: cint, height: cint, arg4: var PropertyComponent) {.header: juce_gui_basics, importcpp: "#.drawPropertyComponentBackground(@)".}  # inherited from a secondary base
+proc drawPropertyComponentLabel*(this: var LookAndFeel, arg1: var Graphics, width: cint, height: cint, arg4: var PropertyComponent) {.header: juce_gui_basics, importcpp: "#.drawPropertyComponentLabel(@)".}  # inherited from a secondary base
+proc drawPropertyPanelSectionHeader*(this: var LookAndFeel, arg1: var Graphics, name: String, isOpen: bool, width: cint, height: cint) {.header: juce_gui_basics, importcpp: "#.drawPropertyPanelSectionHeader(@)".}  # inherited from a secondary base
+proc getPropertyComponentContentPosition*(this: var LookAndFeel, arg1: var PropertyComponent): Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.getPropertyComponentContentPosition(@)".}  # inherited from a secondary base
+proc getPropertyPanelSectionHeaderHeight*(this: var LookAndFeel, sectionTitle: String): cint {.header: juce_gui_basics, importcpp: "#.getPropertyPanelSectionHeaderHeight(@)".}  # inherited from a secondary base
+proc createFilenameComponentBrowseButton*(this: var LookAndFeel, text: String): ptr Button {.header: juce_gui_basics, importcpp: "#.createFilenameComponentBrowseButton(@)".}  # inherited from a secondary base
+proc layoutFilenameComponent*(this: var LookAndFeel, arg1: var FilenameComponent, filenameBox: ptr ComboBox, browseButton: ptr Button) {.header: juce_gui_basics, importcpp: "#.layoutFilenameComponent(@)".}  # inherited from a secondary base
+proc drawGroupComponentOutline*(this: var LookAndFeel, arg1: var Graphics, w: cint, h: cint, text: String, arg5: Justification, arg6: var GroupComponent) {.header: juce_gui_basics, importcpp: "#.drawGroupComponentOutline(@)".}  # inherited from a secondary base
+proc drawTableHeaderBackground*(this: var LookAndFeel, arg1: var Graphics, arg2: var TableHeaderComponent) {.header: juce_gui_basics, importcpp: "#.drawTableHeaderBackground(@)".}  # inherited from a secondary base
+proc drawTableHeaderColumn*(this: var LookAndFeel, arg1: var Graphics, arg2: var TableHeaderComponent, columnName: String, columnId: cint, width: cint, height: cint, isMouseOver: bool, isMouseDown: bool, columnFlags: cint) {.header: juce_gui_basics, importcpp: "#.drawTableHeaderColumn(@)".}  # inherited from a secondary base
+proc drawCallOutBoxBackground*(this: var LookAndFeel, arg1: var CallOutBox, arg2: var Graphics, arg3: Path, arg4: var Image) {.header: juce_gui_basics, importcpp: "#.drawCallOutBoxBackground(@)".}  # inherited from a secondary base
+proc getCallOutBoxBorderSize*(this: var LookAndFeel, arg1: CallOutBox): cint {.header: juce_gui_basics, importcpp: "#.getCallOutBoxBorderSize(@)".}  # inherited from a secondary base
+proc getCallOutBoxCornerSize*(this: var LookAndFeel, arg1: CallOutBox): cfloat {.header: juce_gui_basics, importcpp: "#.getCallOutBoxCornerSize(@)".}  # inherited from a secondary base
+proc createToolbarMissingItemsButton*(this: var LookAndFeel, arg1: var Toolbar): ptr Button {.header: juce_gui_basics, importcpp: "#.createToolbarMissingItemsButton(@)".}  # inherited from a secondary base
+proc paintToolbarBackground*(this: var LookAndFeel, arg1: var Graphics, width: cint, height: cint, arg4: var Toolbar) {.header: juce_gui_basics, importcpp: "#.paintToolbarBackground(@)".}  # inherited from a secondary base
+proc paintToolbarButtonBackground*(this: var LookAndFeel, arg1: var Graphics, width: cint, height: cint, isMouseOver: bool, isMouseDown: bool, arg6: var ToolbarItemComponent) {.header: juce_gui_basics, importcpp: "#.paintToolbarButtonBackground(@)".}  # inherited from a secondary base
+proc paintToolbarButtonLabel*(this: var LookAndFeel, arg1: var Graphics, x: cint, y: cint, width: cint, height: cint, text: String, arg7: var ToolbarItemComponent) {.header: juce_gui_basics, importcpp: "#.paintToolbarButtonLabel(@)".}  # inherited from a secondary base
+proc drawConcertinaPanelHeader*(this: var LookAndFeel, arg1: var Graphics, area: Rectangle[cint], isMouseOver: bool, isMouseDown: bool, arg5: var ConcertinaPanel, arg6: var Component) {.header: juce_gui_basics, importcpp: "#.drawConcertinaPanelHeader(@)".}  # inherited from a secondary base
+proc drawProgressBar*(this: var LookAndFeel, arg1: var Graphics, arg2: var ProgressBar, width: cint, height: cint, progress: float64, textToShow: String) {.header: juce_gui_basics, importcpp: "#.drawProgressBar(@)".}  # inherited from a secondary base
+proc getDefaultProgressBarStyle*(this: var LookAndFeel, arg1: ProgressBar): ProgressBarStyle {.header: juce_gui_basics, importcpp: "#.getDefaultProgressBarStyle(@)".}  # inherited from a secondary base
+proc isProgressBarOpaque*(this: var LookAndFeel, arg1: var ProgressBar): bool {.header: juce_gui_basics, importcpp: "#.isProgressBarOpaque(@)".}  # inherited from a secondary base
+proc drawStretchableLayoutResizerBar*(this: var LookAndFeel, arg1: var Graphics, w: cint, h: cint, isVerticalBar: bool, isMouseOver: bool, isMouseDragging: bool) {.header: juce_gui_basics, importcpp: "#.drawStretchableLayoutResizerBar(@)".}  # inherited from a secondary base
+proc drawKeymapChangeButton*(this: var LookAndFeel, arg1: var Graphics, width: cint, height: cint, arg4: var Button, keyDescription: String) {.header: juce_gui_basics, importcpp: "#.drawKeymapChangeButton(@)".}  # inherited from a secondary base
+proc drawLevelMeter*(this: var LookAndFeel, arg1: var Graphics, width: cint, height: cint, level: cfloat) {.header: juce_gui_basics, importcpp: "#.drawLevelMeter(@)".}  # inherited from a secondary base
+proc drawLasso*(this: var LookAndFeel, arg1: var Graphics, lassoComp: var Component) {.header: juce_gui_basics, importcpp: "#.drawLasso(@)".}  # inherited from a secondary base
+proc getSidePanelDismissButtonShape*(this: var LookAndFeel, arg1: var SidePanel): Path {.header: juce_gui_basics, importcpp: "#.getSidePanelDismissButtonShape(@)".}  # inherited from a secondary base
+proc getSidePanelTitleFont*(this: var LookAndFeel, arg1: var SidePanel): Font {.header: juce_gui_basics, importcpp: "#.getSidePanelTitleFont(@)".}  # inherited from a secondary base
+proc getSidePanelTitleJustification*(this: var LookAndFeel, arg1: var SidePanel): Justification {.header: juce_gui_basics, importcpp: "#.getSidePanelTitleJustification(@)".}  # inherited from a secondary base
 proc `==`*(this: LookAndFeel, other: LookAndFeel): bool {.error: "juce::LookAndFeel defines no operator==; compare a property instead".}
 
 proc makeLookAndFeel_V2*(): LookAndFeel_V2 {.header: juce_gui_basics, importcpp: "juce::LookAndFeel_V2(@)".}
@@ -4892,7 +5112,7 @@ proc drawDrawableButton*(this: var LookAndFeel_V2, arg1: var Graphics, arg2: var
 proc createAlertWindow*(this: var LookAndFeel_V2, title: String, message: String, button1: String, button2: String, button3: String, iconType: MessageBoxIconType, numButtons: cint, associatedComponent: ptr Component): ptr AlertWindow {.header: juce_gui_basics, importcpp: "#.createAlertWindow(@)".}
 proc drawAlertBox*(this: var LookAndFeel_V2, arg1: var Graphics, arg2: var AlertWindow, textArea: Rectangle[cint], arg4: var TextLayout) {.header: juce_gui_basics, importcpp: "#.drawAlertBox(@)".}
 proc getAlertBoxWindowFlags*(this: var LookAndFeel_V2): cint {.header: juce_gui_basics, importcpp: "#.getAlertBoxWindowFlags()".}
-proc getWidthsForTextButtons*(this: var LookAndFeel_V2, arg1: var AlertWindow, arg2: Array[TextButton]): Array[cint] {.header: juce_gui_basics, importcpp: "#.getWidthsForTextButtons(@)".}
+proc getWidthsForTextButtons*(this: var LookAndFeel_V2, arg1: var AlertWindow, arg2: Array[ptr TextButton]): Array[cint] {.header: juce_gui_basics, importcpp: "#.getWidthsForTextButtons(@)".}
 proc getAlertWindowButtonHeight*(this: var LookAndFeel_V2): cint {.header: juce_gui_basics, importcpp: "#.getAlertWindowButtonHeight()".}
 proc getAlertWindowTitleFont*(this: var LookAndFeel_V2): Font {.header: juce_gui_basics, importcpp: "#.getAlertWindowTitleFont()".}
 proc getAlertWindowMessageFont*(this: var LookAndFeel_V2): Font {.header: juce_gui_basics, importcpp: "#.getAlertWindowMessageFont()".}
