@@ -5921,3 +5921,114 @@ proc testTreeViewLookAndFeelMethods() =
     shutdownJuce_GUI()
 
 testTreeViewLookAndFeelMethods()
+
+# juce::Colours and juce::StandardApplicationCommandIDs ========================
+#
+# Two nested namespaces the generator never walked into, so neither the named
+# colours nor the ids ApplicationCommandManager expects had any binding. A
+# `let` with an importcpp is not checked against C++ until something reads it,
+# so every one of them is read here.
+
+proc testNestedNamespaceConstants() =
+    initialiseJuce_GUI()
+
+    block:
+        # The two the header gives an explicit value, checked against it.
+        doAssert Colours_transparentBlack.getARGB() == 0'u32,
+                 "transparentBlack is " & $Colours_transparentBlack.getARGB()
+        doAssert Colours_transparentWhite.getARGB() == 0x00ffffff'u32,
+                 "transparentWhite is " & $Colours_transparentWhite.getARGB()
+        doAssert Colours_red.getARGB() == 0xffff0000'u32,
+                 "red is " & $Colours_red.getARGB()
+        doAssert Colours_white.getARGB() == 0xffffffff'u32,
+                 "white is " & $Colours_white.getARGB()
+
+        # Every colour, read so its C++ spelling is compiled. The sum stands in
+        # for the reads; a wrong spelling would not compile at all.
+        var total = 0'u64
+        for value in [
+                Colours_transparentBlack, Colours_transparentWhite, Colours_aliceblue,
+                Colours_antiquewhite, Colours_aqua, Colours_aquamarine,
+                Colours_azure, Colours_beige, Colours_bisque,
+                Colours_black, Colours_blanchedalmond, Colours_blue,
+                Colours_blueviolet, Colours_brown, Colours_burlywood,
+                Colours_cadetblue, Colours_chartreuse, Colours_chocolate,
+                Colours_coral, Colours_cornflowerblue, Colours_cornsilk,
+                Colours_crimson, Colours_cyan, Colours_darkblue,
+                Colours_darkcyan, Colours_darkgoldenrod, Colours_darkgrey,
+                Colours_darkgreen, Colours_darkkhaki, Colours_darkmagenta,
+                Colours_darkolivegreen, Colours_darkorange, Colours_darkorchid,
+                Colours_darkred, Colours_darksalmon, Colours_darkseagreen,
+                Colours_darkslateblue, Colours_darkslategrey, Colours_darkturquoise,
+                Colours_darkviolet, Colours_deeppink, Colours_deepskyblue,
+                Colours_dimgrey, Colours_dodgerblue, Colours_firebrick,
+                Colours_floralwhite, Colours_forestgreen, Colours_fuchsia,
+                Colours_gainsboro, Colours_ghostwhite, Colours_gold,
+                Colours_goldenrod, Colours_grey, Colours_green,
+                Colours_greenyellow, Colours_honeydew, Colours_hotpink,
+                Colours_indianred, Colours_indigo, Colours_ivory,
+                Colours_khaki, Colours_lavender, Colours_lavenderblush,
+                Colours_lawngreen, Colours_lemonchiffon, Colours_lightblue,
+                Colours_lightcoral, Colours_lightcyan, Colours_lightgoldenrodyellow,
+                Colours_lightgreen, Colours_lightgrey, Colours_lightpink,
+                Colours_lightsalmon, Colours_lightseagreen, Colours_lightskyblue,
+                Colours_lightslategrey, Colours_lightsteelblue, Colours_lightyellow,
+                Colours_lime, Colours_limegreen, Colours_linen,
+                Colours_magenta, Colours_maroon, Colours_mediumaquamarine,
+                Colours_mediumblue, Colours_mediumorchid, Colours_mediumpurple,
+                Colours_mediumseagreen, Colours_mediumslateblue, Colours_mediumspringgreen,
+                Colours_mediumturquoise, Colours_mediumvioletred, Colours_midnightblue,
+                Colours_mintcream, Colours_mistyrose, Colours_moccasin,
+                Colours_navajowhite, Colours_navy, Colours_oldlace,
+                Colours_olive, Colours_olivedrab, Colours_orange,
+                Colours_orangered, Colours_orchid, Colours_palegoldenrod,
+                Colours_palegreen, Colours_paleturquoise, Colours_palevioletred,
+                Colours_papayawhip, Colours_peachpuff, Colours_peru,
+                Colours_pink, Colours_plum, Colours_powderblue,
+                Colours_purple, Colours_rebeccapurple, Colours_red,
+                Colours_rosybrown, Colours_royalblue, Colours_saddlebrown,
+                Colours_salmon, Colours_sandybrown, Colours_seagreen,
+                Colours_seashell, Colours_sienna, Colours_silver,
+                Colours_skyblue, Colours_slateblue, Colours_slategrey,
+                Colours_snow, Colours_springgreen, Colours_steelblue,
+                Colours_tan, Colours_teal, Colours_thistle,
+                Colours_tomato, Colours_turquoise, Colours_violet,
+                Colours_wheat, Colours_white, Colours_whitesmoke,
+                Colours_yellow, Colours_yellowgreen
+        ]:
+            total += value.getARGB().uint64
+        doAssert total > 0'u64, "every named colour was transparent black"
+
+        # Looking one up by name gives the same value as the constant.
+        doAssert Colours_findColourForName(makeString("red"),
+                                           Colours_transparentBlack) == Colours_red,
+                 "red looked up by name is not the red constant"
+        doAssert Colours_findColourForName(makeString("no such colour"),
+                                           Colours_transparentBlack) ==
+                 Colours_transparentBlack,
+                 "an unknown name did not come back as the default"
+
+    block:
+        # The command ids are consecutive from 0x1001 in declaration order.
+        doAssert StandardApplicationCommandIDs_quit == 0x1001,
+                 "quit is " & $StandardApplicationCommandIDs_quit
+        doAssert StandardApplicationCommandIDs_del == 0x1002,
+                 "del is " & $StandardApplicationCommandIDs_del
+        doAssert StandardApplicationCommandIDs_cut == 0x1003,
+                 "cut is " & $StandardApplicationCommandIDs_cut
+        doAssert StandardApplicationCommandIDs_copy == 0x1004,
+                 "copy is " & $StandardApplicationCommandIDs_copy
+        doAssert StandardApplicationCommandIDs_paste == 0x1005,
+                 "paste is " & $StandardApplicationCommandIDs_paste
+        doAssert StandardApplicationCommandIDs_selectAll == 0x1006,
+                 "selectAll is " & $StandardApplicationCommandIDs_selectAll
+        doAssert StandardApplicationCommandIDs_deselectAll == 0x1007,
+                 "deselectAll is " & $StandardApplicationCommandIDs_deselectAll
+        doAssert StandardApplicationCommandIDs_undo == 0x1008,
+                 "undo is " & $StandardApplicationCommandIDs_undo
+        doAssert StandardApplicationCommandIDs_redo == 0x1009,
+                 "redo is " & $StandardApplicationCommandIDs_redo
+
+    shutdownJuce_GUI()
+
+testNestedNamespaceConstants()
