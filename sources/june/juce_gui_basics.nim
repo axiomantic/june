@@ -5101,144 +5101,11 @@ proc getSidePanelTitleJustification*(this: var LookAndFeel, arg1: var SidePanel)
 proc `==`*(this: LookAndFeel, other: LookAndFeel): bool {.error: "juce::LookAndFeel defines no operator==; compare a property instead".}
 
 proc makeLookAndFeel_V2*(): LookAndFeel_V2 {.header: juce_gui_basics, importcpp: "juce::LookAndFeel_V2(@)".}
-proc drawButtonBackground*(this: var LookAndFeel_V2, arg1: var Graphics, arg2: var Button, backgroundColour: Colour, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.header: juce_gui_basics, importcpp: "#.drawButtonBackground(@)".}
-proc getTextButtonFont*(this: var LookAndFeel_V2, arg1: var TextButton, buttonHeight: cint): Font {.header: juce_gui_basics, importcpp: "#.getTextButtonFont(@)".}
-proc drawButtonText*(this: var LookAndFeel_V2, arg1: var Graphics, arg2: var TextButton, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.header: juce_gui_basics, importcpp: "#.drawButtonText(@)".}
-proc getTextButtonWidthToFitText*(this: var LookAndFeel_V2, arg1: var TextButton, buttonHeight: cint): cint {.header: juce_gui_basics, importcpp: "#.getTextButtonWidthToFitText(@)".}
-proc drawToggleButton*(this: var LookAndFeel_V2, arg1: var Graphics, arg2: var ToggleButton, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.header: juce_gui_basics, importcpp: "#.drawToggleButton(@)".}
-proc changeToggleButtonWidthToFitText*(this: var LookAndFeel_V2, arg1: var ToggleButton) {.header: juce_gui_basics, importcpp: "#.changeToggleButtonWidthToFitText(@)".}
-proc drawTickBox*(this: var LookAndFeel_V2, arg1: var Graphics, arg2: var Component, x: cfloat, y: cfloat, w: cfloat, h: cfloat, ticked: bool, isEnabled: bool, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.header: juce_gui_basics, importcpp: "#.drawTickBox(@)".}
-proc drawDrawableButton*(this: var LookAndFeel_V2, arg1: var Graphics, arg2: var DrawableButton, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.header: juce_gui_basics, importcpp: "#.drawDrawableButton(@)".}
-proc createAlertWindow*(this: var LookAndFeel_V2, title: String, message: String, button1: String, button2: String, button3: String, iconType: MessageBoxIconType, numButtons: cint, associatedComponent: ptr Component): ptr AlertWindow {.header: juce_gui_basics, importcpp: "#.createAlertWindow(@)".}
-proc drawAlertBox*(this: var LookAndFeel_V2, arg1: var Graphics, arg2: var AlertWindow, textArea: Rectangle[cint], arg4: var TextLayout) {.header: juce_gui_basics, importcpp: "#.drawAlertBox(@)".}
-proc getAlertBoxWindowFlags*(this: var LookAndFeel_V2): cint {.header: juce_gui_basics, importcpp: "#.getAlertBoxWindowFlags()".}
-proc getWidthsForTextButtons*(this: var LookAndFeel_V2, arg1: var AlertWindow, arg2: Array[ptr TextButton]): Array[cint] {.header: juce_gui_basics, importcpp: "#.getWidthsForTextButtons(@)".}
-proc getAlertWindowButtonHeight*(this: var LookAndFeel_V2): cint {.header: juce_gui_basics, importcpp: "#.getAlertWindowButtonHeight()".}
-proc getAlertWindowTitleFont*(this: var LookAndFeel_V2): Font {.header: juce_gui_basics, importcpp: "#.getAlertWindowTitleFont()".}
-proc getAlertWindowMessageFont*(this: var LookAndFeel_V2): Font {.header: juce_gui_basics, importcpp: "#.getAlertWindowMessageFont()".}
-proc getAlertWindowFont*(this: var LookAndFeel_V2): Font {.header: juce_gui_basics, importcpp: "#.getAlertWindowFont()".}
-proc drawProgressBar*(this: var LookAndFeel_V2, arg1: var Graphics, arg2: var ProgressBar, width: cint, height: cint, progress: float64, textToShow: String) {.header: juce_gui_basics, importcpp: "#.drawProgressBar(@)".}
 proc drawSpinningWaitAnimation*(this: var LookAndFeel_V2, arg1: var Graphics, colour: Colour, x: cint, y: cint, w: cint, h: cint) {.header: juce_gui_basics, importcpp: "#.drawSpinningWaitAnimation(@)".}
-proc isProgressBarOpaque*(this: var LookAndFeel_V2, arg1: var ProgressBar): bool {.header: juce_gui_basics, importcpp: "#.isProgressBarOpaque(@)".}
-proc getDefaultProgressBarStyle*(this: var LookAndFeel_V2, arg1: ProgressBar): ProgressBarStyle {.header: juce_gui_basics, importcpp: "#.getDefaultProgressBarStyle(@)".}
-proc areScrollbarButtonsVisible*(this: var LookAndFeel_V2): bool {.header: juce_gui_basics, importcpp: "#.areScrollbarButtonsVisible()".}
-proc drawScrollbarButton*(this: var LookAndFeel_V2, arg1: var Graphics, arg2: var ScrollBar, width: cint, height: cint, buttonDirection: cint, isScrollbarVertical: bool, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.header: juce_gui_basics, importcpp: "#.drawScrollbarButton(@)".}
-proc drawScrollbar*(this: var LookAndFeel_V2, arg1: var Graphics, arg2: var ScrollBar, x: cint, y: cint, width: cint, height: cint, isScrollbarVertical: bool, thumbStartPosition: cint, thumbSize: cint, isMouseOver: bool, isMouseDown: bool) {.header: juce_gui_basics, importcpp: "#.drawScrollbar(@)".}
-proc getScrollbarEffect*(this: var LookAndFeel_V2): ptr ImageEffectFilter {.header: juce_gui_basics, importcpp: "#.getScrollbarEffect()".}
-proc getMinimumScrollbarThumbSize*(this: var LookAndFeel_V2, arg1: var ScrollBar): cint {.header: juce_gui_basics, importcpp: "#.getMinimumScrollbarThumbSize(@)".}
-proc getDefaultScrollbarWidth*(this: var LookAndFeel_V2): cint {.header: juce_gui_basics, importcpp: "#.getDefaultScrollbarWidth()".}
-proc getScrollbarButtonSize*(this: var LookAndFeel_V2, arg1: var ScrollBar): cint {.header: juce_gui_basics, importcpp: "#.getScrollbarButtonSize(@)".}
 proc getTickShape*(this: var LookAndFeel_V2, height: cfloat): Path {.header: juce_gui_basics, importcpp: "#.getTickShape(@)".}
 proc getCrossShape*(this: var LookAndFeel_V2, height: cfloat): Path {.header: juce_gui_basics, importcpp: "#.getCrossShape(@)".}
-proc drawTreeviewPlusMinusBox*(this: var LookAndFeel_V2, arg1: var Graphics, area: Rectangle[cfloat], backgroundColour: Colour, isOpen: bool, isMouseOver: bool) {.header: juce_gui_basics, importcpp: "#.drawTreeviewPlusMinusBox(@)".}
-proc areLinesDrawnForTreeView*(this: var LookAndFeel_V2, arg1: var TreeView): bool {.header: juce_gui_basics, importcpp: "#.areLinesDrawnForTreeView(@)".}
-proc getTreeViewIndentSize*(this: var LookAndFeel_V2, arg1: var TreeView): cint {.header: juce_gui_basics, importcpp: "#.getTreeViewIndentSize(@)".}
-proc fillTextEditorBackground*(this: var LookAndFeel_V2, arg1: var Graphics, width: cint, height: cint, arg4: var TextEditor) {.header: juce_gui_basics, importcpp: "#.fillTextEditorBackground(@)".}
-proc drawTextEditorOutline*(this: var LookAndFeel_V2, arg1: var Graphics, width: cint, height: cint, arg4: var TextEditor) {.header: juce_gui_basics, importcpp: "#.drawTextEditorOutline(@)".}
-proc createCaretComponent*(this: var LookAndFeel_V2, keyFocusOwner: ptr Component): ptr CaretComponent {.header: juce_gui_basics, importcpp: "#.createCaretComponent(@)".}
-proc getDefaultFolderImage*(this: var LookAndFeel_V2): ConstPtr[Drawable] {.header: juce_gui_basics, importcpp: "#.getDefaultFolderImage()".}
-proc getDefaultDocumentFileImage*(this: var LookAndFeel_V2): ConstPtr[Drawable] {.header: juce_gui_basics, importcpp: "#.getDefaultDocumentFileImage()".}
-proc createFileChooserHeaderText*(this: var LookAndFeel_V2, title: String, instructions: String): AttributedString {.header: juce_gui_basics, importcpp: "#.createFileChooserHeaderText(@)".}
-proc drawFileBrowserRow*(this: var LookAndFeel_V2, arg1: var Graphics, width: cint, height: cint, file: File, filename: String, icon: ptr Image, fileSizeDescription: String, fileTimeDescription: String, isDirectory: bool, isItemSelected: bool, itemIndex: cint, arg12: var DirectoryContentsDisplayComponent) {.header: juce_gui_basics, importcpp: "#.drawFileBrowserRow(@)".}
-proc createFileBrowserGoUpButton*(this: var LookAndFeel_V2): ptr Button {.header: juce_gui_basics, importcpp: "#.createFileBrowserGoUpButton()".}
-proc layoutFileBrowserComponent*(this: var LookAndFeel_V2, arg1: var FileBrowserComponent, arg2: ptr DirectoryContentsDisplayComponent, arg3: ptr FilePreviewComponent, currentPathBox: ptr ComboBox, filenameBox: ptr TextEditor, goUpButton: ptr Button) {.header: juce_gui_basics, importcpp: "#.layoutFileBrowserComponent(@)".}
-proc drawBubble*(this: var LookAndFeel_V2, arg1: var Graphics, arg2: var BubbleComponent, tip: Point[cfloat], body: Rectangle[cfloat]) {.header: juce_gui_basics, importcpp: "#.drawBubble(@)".}
-proc setComponentEffectForBubbleComponent*(this: var LookAndFeel_V2, bubbleComponent: var BubbleComponent) {.header: juce_gui_basics, importcpp: "#.setComponentEffectForBubbleComponent(@)".}
-proc drawLasso*(this: var LookAndFeel_V2, arg1: var Graphics, arg2: var Component) {.header: juce_gui_basics, importcpp: "#.drawLasso(@)".}
-proc drawPopupMenuBackground*(this: var LookAndFeel_V2, arg1: var Graphics, width: cint, height: cint) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuBackground(@)".}
-proc drawPopupMenuBackgroundWithOptions*(this: var LookAndFeel_V2, arg1: var Graphics, width: cint, height: cint, arg4: PopupMenuOptions) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuBackgroundWithOptions(@)".}
-proc drawPopupMenuItem*(this: var LookAndFeel_V2, arg1: var Graphics, area: Rectangle[cint], isSeparator: bool, isActive: bool, isHighlighted: bool, isTicked: bool, hasSubMenu: bool, text: String, shortcutKeyText: String, icon: ptr Drawable, textColour: ptr Colour) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuItem(@)".}
-proc drawPopupMenuItemWithOptions*(this: var LookAndFeel_V2, arg1: var Graphics, area: Rectangle[cint], isHighlighted: bool, item: PopupMenuItem, arg5: PopupMenuOptions) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuItemWithOptions(@)".}
-proc drawPopupMenuSectionHeader*(this: var LookAndFeel_V2, arg1: var Graphics, area: Rectangle[cint], sectionName: String) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuSectionHeader(@)".}
-proc drawPopupMenuSectionHeaderWithOptions*(this: var LookAndFeel_V2, arg1: var Graphics, area: Rectangle[cint], sectionName: String, arg4: PopupMenuOptions) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuSectionHeaderWithOptions(@)".}
-proc getPopupMenuFont*(this: var LookAndFeel_V2): Font {.header: juce_gui_basics, importcpp: "#.getPopupMenuFont()".}
-proc drawPopupMenuUpDownArrow*(this: var LookAndFeel_V2, arg1: var Graphics, width: cint, height: cint, isScrollUpArrow: bool) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuUpDownArrow(@)".}
-proc drawPopupMenuUpDownArrowWithOptions*(this: var LookAndFeel_V2, arg1: var Graphics, width: cint, height: cint, isScrollUpArrow: bool, arg5: PopupMenuOptions) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuUpDownArrowWithOptions(@)".}
-proc getIdealPopupMenuItemSize*(this: var LookAndFeel_V2, text: String, isSeparator: bool, standardMenuItemHeight: cint, idealWidth: var cint, idealHeight: var cint) {.header: juce_gui_basics, importcpp: "#.getIdealPopupMenuItemSize(@)".}
-proc getIdealPopupMenuItemSizeWithOptions*(this: var LookAndFeel_V2, text: String, isSeparator: bool, standardMenuItemHeight: cint, idealWidth: var cint, idealHeight: var cint, arg6: PopupMenuOptions) {.header: juce_gui_basics, importcpp: "#.getIdealPopupMenuItemSizeWithOptions(@)".}
-proc getIdealPopupMenuSectionHeaderSizeWithOptions*(this: var LookAndFeel_V2, text: String, standardMenuItemHeight: cint, idealWidth: var cint, idealHeight: var cint, arg5: PopupMenuOptions) {.header: juce_gui_basics, importcpp: "#.getIdealPopupMenuSectionHeaderSizeWithOptions(@)".}
-proc getMenuWindowFlags*(this: var LookAndFeel_V2): cint {.header: juce_gui_basics, importcpp: "#.getMenuWindowFlags()".}
-proc preparePopupMenuWindow*(this: var LookAndFeel_V2, arg1: var Component) {.header: juce_gui_basics, importcpp: "#.preparePopupMenuWindow(@)".}
-proc drawMenuBarBackground*(this: var LookAndFeel_V2, arg1: var Graphics, width: cint, height: cint, isMouseOverBar: bool, arg5: var MenuBarComponent) {.header: juce_gui_basics, importcpp: "#.drawMenuBarBackground(@)".}
-proc getMenuBarItemWidth*(this: var LookAndFeel_V2, arg1: var MenuBarComponent, itemIndex: cint, itemText: String): cint {.header: juce_gui_basics, importcpp: "#.getMenuBarItemWidth(@)".}
-proc getMenuBarFont*(this: var LookAndFeel_V2, arg1: var MenuBarComponent, itemIndex: cint, itemText: String): Font {.header: juce_gui_basics, importcpp: "#.getMenuBarFont(@)".}
-proc getDefaultMenuBarHeight*(this: var LookAndFeel_V2): cint {.header: juce_gui_basics, importcpp: "#.getDefaultMenuBarHeight()".}
-proc drawMenuBarItem*(this: var LookAndFeel_V2, arg1: var Graphics, width: cint, height: cint, itemIndex: cint, itemText: String, isMouseOverItem: bool, isMenuOpen: bool, isMouseOverBar: bool, arg9: var MenuBarComponent) {.header: juce_gui_basics, importcpp: "#.drawMenuBarItem(@)".}
-proc getParentComponentForMenuOptions*(this: var LookAndFeel_V2, options: PopupMenuOptions): ptr Component {.header: juce_gui_basics, importcpp: "#.getParentComponentForMenuOptions(@)".}
-proc shouldPopupMenuScaleWithTargetComponent*(this: var LookAndFeel_V2, options: PopupMenuOptions): bool {.header: juce_gui_basics, importcpp: "#.shouldPopupMenuScaleWithTargetComponent(@)".}
-proc getPopupMenuBorderSize*(this: var LookAndFeel_V2): cint {.header: juce_gui_basics, importcpp: "#.getPopupMenuBorderSize()".}
-proc getPopupMenuBorderSizeWithOptions*(this: var LookAndFeel_V2, arg1: PopupMenuOptions): cint {.header: juce_gui_basics, importcpp: "#.getPopupMenuBorderSizeWithOptions(@)".}
-proc drawPopupMenuColumnSeparatorWithOptions*(this: var LookAndFeel_V2, g: var Graphics, bounds: Rectangle[cint], arg3: PopupMenuOptions) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuColumnSeparatorWithOptions(@)".}
-proc getPopupMenuColumnSeparatorWidthWithOptions*(this: var LookAndFeel_V2, arg1: PopupMenuOptions): cint {.header: juce_gui_basics, importcpp: "#.getPopupMenuColumnSeparatorWidthWithOptions(@)".}
-proc drawComboBox*(this: var LookAndFeel_V2, arg1: var Graphics, width: cint, height: cint, isMouseButtonDown: bool, buttonX: cint, buttonY: cint, buttonW: cint, buttonH: cint, arg9: var ComboBox) {.header: juce_gui_basics, importcpp: "#.drawComboBox(@)".}
-proc getComboBoxFont*(this: var LookAndFeel_V2, arg1: var ComboBox): Font {.header: juce_gui_basics, importcpp: "#.getComboBoxFont(@)".}
-proc createComboBoxTextBox*(this: var LookAndFeel_V2, arg1: var ComboBox): ptr Label {.header: juce_gui_basics, importcpp: "#.createComboBoxTextBox(@)".}
-proc positionComboBoxText*(this: var LookAndFeel_V2, arg1: var ComboBox, arg2: var Label) {.header: juce_gui_basics, importcpp: "#.positionComboBoxText(@)".}
-proc getOptionsForComboBoxPopupMenu*(this: var LookAndFeel_V2, arg1: var ComboBox, arg2: var Label): PopupMenuOptions {.header: juce_gui_basics, importcpp: "#.getOptionsForComboBoxPopupMenu(@)".}
-proc drawComboBoxTextWhenNothingSelected*(this: var LookAndFeel_V2, arg1: var Graphics, arg2: var ComboBox, arg3: var Label) {.header: juce_gui_basics, importcpp: "#.drawComboBoxTextWhenNothingSelected(@)".}
-proc drawLabel*(this: var LookAndFeel_V2, arg1: var Graphics, arg2: var Label) {.header: juce_gui_basics, importcpp: "#.drawLabel(@)".}
-proc getLabelFont*(this: var LookAndFeel_V2, arg1: var Label): Font {.header: juce_gui_basics, importcpp: "#.getLabelFont(@)".}
-proc getLabelBorderSize*(this: var LookAndFeel_V2, arg1: var Label): BorderSize[cint] {.header: juce_gui_basics, importcpp: "#.getLabelBorderSize(@)".}
-proc drawLinearSlider*(this: var LookAndFeel_V2, arg1: var Graphics, x: cint, y: cint, width: cint, height: cint, sliderPos: cfloat, minSliderPos: cfloat, maxSliderPos: cfloat, arg9: SliderSliderStyle, arg10: var Slider) {.header: juce_gui_basics, importcpp: "#.drawLinearSlider(@)".}
-proc drawLinearSliderBackground*(this: var LookAndFeel_V2, arg1: var Graphics, x: cint, y: cint, width: cint, height: cint, sliderPos: cfloat, minSliderPos: cfloat, maxSliderPos: cfloat, arg9: SliderSliderStyle, arg10: var Slider) {.header: juce_gui_basics, importcpp: "#.drawLinearSliderBackground(@)".}
-proc drawLinearSliderOutline*(this: var LookAndFeel_V2, arg1: var Graphics, x: cint, y: cint, width: cint, height: cint, arg6: SliderSliderStyle, arg7: var Slider) {.header: juce_gui_basics, importcpp: "#.drawLinearSliderOutline(@)".}
-proc drawLinearSliderThumb*(this: var LookAndFeel_V2, arg1: var Graphics, x: cint, y: cint, width: cint, height: cint, sliderPos: cfloat, minSliderPos: cfloat, maxSliderPos: cfloat, arg9: SliderSliderStyle, arg10: var Slider) {.header: juce_gui_basics, importcpp: "#.drawLinearSliderThumb(@)".}
-proc drawRotarySlider*(this: var LookAndFeel_V2, arg1: var Graphics, x: cint, y: cint, width: cint, height: cint, sliderPosProportional: cfloat, rotaryStartAngle: cfloat, rotaryEndAngle: cfloat, arg9: var Slider) {.header: juce_gui_basics, importcpp: "#.drawRotarySlider(@)".}
-proc getSliderThumbRadius*(this: var LookAndFeel_V2, arg1: var Slider): cint {.header: juce_gui_basics, importcpp: "#.getSliderThumbRadius(@)".}
-proc createSliderButton*(this: var LookAndFeel_V2, arg1: var Slider, isIncrement: bool): ptr Button {.header: juce_gui_basics, importcpp: "#.createSliderButton(@)".}
-proc createSliderTextBox*(this: var LookAndFeel_V2, arg1: var Slider): ptr Label {.header: juce_gui_basics, importcpp: "#.createSliderTextBox(@)".}
-proc getSliderEffect*(this: var LookAndFeel_V2, arg1: var Slider): ptr ImageEffectFilter {.header: juce_gui_basics, importcpp: "#.getSliderEffect(@)".}
-proc getSliderPopupFont*(this: var LookAndFeel_V2, arg1: var Slider): Font {.header: juce_gui_basics, importcpp: "#.getSliderPopupFont(@)".}
-proc getSliderPopupPlacement*(this: var LookAndFeel_V2, arg1: var Slider): cint {.header: juce_gui_basics, importcpp: "#.getSliderPopupPlacement(@)".}
-proc getSliderLayout*(this: var LookAndFeel_V2, arg1: var Slider): SliderSliderLayout {.header: juce_gui_basics, importcpp: "#.getSliderLayout(@)".}
-proc getTooltipBounds*(this: var LookAndFeel_V2, tipText: String, screenPos: Point[cint], parentArea: Rectangle[cint]): Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.getTooltipBounds(@)".}
-proc drawTooltip*(this: var LookAndFeel_V2, arg1: var Graphics, text: String, width: cint, height: cint) {.header: juce_gui_basics, importcpp: "#.drawTooltip(@)".}
-proc createFilenameComponentBrowseButton*(this: var LookAndFeel_V2, text: String): ptr Button {.header: juce_gui_basics, importcpp: "#.createFilenameComponentBrowseButton(@)".}
-proc layoutFilenameComponent*(this: var LookAndFeel_V2, arg1: var FilenameComponent, filenameBox: ptr ComboBox, browseButton: ptr Button) {.header: juce_gui_basics, importcpp: "#.layoutFilenameComponent(@)".}
-proc drawConcertinaPanelHeader*(this: var LookAndFeel_V2, arg1: var Graphics, area: Rectangle[cint], isMouseOver: bool, isMouseDown: bool, arg5: var ConcertinaPanel, panel: var Component) {.header: juce_gui_basics, importcpp: "#.drawConcertinaPanelHeader(@)".}
-proc drawCornerResizer*(this: var LookAndFeel_V2, arg1: var Graphics, w: cint, h: cint, isMouseOver: bool, isMouseDragging: bool) {.header: juce_gui_basics, importcpp: "#.drawCornerResizer(@)".}
-proc drawResizableFrame*(this: var LookAndFeel_V2, arg1: var Graphics, w: cint, h: cint, arg4: BorderSize[cint]) {.header: juce_gui_basics, importcpp: "#.drawResizableFrame(@)".}
-proc fillResizableWindowBackground*(this: var LookAndFeel_V2, arg1: var Graphics, w: cint, h: cint, arg4: BorderSize[cint], arg5: var ResizableWindow) {.header: juce_gui_basics, importcpp: "#.fillResizableWindowBackground(@)".}
-proc drawResizableWindowBorder*(this: var LookAndFeel_V2, arg1: var Graphics, w: cint, h: cint, border: BorderSize[cint], arg5: var ResizableWindow) {.header: juce_gui_basics, importcpp: "#.drawResizableWindowBorder(@)".}
-proc drawDocumentWindowTitleBar*(this: var LookAndFeel_V2, arg1: var DocumentWindowImpl, arg2: var Graphics, w: cint, h: cint, titleSpaceX: cint, titleSpaceW: cint, icon: ptr Image, drawTitleTextOnLeft: bool) {.header: juce_gui_basics, importcpp: "#.drawDocumentWindowTitleBar(@)".}
-proc createDocumentWindowButton*(this: var LookAndFeel_V2, buttonType: cint): ptr Button {.header: juce_gui_basics, importcpp: "#.createDocumentWindowButton(@)".}
-proc positionDocumentWindowButtons*(this: var LookAndFeel_V2, arg1: var DocumentWindowImpl, titleBarX: cint, titleBarY: cint, titleBarW: cint, titleBarH: cint, minimiseButton: ptr Button, maximiseButton: ptr Button, closeButton: ptr Button, positionTitleBarButtonsOnLeft: bool) {.header: juce_gui_basics, importcpp: "#.positionDocumentWindowButtons(@)".}
 proc createDropShadowerForComponent*(this: var LookAndFeel_V2, arg1: var Component): UniquePtr[DropShadower] {.header: juce_gui_basics, importcpp: "#.createDropShadowerForComponent(@)".}
 proc createFocusOutlineForComponent*(this: var LookAndFeel_V2, arg1: var Component): UniquePtr[FocusOutline] {.header: juce_gui_basics, importcpp: "#.createFocusOutlineForComponent(@)".}
-proc drawStretchableLayoutResizerBar*(this: var LookAndFeel_V2, arg1: var Graphics, w: cint, h: cint, isVerticalBar: bool, isMouseOver: bool, isMouseDragging: bool) {.header: juce_gui_basics, importcpp: "#.drawStretchableLayoutResizerBar(@)".}
-proc drawGroupComponentOutline*(this: var LookAndFeel_V2, arg1: var Graphics, w: cint, h: cint, text: String, arg5: Justification, arg6: var GroupComponent) {.header: juce_gui_basics, importcpp: "#.drawGroupComponentOutline(@)".}
-proc getTabButtonSpaceAroundImage*(this: var LookAndFeel_V2): cint {.header: juce_gui_basics, importcpp: "#.getTabButtonSpaceAroundImage()".}
-proc getTabButtonOverlap*(this: var LookAndFeel_V2, tabDepth: cint): cint {.header: juce_gui_basics, importcpp: "#.getTabButtonOverlap(@)".}
-proc getTabButtonBestWidth*(this: var LookAndFeel_V2, arg1: var TabBarButton, tabDepth: cint): cint {.header: juce_gui_basics, importcpp: "#.getTabButtonBestWidth(@)".}
-proc getTabButtonExtraComponentBounds*(this: var LookAndFeel_V2, arg1: TabBarButton, textArea: var Rectangle[cint], extraComp: var Component): Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.getTabButtonExtraComponentBounds(@)".}
-proc drawTabButton*(this: var LookAndFeel_V2, arg1: var TabBarButton, arg2: var Graphics, isMouseOver: bool, isMouseDown: bool) {.header: juce_gui_basics, importcpp: "#.drawTabButton(@)".}
-proc getTabButtonFont*(this: var LookAndFeel_V2, arg1: var TabBarButton, height: cfloat): Font {.header: juce_gui_basics, importcpp: "#.getTabButtonFont(@)".}
-proc drawTabButtonText*(this: var LookAndFeel_V2, arg1: var TabBarButton, arg2: var Graphics, isMouseOver: bool, isMouseDown: bool) {.header: juce_gui_basics, importcpp: "#.drawTabButtonText(@)".}
-proc drawTabbedButtonBarBackground*(this: var LookAndFeel_V2, arg1: var TabbedButtonBar, arg2: var Graphics) {.header: juce_gui_basics, importcpp: "#.drawTabbedButtonBarBackground(@)".}
-proc drawTabAreaBehindFrontButton*(this: var LookAndFeel_V2, arg1: var TabbedButtonBar, arg2: var Graphics, w: cint, h: cint) {.header: juce_gui_basics, importcpp: "#.drawTabAreaBehindFrontButton(@)".}
-proc createTabButtonShape*(this: var LookAndFeel_V2, arg1: var TabBarButton, arg2: var Path, isMouseOver: bool, isMouseDown: bool) {.header: juce_gui_basics, importcpp: "#.createTabButtonShape(@)".}
-proc fillTabButtonShape*(this: var LookAndFeel_V2, arg1: var TabBarButton, arg2: var Graphics, arg3: Path, isMouseOver: bool, isMouseDown: bool) {.header: juce_gui_basics, importcpp: "#.fillTabButtonShape(@)".}
-proc createTabBarExtrasButton*(this: var LookAndFeel_V2): ptr Button {.header: juce_gui_basics, importcpp: "#.createTabBarExtrasButton()".}
-proc drawImageButton*(this: var LookAndFeel_V2, arg1: var Graphics, arg2: ptr Image, imageX: cint, imageY: cint, imageW: cint, imageH: cint, overlayColour: Colour, imageOpacity: cfloat, arg9: var ImageButton) {.header: juce_gui_basics, importcpp: "#.drawImageButton(@)".}
-proc drawTableHeaderBackground*(this: var LookAndFeel_V2, arg1: var Graphics, arg2: var TableHeaderComponent) {.header: juce_gui_basics, importcpp: "#.drawTableHeaderBackground(@)".}
-proc drawTableHeaderColumn*(this: var LookAndFeel_V2, arg1: var Graphics, arg2: var TableHeaderComponent, columnName: String, columnId: cint, width: cint, height: cint, isMouseOver: bool, isMouseDown: bool, columnFlags: cint) {.header: juce_gui_basics, importcpp: "#.drawTableHeaderColumn(@)".}
-proc paintToolbarBackground*(this: var LookAndFeel_V2, arg1: var Graphics, width: cint, height: cint, arg4: var Toolbar) {.header: juce_gui_basics, importcpp: "#.paintToolbarBackground(@)".}
-proc createToolbarMissingItemsButton*(this: var LookAndFeel_V2, arg1: var Toolbar): ptr Button {.header: juce_gui_basics, importcpp: "#.createToolbarMissingItemsButton(@)".}
-proc paintToolbarButtonBackground*(this: var LookAndFeel_V2, arg1: var Graphics, width: cint, height: cint, isMouseOver: bool, isMouseDown: bool, arg6: var ToolbarItemComponent) {.header: juce_gui_basics, importcpp: "#.paintToolbarButtonBackground(@)".}
-proc paintToolbarButtonLabel*(this: var LookAndFeel_V2, arg1: var Graphics, x: cint, y: cint, width: cint, height: cint, text: String, arg7: var ToolbarItemComponent) {.header: juce_gui_basics, importcpp: "#.paintToolbarButtonLabel(@)".}
-proc drawPropertyPanelSectionHeader*(this: var LookAndFeel_V2, arg1: var Graphics, name: String, isOpen: bool, width: cint, height: cint) {.header: juce_gui_basics, importcpp: "#.drawPropertyPanelSectionHeader(@)".}
-proc drawPropertyComponentBackground*(this: var LookAndFeel_V2, arg1: var Graphics, width: cint, height: cint, arg4: var PropertyComponent) {.header: juce_gui_basics, importcpp: "#.drawPropertyComponentBackground(@)".}
-proc drawPropertyComponentLabel*(this: var LookAndFeel_V2, arg1: var Graphics, width: cint, height: cint, arg4: var PropertyComponent) {.header: juce_gui_basics, importcpp: "#.drawPropertyComponentLabel(@)".}
-proc getPropertyComponentContentPosition*(this: var LookAndFeel_V2, arg1: var PropertyComponent): Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.getPropertyComponentContentPosition(@)".}
-proc getPropertyPanelSectionHeaderHeight*(this: var LookAndFeel_V2, sectionTitle: String): cint {.header: juce_gui_basics, importcpp: "#.getPropertyPanelSectionHeaderHeight(@)".}
-proc drawCallOutBoxBackground*(this: var LookAndFeel_V2, arg1: var CallOutBox, arg2: var Graphics, path: Path, cachedImage: var Image) {.header: juce_gui_basics, importcpp: "#.drawCallOutBoxBackground(@)".}
-proc getCallOutBoxBorderSize*(this: var LookAndFeel_V2, arg1: CallOutBox): cint {.header: juce_gui_basics, importcpp: "#.getCallOutBoxBorderSize(@)".}
-proc getCallOutBoxCornerSize*(this: var LookAndFeel_V2, arg1: CallOutBox): cfloat {.header: juce_gui_basics, importcpp: "#.getCallOutBoxCornerSize(@)".}
-proc drawLevelMeter*(this: var LookAndFeel_V2, arg1: var Graphics, width: cint, height: cint, level: cfloat) {.header: juce_gui_basics, importcpp: "#.drawLevelMeter(@)".}
-proc drawKeymapChangeButton*(this: var LookAndFeel_V2, arg1: var Graphics, width: cint, height: cint, arg4: var Button, keyDescription: String) {.header: juce_gui_basics, importcpp: "#.drawKeymapChangeButton(@)".}
-proc getSidePanelTitleFont*(this: var LookAndFeel_V2, arg1: var SidePanel): Font {.header: juce_gui_basics, importcpp: "#.getSidePanelTitleFont(@)".}
-proc getSidePanelTitleJustification*(this: var LookAndFeel_V2, arg1: var SidePanel): Justification {.header: juce_gui_basics, importcpp: "#.getSidePanelTitleJustification(@)".}
-proc getSidePanelDismissButtonShape*(this: var LookAndFeel_V2, arg1: var SidePanel): Path {.header: juce_gui_basics, importcpp: "#.getSidePanelDismissButtonShape(@)".}
 proc drawBevel*(this: typedesc[LookAndFeel_V2], arg1: var Graphics, x: cint, y: cint, width: cint, height: cint, bevelThickness: cint, topLeftColour: Colour, bottomRightColour: Colour, useGradient: bool = true, sharpEdgeOnOutside: bool = true) {.header: juce_gui_basics, importcpp: "juce::LookAndFeel_V2::drawBevel(@)".}
 proc drawGlassSphere*(this: typedesc[LookAndFeel_V2], arg1: var Graphics, x: cfloat, y: cfloat, diameter: cfloat, arg5: Colour, outlineThickness: cfloat) {.header: juce_gui_basics, importcpp: "juce::LookAndFeel_V2::drawGlassSphere(@)".}
 proc drawGlassPointer*(this: typedesc[LookAndFeel_V2], arg1: var Graphics, x: cfloat, y: cfloat, diameter: cfloat, arg5: Colour, outlineThickness: cfloat, direction: cint) {.header: juce_gui_basics, importcpp: "juce::LookAndFeel_V2::drawGlassPointer(@)".}
@@ -5246,49 +5113,9 @@ proc drawGlassLozenge*(this: typedesc[LookAndFeel_V2], arg1: var Graphics, x: cf
 proc `==`*(this: LookAndFeel_V2, other: LookAndFeel_V2): bool {.error: "juce::LookAndFeel_V2 defines no operator==; compare a property instead".}
 
 proc makeLookAndFeel_V1*(): LookAndFeel_V1 {.header: juce_gui_basics, importcpp: "juce::LookAndFeel_V1(@)".}
-proc drawButtonBackground*(this: var LookAndFeel_V1, arg1: var Graphics, arg2: var Button, backgroundColour: Colour, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.header: juce_gui_basics, importcpp: "#.drawButtonBackground(@)".}
-proc drawToggleButton*(this: var LookAndFeel_V1, arg1: var Graphics, arg2: var ToggleButton, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.header: juce_gui_basics, importcpp: "#.drawToggleButton(@)".}
-proc drawTickBox*(this: var LookAndFeel_V1, arg1: var Graphics, arg2: var Component, x: cfloat, y: cfloat, w: cfloat, h: cfloat, ticked: bool, isEnabled: bool, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.header: juce_gui_basics, importcpp: "#.drawTickBox(@)".}
-proc drawProgressBar*(this: var LookAndFeel_V1, arg1: var Graphics, arg2: var ProgressBar, width: cint, height: cint, progress: float64, textToShow: String) {.header: juce_gui_basics, importcpp: "#.drawProgressBar(@)".}
-proc drawScrollbarButton*(this: var LookAndFeel_V1, arg1: var Graphics, arg2: var ScrollBar, width: cint, height: cint, buttonDirection: cint, isScrollbarVertical: bool, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.header: juce_gui_basics, importcpp: "#.drawScrollbarButton(@)".}
-proc drawScrollbar*(this: var LookAndFeel_V1, arg1: var Graphics, arg2: var ScrollBar, x: cint, y: cint, width: cint, height: cint, isScrollbarVertical: bool, thumbStartPosition: cint, thumbSize: cint, isMouseOver: bool, isMouseDown: bool) {.header: juce_gui_basics, importcpp: "#.drawScrollbar(@)".}
-proc getScrollbarEffect*(this: var LookAndFeel_V1): ptr ImageEffectFilter {.header: juce_gui_basics, importcpp: "#.getScrollbarEffect()".}
-proc drawTextEditorOutline*(this: var LookAndFeel_V1, arg1: var Graphics, width: cint, height: cint, arg4: var TextEditor) {.header: juce_gui_basics, importcpp: "#.drawTextEditorOutline(@)".}
-proc drawPopupMenuBackground*(this: var LookAndFeel_V1, arg1: var Graphics, width: cint, height: cint) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuBackground(@)".}
-proc drawMenuBarBackground*(this: var LookAndFeel_V1, arg1: var Graphics, width: cint, height: cint, isMouseOverBar: bool, arg5: var MenuBarComponent) {.header: juce_gui_basics, importcpp: "#.drawMenuBarBackground(@)".}
-proc drawComboBox*(this: var LookAndFeel_V1, arg1: var Graphics, width: cint, height: cint, isButtonDown: bool, buttonX: cint, buttonY: cint, buttonW: cint, buttonH: cint, arg9: var ComboBox) {.header: juce_gui_basics, importcpp: "#.drawComboBox(@)".}
-proc getComboBoxFont*(this: var LookAndFeel_V1, arg1: var ComboBox): Font {.header: juce_gui_basics, importcpp: "#.getComboBoxFont(@)".}
-proc drawLinearSlider*(this: var LookAndFeel_V1, arg1: var Graphics, x: cint, y: cint, width: cint, height: cint, sliderPos: cfloat, minSliderPos: cfloat, maxSliderPos: cfloat, arg9: SliderSliderStyle, arg10: var Slider) {.header: juce_gui_basics, importcpp: "#.drawLinearSlider(@)".}
-proc getSliderThumbRadius*(this: var LookAndFeel_V1, arg1: var Slider): cint {.header: juce_gui_basics, importcpp: "#.getSliderThumbRadius(@)".}
-proc createSliderButton*(this: var LookAndFeel_V1, arg1: var Slider, isIncrement: bool): ptr Button {.header: juce_gui_basics, importcpp: "#.createSliderButton(@)".}
-proc getSliderEffect*(this: var LookAndFeel_V1, arg1: var Slider): ptr ImageEffectFilter {.header: juce_gui_basics, importcpp: "#.getSliderEffect(@)".}
-proc drawCornerResizer*(this: var LookAndFeel_V1, arg1: var Graphics, w: cint, h: cint, isMouseOver: bool, isMouseDragging: bool) {.header: juce_gui_basics, importcpp: "#.drawCornerResizer(@)".}
-proc createDocumentWindowButton*(this: var LookAndFeel_V1, buttonType: cint): ptr Button {.header: juce_gui_basics, importcpp: "#.createDocumentWindowButton(@)".}
-proc positionDocumentWindowButtons*(this: var LookAndFeel_V1, arg1: var DocumentWindowImpl, titleBarX: cint, titleBarY: cint, titleBarW: cint, titleBarH: cint, minimiseButton: ptr Button, maximiseButton: ptr Button, closeButton: ptr Button, positionTitleBarButtonsOnLeft: bool) {.header: juce_gui_basics, importcpp: "#.positionDocumentWindowButtons(@)".}
 proc `==`*(this: LookAndFeel_V1, other: LookAndFeel_V1): bool {.error: "juce::LookAndFeel_V1 defines no operator==; compare a property instead".}
 
 proc makeLookAndFeel_V3*(): LookAndFeel_V3 {.header: juce_gui_basics, importcpp: "juce::LookAndFeel_V3(@)".}
-proc drawButtonBackground*(this: var LookAndFeel_V3, arg1: var Graphics, arg2: var Button, backgroundColour: Colour, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.header: juce_gui_basics, importcpp: "#.drawButtonBackground(@)".}
-proc drawTableHeaderBackground*(this: var LookAndFeel_V3, arg1: var Graphics, arg2: var TableHeaderComponent) {.header: juce_gui_basics, importcpp: "#.drawTableHeaderBackground(@)".}
-proc drawTreeviewPlusMinusBox*(this: var LookAndFeel_V3, arg1: var Graphics, area: Rectangle[cfloat], backgroundColour: Colour, isOpen: bool, isMouseOver: bool) {.header: juce_gui_basics, importcpp: "#.drawTreeviewPlusMinusBox(@)".}
-proc areLinesDrawnForTreeView*(this: var LookAndFeel_V3, arg1: var TreeView): bool {.header: juce_gui_basics, importcpp: "#.areLinesDrawnForTreeView(@)".}
-proc getTreeViewIndentSize*(this: var LookAndFeel_V3, arg1: var TreeView): cint {.header: juce_gui_basics, importcpp: "#.getTreeViewIndentSize(@)".}
-proc createDocumentWindowButton*(this: var LookAndFeel_V3, buttonType: cint): ptr Button {.header: juce_gui_basics, importcpp: "#.createDocumentWindowButton(@)".}
-proc drawComboBox*(this: var LookAndFeel_V3, arg1: var Graphics, width: cint, height: cint, isButtonDown: bool, buttonX: cint, buttonY: cint, buttonW: cint, buttonH: cint, box: var ComboBox) {.header: juce_gui_basics, importcpp: "#.drawComboBox(@)".}
-proc drawKeymapChangeButton*(this: var LookAndFeel_V3, arg1: var Graphics, width: cint, height: cint, button: var Button, keyDescription: String) {.header: juce_gui_basics, importcpp: "#.drawKeymapChangeButton(@)".}
-proc drawPopupMenuBackground*(this: var LookAndFeel_V3, arg1: var Graphics, width: cint, height: cint) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuBackground(@)".}
-proc drawMenuBarBackground*(this: var LookAndFeel_V3, arg1: var Graphics, width: cint, height: cint, arg4: bool, arg5: var MenuBarComponent) {.header: juce_gui_basics, importcpp: "#.drawMenuBarBackground(@)".}
-proc getTabButtonOverlap*(this: var LookAndFeel_V3, tabDepth: cint): cint {.header: juce_gui_basics, importcpp: "#.getTabButtonOverlap(@)".}
-proc getTabButtonSpaceAroundImage*(this: var LookAndFeel_V3): cint {.header: juce_gui_basics, importcpp: "#.getTabButtonSpaceAroundImage()".}
-proc drawTabButton*(this: var LookAndFeel_V3, arg1: var TabBarButton, arg2: var Graphics, isMouseOver: bool, isMouseDown: bool) {.header: juce_gui_basics, importcpp: "#.drawTabButton(@)".}
-proc drawTabAreaBehindFrontButton*(this: var LookAndFeel_V3, bar: var TabbedButtonBar, g: var Graphics, w: cint, h: cint) {.header: juce_gui_basics, importcpp: "#.drawTabAreaBehindFrontButton(@)".}
-proc drawTextEditorOutline*(this: var LookAndFeel_V3, arg1: var Graphics, width: cint, height: cint, arg4: var TextEditor) {.header: juce_gui_basics, importcpp: "#.drawTextEditorOutline(@)".}
-proc drawStretchableLayoutResizerBar*(this: var LookAndFeel_V3, arg1: var Graphics, w: cint, h: cint, isVerticalBar: bool, isMouseOver: bool, isMouseDragging: bool) {.header: juce_gui_basics, importcpp: "#.drawStretchableLayoutResizerBar(@)".}
-proc areScrollbarButtonsVisible*(this: var LookAndFeel_V3): bool {.header: juce_gui_basics, importcpp: "#.areScrollbarButtonsVisible()".}
-proc drawScrollbar*(this: var LookAndFeel_V3, arg1: var Graphics, arg2: var ScrollBar, x: cint, y: cint, width: cint, height: cint, isScrollbarVertical: bool, thumbStartPosition: cint, thumbSize: cint, isMouseOver: bool, isMouseDown: bool) {.header: juce_gui_basics, importcpp: "#.drawScrollbar(@)".}
-proc drawLinearSlider*(this: var LookAndFeel_V3, arg1: var Graphics, x: cint, y: cint, width: cint, height: cint, sliderPos: cfloat, minSliderPos: cfloat, maxSliderPos: cfloat, arg9: SliderSliderStyle, arg10: var Slider) {.header: juce_gui_basics, importcpp: "#.drawLinearSlider(@)".}
-proc drawLinearSliderBackground*(this: var LookAndFeel_V3, arg1: var Graphics, x: cint, y: cint, width: cint, height: cint, sliderPos: cfloat, minSliderPos: cfloat, maxSliderPos: cfloat, arg9: SliderSliderStyle, arg10: var Slider) {.header: juce_gui_basics, importcpp: "#.drawLinearSliderBackground(@)".}
-proc drawConcertinaPanelHeader*(this: var LookAndFeel_V3, arg1: var Graphics, area: Rectangle[cint], isMouseOver: bool, isMouseDown: bool, arg5: var ConcertinaPanel, arg6: var Component) {.header: juce_gui_basics, importcpp: "#.drawConcertinaPanelHeader(@)".}
 proc getTickShape*(this: var LookAndFeel_V3, height: cfloat): Path {.header: juce_gui_basics, importcpp: "#.getTickShape(@)".}
 proc getCrossShape*(this: var LookAndFeel_V3, height: cfloat): Path {.header: juce_gui_basics, importcpp: "#.getCrossShape(@)".}
 proc createTabTextLayout*(this: typedesc[LookAndFeel_V3], button: TabBarButton, length: cfloat, depth: cfloat, colour: Colour, arg5: var TextLayout) {.header: juce_gui_basics, importcpp: "juce::LookAndFeel_V3::createTabTextLayout(@)".}
@@ -5302,55 +5129,9 @@ proc getDarkColourScheme*(this: typedesc[LookAndFeel_V4]): LookAndFeel_V4ColourS
 proc getMidnightColourScheme*(this: typedesc[LookAndFeel_V4]): LookAndFeel_V4ColourScheme {.header: juce_gui_basics, importcpp: "juce::LookAndFeel_V4::getMidnightColourScheme()".}
 proc getGreyColourScheme*(this: typedesc[LookAndFeel_V4]): LookAndFeel_V4ColourScheme {.header: juce_gui_basics, importcpp: "juce::LookAndFeel_V4::getGreyColourScheme()".}
 proc getLightColourScheme*(this: typedesc[LookAndFeel_V4]): LookAndFeel_V4ColourScheme {.header: juce_gui_basics, importcpp: "juce::LookAndFeel_V4::getLightColourScheme()".}
-proc createDocumentWindowButton*(this: var LookAndFeel_V4, arg1: cint): ptr Button {.header: juce_gui_basics, importcpp: "#.createDocumentWindowButton(@)".}
-proc positionDocumentWindowButtons*(this: var LookAndFeel_V4, arg1: var DocumentWindowImpl, arg2: cint, arg3: cint, arg4: cint, arg5: cint, arg6: ptr Button, arg7: ptr Button, arg8: ptr Button, arg9: bool) {.header: juce_gui_basics, importcpp: "#.positionDocumentWindowButtons(@)".}
-proc drawDocumentWindowTitleBar*(this: var LookAndFeel_V4, arg1: var DocumentWindowImpl, arg2: var Graphics, arg3: cint, arg4: cint, arg5: cint, arg6: cint, arg7: ptr Image, arg8: bool) {.header: juce_gui_basics, importcpp: "#.drawDocumentWindowTitleBar(@)".}
-proc getTextButtonFont*(this: var LookAndFeel_V4, arg1: var TextButton, buttonHeight: cint): Font {.header: juce_gui_basics, importcpp: "#.getTextButtonFont(@)".}
-proc drawButtonBackground*(this: var LookAndFeel_V4, arg1: var Graphics, arg2: var Button, backgroundColour: Colour, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.header: juce_gui_basics, importcpp: "#.drawButtonBackground(@)".}
-proc drawToggleButton*(this: var LookAndFeel_V4, arg1: var Graphics, arg2: var ToggleButton, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.header: juce_gui_basics, importcpp: "#.drawToggleButton(@)".}
-proc drawTickBox*(this: var LookAndFeel_V4, arg1: var Graphics, arg2: var Component, x: cfloat, y: cfloat, w: cfloat, h: cfloat, ticked: bool, isEnabled: bool, shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) {.header: juce_gui_basics, importcpp: "#.drawTickBox(@)".}
-proc changeToggleButtonWidthToFitText*(this: var LookAndFeel_V4, arg1: var ToggleButton) {.header: juce_gui_basics, importcpp: "#.changeToggleButtonWidthToFitText(@)".}
-proc createAlertWindow*(this: var LookAndFeel_V4, title: String, message: String, button1: String, button2: String, button3: String, iconType: MessageBoxIconType, numButtons: cint, associatedComponent: ptr Component): ptr AlertWindow {.header: juce_gui_basics, importcpp: "#.createAlertWindow(@)".}
-proc drawAlertBox*(this: var LookAndFeel_V4, arg1: var Graphics, arg2: var AlertWindow, textArea: Rectangle[cint], arg4: var TextLayout) {.header: juce_gui_basics, importcpp: "#.drawAlertBox(@)".}
-proc getAlertWindowButtonHeight*(this: var LookAndFeel_V4): cint {.header: juce_gui_basics, importcpp: "#.getAlertWindowButtonHeight()".}
-proc getAlertWindowTitleFont*(this: var LookAndFeel_V4): Font {.header: juce_gui_basics, importcpp: "#.getAlertWindowTitleFont()".}
-proc getAlertWindowMessageFont*(this: var LookAndFeel_V4): Font {.header: juce_gui_basics, importcpp: "#.getAlertWindowMessageFont()".}
-proc getAlertWindowFont*(this: var LookAndFeel_V4): Font {.header: juce_gui_basics, importcpp: "#.getAlertWindowFont()".}
-proc drawProgressBar*(this: var LookAndFeel_V4, arg1: var Graphics, arg2: var ProgressBar, width: cint, height: cint, progress: float64, arg6: String) {.header: juce_gui_basics, importcpp: "#.drawProgressBar(@)".}
-proc isProgressBarOpaque*(this: var LookAndFeel_V4, arg1: var ProgressBar): bool {.header: juce_gui_basics, importcpp: "#.isProgressBarOpaque(@)".}
-proc getDefaultProgressBarStyle*(this: var LookAndFeel_V4, arg1: ProgressBar): ProgressBarStyle {.header: juce_gui_basics, importcpp: "#.getDefaultProgressBarStyle(@)".}
-proc getDefaultScrollbarWidth*(this: var LookAndFeel_V4): cint {.header: juce_gui_basics, importcpp: "#.getDefaultScrollbarWidth()".}
-proc drawScrollbar*(this: var LookAndFeel_V4, arg1: var Graphics, arg2: var ScrollBar, x: cint, y: cint, width: cint, height: cint, isScrollbarVertical: bool, thumbStartPosition: cint, thumbSize: cint, isMouseOver: bool, isMouseDown: bool) {.header: juce_gui_basics, importcpp: "#.drawScrollbar(@)".}
 proc getTickShape*(this: var LookAndFeel_V4, height: cfloat): Path {.header: juce_gui_basics, importcpp: "#.getTickShape(@)".}
 proc getCrossShape*(this: var LookAndFeel_V4, height: cfloat): Path {.header: juce_gui_basics, importcpp: "#.getCrossShape(@)".}
-proc fillTextEditorBackground*(this: var LookAndFeel_V4, arg1: var Graphics, width: cint, height: cint, arg4: var TextEditor) {.header: juce_gui_basics, importcpp: "#.fillTextEditorBackground(@)".}
-proc drawTextEditorOutline*(this: var LookAndFeel_V4, arg1: var Graphics, width: cint, height: cint, arg4: var TextEditor) {.header: juce_gui_basics, importcpp: "#.drawTextEditorOutline(@)".}
-proc createFileBrowserGoUpButton*(this: var LookAndFeel_V4): ptr Button {.header: juce_gui_basics, importcpp: "#.createFileBrowserGoUpButton()".}
-proc layoutFileBrowserComponent*(this: var LookAndFeel_V4, arg1: var FileBrowserComponent, arg2: ptr DirectoryContentsDisplayComponent, arg3: ptr FilePreviewComponent, currentPathBox: ptr ComboBox, filenameBox: ptr TextEditor, goUpButton: ptr Button) {.header: juce_gui_basics, importcpp: "#.layoutFileBrowserComponent(@)".}
-proc drawFileBrowserRow*(this: var LookAndFeel_V4, arg1: var Graphics, width: cint, height: cint, file: File, filename: String, icon: ptr Image, fileSizeDescription: String, fileTimeDescription: String, isDirectory: bool, isItemSelected: bool, itemIndex: cint, arg12: var DirectoryContentsDisplayComponent) {.header: juce_gui_basics, importcpp: "#.drawFileBrowserRow(@)".}
-proc drawPopupMenuItem*(this: var LookAndFeel_V4, arg1: var Graphics, area: Rectangle[cint], isSeparator: bool, isActive: bool, isHighlighted: bool, isTicked: bool, hasSubMenu: bool, text: String, shortcutKeyText: String, icon: ptr Drawable, textColour: ptr Colour) {.header: juce_gui_basics, importcpp: "#.drawPopupMenuItem(@)".}
-proc getIdealPopupMenuItemSize*(this: var LookAndFeel_V4, text: String, isSeparator: bool, standardMenuItemHeight: cint, idealWidth: var cint, idealHeight: var cint) {.header: juce_gui_basics, importcpp: "#.getIdealPopupMenuItemSize(@)".}
-proc drawMenuBarBackground*(this: var LookAndFeel_V4, arg1: var Graphics, width: cint, height: cint, isMouseOverBar: bool, arg5: var MenuBarComponent) {.header: juce_gui_basics, importcpp: "#.drawMenuBarBackground(@)".}
-proc drawMenuBarItem*(this: var LookAndFeel_V4, arg1: var Graphics, width: cint, height: cint, itemIndex: cint, itemText: String, isMouseOverItem: bool, isMenuOpen: bool, isMouseOverBar: bool, arg9: var MenuBarComponent) {.header: juce_gui_basics, importcpp: "#.drawMenuBarItem(@)".}
-proc drawComboBox*(this: var LookAndFeel_V4, arg1: var Graphics, width: cint, height: cint, isButtonDown: bool, buttonX: cint, buttonY: cint, buttonW: cint, buttonH: cint, arg9: var ComboBox) {.header: juce_gui_basics, importcpp: "#.drawComboBox(@)".}
-proc getComboBoxFont*(this: var LookAndFeel_V4, arg1: var ComboBox): Font {.header: juce_gui_basics, importcpp: "#.getComboBoxFont(@)".}
-proc positionComboBoxText*(this: var LookAndFeel_V4, arg1: var ComboBox, arg2: var Label) {.header: juce_gui_basics, importcpp: "#.positionComboBoxText(@)".}
-proc getSliderThumbRadius*(this: var LookAndFeel_V4, arg1: var Slider): cint {.header: juce_gui_basics, importcpp: "#.getSliderThumbRadius(@)".}
-proc drawLinearSlider*(this: var LookAndFeel_V4, arg1: var Graphics, x: cint, y: cint, width: cint, height: cint, sliderPos: cfloat, minSliderPos: cfloat, maxSliderPos: cfloat, arg9: SliderSliderStyle, arg10: var Slider) {.header: juce_gui_basics, importcpp: "#.drawLinearSlider(@)".}
-proc drawRotarySlider*(this: var LookAndFeel_V4, arg1: var Graphics, x: cint, y: cint, width: cint, height: cint, sliderPosProportional: cfloat, rotaryStartAngle: cfloat, rotaryEndAngle: cfloat, arg9: var Slider) {.header: juce_gui_basics, importcpp: "#.drawRotarySlider(@)".}
 proc drawPointer*(this: var LookAndFeel_V4, arg1: var Graphics, x: cfloat, y: cfloat, diameter: cfloat, arg5: Colour, direction: cint) {.header: juce_gui_basics, importcpp: "#.drawPointer(@)".}
-proc createSliderTextBox*(this: var LookAndFeel_V4, arg1: var Slider): ptr Label {.header: juce_gui_basics, importcpp: "#.createSliderTextBox(@)".}
-proc drawTooltip*(this: var LookAndFeel_V4, arg1: var Graphics, text: String, width: cint, height: cint) {.header: juce_gui_basics, importcpp: "#.drawTooltip(@)".}
-proc drawConcertinaPanelHeader*(this: var LookAndFeel_V4, arg1: var Graphics, area: Rectangle[cint], isMouseOver: bool, isMouseDown: bool, arg5: var ConcertinaPanel, panel: var Component) {.header: juce_gui_basics, importcpp: "#.drawConcertinaPanelHeader(@)".}
-proc drawLevelMeter*(this: var LookAndFeel_V4, arg1: var Graphics, arg2: cint, arg3: cint, arg4: cfloat) {.header: juce_gui_basics, importcpp: "#.drawLevelMeter(@)".}
-proc paintToolbarBackground*(this: var LookAndFeel_V4, arg1: var Graphics, width: cint, height: cint, arg4: var Toolbar) {.header: juce_gui_basics, importcpp: "#.paintToolbarBackground(@)".}
-proc paintToolbarButtonLabel*(this: var LookAndFeel_V4, arg1: var Graphics, x: cint, y: cint, width: cint, height: cint, text: String, arg7: var ToolbarItemComponent) {.header: juce_gui_basics, importcpp: "#.paintToolbarButtonLabel(@)".}
-proc drawPropertyPanelSectionHeader*(this: var LookAndFeel_V4, arg1: var Graphics, name: String, isOpen: bool, width: cint, height: cint) {.header: juce_gui_basics, importcpp: "#.drawPropertyPanelSectionHeader(@)".}
-proc drawPropertyComponentBackground*(this: var LookAndFeel_V4, arg1: var Graphics, width: cint, height: cint, arg4: var PropertyComponent) {.header: juce_gui_basics, importcpp: "#.drawPropertyComponentBackground(@)".}
-proc drawPropertyComponentLabel*(this: var LookAndFeel_V4, arg1: var Graphics, width: cint, height: cint, arg4: var PropertyComponent) {.header: juce_gui_basics, importcpp: "#.drawPropertyComponentLabel(@)".}
-proc getPropertyComponentContentPosition*(this: var LookAndFeel_V4, arg1: var PropertyComponent): Rectangle[cint] {.header: juce_gui_basics, importcpp: "#.getPropertyComponentContentPosition(@)".}
-proc drawCallOutBoxBackground*(this: var LookAndFeel_V4, arg1: var CallOutBox, arg2: var Graphics, arg3: Path, arg4: var Image) {.header: juce_gui_basics, importcpp: "#.drawCallOutBoxBackground(@)".}
-proc drawStretchableLayoutResizerBar*(this: var LookAndFeel_V4, arg1: var Graphics, arg2: cint, arg3: cint, arg4: bool, arg5: bool, arg6: bool) {.header: juce_gui_basics, importcpp: "#.drawStretchableLayoutResizerBar(@)".}
 proc `==`*(this: LookAndFeel_V4, other: LookAndFeel_V4): bool {.error: "juce::LookAndFeel_V4 defines no operator==; compare a property instead".}
 
 proc `LookAndFeel_V4ColourScheme=`*(this: var LookAndFeel_V4ColourScheme, arg1: LookAndFeel_V4ColourScheme): var LookAndFeel_V4ColourScheme {.header: juce_gui_basics, importcpp: "#.operator=(@)".}
