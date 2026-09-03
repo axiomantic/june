@@ -152,12 +152,21 @@ jobs:
             nimble install -y nim@${{ matrix.nim-version }} || true
             test -x "$(pinned)"
           }
-          install_nim || {
-            echo "nimble installed something other than ${{ matrix.nim-version }}; retrying"
-            rm -rf "$HOME"/.nimble/pkgs2/nim-*
-            sleep 15
-            install_nim
-          } || {
+          # Three attempts with a widening gap. Two 15s apart both lost to one
+          # SSL failure fetching packages.json, which is the same outage twice
+          # rather than two tries.
+          # The clear runs only between attempts, never before the first: the
+          # cache step restores the pinned compiler into that directory, and
+          # wiping it up front would throw the cache away on every run.
+          for delay in 0 20 60; do
+            [ "$delay" = 0 ] || {
+              echo "attempt failed; waiting ${delay}s"
+              sleep "$delay"
+              rm -rf "$HOME"/.nimble/pkgs2/nim-*
+            }
+            install_nim && break
+          done
+          test -x "$(pinned)" || {
             echo "::error::nimble could not install Nim ${{ matrix.nim-version }}"
             exit 1
           }
