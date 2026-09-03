@@ -1867,3 +1867,62 @@ proc testEveryNoArgConstructorCore() =
 
 
 testEveryNoArgConstructorCore()
+
+# The file streams ============================================================
+#
+# A real write followed by a real read, so the assertions are about bytes that
+# reached the disk rather than about a buffer. BufferedInputStream wraps the
+# reader, and has to give the same answers as the stream underneath it.
+
+proc testFileStreams() =
+    block:
+        let root = june.File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                       .getNonexistentChildFile(makeString("june-streams"), makeString(""))
+        doAssert root.createDirectory().wasOk(), "could not make the temp directory"
+        let target = root.getChildFile(makeStringRef("lines.txt"))
+
+        block:
+            var writer = makeFileOutputStream(target, 1024'u64)
+            doAssert writer.openedOk(), "the file did not open for writing"
+            doAssert writer.writeText(makeString("first\n"), false, false, "\n".toConstChar),
+                     "writing the first line failed"
+            doAssert writer.writeText(makeString("second\n"), false, false, "\n".toConstChar),
+                     "writing the second line failed"
+            writer.flush()
+            doAssert writer.getPosition() == 13'i64,
+                     "the writer is at " & $writer.getPosition() & " bytes"
+
+        doAssert target.getSize() == 13'i64,
+                 "the file holds " & $target.getSize() & " bytes"
+
+        block:
+            var reader = makeFileInputStream(target)
+            doAssert reader.openedOk(), "the file did not open for reading"
+            doAssert reader.getTotalLength() == 13'i64,
+                     "the reader sees " & $reader.getTotalLength() & " bytes"
+            doAssert $reader.readNextLine() == "first",
+                     "the first line reads " & $reader.readNextLine()
+            doAssert reader.getPosition() > 0'i64,
+                     "the reader did not advance"
+            doAssert $reader.readNextLine() == "second",
+                     "the second line is not what was written"
+            doAssert reader.isExhausted(), "the reader has more after two lines"
+
+            # Seeking back gives the same bytes again, which says the position
+            # is real rather than a counter.
+            doAssert reader.setPosition(0'i64), "seeking to the start failed"
+            doAssert $reader.readEntireStreamAsString() == "first\nsecond\n",
+                     "the whole file reads back differently"
+
+        block:
+            # The buffered wrapper answers the same as the stream underneath.
+            var source = makeFileInputStream(target)
+            var buffered = makeBufferedInputStream(source, 4.cint)
+            doAssert buffered.getTotalLength() == 13'i64,
+                     "the buffered stream sees " & $buffered.getTotalLength() & " bytes"
+            doAssert $buffered.readNextLine() == "first",
+                     "the buffered stream read something else"
+
+        doAssert root.deleteRecursively(), "could not remove the temp directory"
+
+testFileStreams()
