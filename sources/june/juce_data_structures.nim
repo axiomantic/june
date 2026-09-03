@@ -29,6 +29,12 @@ type
 # and $ so a value can appear in a message. $ prints the number
 # rather than the name: the binding holds the C++ enumerator and
 # there is no table of names on this side to look one up in.
+#
+# A scoped enum - `enum class` in C++ - does not convert to int
+# on its own, so a borrowed $ emits dollar_(int32) over a value
+# clang refuses to narrow, and the error appears at the call
+# site rather than here. Those get toCint, which does the
+# static_cast C++ requires, and a $ written over it.
 proc `==`*(a: PropertiesFileStorageFormat, b: PropertiesFileStorageFormat): bool {.borrow.}
 proc `$`*(value: PropertiesFileStorageFormat): string {.borrow.}
 

@@ -9587,3 +9587,120 @@ proc testMultiDocumentPanel() =
     shutdownJuce_GUI()
 
 testMultiDocumentPanel()
+
+# AlertWindow builds its contents before it is ever shown, and everything here
+# is that building. Nothing enters a modal loop: showAsync and its relatives
+# would block or need a desktop, and are left to the compile harness.
+proc testAlertWindowContents() =
+    initialiseJuce_GUI()
+
+    block:
+        var alert = makeAlertWindow(makeString("Title"), makeString("Message"),
+                                    AlertWindow.WarningIcon, nil)
+        doAssert alert.getAlertType() == AlertWindow.WarningIcon,
+                 "the alert type did not read back"
+        doAssert alert.getNumButtons() == 0,
+                 "a new alert has " & $alert.getNumButtons() & " buttons"
+        doAssert not alert.containsAnyExtraComponents(),
+                 "a new alert already carries extra components"
+
+        alert.setMessage(makeString("A different message"))
+
+        # Buttons are named, and reachable by name or by index.
+        alert.addButton(makeString("OK"), 1.cint, makeKeyPress(KeyPress.returnKey),
+                        makeKeyPress())
+        alert.addButton(makeString("Cancel"), 0.cint,
+                        makeKeyPress(KeyPress.escapeKey), makeKeyPress())
+        doAssert alert.getNumButtons() == 2,
+                 "the alert has " & $alert.getNumButtons() & " buttons"
+        doAssert not alert.getButton(0.cint).isNil, "button 0 is missing"
+        doAssert alert.getButton(makeString("Cancel")) == alert.getButton(1.cint),
+                 "the button found by name is not the second one"
+        doAssert alert.getButton(makeString("Nothing")).isNil,
+                 "a button that was never added was found"
+        doAssert $alert.getButton(0.cint)[].getButtonText() == "OK",
+                 "button 0 reads " & $alert.getButton(0.cint)[].getButtonText()
+
+        # A text editor is named too, and its contents are reachable both
+        # through the editor and through the alert.
+        alert.addTextEditor(makeString("name"), makeString("initial"),
+                            makeString("Your name"), false)
+        doAssert not alert.getTextEditor(makeString("name")).isNil,
+                 "the text editor was not added"
+        doAssert $alert.getTextEditorContents(makeString("name")) == "initial",
+                 "the editor holds " &
+                 $alert.getTextEditorContents(makeString("name"))
+
+        alert.getTextEditor(makeString("name"))[].setText(makeString("typed"),
+                                                          false)
+        doAssert $alert.getTextEditorContents(makeString("name")) == "typed",
+                 "the alert did not see the change; it reads " &
+                 $alert.getTextEditorContents(makeString("name"))
+        doAssert alert.getTextEditor(makeString("absent")).isNil,
+                 "an editor that was never added was found"
+
+        # A combo box carries the items it was given.
+        var items = makeStringArray()
+        items.add(makeString("one"))
+        items.add(makeString("two"))
+        alert.addComboBox(makeString("choice"), items, makeString("Pick"))
+        let box = alert.getComboBoxComponent(makeString("choice"))
+        doAssert not box.isNil, "the combo box was not added"
+        doAssert box[].getNumItems() == 2,
+                 "the combo box holds " & $box[].getNumItems() & " items"
+        doAssert alert.getComboBoxComponent(makeString("absent")).isNil,
+                 "a combo box that was never added was found"
+
+        alert.addTextBlock(makeString("Some explanatory text"))
+        doAssert alert.containsAnyExtraComponents(),
+                 "the alert carries no extra components after all of that"
+
+        # A custom component is held by index, and removing it hands it back.
+        doAssert alert.getNumCustomComponents() == 0,
+                 "the alert holds " & $alert.getNumCustomComponents() &
+                 " custom components before one is added"
+        let custom = newCustomComponent()
+        alert.addCustomComponent(cast[ptr Component](custom))
+        doAssert alert.getNumCustomComponents() == 1,
+                 "after adding one there are " & $alert.getNumCustomComponents()
+        doAssert alert.getCustomComponent(0.cint) == cast[ptr Component](custom),
+                 "the custom component is a different one"
+
+        doAssert alert.removeCustomComponent(0.cint) ==
+                 cast[ptr Component](custom),
+                 "removeCustomComponent handed back a different component"
+        doAssert alert.getNumCustomComponents() == 0,
+                 "the removed component is still counted"
+        cdelete custom
+
+        # A progress bar is driven by a variable the caller keeps, and its style
+        # is an optional: unset means "whatever the LookAndFeel wants".
+        doAssert not makeProgressBarStyleUnset().hasStyle(),
+                 "an unset progress bar style holds one"
+        let linear = makeProgressBarStyle(ProgressBarStyle_linear)
+        doAssert linear.hasStyle(), "a set progress bar style holds nothing"
+        doAssert linear.style() == ProgressBarStyle_linear,
+                 "the style read back as a different one"
+
+        var progress = 0.25
+        alert.addProgressBarComponent(progress, linear)
+        doAssert alert.containsAnyExtraComponents(),
+                 "the progress bar is not counted as an extra component"
+
+        # And the same optional reaches ProgressBar's own constructor, which
+        # nothing could call before either.
+        var standalone = makeProgressBar(progress, linear)
+        doAssert standalone.getStyle().hasStyle(),
+                 "the bar lost the style it was built with"
+        doAssert standalone.getStyle().style() == ProgressBarStyle_linear,
+                 "the bar reports a different style"
+        standalone.setStyle(makeProgressBarStyleUnset())
+        doAssert not standalone.getStyle().hasStyle(),
+                 "setStyle could not clear the style"
+
+        alert.setEscapeKeyCancels(false)
+        alert.triggerButtonClick(makeString("OK"))
+
+    shutdownJuce_GUI()
+
+testAlertWindowContents()
