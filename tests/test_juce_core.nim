@@ -4229,3 +4229,132 @@ proc testUrlBuilding() =
              "an email address was not recognised"
 
 testUrlBuilding()
+
+# The stream primitives. Each writer has a matching reader, and every pair is
+# asserted by writing and reading back - so a binding that wrote the wrong
+# width, or read the wrong endianness, fails rather than compiling quietly.
+proc testStreamPrimitives() =
+  block:
+    var buffer = makeMemoryBlock(0'u64, false)
+    block:
+      var output = makeMemoryOutputStream(buffer, false)
+      doAssert output.writeBool(true), "writeBool refused"
+      doAssert output.writeByte('A'), "writeByte refused"
+      doAssert output.writeShort(-1234'i16), "writeShort refused"
+      doAssert output.writeInt(123456.cint), "writeInt refused"
+      doAssert output.writeInt64(9876543210'i64), "writeInt64 refused"
+      doAssert output.writeFloat(2.5'f32), "writeFloat refused"
+      doAssert output.writeDouble(1.25), "writeDouble refused"
+      output.flush()
+
+    var input = makeMemoryInputStream(buffer, false)
+    doAssert input.readBool(), "the bool came back false"
+    doAssert input.readByte() == 'A',
+             "the byte came back as " & $input.readByte()
+    doAssert input.readShort() == -1234'i16, "the short did not come back"
+    doAssert input.readInt() == 123456.cint, "the int did not come back"
+    doAssert input.readInt64() == 9876543210'i64, "the int64 did not come back"
+    doAssert input.readFloat() == 2.5'f32, "the float did not come back"
+    doAssert input.readDouble() == 1.25, "the double did not come back"
+    doAssert input.isExhausted(),
+             "the stream has " & $input.getNumBytesRemaining() & " bytes left"
+
+  block:
+    # The big-endian writers put the same numbers down in the other order, so
+    # the little-endian reader gives a different answer for all but a
+    # palindrome.
+    var buffer = makeMemoryBlock(0'u64, false)
+    block:
+      var output = makeMemoryOutputStream(buffer, false)
+      doAssert output.writeIntBigEndian(1.cint), "writeIntBigEndian refused"
+      output.flush()
+
+    var swapped = makeMemoryInputStream(buffer, false)
+    doAssert swapped.readIntBigEndian() == 1.cint,
+             "the big-endian int came back as " & $swapped.readIntBigEndian()
+
+    var native = makeMemoryInputStream(buffer, false)
+    doAssert native.readInt() != 1.cint,
+             "the little-endian reader agreed with the big-endian writer, so " &
+             "one of the two is not swapping"
+
+  block:
+    # A compressed int uses fewer bytes for a small number than a plain one.
+    var small = makeMemoryBlock(0'u64, false)
+    block:
+      var output = makeMemoryOutputStream(small, false)
+      doAssert output.writeCompressedInt(7.cint), "writeCompressedInt refused"
+      output.flush()
+    doAssert small.getSize() < 4'u64,
+             "a compressed 7 took " & $small.getSize() & " bytes"
+
+    var input = makeMemoryInputStream(small, false)
+    doAssert input.readCompressedInt() == 7.cint,
+             "the compressed int came back as " & $input.readCompressedInt()
+
+  block:
+    # A string round trips, and so does a run of repeated bytes.
+    var buffer = makeMemoryBlock(0'u64, false)
+    block:
+      var output = makeMemoryOutputStream(buffer, false)
+      doAssert output.writeString(makeString("hello")), "writeString refused"
+      doAssert output.writeRepeatedByte(0xAB'u8, 4'u64),
+               "writeRepeatedByte refused"
+      output.flush()
+
+    var input = makeMemoryInputStream(buffer, false)
+    doAssert $input.readString() == "hello",
+             "the string came back as " & $input.readString()
+    doAssert input.getNumBytesRemaining() == 4'i64,
+             "the repeated bytes measure " & $input.getNumBytesRemaining()
+
+    var rest = makeMemoryBlock(0'u64, false)
+    discard input.readIntoMemoryBlock(rest, -1'i64)
+    doAssert rest.getSize() == 4'u64,
+             "the memory block took " & $rest.getSize() & " bytes"
+
+  block:
+    # skipNextBytes moves the read position without returning anything.
+    var buffer = makeMemoryBlock(0'u64, false)
+    block:
+      var output = makeMemoryOutputStream(buffer, false)
+      doAssert output.writeInt(1.cint), "writeInt refused"
+      doAssert output.writeInt(2.cint), "the second writeInt refused"
+      output.flush()
+
+    var input = makeMemoryInputStream(buffer, false)
+    input.skipNextBytes(4'i64)
+    doAssert input.readInt() == 2.cint,
+             "after skipping the first int the next is " & $input.readInt()
+
+  block:
+    # writeFromInputStream copies one stream into another.
+    var source = makeMemoryBlock(0'u64, false)
+    block:
+      var output = makeMemoryOutputStream(source, false)
+      doAssert output.writeInt(42.cint), "writeInt refused"
+      output.flush()
+
+    var copy = makeMemoryBlock(0'u64, false)
+    block:
+      var input = makeMemoryInputStream(source, false)
+      var output = makeMemoryOutputStream(copy, false)
+      doAssert output.writeFromInputStream(input, -1'i64) == 4'i64,
+               "the copy moved a different number of bytes"
+      output.flush()
+
+    var check = makeMemoryInputStream(copy, false)
+    doAssert check.readInt() == 42.cint,
+             "the copied int came back as " & $check.readInt()
+
+  block:
+    # The newline string is a property of the stream, and it round trips.
+    var buffer = makeMemoryBlock(0'u64, false)
+    var output = makeMemoryOutputStream(buffer, false)
+    doAssert output.getNewLineString().isNotEmpty(),
+             "the default newline string is empty"
+    output.setNewLineString(makeString("\r\n"))
+    doAssert $output.getNewLineString() == "\r\n",
+             "the newline string did not read back"
+
+testStreamPrimitives()
