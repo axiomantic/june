@@ -3791,4 +3791,83 @@ proc testRelativePointPath() =
 
 
 testMultiChoicePropertyComponent()
+# The small gui classes =======================================================
+#
+# Value types and two components whose answers are exact.
+
+proc testSmallGuiClasses() =
+    initialiseJuce_GUI()
+
+    block:
+        # A grid span is either a count or a named line, and it keeps whichever
+        # it was given.
+        let counted = makeGridItemSpan(3.cint)
+        doAssert counted.number() == 3, "the span covers " & $counted.number() & " tracks"
+
+        let named = makeGridItemSpan(2.cint, makeString("content"))
+        doAssert named.number() == 2, "the named span covers " & $named.number()
+        doAssert $named.name() == "content",
+                 "the named span is called " & $named.name()
+
+        # A fraction is stored as the number of fr units.
+        let third = makeGridFr(1.cint)
+        doAssert third.fraction() == 1'u64,
+                 "the fraction is " & $third.fraction()
+        let wide = makeGridFr(5'u64)
+        doAssert wide.fraction() == 5'u64,
+                 "the fraction is " & $wide.fraction()
+
+    block:
+        # The component follows the Value it was given, in both directions.
+        var backing = makeValue(makejuce_var(false))
+        var toggle = makeBooleanPropertyComponent(
+            backing, makeString("Loop"), makeString("enabled"))
+        doAssert not toggle.getState(), "a component over false started true"
+
+        toggle.setState(true)
+        doAssert toggle.getState(), "the component did not take the new state"
+        doAssert backing.getValue().toBool(),
+                 "setting the component did not reach the Value"
+
+        backing.setValue(makejuce_var(false))
+        toggle.refresh()
+        doAssert not toggle.getState(),
+                 "setting the Value did not reach the component"
+
+    block:
+        # An edge component knows which edge it is: left and right are vertical.
+        var owner = newCustomComponent()
+        owner[].setBounds(makeRectangle(0.cint, 0.cint, 100.cint, 100.cint))
+
+        var leftEdge = makeResizableEdgeComponent(
+            cast[ptr Component](owner), nil, ResizableEdgeComponentEdge_leftEdge)
+        doAssert leftEdge.isVertical(), "the left edge did not call itself vertical"
+
+        var topEdge = makeResizableEdgeComponent(
+            cast[ptr Component](owner), nil, ResizableEdgeComponentEdge_topEdge)
+        doAssert not topEdge.isVertical(), "the top edge called itself vertical"
+
+        cdelete owner
+
+    block:
+        # An arrow button paints its arrow in the colour it was given.
+        var arrow = makeArrowButton(makeString("up"), 0.75'f32,
+                                    makeColour(255'u8, 0'u8, 0'u8, 255'u8))
+        arrow.setBounds(makeRectangle(0.cint, 0.cint, 20.cint, 20.cint))
+
+        let surface = makeImage(ImagePixelFormat_ARGB, 20.cint, 20.cint, true)
+        var context = makeGraphics(surface)
+        arrow.paintEntireComponent(context, false)
+
+        var reds = 0
+        for x in 0 ..< 20:
+            for y in 0 ..< 20:
+                if surface.getPixelAt(x.cint, y.cint).getRed() > 200'u8:
+                    reds += 1
+        doAssert reds > 0, "the arrow button painted no arrow"
+
+    shutdownJuce_GUI()
+
+
 testRelativePointPath()
+testSmallGuiClasses()
