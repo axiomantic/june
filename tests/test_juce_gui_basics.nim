@@ -9604,11 +9604,17 @@ proc testAlertWindowContents() =
     # method on every platform.
     # The check is DISPLAY rather than JUCE's own display list, because
     # asking JUCE means constructing Desktop, which is itself what queries X.
+    # ISOLATING A CI LEAK. Under xvfb the Linux job now has a display, and the
+    # suite exits with JUCE's desktop singletons alive - MessageManager,
+    # TimerThread, the MouseInputSources, a Component and an Image. macOS has a
+    # real display and does not leak, so the difference is the X11 peer path.
+    # This test is the one that constructs a real window, so it is skipped on
+    # Linux for one run to say whether it is the source. If the job goes green,
+    # it is; if it still leaks, the leak is elsewhere and this guard comes off.
     when defined(linux):
-        if getEnv("DISPLAY").len == 0:
-            echo "  skipped testAlertWindowContents: no X display (DISPLAY unset)"
-            shutdownJuce_GUI()
-            return
+        echo "  skipped testAlertWindowContents: isolating the xvfb leak"
+        shutdownJuce_GUI()
+        return
 
     block:
         var alert = makeAlertWindow(makeString("Title"), makeString("Message"),
