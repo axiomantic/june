@@ -2190,3 +2190,46 @@ proc testScopedTryLocks() =
         lock.exit()
 
 testScopedTryLocks()
+
+# File::NaturalFileComparator =================================================
+#
+# Natural ordering puts file2 before file10, which a plain string comparison
+# would not, and the folders-first flag changes the answer for a directory
+# against a file.
+
+proc testNaturalFileComparator() =
+    block:
+        let root = june.File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                       .getNonexistentChildFile(makeString("june-sort"), makeString(""))
+        doAssert root.createDirectory().wasOk(), "could not make the temp directory"
+
+        let second = root.getChildFile(makeStringRef("file2.txt"))
+        let tenth = root.getChildFile(makeStringRef("file10.txt"))
+        doAssert second.replaceWithText(makeString("2")), "could not write file2"
+        doAssert tenth.replaceWithText(makeString("10")), "could not write file10"
+        let folder = root.getChildFile(makeStringRef("aaa"))
+        doAssert folder.createDirectory().wasOk(), "could not make the folder"
+
+        var natural = makeFileNaturalFileComparator(true)
+        doAssert natural.foldersFirst(), "the comparator forgot foldersFirst"
+
+        # 2 before 10: a plain string comparison would put "file10" first.
+        doAssert natural.compareElements(second, tenth) < 0,
+                 "file2 did not sort before file10"
+        doAssert natural.compareElements(tenth, second) > 0,
+                 "the comparison is not symmetric"
+
+        # With folders first, the directory wins however its name sorts.
+        doAssert natural.compareElements(folder, second) < 0,
+                 "the folder did not sort before the file"
+
+        natural.foldersFirst = false
+        doAssert not natural.foldersFirst(), "the flag did not change"
+        doAssert natural.compareElements(folder, second) < 0,
+                 "aaa should still sort before file2 by name"
+        doAssert natural.compareElements(second, folder) > 0,
+                 "the comparison is not symmetric without foldersFirst"
+
+        doAssert root.deleteRecursively(), "could not remove the temp directory"
+
+testNaturalFileComparator()
