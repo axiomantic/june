@@ -1338,3 +1338,17 @@ proc testEveryConstantGraphics() =
         discard AttributedStringReadingDirection_rightToLeft
 
 testEveryConstantGraphics()
+
+# Every static variable =======================================================
+#
+# Bound as a proc over the typedesc, so it is compiled only where it is called,
+# exactly like the constants. Reading each is what checks its C++ spelling.
+
+proc testEveryStaticVariableGraphics() =
+    block:
+        discard Path.`defaultToleranceForTesting`()
+        discard Path.`defaultToleranceForMeasurement`()
+        discard FontFeatureSetting.`featureEnabled`()
+        discard FontFeatureSetting.`featureDisabled`()
+
+testEveryStaticVariableGraphics()
