@@ -1410,7 +1410,7 @@ proc getPreviousComponent*(this: var FocusTraverser, current: ptr Component): pt
 proc getAllComponents*(this: var FocusTraverser, parentComponent: ptr Component): CppVector[Component] {.header: juce_gui_basics, importcpp: "#.getAllComponents(@)".}
 proc `==`*(this: FocusTraverser, other: FocusTraverser): bool {.error: "juce::FocusTraverser defines no operator==; compare a property instead".}
 
-# proc singletonHolder*(this: typedesc[ModalComponentManager]): juce::SingletonHolder<ModalComponentManager, juce::DummyCriticalSection, false> {.header: juce_gui_basics, importcpp: "(juce::ModalComponentManager::singletonHolder)".}  # a type that cannot be spelled in Nim
+# proc singletonHolder*(this: typedesc[ModalComponentManager]): juce::SingletonHolder<ModalComponentManager, juce::DummyCriticalSection, false> {.header: juce_gui_basics, importcpp: "(juce::ModalComponentManager::singletonHolder)".}  # JUCE's SingletonHolder, which is reached through the singleton it holds
 proc getInstance*(this: typedesc[ModalComponentManager]): ptr ModalComponentManager {.header: juce_gui_basics, importcpp: "juce::ModalComponentManager::getInstance()".}
 proc getInstanceWithoutCreating*(this: typedesc[ModalComponentManager]): ptr ModalComponentManager {.header: juce_gui_basics, importcpp: "juce::ModalComponentManager::getInstanceWithoutCreating()".}
 proc deleteInstance*(this: typedesc[ModalComponentManager]) {.header: juce_gui_basics, importcpp: "juce::ModalComponentManager::deleteInstance()".}
