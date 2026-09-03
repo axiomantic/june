@@ -7548,3 +7548,252 @@ proc testTextEditorConfiguration() =
     shutdownJuce_GUI()
 
 testTextEditorConfiguration()
+
+# Button's toggle state, radio group and shortcut list. The toggle rules are
+# the part a caller gets wrong: a button is not toggleable by default, and
+# setClickingTogglesState is what makes a click change the state.
+proc testButtonToggling() =
+    initialiseJuce_GUI()
+
+    block:
+        let button = newCustomButton(makeString("button"))
+        button[].setButtonText(makeString("Go"))
+        doAssert $button[].getButtonText() == "Go",
+                 "the text reads as " & $button[].getButtonText()
+
+        doAssert not button[].getToggleState(), "a new button is already on"
+        doAssert not button[].isDown(), "a new button is held down"
+        doAssert not button[].isOver(), "the mouse is over a new button"
+
+        # setClickingTogglesState decides whether a click changes the state, and
+        # it also makes the button toggleable (juce_Button.h:109, where
+        # isToggleable is canBeToggled OR clickTogglesState).
+        doAssert not button[].getClickingTogglesState(),
+                 "a new button toggles when clicked"
+        doAssert not button[].isToggleable(), "a new button is toggleable"
+
+        button[].setClickingTogglesState(true)
+        doAssert button[].getClickingTogglesState(),
+                 "setClickingTogglesState did not take"
+        doAssert button[].isToggleable(),
+                 "setClickingTogglesState did not make the button toggleable"
+
+        # triggerClick is not tested here because it posts a command message
+        # (juce_Button.cpp:359) rather than clicking inline, and a headless
+        # test never drains the queue. setToggleState is the synchronous door
+        # to the same state.
+        button[].setToggleState(true, NotificationType_dontSendNotification)
+        doAssert button[].getToggleState(), "the button did not turn on"
+        button[].setToggleState(false, NotificationType_dontSendNotification)
+        doAssert not button[].getToggleState(), "the button did not turn back off"
+
+        cdelete button
+
+    block:
+        # onClick fires for every click, and setToggleState fires it too when it
+        # is told to notify.
+        let button = newCustomButton(makeString("button"))
+        var clicks = 0
+        button[].onClick = bindClosure(proc() = clicks += 1)
+
+        button[].setToggleable(true)
+        button[].setToggleState(true, NotificationType_dontSendNotification)
+        doAssert button[].getToggleState(), "setToggleState did not take"
+        doAssert clicks == 0,
+                 "a silent setToggleState produced " & $clicks & " callbacks"
+
+        button[].setToggleState(false, NotificationType_sendNotificationSync)
+        doAssert clicks == 1,
+                 "an announcing setToggleState produced " & $clicks & " callbacks"
+
+        cdelete button
+
+    block:
+        # A radio group holds one button on at a time, but only among siblings,
+        # which is why the buttons need a shared parent.
+        let parent = newCustomComponent()
+        let first = newCustomButton(makeString("button"))
+        let second = newCustomButton(makeString("button"))
+        parent[].addAndMakeVisible(cast[ptr Component](first))
+        parent[].addAndMakeVisible(cast[ptr Component](second))
+
+        for button in [first, second]:
+            button[].setClickingTogglesState(true)
+            button[].setRadioGroupId(7.cint, NotificationType_dontSendNotification)
+        doAssert first[].getRadioGroupId() == 7,
+                 "the group id is " & $first[].getRadioGroupId()
+
+        first[].setToggleState(true, NotificationType_dontSendNotification)
+        doAssert first[].getToggleState(), "the first button did not turn on"
+
+        second[].setToggleState(true, NotificationType_dontSendNotification)
+        doAssert second[].getToggleState(), "the second button did not turn on"
+        doAssert not first[].getToggleState(),
+                 "two buttons in one radio group are on at once"
+
+        cdelete second
+        cdelete first
+        cdelete parent
+
+    block:
+        # Shortcuts are a list, and a key is either in it or not.
+        let button = newCustomButton(makeString("button"))
+        let space = makeKeyPress(KeyPress.spaceKey)
+        doAssert not button[].isRegisteredForShortcut(space),
+                 "a new button already answers to the space bar"
+
+        button[].addShortcut(space)
+        doAssert button[].isRegisteredForShortcut(space),
+                 "the shortcut was not registered"
+        doAssert not button[].isRegisteredForShortcut(
+                    makeKeyPress(KeyPress.escapeKey)),
+                 "the button answers to a key it was never given"
+
+        button[].clearShortcuts()
+        doAssert not button[].isRegisteredForShortcut(space),
+                 "clearShortcuts left the shortcut in place"
+
+        cdelete button
+
+    block:
+        # The connected edges are a flag set, and each side reads its own bit.
+        let button = newCustomButton(makeString("button"))
+        doAssert button[].getConnectedEdgeFlags() == 0,
+                 "a new button has connected edges"
+
+        button[].setConnectedEdges(ButtonConnectedEdgeFlags_ConnectedOnLeft.cint or
+                                   ButtonConnectedEdgeFlags_ConnectedOnTop.cint)
+        doAssert button[].isConnectedOnLeft(), "the left edge is not connected"
+        doAssert button[].isConnectedOnTop(), "the top edge is not connected"
+        doAssert not button[].isConnectedOnRight(), "the right edge is connected"
+        doAssert not button[].isConnectedOnBottom(), "the bottom edge is connected"
+
+        # Triggering on mouse down is a separate switch from the toggle rules.
+        doAssert not button[].getTriggeredOnMouseDown(),
+                 "a new button triggers on mouse down"
+        button[].setTriggeredOnMouseDown(true)
+        doAssert button[].getTriggeredOnMouseDown(),
+                 "setTriggeredOnMouseDown did not take"
+
+        button[].setTooltip(makeString("press me"))
+        doAssert $button[].getTooltip() == "press me",
+                 "the tooltip reads as " & $button[].getTooltip()
+
+        cdelete button
+
+    shutdownJuce_GUI()
+
+testButtonToggling()
+
+# Label holds text and, when it is editable, hands it to a TextEditor. The
+# editor's lifetime is the part worth asserting: it exists only between
+# showEditor and hideEditor.
+proc testLabelEditing() =
+    initialiseJuce_GUI()
+
+    block:
+        let label = newCustomLabel()
+        label[].setText(makeString("caption"), NotificationType_dontSendNotification)
+        doAssert $label[].getText() == "caption",
+                 "the text reads as " & $label[].getText()
+
+        # Editability has three separate switches, and isEditable is true when
+        # either click switch is on.
+        doAssert not label[].isEditable(), "a new label is editable"
+        doAssert not label[].isEditableOnSingleClick(),
+                 "a new label edits on a single click"
+        doAssert not label[].isEditableOnDoubleClick(),
+                 "a new label edits on a double click"
+
+        label[].setEditable(false, true, true)
+        doAssert label[].isEditable(), "the label is not editable"
+        doAssert not label[].isEditableOnSingleClick(),
+                 "the single click switch turned itself on"
+        doAssert label[].isEditableOnDoubleClick(),
+                 "the double click switch did not turn on"
+        doAssert label[].doesLossOfFocusDiscardChanges(),
+                 "the discard-on-focus-loss switch did not turn on"
+
+        cdelete label
+
+    block:
+        # The editor exists only while the label is being edited, and what is
+        # typed into it becomes the label's text when the editor is kept.
+        let label = newCustomLabel()
+        label[].setText(makeString("before"), NotificationType_dontSendNotification)
+        label[].setEditable(true, true, false)
+
+        doAssert not label[].isBeingEdited(), "the label is being edited already"
+        doAssert label[].getCurrentTextEditor().isNil,
+                 "an editor exists before showEditor"
+
+        label[].showEditor()
+        doAssert label[].isBeingEdited(), "showEditor did not start an edit"
+        let editor = label[].getCurrentTextEditor()
+        doAssert not editor.isNil, "showEditor made no editor"
+        doAssert $editor[].getText() == "before",
+                 "the editor opened holding " & $editor[].getText()
+
+        editor[].setText(makeString("after"), false)
+        label[].hideEditor(false)
+        doAssert not label[].isBeingEdited(), "hideEditor did not end the edit"
+        doAssert label[].getCurrentTextEditor().isNil,
+                 "the editor outlived hideEditor"
+        doAssert $label[].getText() == "after",
+                 "the edit did not reach the label; it holds " & $label[].getText()
+
+        # And discarding puts the text back.
+        label[].showEditor()
+        label[].getCurrentTextEditor()[].setText(makeString("discarded"), false)
+        label[].hideEditor(true)
+        doAssert $label[].getText() == "after",
+                 "a discarded edit reached the label as " & $label[].getText()
+
+        cdelete label
+
+    block:
+        # A label attaches itself to another component, which is how JUCE
+        # captions a widget.
+        let owner = newCustomSlider()
+        let label = newCustomLabel()
+        doAssert label[].getAttachedComponent().isNil,
+                 "a new label is attached to something"
+
+        label[].attachToComponent(cast[ptr Component](owner), true)
+        doAssert label[].getAttachedComponent() == cast[ptr Component](owner),
+                 "the label attached to the wrong component"
+        doAssert label[].isAttachedOnLeft(), "the label attached on the wrong side"
+
+        label[].attachToComponent(cast[ptr Component](owner), false)
+        doAssert not label[].isAttachedOnLeft(), "the side did not change"
+
+        cdelete label
+        cdelete owner
+
+    block:
+        # The layout properties round trip.
+        let label = newCustomLabel()
+        label[].setJustificationType(makeJustification(
+                                        JustificationFlags_centred.cint))
+        doAssert label[].getJustificationType().getFlags() ==
+                 JustificationFlags_centred.cint,
+                 "the justification reads as " &
+                 $label[].getJustificationType().getFlags()
+
+        label[].setBorderSize(makeBorderSize(4.cint))
+        doAssert label[].getBorderSize().getTop() == 4,
+                 "the border is " & $label[].getBorderSize().getTop()
+
+        label[].setMinimumHorizontalScale(0.5'f32)
+        doAssert abs(label[].getMinimumHorizontalScale() - 0.5'f32) < 1.0e-6'f32,
+                 "the minimum scale is " & $label[].getMinimumHorizontalScale()
+
+        label[].setFont(makeFont(makeFontOptions(19.0'f32)))
+        doAssert label[].getFont().getHeight() == 19.0'f32,
+                 "the font height is " & $label[].getFont().getHeight()
+
+        cdelete label
+
+    shutdownJuce_GUI()
+
+testLabelEditing()
