@@ -3349,3 +3349,200 @@ proc testNativeFunctionArgsFields() =
              "thisObject holds " & $args.thisObject().toString()
 
 testNativeFunctionArgsFields()
+
+# String, in behaviour ========================================================
+#
+# The compile harness proves every one of these compiles and links. That says
+# nothing about what any of them returns, and String is the type every JUCE
+# program touches first, so each is asserted against a value worked out by
+# hand rather than read back from the call.
+
+proc testStringSearching() =
+    let text = makeString("The quick brown fox")
+
+    doAssert text.startsWith(makeString("The")), "it does not start with The"
+    doAssert not text.startsWith(makeString("the")), "startsWith ignored case"
+    doAssert text.startsWithIgnoreCase(makeString("the")),
+             "startsWithIgnoreCase did not ignore case"
+    doAssert text.startsWithChar(WChar(ord('T'))), "it does not start with T"
+    doAssert text.endsWith(makeString("fox")), "it does not end with fox"
+    doAssert text.endsWithIgnoreCase(makeString("FOX")),
+             "endsWithIgnoreCase did not ignore case"
+    doAssert text.endsWithChar(WChar(ord('x'))), "it does not end with x"
+
+    doAssert text.containsChar(WChar(ord('q'))), "it does not contain q"
+    doAssert text.containsIgnoreCase(makeString("QUICK")),
+             "containsIgnoreCase did not ignore case"
+    doAssert text.containsWholeWord(makeString("brown")),
+             "brown is not found as a whole word"
+    doAssert not text.containsWholeWord(makeString("brow")),
+             "brow was found as a whole word"
+    doAssert text.containsWholeWordIgnoreCase(makeString("BROWN")),
+             "BROWN is not found as a whole word ignoring case"
+    doAssert text.containsAnyOf(makeString("xyz")),
+             "none of xyz was found, though x is there"
+    doAssert not text.containsOnly(makeString("abc")),
+             "the text is made only of abc"
+    doAssert text.containsNonWhitespaceChars(),
+             "the text is reported as only whitespace"
+
+    doAssert text.indexOfChar(WChar(ord('q'))) == 4,
+             "q is at " & $text.indexOfChar(WChar(ord('q')))
+    doAssert text.indexOfIgnoreCase(makeString("QUICK")) == 4,
+             "QUICK is at " & $text.indexOfIgnoreCase(makeString("QUICK"))
+    doAssert text.indexOfWholeWord(makeString("brown")) == 10,
+             "brown is at " & $text.indexOfWholeWord(makeString("brown"))
+    doAssert text.indexOfWholeWordIgnoreCase(makeString("BROWN")) == 10,
+             "BROWN is at " & $text.indexOfWholeWordIgnoreCase(makeString("BROWN"))
+    doAssert text.indexOfAnyOf(makeString("zq")) == 4,
+             "the first of z or q is at " & $text.indexOfAnyOf(makeString("zq"))
+    doAssert text.lastIndexOfChar(WChar(ord('o'))) == 17,
+             "the last o is at " & $text.lastIndexOfChar(WChar(ord('o')))
+    doAssert text.lastIndexOf(makeString("o")) == 17,
+             "the last o is at " & $text.lastIndexOf(makeString("o"))
+    doAssert text.lastIndexOfIgnoreCase(makeString("O")) == 17,
+             "the last O is at " & $text.lastIndexOfIgnoreCase(makeString("O"))
+    doAssert text.lastIndexOfAnyOf(makeString("Tq")) == 4,
+             "the last of T or q is at " & $text.lastIndexOfAnyOf(makeString("Tq"))
+
+    doAssert text.compareIgnoreCase(makeString("THE QUICK BROWN FOX")) == 0,
+             "compareIgnoreCase did not call them equal"
+    doAssert makeString("file2").compareNatural(makeString("file10")) < 0,
+             "compareNatural put file10 before file2"
+    doAssert text.matchesWildcard(makeString("The*fox"), false),
+             "the wildcard The*fox did not match"
+
+testStringSearching()
+
+proc testStringTransforming() =
+    let text = makeString("The quick brown fox")
+
+    doAssert $text.substring(4.cint, 9.cint) == "quick",
+             "the substring is " & $text.substring(4.cint, 9.cint)
+    doAssert $text.substring(16.cint) == "fox",
+             "the tail is " & $text.substring(16.cint)
+    doAssert $text.dropLastCharacters(4.cint) == "The quick brown",
+             "dropping four left " & $text.dropLastCharacters(4.cint)
+    doAssert $text.getLastCharacters(3.cint) == "fox",
+             "the last three are " & $text.getLastCharacters(3.cint)
+    doAssert text.getLastCharacter() == WChar(ord('x')),
+             "the last character is not x"
+
+    doAssert $text.fromFirstOccurrenceOf(makeString("quick"), false, false) == " brown fox",
+             "from after quick is " &
+             $text.fromFirstOccurrenceOf(makeString("quick"), false, false)
+    doAssert $text.fromLastOccurrenceOf(makeString("o"), true, false) == "ox",
+             "from the last o is " &
+             $text.fromLastOccurrenceOf(makeString("o"), true, false)
+    doAssert $text.upToLastOccurrenceOf(makeString(" "), false, false) == "The quick brown",
+             "up to the last space is " &
+             $text.upToLastOccurrenceOf(makeString(" "), false, false)
+
+    doAssert $text.replaceFirstOccurrenceOf(makeString("o"), makeString("0")) ==
+             "The quick br0wn fox",
+             "the first o was not replaced"
+    doAssert $text.replaceCharacter(WChar(ord('o')), WChar(ord('0'))) ==
+             "The quick br0wn f0x", "not every o was replaced"
+    doAssert $text.replaceSection(0.cint, 3.cint, makeString("One")) ==
+             "One quick brown fox", "the section was not replaced"
+    doAssert $text.retainCharacters(makeString("aeiou ")) == "e ui o o",
+             "retaining the vowels left " & $text.retainCharacters(makeString("aeiou "))
+    doAssert $text.removeCharacters(makeString("aeiou ")) == "Thqckbrwnfx",
+             "removing the vowels left " & $text.removeCharacters(makeString("aeiou "))
+    # The set is case sensitive, so it has to carry the lowercase e.
+    doAssert $text.initialSectionContainingOnly(makeString("The ")) == "The ",
+             "the initial section is " &
+             $text.initialSectionContainingOnly(makeString("The "))
+    doAssert $text.initialSectionNotContaining(makeString(" ")) == "The",
+             "the initial section is " &
+             $text.initialSectionNotContaining(makeString(" "))
+
+    let padded = makeString("7")
+    doAssert $padded.paddedLeft(WChar(ord('0')), 3.cint) == "007",
+             "padding left gave " & $padded.paddedLeft(WChar(ord('0')), 3.cint)
+    doAssert $padded.paddedRight(WChar(ord('0')), 3.cint) == "700",
+             "padding right gave " & $padded.paddedRight(WChar(ord('0')), 3.cint)
+
+    let spaced = makeString("  hello  ")
+    doAssert $spaced.trim() == "hello", "trim gave " & $spaced.trim()
+    doAssert $spaced.trimStart() == "hello  ", "trimStart gave " & $spaced.trimStart()
+    doAssert $spaced.trimEnd() == "  hello", "trimEnd gave " & $spaced.trimEnd()
+    doAssert $makeString("xxhixx").trimCharactersAtStart(makeString("x")) == "hixx",
+             "trimming x at the start failed"
+    doAssert $makeString("xxhixx").trimCharactersAtEnd(makeString("x")) == "xxhi",
+             "trimming x at the end failed"
+
+    let quoted = makeString("\"quoted\"")
+    doAssert quoted.isQuotedString(), "the quoted string is not seen as quoted"
+    doAssert $quoted.unquoted() == "quoted", "unquoted gave " & $quoted.unquoted()
+
+testStringTransforming()
+
+proc testStringNumbersAndEncodings() =
+    doAssert makeString("3.5").getFloatValue() == 3.5'f32,
+             "3.5 parsed as " & $makeString("3.5").getFloatValue()
+    doAssert makeString("ff").getHexValue32() == 255,
+             "ff parsed as " & $makeString("ff").getHexValue32()
+    doAssert makeString("ffffffffff").getHexValue64() == 0xffffffffff'i64,
+             "a long hex value parsed as " & $makeString("ffffffffff").getHexValue64()
+    doAssert makeString("9000000000").getLargeIntValue() == 9000000000'i64,
+             "a large int parsed as " & $makeString("9000000000").getLargeIntValue()
+    doAssert makeString("track12").getTrailingIntValue() == 12,
+             "the trailing int is " & $makeString("track12").getTrailingIntValue()
+
+    # A hash is whatever JUCE computes; what it must do is agree with itself
+    # and differ between different strings.
+    let one = makeString("one")
+    let other = makeString("two")
+    doAssert one.hash() == makeString("one").hash(),
+             "the same text hashed differently"
+    doAssert one.hash() != other.hash(), "two different strings hashed the same"
+    doAssert one.hashCode64() == makeString("one").hashCode64(),
+             "the same text gave two 64-bit hashes"
+
+    block:
+        # The encodings. Each pointer reads back the same characters, which is
+        # the only thing that shows the conversion happened rather than the
+        # pointer merely existing.
+        let text = makeString("hi")
+        doAssert text.getNumBytesAsUTF8() == 2'u64,
+                 "hi is " & $text.getNumBytesAsUTF8() & " UTF-8 bytes"
+        doAssert $makeString(text.toUTF8()) == "hi",
+                 "the UTF-8 round trip gave " & $makeString(text.toUTF8())
+        doAssert $makeString(text.toUTF16()) == "hi",
+                 "the UTF-16 round trip gave " & $makeString(text.toUTF16())
+        doAssert $makeString(text.toUTF32()) == "hi",
+                 "the UTF-32 round trip gave " & $makeString(text.toUTF32())
+        # toWideCharPointer hands back a ConstPtr, which is a pointer to const
+        # and so not the `ptr WChar` the constructor takes. Read through it
+        # instead: the first character is what shows the conversion happened.
+        doAssert text.toWideCharPointer()[] == WChar(ord('h')),
+                 "the wide pointer does not start at h"
+        # constChar is a distinct cstring, so it compares through the cast.
+        doAssert cast[cstring](text.toRawUTF8Impl()) == "hi",
+                 "the raw UTF-8 reads back as " &
+                 $cast[cstring](text.toRawUTF8Impl())
+
+        var utf8Buffer: array[8, char]
+        let written = text.copyToUTF8(cast[ptr char](addr utf8Buffer[0]), 8'u64)
+        doAssert written == 3'u64,
+                 "copyToUTF8 wrote " & $written & " bytes rather than 3"
+        var utf32Buffer: array[8, WChar]
+        discard text.copyToUTF32(cast[ptr WChar](addr utf32Buffer[0]), 32'u64)
+        doAssert utf32Buffer[0] == WChar(ord('h')),
+                 "copyToUTF32 did not write h first"
+
+    block:
+        # swapWith exchanges the two, and appendCharPointer grows one.
+        var first = makeString("first")
+        var second = makeString("second")
+        first.swapWith(second)
+        doAssert $first == "second" and $second == "first",
+                 "swapWith left " & $first & " and " & $second
+
+        var grown = makeString("a")
+        grown.preallocateBytes(64'u64)
+        grown.appendCharPointer(makeString("bc").toUTF8())
+        doAssert $grown == "abc", "appending gave " & $grown
+
+testStringNumbersAndEncodings()
