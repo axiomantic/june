@@ -263,6 +263,23 @@ proc setPaintListBoxItemHandler*(this: var CustomListBoxModel,
                                                rowIsSelected: bool) {.closure.}) =
     this.onPaintListBoxItem = bindClosure(handler)
 
+# std::optional<ProgressBar::Style> is renamed to a distinct type by the
+# generator, because Nim erases `distinct` when it instantiates a generic and
+# CppOptional[ProgressBarStyle] would collide with CppOptional[cint]. The
+# rename costs it the constructors CppOptional has, and nothing else could
+# build one - which left ProgressBar's constructor and
+# AlertWindow.addProgressBarComponent unreachable. These are those
+# constructors.
+proc makeProgressBarStyle*(style: ProgressBarStyle): ProgressBarStyleOptional
+    {.header: "<optional>", importcpp: "std::optional<juce::ProgressBar::Style>(#)".}
+proc makeProgressBarStyleUnset*(): ProgressBarStyleOptional
+    {.header: "<optional>", importcpp: "std::optional<juce::ProgressBar::Style>()".}
+proc hasStyle*(this: ProgressBarStyleOptional): bool
+    {.header: "<optional>", importcpp: "#.has_value()".}
+proc style*(this: ProgressBarStyleOptional): ProgressBarStyle
+    {.header: "<optional>", importcpp: "(*#)".}
+
+
 # Subclasses for the abstract classes of this module. Generated; see
 # tools/generate_subclasses.py.
 include juce_gui_basics_subclasses

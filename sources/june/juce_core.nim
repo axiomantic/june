@@ -176,20 +176,31 @@ type
 # and $ so a value can appear in a message. $ prints the number
 # rather than the name: the binding holds the C++ enumerator and
 # there is no table of names on this side to look one up in.
+#
+# A scoped enum - `enum class` in C++ - does not convert to int
+# on its own, so a borrowed $ emits dollar_(int32) over a value
+# clang refuses to narrow, and the error appears at the call
+# site rather than here. Those get toCint, which does the
+# static_cast C++ requires, and a $ written over it.
 proc `==`*(a: IncrementRef, b: IncrementRef): bool {.borrow.}
-proc `$`*(value: IncrementRef): string {.borrow.}
+proc toCint*(this: IncrementRef): cint {.header: juce_core, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: IncrementRef): string = $value.toCint()
 proc `==`*(a: SystemStatsOperatingSystemType, b: SystemStatsOperatingSystemType): bool {.borrow.}
 proc `$`*(value: SystemStatsOperatingSystemType): string {.borrow.}
 proc `==`*(a: SystemStatsMachineIdFlags, b: SystemStatsMachineIdFlags): bool {.borrow.}
-proc `$`*(value: SystemStatsMachineIdFlags): string {.borrow.}
+proc toCint*(this: SystemStatsMachineIdFlags): cint {.header: juce_core, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: SystemStatsMachineIdFlags): string = $value.toCint()
 proc `==`*(a: JSONSpacing, b: JSONSpacing): bool {.borrow.}
-proc `$`*(value: JSONSpacing): string {.borrow.}
+proc toCint*(this: JSONSpacing): cint {.header: juce_core, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: JSONSpacing): string = $value.toCint()
 proc `==`*(a: JSONEncoding, b: JSONEncoding): bool {.borrow.}
-proc `$`*(value: JSONEncoding): string {.borrow.}
+proc toCint*(this: JSONEncoding): cint {.header: juce_core, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: JSONEncoding): string = $value.toCint()
 proc `==`*(a: FileTypesOfFileToFind, b: FileTypesOfFileToFind): bool {.borrow.}
 proc `$`*(value: FileTypesOfFileToFind): string {.borrow.}
 proc `==`*(a: FileFollowSymlinks, b: FileFollowSymlinks): bool {.borrow.}
-proc `$`*(value: FileFollowSymlinks): string {.borrow.}
+proc toCint*(this: FileFollowSymlinks): cint {.header: juce_core, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: FileFollowSymlinks): string = $value.toCint()
 proc `==`*(a: FileSpecialLocationType, b: FileSpecialLocationType): bool {.borrow.}
 proc `$`*(value: FileSpecialLocationType): string {.borrow.}
 proc `==`*(a: MemoryMappedFileAccessMode, b: MemoryMappedFileAccessMode): bool {.borrow.}
@@ -205,19 +216,23 @@ proc `$`*(value: ChildProcessStreamFlags): string {.borrow.}
 proc `==`*(a: ProcessProcessPriority, b: ProcessProcessPriority): bool {.borrow.}
 proc `$`*(value: ProcessProcessPriority): string {.borrow.}
 proc `==`*(a: ThreadPriority, b: ThreadPriority): bool {.borrow.}
-proc `$`*(value: ThreadPriority): string {.borrow.}
+proc toCint*(this: ThreadPriority): cint {.header: juce_core, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: ThreadPriority): string = $value.toCint()
 proc `==`*(a: ThreadPoolJobJobStatus, b: ThreadPoolJobJobStatus): bool {.borrow.}
 proc `$`*(value: ThreadPoolJobJobStatus): string {.borrow.}
 proc `==`*(a: URLParameterHandling, b: URLParameterHandling): bool {.borrow.}
-proc `$`*(value: URLParameterHandling): string {.borrow.}
+proc toCint*(this: URLParameterHandling): cint {.header: juce_core, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: URLParameterHandling): string = $value.toCint()
 proc `==`*(a: GZIPCompressorOutputStreamWindowBitsValues, b: GZIPCompressorOutputStreamWindowBitsValues): bool {.borrow.}
 proc `$`*(value: GZIPCompressorOutputStreamWindowBitsValues): string {.borrow.}
 proc `==`*(a: GZIPDecompressorInputStreamFormat, b: GZIPDecompressorInputStreamFormat): bool {.borrow.}
 proc `$`*(value: GZIPDecompressorInputStreamFormat): string {.borrow.}
 proc `==`*(a: ZipFileOverwriteFiles, b: ZipFileOverwriteFiles): bool {.borrow.}
-proc `$`*(value: ZipFileOverwriteFiles): string {.borrow.}
+proc toCint*(this: ZipFileOverwriteFiles): cint {.header: juce_core, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: ZipFileOverwriteFiles): string = $value.toCint()
 proc `==`*(a: ZipFileFollowSymlinks, b: ZipFileFollowSymlinks): bool {.borrow.}
-proc `$`*(value: ZipFileFollowSymlinks): string {.borrow.}
+proc toCint*(this: ZipFileFollowSymlinks): cint {.header: juce_core, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: ZipFileFollowSymlinks): string = $value.toCint()
 
 # Bitwise operators for the flag sets among them.
 proc `or`*(a: SystemStatsMachineIdFlags, b: SystemStatsMachineIdFlags): SystemStatsMachineIdFlags {.borrow.}
