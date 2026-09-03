@@ -301,3 +301,33 @@ proc `==`*(this: ScopedLowPowerModeDisabler, other: ScopedLowPowerModeDisabler):
 
 include juce_events_lifting
 
+proc `$`*(this: MessageManager): string {.error: "juce::MessageManager has no toString; print a property instead".}
+proc `$`*(this: MessageManagerMessageBase): string {.error: "juce::MessageManager::MessageBase has no toString; print a property instead".}
+proc `$`*(this: MessageManagerInnerLock): string {.error: "juce::MessageManager::Lock has no toString; print a property instead".}
+proc `$`*(this: MessageManagerLock): string {.error: "juce::MessageManagerLock has no toString; print a property instead".}
+proc `$`*(this: Message): string {.error: "juce::Message has no toString; print a property instead".}
+proc `$`*(this: MessageListener): string {.error: "juce::MessageListener has no toString; print a property instead".}
+proc `$`*(this: CallbackMessage): string {.error: "juce::CallbackMessage has no toString; print a property instead".}
+proc `$`*(this: DeletedAtShutdown): string {.error: "juce::DeletedAtShutdown has no toString; print a property instead".}
+proc `$`*(this: JUCEApplicationBase): string {.error: "juce::JUCEApplicationBase has no toString; print a property instead".}
+proc `$`*(this: ScopedJuceInitialiser_GUI): string {.error: "juce::ScopedJuceInitialiser_GUI has no toString; print a property instead".}
+proc `$`*(this: MountedVolumeListChangeDetector): string {.error: "juce::MountedVolumeListChangeDetector has no toString; print a property instead".}
+proc `$`*(this: ActionBroadcaster): string {.error: "juce::ActionBroadcaster has no toString; print a property instead".}
+proc `$`*(this: ActionListener): string {.error: "juce::ActionListener has no toString; print a property instead".}
+proc `$`*(this: AsyncUpdater): string {.error: "juce::AsyncUpdater has no toString; print a property instead".}
+proc `$`*(this: LockingAsyncUpdater): string {.error: "juce::LockingAsyncUpdater has no toString; print a property instead".}
+proc `$`*(this: ChangeListener): string {.error: "juce::ChangeListener has no toString; print a property instead".}
+proc `$`*(this: ChangeBroadcaster): string {.error: "juce::ChangeBroadcaster has no toString; print a property instead".}
+proc `$`*(this: Timer): string {.error: "juce::Timer has no toString; print a property instead".}
+proc `$`*(this: TimedCallback): string {.error: "juce::TimedCallback has no toString; print a property instead".}
+proc `$`*(this: MultiTimer): string {.error: "juce::MultiTimer has no toString; print a property instead".}
+proc `$`*(this: ChildProcessManager): string {.error: "juce::ChildProcessManager has no toString; print a property instead".}
+proc `$`*(this: InterprocessConnection): string {.error: "juce::InterprocessConnection has no toString; print a property instead".}
+proc `$`*(this: InterprocessConnectionServer): string {.error: "juce::InterprocessConnectionServer has no toString; print a property instead".}
+proc `$`*(this: ChildProcessWorker): string {.error: "juce::ChildProcessWorker has no toString; print a property instead".}
+proc `$`*(this: ChildProcessCoordinator): string {.error: "juce::ChildProcessCoordinator has no toString; print a property instead".}
+proc `$`*(this: NetworkServiceDiscovery): string {.error: "juce::NetworkServiceDiscovery has no toString; print a property instead".}
+proc `$`*(this: NetworkServiceDiscoveryAdvertiser): string {.error: "juce::NetworkServiceDiscovery::Advertiser has no toString; print a property instead".}
+proc `$`*(this: NetworkServiceDiscoveryService): string {.error: "juce::NetworkServiceDiscovery::Service has no toString; print a property instead".}
+proc `$`*(this: NetworkServiceDiscoveryAvailableServiceList): string {.error: "juce::NetworkServiceDiscovery::AvailableServiceList has no toString; print a property instead".}
+proc `$`*(this: ScopedLowPowerModeDisabler): string {.error: "juce::ScopedLowPowerModeDisabler has no toString; print a property instead".}

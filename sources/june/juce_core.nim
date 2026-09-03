@@ -2933,13 +2933,144 @@ proc findInsertIndexInSortedArray*[ElementType, ElementComparator](comparator: E
 
 include juce_core_lifting
 
+proc `$`*(this: OrderedContainerHelpers): string {.error: "juce::OrderedContainerHelpers has no toString; print a property instead".}
+proc `$`*(this: ScopedAutoReleasePool): string {.error: "juce::ScopedAutoReleasePool has no toString; print a property instead".}
+proc `$`*(this: ByteOrder): string {.error: "juce::ByteOrder has no toString; print a property instead".}
+proc `$`*(this: CharacterFunctions): string {.error: "juce::CharacterFunctions has no toString; print a property instead".}
+proc `$`*(this: CharPointer_UTF8): string {.error: "juce::CharPointer_UTF8 has no toString; print a property instead".}
+proc `$`*(this: CharPointer_UTF16): string {.error: "juce::CharPointer_UTF16 has no toString; print a property instead".}
+proc `$`*(this: CharPointer_UTF32): string {.error: "juce::CharPointer_UTF32 has no toString; print a property instead".}
+proc `$`*(this: CharPointer_ASCII): string {.error: "juce::CharPointer_ASCII has no toString; print a property instead".}
+proc `$`*(this: StringRef): string {.error: "juce::StringRef has no toString; print a property instead".}
+proc `$`*(this: Logger): string {.error: "juce::Logger has no toString; print a property instead".}
 proc `$`*(this: MemoryBlock): string = $this.toString()
+proc `$`*(this: ReferenceCountedObject): string {.error: "juce::ReferenceCountedObject has no toString; print a property instead".}
+proc `$`*(this: SingleThreadedReferenceCountedObject): string {.error: "juce::SingleThreadedReferenceCountedObject has no toString; print a property instead".}
+proc `$`*(this: CriticalSection): string {.error: "juce::CriticalSection has no toString; print a property instead".}
+proc `$`*(this: DummyCriticalSection): string {.error: "juce::DummyCriticalSection has no toString; print a property instead".}
+proc `$`*(this: DummyCriticalSectionScopedLockType): string {.error: "juce::DummyCriticalSection::ScopedLockType has no toString; print a property instead".}
+proc `$`*(this: NullCheckedInvocation): string {.error: "juce::NullCheckedInvocation has no toString; print a property instead".}
+proc `$`*(this: ErasedScopeGuard): string {.error: "juce::ErasedScopeGuard has no toString; print a property instead".}
+proc `$`*(this: AbstractFifo): string {.error: "juce::AbstractFifo has no toString; print a property instead".}
+proc `$`*(this: SingleThreadedAbstractFifo): string {.error: "juce::SingleThreadedAbstractFifo has no toString; print a property instead".}
+proc `$`*(this: NewLine): string {.error: "juce::NewLine has no toString; print a property instead".}
+proc `$`*(this: StringPool): string {.error: "juce::StringPool has no toString; print a property instead".}
 proc `$`*(this: Identifier): string = $this.toString()
+proc `$`*(this: StringArray): string {.error: "juce::StringArray has no toString; print a property instead".}
+proc `$`*(this: SystemStats): string {.error: "juce::SystemStats has no toString; print a property instead".}
+proc `$`*(this: StringPairArray): string {.error: "juce::StringPairArray has no toString; print a property instead".}
+proc `$`*(this: TextDiff): string {.error: "juce::TextDiff has no toString; print a property instead".}
+proc `$`*(this: TextDiffChange): string {.error: "juce::TextDiff::Change has no toString; print a property instead".}
+proc `$`*(this: LocalisedStrings): string {.error: "juce::LocalisedStrings has no toString; print a property instead".}
+proc `$`*(this: Base64): string {.error: "juce::Base64 has no toString; print a property instead".}
+proc `$`*(this: Result): string {.error: "juce::Result has no toString; print a property instead".}
 proc `$`*(this: Uuid): string = $this.toString()
+proc `$`*(this: ArgumentList): string {.error: "juce::ArgumentList has no toString; print a property instead".}
+proc `$`*(this: ArgumentListArgument): string {.error: "juce::ArgumentList::Argument has no toString; print a property instead".}
+proc `$`*(this: ConsoleApplication): string {.error: "juce::ConsoleApplication has no toString; print a property instead".}
+proc `$`*(this: ConsoleApplicationCommand): string {.error: "juce::ConsoleApplication::Command has no toString; print a property instead".}
 proc `$`*(this: juce_var): string = $this.toString()
+proc `$`*(this: juce_varNativeFunctionArgs): string {.error: "juce::var::NativeFunctionArgs has no toString; print a property instead".}
+proc `$`*(this: NamedValue): string {.error: "juce::NamedValue has no toString; print a property instead".}
+proc `$`*(this: NamedValueSet): string {.error: "juce::NamedValueSet has no toString; print a property instead".}
+proc `$`*(this: JSON): string {.error: "juce::JSON has no toString; print a property instead".}
+proc `$`*(this: JSONFormatOptions): string {.error: "juce::JSON::FormatOptions has no toString; print a property instead".}
+proc `$`*(this: DynamicObject): string {.error: "juce::DynamicObject has no toString; print a property instead".}
+proc `$`*(this: DefaultHashFunctions): string {.error: "juce::DefaultHashFunctions has no toString; print a property instead".}
+proc `$`*(this: RelativeTime): string {.error: "juce::RelativeTime has no toString; print a property instead".}
+proc `$`*(this: Time): string {.error: "juce::Time has no toString; print a property instead".}
+proc `$`*(this: InputStream): string {.error: "juce::InputStream has no toString; print a property instead".}
+proc `$`*(this: OutputStream): string {.error: "juce::OutputStream has no toString; print a property instead".}
+proc `$`*(this: BufferedInputStream): string {.error: "juce::BufferedInputStream has no toString; print a property instead".}
+proc `$`*(this: MemoryInputStream): string {.error: "juce::MemoryInputStream has no toString; print a property instead".}
 proc `$`*(this: MemoryOutputStream): string = $this.toString()
+proc `$`*(this: SubregionStream): string {.error: "juce::SubregionStream has no toString; print a property instead".}
+proc `$`*(this: InputSource): string {.error: "juce::InputSource has no toString; print a property instead".}
+proc `$`*(this: File): string {.error: "juce::File has no toString; print a property instead".}
+proc `$`*(this: FileNaturalFileComparator): string {.error: "juce::File::NaturalFileComparator has no toString; print a property instead".}
+proc `$`*(this: DirectoryIterator): string {.error: "juce::DirectoryIterator has no toString; print a property instead".}
+proc `$`*(this: DirectoryEntry): string {.error: "juce::DirectoryEntry has no toString; print a property instead".}
+proc `$`*(this: RangedDirectoryIterator): string {.error: "juce::RangedDirectoryIterator has no toString; print a property instead".}
+proc `$`*(this: FileInputStream): string {.error: "juce::FileInputStream has no toString; print a property instead".}
+proc `$`*(this: FileOutputStream): string {.error: "juce::FileOutputStream has no toString; print a property instead".}
 proc `$`*(this: FileSearchPath): string = $this.toString()
+proc `$`*(this: MemoryMappedFile): string {.error: "juce::MemoryMappedFile has no toString; print a property instead".}
+proc `$`*(this: TemporaryFile): string {.error: "juce::TemporaryFile has no toString; print a property instead".}
+proc `$`*(this: FileFilter): string {.error: "juce::FileFilter has no toString; print a property instead".}
+proc `$`*(this: WildcardFileFilter): string {.error: "juce::WildcardFileFilter has no toString; print a property instead".}
+proc `$`*(this: FileInputSource): string {.error: "juce::FileInputSource has no toString; print a property instead".}
+proc `$`*(this: FileLogger): string {.error: "juce::FileLogger has no toString; print a property instead".}
+proc `$`*(this: JSONUtils): string {.error: "juce::JSONUtils has no toString; print a property instead".}
+proc `$`*(this: SerialisationTraits): string {.error: "juce::SerialisationTraits has no toString; print a property instead".}
+proc `$`*(this: ToVarOptions): string {.error: "juce::ToVarOptions has no toString; print a property instead".}
+proc `$`*(this: ToVar): string {.error: "juce::ToVar has no toString; print a property instead".}
+proc `$`*(this: FromVar): string {.error: "juce::FromVar has no toString; print a property instead".}
+proc `$`*(this: VariantConverter): string {.error: "juce::VariantConverter has no toString; print a property instead".}
+proc `$`*(this: BigInteger): string {.error: "juce::BigInteger has no toString; print a property instead".}
 proc `$`*(this: Expression): string = $this.toString()
+proc `$`*(this: ExpressionScope): string {.error: "juce::Expression::Scope has no toString; print a property instead".}
+proc `$`*(this: ExpressionScopeVisitor): string {.error: "juce::Expression::Scope::Visitor has no toString; print a property instead".}
+proc `$`*(this: ExpressionSymbol): string {.error: "juce::Expression::Symbol has no toString; print a property instead".}
+proc `$`*(this: Random): string {.error: "juce::Random has no toString; print a property instead".}
+proc `$`*(this: RuntimePermissions): string {.error: "juce::RuntimePermissions has no toString; print a property instead".}
+proc `$`*(this: ChildProcess): string {.error: "juce::ChildProcess has no toString; print a property instead".}
+proc `$`*(this: DynamicLibrary): string {.error: "juce::DynamicLibrary has no toString; print a property instead".}
+proc `$`*(this: InterProcessLock): string {.error: "juce::InterProcessLock has no toString; print a property instead".}
+proc `$`*(this: InterProcessLockScopedLockType): string {.error: "juce::InterProcessLock::ScopedLockType has no toString; print a property instead".}
+proc `$`*(this: Process): string {.error: "juce::Process has no toString; print a property instead".}
+proc `$`*(this: SpinLock): string {.error: "juce::SpinLock has no toString; print a property instead".}
+proc `$`*(this: WaitableEvent): string {.error: "juce::WaitableEvent has no toString; print a property instead".}
+proc `$`*(this: Thread): string {.error: "juce::Thread has no toString; print a property instead".}
+proc `$`*(this: ThreadRealtimeOptions): string {.error: "juce::Thread::RealtimeOptions has no toString; print a property instead".}
+proc `$`*(this: ThreadListener): string {.error: "juce::Thread::Listener has no toString; print a property instead".}
+proc `$`*(this: HighResolutionTimer): string {.error: "juce::HighResolutionTimer has no toString; print a property instead".}
+proc `$`*(this: ThreadPoolJob): string {.error: "juce::ThreadPoolJob has no toString; print a property instead".}
+proc `$`*(this: ThreadPoolOptions): string {.error: "juce::ThreadPoolOptions has no toString; print a property instead".}
+proc `$`*(this: ThreadPool): string {.error: "juce::ThreadPool has no toString; print a property instead".}
+proc `$`*(this: ThreadPoolJobSelector): string {.error: "juce::ThreadPool::JobSelector has no toString; print a property instead".}
+proc `$`*(this: TimeSliceClient): string {.error: "juce::TimeSliceClient has no toString; print a property instead".}
+proc `$`*(this: TimeSliceThread): string {.error: "juce::TimeSliceThread has no toString; print a property instead".}
+proc `$`*(this: ReadWriteLock): string {.error: "juce::ReadWriteLock has no toString; print a property instead".}
+proc `$`*(this: ScopedReadLock): string {.error: "juce::ScopedReadLock has no toString; print a property instead".}
+proc `$`*(this: ScopedTryReadLock): string {.error: "juce::ScopedTryReadLock has no toString; print a property instead".}
+proc `$`*(this: ScopedWriteLock): string {.error: "juce::ScopedWriteLock has no toString; print a property instead".}
+proc `$`*(this: ScopedTryWriteLock): string {.error: "juce::ScopedTryWriteLock has no toString; print a property instead".}
 proc `$`*(this: IPAddress): string = $this.toString()
 proc `$`*(this: MACAddress): string = $this.toString()
+proc `$`*(this: NamedPipe): string {.error: "juce::NamedPipe has no toString; print a property instead".}
+proc `$`*(this: SocketOptions): string {.error: "juce::SocketOptions has no toString; print a property instead".}
+proc `$`*(this: StreamingSocket): string {.error: "juce::StreamingSocket has no toString; print a property instead".}
+proc `$`*(this: DatagramSocket): string {.error: "juce::DatagramSocket has no toString; print a property instead".}
+proc `$`*(this: URL): string {.error: "juce::URL has no toString; print a property instead".}
+proc `$`*(this: URLInputStreamOptions): string {.error: "juce::URL::InputStreamOptions has no toString; print a property instead".}
+proc `$`*(this: URLDownloadTask): string {.error: "juce::URL::DownloadTask has no toString; print a property instead".}
+proc `$`*(this: URLDownloadTaskListener): string {.error: "juce::URL::DownloadTaskListener has no toString; print a property instead".}
+proc `$`*(this: URLDownloadTaskOptions): string {.error: "juce::URL::DownloadTaskOptions has no toString; print a property instead".}
+proc `$`*(this: WebInputStream): string {.error: "juce::WebInputStream has no toString; print a property instead".}
+proc `$`*(this: WebInputStreamListener): string {.error: "juce::WebInputStream::Listener has no toString; print a property instead".}
+proc `$`*(this: URLInputSource): string {.error: "juce::URLInputSource has no toString; print a property instead".}
+proc `$`*(this: PerformanceCounter): string {.error: "juce::PerformanceCounter has no toString; print a property instead".}
 proc `$`*(this: PerformanceCounterStatistics): string = $this.toString()
+proc `$`*(this: ScopedTimeMeasurement): string {.error: "juce::ScopedTimeMeasurement has no toString; print a property instead".}
+proc `$`*(this: TimedDiagnostic): string {.error: "juce::TimedDiagnostic has no toString; print a property instead".}
+proc `$`*(this: UnitTest): string {.error: "juce::UnitTest has no toString; print a property instead".}
+proc `$`*(this: UnitTestRunner): string {.error: "juce::UnitTestRunner has no toString; print a property instead".}
+proc `$`*(this: UnitTestRunnerTestResult): string {.error: "juce::UnitTestRunner::TestResult has no toString; print a property instead".}
+proc `$`*(this: XmlDocument): string {.error: "juce::XmlDocument has no toString; print a property instead".}
+proc `$`*(this: XmlAttribute): string {.error: "juce::XmlAttribute has no toString; print a property instead".}
+proc `$`*(this: XmlElement): string {.error: "juce::XmlElement has no toString; print a property instead".}
+proc `$`*(this: XmlElementTextFormat): string {.error: "juce::XmlElement::TextFormat has no toString; print a property instead".}
+proc `$`*(this: GZIPCompressorOutputStream): string {.error: "juce::GZIPCompressorOutputStream has no toString; print a property instead".}
+proc `$`*(this: GZIPDecompressorInputStream): string {.error: "juce::GZIPDecompressorInputStream has no toString; print a property instead".}
+proc `$`*(this: ZipFile): string {.error: "juce::ZipFile has no toString; print a property instead".}
+proc `$`*(this: ZipFileZipEntry): string {.error: "juce::ZipFile::ZipEntry has no toString; print a property instead".}
+proc `$`*(this: ZipFileBuilder): string {.error: "juce::ZipFile::Builder has no toString; print a property instead".}
+proc `$`*(this: PropertySet): string {.error: "juce::PropertySet has no toString; print a property instead".}
+proc `$`*(this: Reservoir): string {.error: "juce::Reservoir has no toString; print a property instead".}
+proc `$`*(this: AndroidDocumentInfo): string {.error: "juce::AndroidDocumentInfo has no toString; print a property instead".}
+proc `$`*(this: AndroidDocumentInfoArgs): string {.error: "juce::AndroidDocumentInfo::Args has no toString; print a property instead".}
+proc `$`*(this: AndroidDocumentPermission): string {.error: "juce::AndroidDocumentPermission has no toString; print a property instead".}
+proc `$`*(this: AndroidDocument): string {.error: "juce::AndroidDocument has no toString; print a property instead".}
+proc `$`*(this: AndroidDocumentNativeInfo): string {.error: "juce::AndroidDocument::NativeInfo has no toString; print a property instead".}
+proc `$`*(this: AndroidDocumentIterator): string {.error: "juce::AndroidDocumentIterator has no toString; print a property instead".}
+proc `$`*(this: AndroidDocumentInputSource): string {.error: "juce::AndroidDocumentInputSource has no toString; print a property instead".}

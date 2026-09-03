@@ -468,6 +468,16 @@ two apart, so those two are named in the generator with the reason, and
 ``check_handwritten_covered.py`` fails unless a test builds every one of the
 constructors that is emitted.
 
+Two operators are marked ``{.error.}`` where JUCE gives nothing to build them
+on, because Nim's fallback for each is a silent wrong answer. Comparing two
+values of a class with no C++ ``operator==`` would use structural equality, and
+an ``importcpp`` object declares no fields, so it would compare nothing and
+call every two values equal. ``$`` on a class with no ``toString`` would print
+``()`` for the same reason -- in exactly the place a person is trying to see
+what a value is. 444 classes carry the equality guard and 482 the ``$`` one,
+and the suite checks that both fire and that a class with a real
+``operator==`` or ``toString`` is left alone.
+
 A bound constant is not checked against C++ unless something reads it. A ``let``
 naming ``juce::NoSuchClass::nope`` compiles clean while nothing touches it,
 which was measured rather than assumed, so 591 of the 635 had never had their

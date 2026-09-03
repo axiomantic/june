@@ -1389,7 +1389,62 @@ proc clampPixelComponents*(x: uint32): uint32 {.header: juce_graphics, importcpp
 
 include juce_graphics_lifting
 
+proc `$`*(this: AffineTransform): string {.error: "juce::AffineTransform has no toString; print a property instead".}
+proc `$`*(this: Justification): string {.error: "juce::Justification has no toString; print a property instead".}
 proc `$`*(this: Path): string = $this.toString()
+proc `$`*(this: PathIterator): string {.error: "juce::Path::Iterator has no toString; print a property instead".}
+proc `$`*(this: PixelARGB): string {.error: "juce::PixelARGB has no toString; print a property instead".}
+proc `$`*(this: PixelRGB): string {.error: "juce::PixelRGB has no toString; print a property instead".}
+proc `$`*(this: PixelAlpha): string {.error: "juce::PixelAlpha has no toString; print a property instead".}
 proc `$`*(this: Colour): string = $this.toString()
+proc `$`*(this: ColourGradient): string {.error: "juce::ColourGradient has no toString; print a property instead".}
+proc `$`*(this: EdgeTable): string {.error: "juce::EdgeTable has no toString; print a property instead".}
+proc `$`*(this: PathFlatteningIterator): string {.error: "juce::PathFlatteningIterator has no toString; print a property instead".}
+proc `$`*(this: PathStrokeType): string {.error: "juce::PathStrokeType has no toString; print a property instead".}
+proc `$`*(this: RectanglePlacement): string {.error: "juce::RectanglePlacement has no toString; print a property instead".}
+proc `$`*(this: ImageCache): string {.error: "juce::ImageCache has no toString; print a property instead".}
+proc `$`*(this: ImageConvolutionKernel): string {.error: "juce::ImageConvolutionKernel has no toString; print a property instead".}
+proc `$`*(this: ImageFileFormat): string {.error: "juce::ImageFileFormat has no toString; print a property instead".}
+proc `$`*(this: PNGImageFormat): string {.error: "juce::PNGImageFormat has no toString; print a property instead".}
+proc `$`*(this: JPEGImageFormat): string {.error: "juce::JPEGImageFormat has no toString; print a property instead".}
+proc `$`*(this: GIFImageFormat): string {.error: "juce::GIFImageFormat has no toString; print a property instead".}
+proc `$`*(this: GlyphArrangementOptions): string {.error: "juce::GlyphArrangementOptions has no toString; print a property instead".}
+proc `$`*(this: Graphics): string {.error: "juce::Graphics has no toString; print a property instead".}
+proc `$`*(this: GraphicsScopedSaveState): string {.error: "juce::Graphics::ScopedSaveState has no toString; print a property instead".}
+proc `$`*(this: Image): string {.error: "juce::Image has no toString; print a property instead".}
+proc `$`*(this: ImageBitmapData): string {.error: "juce::Image::BitmapData has no toString; print a property instead".}
+proc `$`*(this: ImageBitmapDataBitmapDataReleaser): string {.error: "juce::Image::BitmapData::BitmapDataReleaser has no toString; print a property instead".}
+proc `$`*(this: ImagePixelDataBackupExtensions): string {.error: "juce::ImagePixelDataBackupExtensions has no toString; print a property instead".}
+proc `$`*(this: ImagePixelData): string {.error: "juce::ImagePixelData has no toString; print a property instead".}
+proc `$`*(this: ImagePixelDataListener): string {.error: "juce::ImagePixelData::Listener has no toString; print a property instead".}
+proc `$`*(this: ImageType): string {.error: "juce::ImageType has no toString; print a property instead".}
+proc `$`*(this: SoftwareImageType): string {.error: "juce::SoftwareImageType has no toString; print a property instead".}
+proc `$`*(this: NativeImageType): string {.error: "juce::NativeImageType has no toString; print a property instead".}
+proc `$`*(this: FillType): string {.error: "juce::FillType has no toString; print a property instead".}
 proc `$`*(this: FontFeatureTag): string = $this.toString()
+proc `$`*(this: FontFeatureSetting): string {.error: "juce::FontFeatureSetting has no toString; print a property instead".}
+proc `$`*(this: ColourLayer): string {.error: "juce::ColourLayer has no toString; print a property instead".}
+proc `$`*(this: ImageLayer): string {.error: "juce::ImageLayer has no toString; print a property instead".}
+proc `$`*(this: GlyphLayer): string {.error: "juce::GlyphLayer has no toString; print a property instead".}
+proc `$`*(this: TypefaceMetrics): string {.error: "juce::TypefaceMetrics has no toString; print a property instead".}
+proc `$`*(this: Typeface): string {.error: "juce::Typeface has no toString; print a property instead".}
+proc `$`*(this: TypefaceNative): string {.error: "juce::Typeface::Native has no toString; print a property instead".}
+proc `$`*(this: FontOptions): string {.error: "juce::FontOptions has no toString; print a property instead".}
 proc `$`*(this: Font): string = $this.toString()
+proc `$`*(this: FontNative): string {.error: "juce::Font::Native has no toString; print a property instead".}
+proc `$`*(this: AttributedString): string {.error: "juce::AttributedString has no toString; print a property instead".}
+proc `$`*(this: AttributedStringAttribute): string {.error: "juce::AttributedString::Attribute has no toString; print a property instead".}
+proc `$`*(this: PositionedGlyph): string {.error: "juce::PositionedGlyph has no toString; print a property instead".}
+proc `$`*(this: GlyphArrangement): string {.error: "juce::GlyphArrangement has no toString; print a property instead".}
+proc `$`*(this: TextLayout): string {.error: "juce::TextLayout has no toString; print a property instead".}
+proc `$`*(this: TextLayoutGlyph): string {.error: "juce::TextLayout::Glyph has no toString; print a property instead".}
+proc `$`*(this: TextLayoutRun): string {.error: "juce::TextLayout::Run has no toString; print a property instead".}
+proc `$`*(this: TextLayoutLine): string {.error: "juce::TextLayout::Line has no toString; print a property instead".}
+proc `$`*(this: LowLevelGraphicsContext): string {.error: "juce::LowLevelGraphicsContext has no toString; print a property instead".}
+proc `$`*(this: ScaledImage): string {.error: "juce::ScaledImage has no toString; print a property instead".}
+proc `$`*(this: LowLevelGraphicsSoftwareRenderer): string {.error: "juce::LowLevelGraphicsSoftwareRenderer has no toString; print a property instead".}
+proc `$`*(this: ImageEffectFilter): string {.error: "juce::ImageEffectFilter has no toString; print a property instead".}
+proc `$`*(this: DropShadow): string {.error: "juce::DropShadow has no toString; print a property instead".}
+proc `$`*(this: DropShadowEffect): string {.error: "juce::DropShadowEffect has no toString; print a property instead".}
+proc `$`*(this: GlowEffect): string {.error: "juce::GlowEffect has no toString; print a property instead".}
+proc `$`*(this: ImagePixelDataNativeExtensions): string {.error: "juce::ImagePixelDataNativeExtensions has no toString; print a property instead".}
