@@ -29,12 +29,18 @@ jobs:
       - name: Install libclang
         run: python3 -m pip install --break-system-packages libclang
 
-      - name: Every hand-written binding is called
-        # The generated modules are checked by regenerating them. The
-        # hand-written layer has no such check, and an importcpp string only
-        # reaches the C++ compiler at the call site, so a binding nothing calls
-        # is never compiled. Seven defects were found in that layer by calling
-        # things for the first time.
+      - name: Everything bound is exercised
+        # Regenerating the modules proves they match their generator. It says
+        # nothing about whether any of it works, because an importcpp string
+        # reaches the C++ compiler only at a call site: a binding nothing calls
+        # is never compiled at all, and a constant nothing reads is never
+        # checked against C++ either.
+        #
+        # This script is the guard against that. It fails when a hand-written
+        # binding, a generated subclass, a handler setter, a no-argument
+        # constructor, a bound constant, a static variable or a constructible
+        # class is not exercised by a test. Every defect this branch fixed was
+        # found that way.
         run: python3 tools/check_handwritten_covered.py
 
       - name: Regenerate and compare
