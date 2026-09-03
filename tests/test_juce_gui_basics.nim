@@ -8022,3 +8022,174 @@ proc testViewport() =
     shutdownJuce_GUI()
 
 testViewport()
+
+# Coordinates. A point is only meaningful relative to a component, and the
+# conversions between the frames are the part a caller gets wrong.
+proc testComponentCoordinates() =
+    initialiseJuce_GUI()
+
+    block:
+        let parent = newCustomComponent()
+        parent[].setBounds(makeRectangle(10.cint, 20.cint, 400.cint, 300.cint))
+
+        let child = newCustomComponent()
+        child[].setBounds(makeRectangle(30.cint, 40.cint, 100.cint, 50.cint))
+        parent[].addAndMakeVisible(cast[ptr Component](child))
+
+        # Local bounds are the size at the origin, whatever the position is.
+        doAssert child[].getLocalBounds() ==
+                 makeRectangle(0.cint, 0.cint, 100.cint, 50.cint),
+                 "the local bounds are " & $child[].getLocalBounds().getX() & "," &
+                 $child[].getLocalBounds().getY() & " " &
+                 $child[].getLocalBounds().getWidth() & "x" &
+                 $child[].getLocalBounds().getHeight()
+
+        # A point in the child's frame reads differently in the parent's, by
+        # exactly the child's position.
+        let inParent = parent[].getLocalPoint(cast[ptr Component](child),
+                                              makePoint(0.cint, 0.cint))
+        doAssert inParent == makePoint(30.cint, 40.cint),
+                 "the child's origin sits at " & $inParent & " in the parent"
+
+        # And the trip back is the inverse.
+        doAssert child[].getLocalPoint(cast[ptr Component](parent), inParent) ==
+                 makePoint(0.cint, 0.cint),
+                 "converting back gave " &
+                 $child[].getLocalPoint(cast[ptr Component](parent), inParent)
+
+        # An area converts the same way, keeping its size.
+        let area = parent[].getLocalArea(cast[ptr Component](child),
+                                         makeRectangle(0.cint, 0.cint,
+                                                       10.cint, 10.cint))
+        doAssert area.getX() == 30 and area.getY() == 40,
+                 "the area landed at " & $area.getX() & "," & $area.getY()
+        doAssert area.getWidth() == 10 and area.getHeight() == 10,
+                 "the conversion changed the size to " & $area.getWidth() & "x" &
+                 $area.getHeight()
+
+        # Converting from a component to itself changes nothing.
+        doAssert child[].getLocalPoint(cast[ptr Component](child),
+                                       makePoint(7.cint, 9.cint)) ==
+                 makePoint(7.cint, 9.cint),
+                 "converting to the same frame moved the point"
+
+        # The global frame is the screen. With nothing on the desktop the two
+        # top-level offsets are zero, so a global point is the sum of the
+        # positions up the chain.
+        doAssert not parent[].isOnDesktop(), "the parent is on the desktop"
+        doAssert child[].localPointToGlobal(makePoint(0.cint, 0.cint)) ==
+                 makePoint(40.cint, 60.cint),
+                 "the child's origin is globally at " &
+                 $child[].localPointToGlobal(makePoint(0.cint, 0.cint))
+        doAssert child[].getScreenPosition() == makePoint(40.cint, 60.cint),
+                 "getScreenPosition gave " & $child[].getScreenPosition()
+        doAssert child[].getScreenX() == 40 and child[].getScreenY() == 60,
+                 "the screen coordinates are " & $child[].getScreenX() & "," &
+                 $child[].getScreenY()
+        doAssert child[].getScreenBounds() ==
+                 makeRectangle(40.cint, 60.cint, 100.cint, 50.cint),
+                 "the screen bounds start at " &
+                 $child[].getScreenBounds().getX()
+        doAssert child[].localAreaToGlobal(
+                    child[].getLocalBounds()).getX() == 40,
+                 "localAreaToGlobal gave x=" &
+                 $child[].localAreaToGlobal(child[].getLocalBounds()).getX()
+
+        cdelete child
+        cdelete parent
+
+    block:
+        # getComponentAt walks down to the deepest visible child under a point,
+        # and answers with the receiver when no child is there.
+        let parent = newCustomComponent()
+        parent[].setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 200.cint))
+
+        let child = newCustomComponent()
+        child[].setBounds(makeRectangle(50.cint, 50.cint, 50.cint, 50.cint))
+        parent[].addAndMakeVisible(cast[ptr Component](child))
+
+        # A JUCE component starts INVISIBLE, and getComponentAt answers nothing
+        # at all for an invisible receiver however well the point fits. So the
+        # parent has to be shown before any of this means anything.
+        doAssert not parent[].isVisible(), "a new component starts visible"
+        doAssert parent[].getComponentAt(75.cint, 75.cint).isNil,
+                 "an invisible component answered getComponentAt"
+        parent[].setVisible(true)
+
+        doAssert parent[].getComponentAt(75.cint, 75.cint) ==
+                 cast[ptr Component](child),
+                 "the point over the child found something else"
+        doAssert parent[].getComponentAt(10.cint, 10.cint) ==
+                 cast[ptr Component](parent),
+                 "the point over open space did not find the parent"
+        doAssert parent[].getComponentAt(500.cint, 500.cint).isNil,
+                 "a point outside the parent found a component"
+
+        # A hidden child is not found, and reappears when it is shown again.
+        child[].setVisible(false)
+        doAssert parent[].getComponentAt(75.cint, 75.cint) ==
+                 cast[ptr Component](parent),
+                 "a hidden child was found under the point"
+        child[].setVisible(true)
+        doAssert parent[].getComponentAt(75.cint, 75.cint) ==
+                 cast[ptr Component](child),
+                 "the child did not come back when shown"
+
+        # reallyContains asks contains() first (juce_Component.cpp:1377), and
+        # contains() requires a desktop peer, so off the desktop it is false
+        # for every point - as it is for getComponentAt's own receiver test.
+        # The two disagree by design: getComponentAt finds the child, and
+        # reallyContains still says no.
+        doAssert not parent[].reallyContains(makePoint(10.cint, 10.cint), false),
+                 "an off-desktop component really contains a point"
+        doAssert not parent[].reallyContains(makePoint(500.cint, 500.cint), false),
+                 "the parent really contains a point outside it"
+
+        cdelete child
+        cdelete parent
+
+    block:
+        # centreWithSize places a component in the middle of its parent.
+        let parent = newCustomComponent()
+        parent[].setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 100.cint))
+        let child = newCustomComponent()
+        parent[].addAndMakeVisible(cast[ptr Component](child))
+
+        child[].centreWithSize(50.cint, 20.cint)
+        doAssert child[].getBounds() ==
+                 makeRectangle(75.cint, 40.cint, 50.cint, 20.cint),
+                 "the centred child sits at " & $child[].getBounds().getX() & "," &
+                 $child[].getBounds().getY() & " " &
+                 $child[].getBounds().getWidth() & "x" &
+                 $child[].getBounds().getHeight()
+
+        cdelete child
+        cdelete parent
+
+    block:
+        # A transform is separate from the bounds: it does not change them.
+        let component = newCustomComponent()
+        component[].setBounds(makeRectangle(0.cint, 0.cint, 100.cint, 100.cint))
+        doAssert not component[].isTransformed(), "a new component is transformed"
+
+        component[].setTransform(AffineTransform.scale(2.0'f32))
+        doAssert component[].isTransformed(), "setTransform did not take"
+        doAssert component[].getBounds().getWidth() == 100,
+                 "the transform changed the bounds to " &
+                 $component[].getBounds().getWidth()
+
+        # But it does change where a local point lands in the parent's frame.
+        doAssert component[].localPointToGlobal(makePoint(10.cint, 10.cint)) ==
+                 makePoint(20.cint, 20.cint),
+                 "under a 2x scale the point landed at " &
+                 $component[].localPointToGlobal(makePoint(10.cint, 10.cint))
+
+        component[].setTransform(AffineTransform.identity())
+        doAssert not component[].isTransformed(),
+                 "the identity transform still counts as a transform"
+
+        cdelete component
+
+    shutdownJuce_GUI()
+
+testComponentCoordinates()
