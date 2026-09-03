@@ -3620,4 +3620,73 @@ proc testMarkerListValueTreeWrapper() =
 
 
 testImageComponentAndShapeButton()
+# FileListComponent and FileTreeComponent =====================================
+#
+# The two views onto a DirectoryContentsList. Both are ordinary components, so
+# they work with no display.
+
+proc testFileViews() =
+    initialiseJuce_GUI()
+
+    block:
+        let root = june.File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                       .getNonexistentChildFile(makeString("june-views"), makeString(""))
+        doAssert root.createDirectory().wasOk(), "could not make the temp directory"
+        doAssert root.getChildFile(makeStringRef("one.txt"))
+                     .replaceWithText(makeString("1")), "could not write one.txt"
+        doAssert root.getChildFile(makeStringRef("two.txt"))
+                     .replaceWithText(makeString("2")), "could not write two.txt"
+        let chosen = root.getChildFile(makeStringRef("one.txt"))
+
+        var viewScanner = makeTimeSliceThread(makeString("june-views-scan"))
+        doAssert viewScanner.startThread(), "the scanning thread did not start"
+        var viewListing = makeDirectoryContentsList(nil, viewScanner)
+        viewListing.setDirectory(root, true, true)
+        viewListing.refresh()
+
+        var waitedForViews = 0
+        while viewListing.isStillLoading() and waitedForViews < 5000:
+            Thread.sleep(10.cint)
+            waitedForViews += 10
+        doAssert viewListing.getNumFiles() == 2,
+                 "the listing holds " & $viewListing.getNumFiles() & " files"
+
+        block:
+            var list = makeFileListComponent(viewListing)
+            doAssert list.getNumSelectedFiles() == 0,
+                     "a fresh list has " & $list.getNumSelectedFiles() & " selected"
+            list.setSelectedFile(chosen)
+            doAssert list.getNumSelectedFiles() == 1,
+                     "after selecting one, " & $list.getNumSelectedFiles() & " are selected"
+            doAssert list.getSelectedFile() == chosen,
+                     "the selected file is " & $list.getSelectedFile().getFileName()
+            list.deselectAllFiles()
+            doAssert list.getNumSelectedFiles() == 0,
+                     "deselecting left " & $list.getNumSelectedFiles() & " selected"
+
+        block:
+            # The tree's own selection is not asserted. setSelectedFile works
+            # through the TreeView's rows, and those are built when the
+            # component is shown: sizing it, refreshing it and painting it were
+            # all tried, and getNumSelectedFiles stays 0 with no message loop
+            # running. What is checked here is what does not need the rows.
+            var tree = makeFileTreeComponent(viewListing)
+            tree.setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 200.cint))
+            tree.setItemHeight(24.cint)
+            doAssert tree.getItemHeight() == 24,
+                     "the item height is " & $tree.getItemHeight()
+            tree.setDragAndDropDescription(makeString("files"))
+            tree.refresh()
+            doAssert tree.getNumSelectedFiles() == 0,
+                     "a tree nobody clicked has " &
+                     $tree.getNumSelectedFiles() & " files selected"
+            tree.deselectAllFiles()
+
+        doAssert viewScanner.stopThread(2000.cint), "the scanning thread did not stop"
+        doAssert root.deleteRecursively(), "could not remove the temp directory"
+
+    shutdownJuce_GUI()
+
+
 testMarkerListValueTreeWrapper()
+testFileViews()
