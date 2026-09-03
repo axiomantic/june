@@ -9367,3 +9367,132 @@ proc testPopupMenuOptionsBuilding() =
     shutdownJuce_GUI()
 
 testPopupMenuOptionsBuilding()
+
+# ResizableWindow off the desktop. addToDesktop is false throughout: a headless
+# test has no window server, and everything asserted here is state the window
+# keeps for itself.
+proc testResizableWindow() =
+    initialiseJuce_GUI()
+
+    block:
+        var window = makeResizableWindow(makeString("window"), Colours_darkgrey,
+                                         false)
+        window.setBounds(makeRectangle(0.cint, 0.cint, 400.cint, 300.cint))
+
+        doAssert window.getBackgroundColour() == Colours_darkgrey,
+                 "the background is " & $window.getBackgroundColour()
+        window.setBackgroundColour(Colours_navy)
+        doAssert window.getBackgroundColour() == Colours_navy,
+                 "the background did not change"
+
+        # A ResizableWindow is not resizable until it is told to be: the class
+        # name describes what it CAN do, not what it starts as.
+        doAssert not window.isResizable(), "a new window is already resizable"
+        window.setResizable(true, true)
+        doAssert window.isResizable(), "setResizable did not take"
+        window.setResizable(false, false)
+        doAssert not window.isResizable(), "the window stayed resizable"
+        window.setResizable(true, true)
+
+        doAssert window.isDraggable(), "a new window is not draggable"
+        window.setDraggable(false)
+        doAssert not window.isDraggable(), "setDraggable did not take"
+
+        # Off the desktop nothing is full screen, minimised or in kiosk mode.
+        doAssert not window.isFullScreen(), "an off-desktop window is full screen"
+        doAssert not window.isMinimised(), "an off-desktop window is minimised"
+        doAssert not window.isKioskMode(), "an off-desktop window is in kiosk mode"
+
+        # The border is what the frame takes off the outside.
+        doAssert window.getBorderThickness().getTop() >= 0,
+                 "the border is " & $window.getBorderThickness().getTop()
+        doAssert window.getContentComponentBorder().getTop() >= 0,
+                 "the content border is " &
+                 $window.getContentComponentBorder().getTop()
+
+        # A content component becomes a child, and sizing it sizes the window
+        # around it.
+        doAssert window.getContentComponent().isNil,
+                 "a new window has a content component"
+        let content = newCustomComponent()
+        window.setContentNonOwned(cast[ptr Component](content), false)
+        doAssert window.getContentComponent() == cast[ptr Component](content),
+                 "the content component is a different one"
+
+        window.setContentComponentSize(320.cint, 200.cint)
+        doAssert content[].getWidth() == 320 and content[].getHeight() == 200,
+                 "the content measures " & $content[].getWidth() & "x" &
+                 $content[].getHeight()
+        doAssert window.getWidth() >= 320,
+                 "the window is " & $window.getWidth() &
+                 " wide around 320 of content"
+
+        window.setContentNonOwned(nil, false)
+        doAssert window.getContentComponent().isNil,
+                 "the content component was not cleared"
+        cdelete content
+
+    block:
+        # setResizeLimits installs a constrainer, and setBoundsConstrained then
+        # clamps to it.
+        var window = makeResizableWindow(makeString("window"), false)
+        window.setResizeLimits(200.cint, 150.cint, 800.cint, 600.cint)
+        doAssert not window.getConstrainer().isNil,
+                 "setResizeLimits installed no constrainer"
+        doAssert window.getConstrainer()[].getMinimumWidth() == 200,
+                 "the minimum width is " &
+                 $window.getConstrainer()[].getMinimumWidth()
+        doAssert window.getConstrainer()[].getMaximumHeight() == 600,
+                 "the maximum height is " &
+                 $window.getConstrainer()[].getMaximumHeight()
+
+        window.setBoundsConstrained(makeRectangle(0.cint, 0.cint,
+                                                  50.cint, 50.cint))
+        doAssert window.getWidth() >= 200 and window.getHeight() >= 150,
+                 "a too-small size was accepted: " & $window.getWidth() & "x" &
+                 $window.getHeight()
+
+        window.setBoundsConstrained(makeRectangle(0.cint, 0.cint,
+                                                  5000.cint, 5000.cint))
+        doAssert window.getWidth() <= 800 and window.getHeight() <= 600,
+                 "a too-large size was accepted: " & $window.getWidth() & "x" &
+                 $window.getHeight()
+
+    block:
+        # The window state is a string, and a window comes back to the size it
+        # was in when the string was taken.
+        var window = makeResizableWindow(makeString("window"), false)
+        window.setBounds(makeRectangle(30.cint, 40.cint, 500.cint, 400.cint))
+        let state = window.getWindowStateAsString()
+        doAssert state.isNotEmpty(), "the window state string is empty"
+
+        # The string is lastNonFullScreenPos, and updateLastPosIfShowing only
+        # records a new one while the window is SHOWING
+        # (juce_ResizableWindow.cpp:514). Off the desktop isShowing is never
+        # true, so the string keeps the constructor's default and says nothing
+        # about the setBounds above. It is the same peer rule that makes
+        # contains() and isShowing() false.
+        doAssert not ($state).contains("500"),
+                 "the state string followed setBounds off the desktop: " & $state
+        doAssert $state == "50 50 256 256",
+                 "the untouched default state string is " & $state
+
+        window.setBounds(makeRectangle(0.cint, 0.cint, 100.cint, 100.cint))
+        doAssert window.restoreWindowStateFromString(state),
+                 "the state string did not parse"
+
+        # The restored size is not asserted either.
+        # restoreWindowStateFromString clips the stored rectangle against the
+        # attached displays (juce_ResizableWindow.cpp:583), so what comes out
+        # depends on the machine.
+        doAssert window.getWidth() > 0 and window.getHeight() > 0,
+                 "the restored window measures " & $window.getWidth() & "x" &
+                 $window.getHeight()
+
+        doAssert not window.restoreWindowStateFromString(
+                     makeString("not a window state")),
+                 "a nonsense state string was accepted"
+
+    shutdownJuce_GUI()
+
+testResizableWindow()
