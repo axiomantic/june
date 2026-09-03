@@ -6279,3 +6279,505 @@ proc testPaintHandlerScalars() =
     shutdownJuce_GUI()
 
 testPaintHandlerScalars()
+
+
+# Every public field round-trips ===============================================
+#
+# A field getter and setter are importcpp procs like any other: they reach the
+# C++ compiler only where something calls them, so a setter nothing assigns is
+# never compiled. Each is set to a distinctive value and read back; where the
+# field's type compares, the read is asserted against what went in.
+
+proc testFieldRoundTrips() =
+    initialiseJuce_GUI()
+
+    block:
+        var value = makeAccessibilityTableInterfaceSpan()
+        value.num = 7.cint
+        doAssert value.num() == 7.cint,
+                 "AccessibilityTableInterfaceSpan.num came back as " & $value.num()
+    block:
+        var value = makeAccessibilityValueInterfaceAccessibleValueRangeMinAndMax()
+        value.max = 2.5
+        doAssert value.max() == 2.5,
+                 "AccessibilityValueInterfaceAccessibleValueRangeMinAndMax.max came back as " & $value.max()
+    block:
+        var value = makeComponentBuilder()
+        value.state = makeValueTree()
+        discard value.state()
+    block:
+        var value = makeComponentPaintDiagnostics()
+        value.readFromCache = true
+        doAssert value.readFromCache() == true,
+                 "ComponentPaintDiagnostics.readFromCache came back as " & $value.readFromCache()
+    block:
+        var value = makeComponentPeerDragInfo()
+        value.files = makeStringArray()
+        discard value.files()
+        value.position = makePoint(1.cint, 2.cint)
+        discard value.position()
+    block:
+        var value = makeDialogWindowLaunchOptions()
+        value.componentToCentreAround = nil
+        discard value.componentToCentreAround()
+        value.escapeKeyTriggersCloseButton = true
+        doAssert value.escapeKeyTriggersCloseButton() == true,
+                 "DialogWindowLaunchOptions.escapeKeyTriggersCloseButton came back as " & $value.escapeKeyTriggersCloseButton()
+        value.resizable = true
+        doAssert value.resizable() == true,
+                 "DialogWindowLaunchOptions.resizable came back as " & $value.resizable()
+        value.useBottomRightCornerResizer = true
+        doAssert value.useBottomRightCornerResizer() == true,
+                 "DialogWindowLaunchOptions.useBottomRightCornerResizer came back as " & $value.useBottomRightCornerResizer()
+        value.useNativeTitleBar = true
+        doAssert value.useNativeTitleBar() == true,
+                 "DialogWindowLaunchOptions.useNativeTitleBar came back as " & $value.useNativeTitleBar()
+    block:
+        var value = makeDirectoryContentsListFileInfo()
+        value.creationTime = makeTime()
+        discard value.creationTime()
+        value.fileSize = 8'i64
+        doAssert value.fileSize() == 8'i64,
+                 "DirectoryContentsListFileInfo.fileSize came back as " & $value.fileSize()
+        value.isDirectory = true
+        doAssert value.isDirectory() == true,
+                 "DirectoryContentsListFileInfo.isDirectory came back as " & $value.isDirectory()
+        value.isReadOnly = true
+        doAssert value.isReadOnly() == true,
+                 "DirectoryContentsListFileInfo.isReadOnly came back as " & $value.isReadOnly()
+        value.modificationTime = makeTime()
+        discard value.modificationTime()
+    block:
+        var value = makeDisplaysDisplay()
+        value.dpi = 2.5
+        doAssert value.dpi() == 2.5,
+                 "DisplaysDisplay.dpi came back as " & $value.dpi()
+        value.isMain = true
+        doAssert value.isMain() == true,
+                 "DisplaysDisplay.isMain came back as " & $value.isMain()
+        value.keyboardInsets = makeBorderSize(2.cint)
+        discard value.keyboardInsets()
+        value.logicalBounds = makeRectangle(1.0'f32, 2.0'f32, 3.0'f32, 4.0'f32)
+        discard value.logicalBounds()
+        value.physicalBounds = makeRectangle(1.cint, 2.cint, 3.cint, 4.cint)
+        discard value.physicalBounds()
+        value.safeAreaInsets = makeBorderSize(2.cint)
+        discard value.safeAreaInsets()
+        value.scale = 2.5
+        doAssert value.scale() == 2.5,
+                 "DisplaysDisplay.scale came back as " & $value.scale()
+        value.topLeftPhysical = makePoint(1.cint, 2.cint)
+        discard value.topLeftPhysical()
+        value.totalArea = makeRectangle(1.cint, 2.cint, 3.cint, 4.cint)
+        discard value.totalArea()
+        value.userArea = makeRectangle(1.cint, 2.cint, 3.cint, 4.cint)
+        discard value.userArea()
+        value.userBounds = makeRectangle(1.0'f32, 2.0'f32, 3.0'f32, 4.0'f32)
+        discard value.userBounds()
+    block:
+        var value = makeFlexItem()
+        value.associatedComponent = nil
+        discard value.associatedComponent()
+        value.currentBounds = makeRectangle(1.0'f32, 2.0'f32, 3.0'f32, 4.0'f32)
+        discard value.currentBounds()
+        value.flexBasis = 1.5'f32
+        doAssert value.flexBasis() == 1.5'f32,
+                 "FlexItem.flexBasis came back as " & $value.flexBasis()
+        value.flexGrow = 1.5'f32
+        doAssert value.flexGrow() == 1.5'f32,
+                 "FlexItem.flexGrow came back as " & $value.flexGrow()
+        value.flexShrink = 1.5'f32
+        doAssert value.flexShrink() == 1.5'f32,
+                 "FlexItem.flexShrink came back as " & $value.flexShrink()
+        value.margin = makeFlexItemMargin()
+        discard value.margin()
+        value.maxHeight = 1.5'f32
+        doAssert value.maxHeight() == 1.5'f32,
+                 "FlexItem.maxHeight came back as " & $value.maxHeight()
+        value.maxWidth = 1.5'f32
+        doAssert value.maxWidth() == 1.5'f32,
+                 "FlexItem.maxWidth came back as " & $value.maxWidth()
+        value.minHeight = 1.5'f32
+        doAssert value.minHeight() == 1.5'f32,
+                 "FlexItem.minHeight came back as " & $value.minHeight()
+        value.minWidth = 1.5'f32
+        doAssert value.minWidth() == 1.5'f32,
+                 "FlexItem.minWidth came back as " & $value.minWidth()
+    block:
+        var value = makeFlexItemMargin()
+        value.bottom = 1.5'f32
+        doAssert value.bottom() == 1.5'f32,
+                 "FlexItemMargin.bottom came back as " & $value.bottom()
+        value.left = 1.5'f32
+        doAssert value.left() == 1.5'f32,
+                 "FlexItemMargin.left came back as " & $value.left()
+        value.right = 1.5'f32
+        doAssert value.right() == 1.5'f32,
+                 "FlexItemMargin.right came back as " & $value.right()
+        value.top = 1.5'f32
+        doAssert value.top() == 1.5'f32,
+                 "FlexItemMargin.top came back as " & $value.top()
+    block:
+        var value = makeGrid()
+        value.autoColumns = makeGridTrackInfo()
+        discard value.autoColumns()
+        value.autoRows = makeGridTrackInfo()
+        discard value.autoRows()
+        value.columnGap = makeGridPx(5.cint)
+        discard value.columnGap()
+        value.rowGap = makeGridPx(5.cint)
+        discard value.rowGap()
+        value.templateAreas = makeStringArray()
+        discard value.templateAreas()
+        value.templateColumns = makeArray[GridTrackInfo]()
+        discard value.templateColumns()
+        value.templateRows = makeArray[GridTrackInfo]()
+        discard value.templateRows()
+    block:
+        var value = makeGridItem()
+        value.area = makeString("a value")
+        discard value.area()
+        value.associatedComponent = nil
+        discard value.associatedComponent()
+        value.column = makeGridItemStartAndEndProperty()
+        discard value.column()
+        value.currentBounds = makeRectangle(1.0'f32, 2.0'f32, 3.0'f32, 4.0'f32)
+        discard value.currentBounds()
+        value.margin = makeGridItemMargin()
+        discard value.margin()
+        value.maxHeight = 1.5'f32
+        doAssert value.maxHeight() == 1.5'f32,
+                 "GridItem.maxHeight came back as " & $value.maxHeight()
+        value.maxWidth = 1.5'f32
+        doAssert value.maxWidth() == 1.5'f32,
+                 "GridItem.maxWidth came back as " & $value.maxWidth()
+        value.minHeight = 1.5'f32
+        doAssert value.minHeight() == 1.5'f32,
+                 "GridItem.minHeight came back as " & $value.minHeight()
+        value.minWidth = 1.5'f32
+        doAssert value.minWidth() == 1.5'f32,
+                 "GridItem.minWidth came back as " & $value.minWidth()
+        value.row = makeGridItemStartAndEndProperty()
+        discard value.row()
+    block:
+        var value = makeGridItemMargin()
+        value.bottom = 1.5'f32
+        doAssert value.bottom() == 1.5'f32,
+                 "GridItemMargin.bottom came back as " & $value.bottom()
+        value.left = 1.5'f32
+        doAssert value.left() == 1.5'f32,
+                 "GridItemMargin.left came back as " & $value.left()
+        value.right = 1.5'f32
+        doAssert value.right() == 1.5'f32,
+                 "GridItemMargin.right came back as " & $value.right()
+        value.top = 1.5'f32
+        doAssert value.top() == 1.5'f32,
+                 "GridItemMargin.top came back as " & $value.top()
+    block:
+        var value = makeGridItemStartAndEndProperty()
+        value.end = makeGridItemProperty()
+        discard value.end()
+        value.start = makeGridItemProperty()
+        discard value.start()
+    block:
+        var value = makeMouseWheelDetails()
+        value.isInertial = true
+        doAssert value.isInertial() == true,
+                 "MouseWheelDetails.isInertial came back as " & $value.isInertial()
+        value.isReversed = true
+        doAssert value.isReversed() == true,
+                 "MouseWheelDetails.isReversed came back as " & $value.isReversed()
+        value.isSmooth = true
+        doAssert value.isSmooth() == true,
+                 "MouseWheelDetails.isSmooth came back as " & $value.isSmooth()
+    block:
+        var value = makePenDetails()
+        value.tiltX = 1.5'f32
+        doAssert value.tiltX() == 1.5'f32,
+                 "PenDetails.tiltX came back as " & $value.tiltX()
+        value.tiltY = 1.5'f32
+        doAssert value.tiltY() == 1.5'f32,
+                 "PenDetails.tiltY came back as " & $value.tiltY()
+    block:
+        var value = makePopupMenuItem()
+        value.action = bindClosure(proc() = discard)
+        discard value.action()
+        value.isEnabled = true
+        doAssert value.isEnabled() == true,
+                 "PopupMenuItem.isEnabled came back as " & $value.isEnabled()
+        value.isSectionHeader = true
+        doAssert value.isSectionHeader() == true,
+                 "PopupMenuItem.isSectionHeader came back as " & $value.isSectionHeader()
+        value.isSeparator = true
+        doAssert value.isSeparator() == true,
+                 "PopupMenuItem.isSeparator came back as " & $value.isSeparator()
+        value.isTicked = true
+        doAssert value.isTicked() == true,
+                 "PopupMenuItem.isTicked came back as " & $value.isTicked()
+        value.shortcutKeyDescription = makeString("a value")
+        discard value.shortcutKeyDescription()
+        value.shouldBreakAfter = true
+        doAssert value.shouldBreakAfter() == true,
+                 "PopupMenuItem.shouldBreakAfter came back as " & $value.shouldBreakAfter()
+    block:
+        var value = makeRelativeParallelogram()
+        value.bottomLeft = makeRelativePoint()
+        discard value.bottomLeft()
+        value.topLeft = makeRelativePoint()
+        discard value.topLeft()
+        value.topRight = makeRelativePoint()
+        discard value.topRight()
+    block:
+        var value = makeRelativePoint()
+        value.x = makeRelativeCoordinate()
+        discard value.x()
+        value.y = makeRelativeCoordinate()
+        discard value.y()
+    block:
+        var value = makeRelativePointPath()
+        value.usesNonZeroWinding = true
+        doAssert value.usesNonZeroWinding() == true,
+                 "RelativePointPath.usesNonZeroWinding came back as " & $value.usesNonZeroWinding()
+    block:
+        var value = makeRelativeRectangle()
+        value.bottom = makeRelativeCoordinate()
+        discard value.bottom()
+        value.left = makeRelativeCoordinate()
+        discard value.left()
+        value.right = makeRelativeCoordinate()
+        discard value.right()
+        value.top = makeRelativeCoordinate()
+        discard value.top()
+    block:
+        var value = makeSlider()
+        value.onDragEnd = bindClosure(proc() = discard)
+        discard value.onDragEnd()
+        value.onDragStart = bindClosure(proc() = discard)
+        discard value.onDragStart()
+        value.onValueChange = bindClosure(proc() = discard)
+        discard value.onValueChange()
+    block:
+        var value = makeSliderSliderLayout()
+        value.sliderBounds = makeRectangle(1.cint, 2.cint, 3.cint, 4.cint)
+        discard value.sliderBounds()
+        value.textBoxBounds = makeRectangle(1.cint, 2.cint, 3.cint, 4.cint)
+        discard value.textBoxBounds()
+
+    shutdownJuce_GUI()
+
+testFieldRoundTrips()
+
+# The layout classes' fields ===================================================
+#
+# FlexBox, FlexItem, Grid and GridItem are configured entirely through public
+# fields - there is no setter method for any of this - so a field accessor that
+# does not compile makes the class unusable, and nothing had compiled these.
+
+proc testLayoutFields() =
+    initialiseJuce_GUI()
+
+    block:
+        var box = makeFlexBox()
+        box.flexDirection = FlexBoxDirection_row
+        box.flexWrap = FlexBoxWrap_noWrap
+        box.justifyContent = FlexBoxJustifyContent_flexStart
+        box.alignItems = FlexBoxAlignItems_stretch
+        box.alignContent = FlexBoxAlignContent_stretch
+        doAssert box.flexDirection() == FlexBoxDirection_row,
+                 "the flex direction did not come back as it was set"
+        doAssert box.flexWrap() == FlexBoxWrap_noWrap,
+                 "the wrap did not come back as it was set"
+        doAssert box.justifyContent() == FlexBoxJustifyContent_flexStart,
+                 "justifyContent did not come back as it was set"
+        doAssert box.alignItems() == FlexBoxAlignItems_stretch,
+                 "alignItems did not come back as it was set"
+        doAssert box.alignContent() == FlexBoxAlignContent_stretch,
+                 "alignContent did not come back as it was set"
+
+    block:
+        var item = makeFlexItem()
+        item.alignSelf = FlexItemAlignSelf_autoAlign
+        item.associatedFlexBox = nil
+        doAssert item.alignSelf() == FlexItemAlignSelf_autoAlign,
+                 "alignSelf did not come back as it was set"
+        doAssert item.associatedFlexBox().isNil,
+                 "the associated flex box is not the nil it was set to"
+
+    block:
+        var grid = makeGrid()
+        grid.justifyItems = GridJustifyItems_start
+        grid.alignItems = GridAlignItems_start
+        grid.justifyContent = GridJustifyContent_start
+        grid.alignContent = GridAlignContent_start
+        grid.autoFlow = GridAutoFlow_row
+        grid.items = makeArray[GridItem]()
+        doAssert grid.justifyItems() == GridJustifyItems_start,
+                 "justifyItems did not come back as it was set"
+        doAssert grid.alignItems() == GridAlignItems_start,
+                 "alignItems did not come back as it was set"
+        doAssert grid.justifyContent() == GridJustifyContent_start,
+                 "justifyContent did not come back as it was set"
+        doAssert grid.alignContent() == GridAlignContent_start,
+                 "alignContent did not come back as it was set"
+        doAssert grid.autoFlow() == GridAutoFlow_row,
+                 "autoFlow did not come back as it was set"
+        doAssert grid.items().size() == 0,
+                 "the grid holds " & $grid.items().size() & " items"
+
+    block:
+        var item = makeGridItem()
+        item.alignSelf = GridItemAlignSelf_start
+        item.justifySelf = GridItemJustifySelf_start
+        doAssert item.alignSelf() == GridItemAlignSelf_start,
+                 "the grid item's alignSelf did not come back as it was set"
+        doAssert item.justifySelf() == GridItemJustifySelf_start,
+                 "justifySelf did not come back as it was set"
+
+    shutdownJuce_GUI()
+
+testLayoutFields()
+
+# The onXxx callback fields ====================================================
+#
+# JUCE's modern widgets expose their notifications as public std::function
+# fields rather than as listener interfaces, so these are how a Nim program
+# reacts to a button being clicked or an editor's text changing. Each is set to
+# a closure and, where the widget can be made to fire it, the closure is shown
+# to run.
+
+proc testCallbackFields() =
+    initialiseJuce_GUI()
+
+    block:
+        var clicks = 0
+        var states = 0
+        var button = makeTextButton(makeString("press"))
+        button.onClick = bindClosure(proc() = clicks += 1)
+        button.onStateChange = bindClosure(proc() = states += 1)
+
+        # triggerClick is asynchronous, but setToggleState with a notification
+        # runs the state change synchronously.
+        # A toggle button treats a state change as a click, so both fire.
+        button.setToggleState(true, NotificationType_sendNotificationSync)
+        doAssert states >= 1, "the state change closure ran " & $states & " times"
+        doAssert clicks >= 1, "the click closure ran " & $clicks & " times"
+
+    block:
+        var changes = 0
+        var returns = 0
+        var escapes = 0
+        var losses = 0
+        var editor = makeTextEditor(makeString("editor"), WChar(0))
+        editor.onTextChange = bindClosure(proc() = changes += 1)
+        editor.onReturnKey = bindClosure(proc() = returns += 1)
+        editor.onEscapeKey = bindClosure(proc() = escapes += 1)
+        editor.onFocusLost = bindClosure(proc() = losses += 1)
+
+        # TextEditor::textChanged posts a command message rather than calling
+        # straight through, so delivery needs the message loop this test does
+        # not run. What is asserted is that the fields take a closure and that
+        # nothing fires without the loop or the key that would cause it.
+        editor.setText(makeString("typed"), true)
+        doAssert $editor.getText() == "typed",
+                 "the editor holds " & $editor.getText()
+        doAssert changes == 0 and returns == 0 and escapes == 0 and losses == 0,
+                 "a closure ran with no message loop to deliver it"
+
+    block:
+        var shown = 0
+        var hidden = 0
+        var changed = 0
+        var label = makeLabel(makeString("label"), makeString("text"))
+        label.onTextChange = bindClosure(proc() = changed += 1)
+        label.onEditorShow = bindClosure(proc() = shown += 1)
+        label.onEditorHide = bindClosure(proc() = hidden += 1)
+
+        label.setText(makeString("new text"), NotificationType_sendNotificationSync)
+        doAssert changed >= 1, "the label's text change closure ran " & $changed & " times"
+        doAssert shown == 0 and hidden == 0,
+                 "an editor closure ran without an editor"
+
+    block:
+        var changes = 0
+        var combo = makeComboBox(makeString("combo"))
+        combo.onChange = bindClosure(proc() = changes += 1)
+        combo.addItem(makeString("one"), 1.cint)
+        combo.setSelectedId(1.cint, NotificationType_sendNotificationSync)
+        doAssert changes >= 1, "the combo's change closure ran " & $changes & " times"
+
+    block:
+        # SidePanel's two, which need a panel rather than a widget.
+        var moved = 0
+        var shownOrHidden = 0
+        var panel = makeSidePanel(makeStringRef(makeString("Panel")), 120.cint,
+                                  true, nil, false)
+        panel.onPanelMove = bindClosure(proc() = moved += 1)
+        # onPanelShowHide is told which way it went, unlike the rest.
+        panel.onPanelShowHide = bindClosure(proc(isShowing: bool) =
+            shownOrHidden += 1)
+        doAssert moved == 0 and shownOrHidden == 0,
+                 "a side panel closure ran before the panel moved"
+
+    shutdownJuce_GUI()
+
+testCallbackFields()
+
+# The command structures' fields ==============================================
+#
+# ApplicationCommandManager is driven entirely by filling these two structs in,
+# so every one of their fields is part of the API a program uses to describe a
+# command and to receive one. None had been assigned.
+
+proc testCommandStructureFields() =
+    initialiseJuce_GUI()
+
+    block:
+        var info = makeApplicationCommandInfo(101.cint)
+        info.commandID = 202.cint
+        info.shortName = makeString("Save")
+        info.description = makeString("Save the document")
+        info.categoryName = makeString("File")
+        info.defaultKeypresses = makeArray[KeyPress]()
+        info.flags = 4.cint
+
+        doAssert info.commandID() == 202,
+                 "the command id is " & $info.commandID()
+        doAssert $info.shortName() == "Save",
+                 "the short name is " & $info.shortName()
+        doAssert $info.description() == "Save the document",
+                 "the description is " & $info.description()
+        doAssert $info.categoryName() == "File",
+                 "the category is " & $info.categoryName()
+        doAssert info.defaultKeypresses().size() == 0,
+                 "the keypresses hold " & $info.defaultKeypresses().size()
+        doAssert info.flags() == 4, "the flags are " & $info.flags()
+
+    block:
+        var invocation = makeApplicationCommandTargetInvocationInfo(303.cint)
+        invocation.commandID = 404.cint
+        invocation.commandFlags = 8.cint
+        invocation.invocationMethod =
+            ApplicationCommandTargetInvocationInfoInvocationMethod_direct
+        invocation.originatingComponent = nil
+        invocation.keyPress = makeKeyPress(KeyPress.returnKey)
+        invocation.isKeyDown = true
+        invocation.millisecsSinceKeyPressed = 25.cint
+
+        doAssert invocation.commandID() == 404,
+                 "the invocation's command id is " & $invocation.commandID()
+        doAssert invocation.commandFlags() == 8,
+                 "the invocation's flags are " & $invocation.commandFlags()
+        doAssert invocation.invocationMethod() ==
+                 ApplicationCommandTargetInvocationInfoInvocationMethod_direct,
+                 "the invocation method did not come back as it was set"
+        doAssert invocation.originatingComponent().isNil,
+                 "the originating component is not the nil it was set to"
+        doAssert invocation.keyPress().getKeyCode() == KeyPress.returnKey,
+                 "the key press did not come back as it was set"
+        doAssert invocation.isKeyDown(), "isKeyDown came back false"
+        doAssert invocation.millisecsSinceKeyPressed() == 25,
+                 "the elapsed time is " & $invocation.millisecsSinceKeyPressed()
+
+    shutdownJuce_GUI()
+
+testCommandStructureFields()
