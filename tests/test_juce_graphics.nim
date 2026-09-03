@@ -2396,3 +2396,107 @@ initialiseJuce_GUI()
 testGraphicsShapes()
 testGraphicsState()
 shutdownJuce_GUI()
+
+# FontOptions is a value builder: every with- method returns a new options
+# object and leaves the receiver alone. testFontOptionsOverrides covers the
+# ascent and descent overrides; this covers the rest.
+proc testFontOptionsBuilding() =
+    block:
+        let base = makeFontOptions(20.0'f32)
+        doAssert base.getHeight() == 20.0'f32,
+                 "the height is " & $base.getHeight()
+        doAssert base.getName().isEmpty(),
+                 "a new options object names " & $base.getName()
+        doAssert $base.getStyle() == "Regular",
+                 "a new options object has the style " & $base.getStyle()
+        doAssert base.getKerningFactor() == 0.0'f32,
+                 "the default kerning is " & $base.getKerningFactor()
+        doAssert base.getHorizontalScale() == 1.0'f32,
+                 "the default horizontal scale is " & $base.getHorizontalScale()
+        doAssert not base.getUnderline(), "a new options object is underlined"
+        doAssert base.getFallbackEnabled(),
+                 "fallbacks start disabled"
+        doAssert base.getFallbacks().size() == 0,
+                 "a new options object lists " & $base.getFallbacks().size() &
+                 " fallbacks"
+
+        # Each with- method changes one field and leaves the neighbours alone.
+        let named = base.withName(makeString("Courier"))
+        doAssert $named.getName() == "Courier",
+                 "the name is " & $named.getName()
+        doAssert named.getHeight() == 20.0'f32,
+                 "withName changed the height to " & $named.getHeight()
+        doAssert base.getName().isEmpty(),
+                 "withName changed the original to " & $base.getName()
+
+        let styled = named.withStyle(makeString("Bold"))
+        doAssert $styled.getStyle() == "Bold",
+                 "the style is " & $styled.getStyle()
+        doAssert $styled.getName() == "Courier",
+                 "withStyle changed the name to " & $styled.getName()
+
+        doAssert base.withUnderline(true).getUnderline(),
+                 "withUnderline did not take"
+        doAssert not base.withUnderline(true).withUnderline(false).getUnderline(),
+                 "withUnderline could not be turned back off"
+
+        doAssert base.withKerningFactor(0.3'f32).getKerningFactor() == 0.3'f32,
+                 "the kerning is " &
+                 $base.withKerningFactor(0.3'f32).getKerningFactor()
+        doAssert base.withHorizontalScale(1.75'f32).getHorizontalScale() ==
+                 1.75'f32,
+                 "the horizontal scale is " &
+                 $base.withHorizontalScale(1.75'f32).getHorizontalScale()
+        doAssert not base.withFallbackEnabled(false).getFallbackEnabled(),
+                 "withFallbackEnabled did not take"
+
+        # The point height and the pixel height are alternatives: setting one
+        # clears the other, which is how the type says which was asked for.
+        # The UNSET one reads as -1, not as zero, so that a genuine height of
+        # zero stays distinguishable from "not asked for".
+        doAssert base.getPointHeight() == -1.0'f32,
+                 "a height-in-pixels options object reports " &
+                 $base.getPointHeight() & " points"
+        let inPoints = makeFontOptions(20.0'f32).withPointHeight(14.0'f32)
+        doAssert inPoints.getPointHeight() == 14.0'f32,
+                 "the point height is " & $inPoints.getPointHeight()
+        doAssert inPoints.getHeight() == -1.0'f32,
+                 "asking for points left the pixel height at " &
+                 $inPoints.getHeight()
+
+    block:
+        # The fallback list is carried whole.
+        var fallbacks = makeCppVector[String]()
+        doAssert fallbacks.isEmpty(), "a new vector is not empty"
+        fallbacks.add(makeString("Menlo"))
+        fallbacks.add(makeString("Monaco"))
+        doAssert fallbacks.size() == 2,
+                 "the vector holds " & $fallbacks.size() & " entries"
+
+        let options = makeFontOptions(12.0'f32).withFallbacks(fallbacks)
+        doAssert options.getFallbacks().size() == 2,
+                 "the options carry " & $options.getFallbacks().size() &
+                 " fallbacks"
+        doAssert $options.getFallbacks()[0.csize_t] == "Menlo",
+                 "the first fallback is " & $options.getFallbacks()[0.csize_t]
+
+        # And the vector empties again, so all three of the hand-written
+        # std::vector helpers are exercised. The coverage gate matches by
+        # NAME, and add/clear/isEmpty are all names other bindings use too,
+        # so it cannot see these three on its own.
+        fallbacks.clear()
+        doAssert fallbacks.isEmpty(), "clear left " & $fallbacks.size() & " entries"
+
+    block:
+        # Two options objects built the same way are equal, and one different
+        # field is enough to order them.
+        let first = makeFontOptions(10.0'f32).withName(makeString("A"))
+        let same = makeFontOptions(10.0'f32).withName(makeString("A"))
+        let other = makeFontOptions(10.0'f32).withName(makeString("B"))
+
+        doAssert first == same, "two identical options objects are not equal"
+        doAssert not (first == other), "options with different names are equal"
+        doAssert (first < other) or (other < first),
+                 "two different options objects do not order"
+
+testFontOptionsBuilding()
