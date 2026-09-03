@@ -8849,3 +8849,103 @@ proc testTextEditorCaretMotion() =
     shutdownJuce_GUI()
 
 testTextEditorCaretMotion()
+
+# TreeView is the view onto a TreeViewItem hierarchy. Its own state - the
+# default openness, the indent, whether the root shows - decides which items
+# become rows, so the row numbers are the thing to assert.
+proc testTreeViewRows() =
+    initialiseJuce_GUI()
+
+    block:
+        var tree = makeTreeView(makeString("tree"))
+        tree.setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 300.cint))
+        doAssert tree.getRootItem().isNil, "a new tree has a root"
+        doAssert tree.getNumSelectedItems() == 0,
+                 "a new tree has " & $tree.getNumSelectedItems() & " selections"
+        doAssert tree.getSelectedItem(0.cint).isNil,
+                 "a new tree returns a selected item"
+
+        let root = newCustomTreeViewItem()
+        root[].setMightContainSubItemsHandler(proc(): bool = true)
+        tree.setRootItem(cast[ptr TreeViewItem](root))
+        doAssert tree.getRootItem() == cast[ptr TreeViewItem](root),
+                 "the tree holds a different root"
+
+        let first = newCustomTreeViewItem()
+        let second = newCustomTreeViewItem()
+        root[].addSubItem(cast[ptr TreeViewItem](first))
+        root[].addSubItem(cast[ptr TreeViewItem](second))
+        root[].setOpen(true)
+
+        # The root is visible by default, so it is row 0 and the children
+        # follow it.
+        doAssert tree.isRootItemVisible(), "the root starts hidden"
+        doAssert tree.getNumRowsInTree() == 3,
+                 "with the root visible the tree has " & $tree.getNumRowsInTree() &
+                 " rows"
+        doAssert tree.getItemOnRow(0.cint) == cast[ptr TreeViewItem](root),
+                 "row 0 is not the root"
+        doAssert tree.getItemOnRow(1.cint) == cast[ptr TreeViewItem](first),
+                 "row 1 is not the first child"
+
+        # Hiding the root removes a row and renumbers everything below it.
+        tree.setRootItemVisible(false)
+        doAssert not tree.isRootItemVisible(), "the root stayed visible"
+        doAssert tree.getNumRowsInTree() == 2,
+                 "with the root hidden the tree has " & $tree.getNumRowsInTree() &
+                 " rows"
+        doAssert tree.getItemOnRow(0.cint) == cast[ptr TreeViewItem](first),
+                 "row 0 is not the first child once the root is hidden"
+        tree.setRootItemVisible(true)
+
+        # Selection is counted by the tree and reached by index.
+        first[].setSelected(true, false, NotificationType_dontSendNotification)
+        doAssert tree.getNumSelectedItems() == 1,
+                 "the tree counts " & $tree.getNumSelectedItems() & " selections"
+        doAssert tree.getSelectedItem(0.cint) == cast[ptr TreeViewItem](first),
+                 "the selected item is not the one that was selected"
+
+        # isMultiSelectEnabled governs the MOUSE, not the API: a new tree has
+        # it off, and setSelected with deselectOtherItemsFirst false still
+        # selects a second item.
+        doAssert not tree.isMultiSelectEnabled(),
+                 "a new tree allows multiple selection"
+        second[].setSelected(true, false, NotificationType_dontSendNotification)
+        doAssert tree.getNumSelectedItems() == 2,
+                 "setSelected honoured the multi-select flag; the tree counts " &
+                 $tree.getNumSelectedItems()
+
+        tree.setMultiSelectEnabled(true)
+        doAssert tree.isMultiSelectEnabled(),
+                 "setMultiSelectEnabled did not take"
+
+        tree.clearSelectedItems()
+        doAssert tree.getNumSelectedItems() == 0,
+                 "clearSelectedItems left " & $tree.getNumSelectedItems()
+
+        # The tree's own display settings round trip.
+        doAssert tree.getIndentSize() >= 0,
+                 "the indent is " & $tree.getIndentSize()
+        tree.setIndentSize(30.cint)
+        doAssert tree.getIndentSize() == 30,
+                 "the indent is " & $tree.getIndentSize()
+
+        doAssert tree.areOpenCloseButtonsVisible(),
+                 "the open/close buttons start hidden"
+        tree.setOpenCloseButtonsVisible(false)
+        doAssert not tree.areOpenCloseButtonsVisible(),
+                 "the buttons stayed visible"
+
+        doAssert not tree.areItemsOpenByDefault(),
+                 "items start open by default"
+        tree.setDefaultOpenness(true)
+        doAssert tree.areItemsOpenByDefault(),
+                 "setDefaultOpenness did not take"
+
+        # The tree must let go of the root before the root is deleted.
+        tree.setRootItem(nil)
+        cdelete root
+
+    shutdownJuce_GUI()
+
+testTreeViewRows()
