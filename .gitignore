@@ -1,7 +1,29 @@
+# Compiled binaries. Nim writes one beside its source with no extension, so
+# these ignore anything here without a dot in its name rather than listing the
+# executables by hand: a list only covers the sources that exist today, and the
+# binary a throwaway probe leaves behind is never on it.
+#
+# Directories are put back, because ignoring them by the same rule would drop a
+# whole subdirectory of test data without saying so - git reports nothing when
+# an add matches an ignored path. Only files are meant to be caught here.
+#
+# This block comes FIRST and every general rule below it comes after, because a
+# later rule wins: putting directories back here would otherwise re-admit each
+# build directory the rules below exclude - nimcache, build, __pycache__, the
+# .app bundle `nimble app_debug` writes - since those are directories too. A
+# negation is only as narrow as what follows it.
+tests/*
+!tests/*.*
+!tests/*/
+examples/*
+!examples/*.*
+!examples/*/
+
 nimcache/
 nimblecache/
 htmldocs/
 build/
+.venv/
 
 __pycache__/
 .pytest_cache/
@@ -11,19 +33,3 @@ __pycache__/
 .DS_Store
 *.app
 *.dSYM
-
-
-# Compiled binaries. Nim writes one beside its source with no extension, so
-# these ignore anything here without a dot in its name rather than listing the
-# executables by hand: a list only covers the sources that exist today, and the
-# binary a throwaway probe leaves behind is never on it.
-tests/*
-!tests/*.*
-examples/*
-!examples/*.*
-
-# Re-asserted after the negations above, which would otherwise bring back the
-# debug bundles the earlier *.dSYM rule excludes: a later rule wins.
-tests/*.dSYM/
-examples/*.dSYM/
-.venv/
