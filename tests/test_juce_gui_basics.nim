@@ -7396,3 +7396,155 @@ proc testSliderConfiguration() =
     shutdownJuce_GUI()
 
 testSliderConfiguration()
+
+# testTextEditor above covers setText, the highlight and insertTextAtCaret.
+# This covers where the caret ends up, and how a change is announced.
+proc testTextEditorCaret() =
+    initialiseJuce_GUI()
+
+    block:
+        var editor = makeTextEditor(makeString("editor"), WChar(0))
+        editor.setBounds(makeRectangle(0.cint, 0.cint, 300.cint, 100.cint))
+        editor.setText(makeString("hello world"), false)
+
+        # setText leaves the caret at the end of what it wrote.
+        doAssert editor.getCaretPosition() == 11,
+                 "the caret sits at " & $editor.getCaretPosition()
+
+        editor.setCaretPosition(5.cint)
+        editor.insertTextAtCaret(makeString(","))
+        doAssert $editor.getText() == "hello, world",
+                 "inserting at the caret gave " & $editor.getText()
+        doAssert editor.getCaretPosition() == 6,
+                 "the caret did not follow the insertion; it is at " &
+                 $editor.getCaretPosition()
+
+        # A caret index past the end is clamped rather than rejected.
+        editor.setCaretPosition(1000.cint)
+        doAssert editor.getCaretPosition() == editor.getTotalNumChars(),
+                 "a caret past the end sits at " & $editor.getCaretPosition()
+
+        # getHighlightedRegion reads back the range that was set, and an empty
+        # range means nothing is selected.
+        editor.setHighlightedRegion(makeRange(0.cint, 5.cint))
+        doAssert editor.getHighlightedRegion().getStart() == 0 and
+                 editor.getHighlightedRegion().getEnd() == 5,
+                 "the selection is not the range that was set"
+        editor.setHighlightedRegion(makeRange(0.cint, 0.cint))
+        doAssert editor.getHighlightedText().isEmpty(),
+                 "an empty selection highlighted " & $editor.getHighlightedText()
+
+        editor.clear()
+        doAssert editor.isEmpty(), "clear left " & $editor.getText()
+        doAssert editor.getTotalNumChars() == 0,
+                 "clear left " & $editor.getTotalNumChars() & " characters"
+
+    block:
+        # setText's second argument decides whether the change is announced.
+        # TextEditor::textChanged posts a message rather than calling back
+        # inline, so nothing arrives until the message queue is drained.
+        var editor = makeTextEditor(makeString("editor"), WChar(0))
+        var changes = 0
+        editor.onTextChange = bindClosure(proc() = changes += 1)
+
+        editor.setText(makeString("quiet"), false)
+        doAssert changes == 0,
+                 "a silent setText announced " & $changes & " changes"
+
+        # An announcing setText does not call back inline either:
+        # TextEditor::textChanged posts a command message
+        # (juce_TextEditor.cpp:594) and the callback runs when the message
+        # queue is next drained, which a headless test never does.
+        editor.setText(makeString("loud"), true)
+        doAssert changes == 0,
+                 "setText called back inline, so it no longer posts"
+
+        # The closure did reach C++ though: invoking the stored std::function
+        # runs it, which is what the posted message would have done.
+        editor.onTextChange.invoke()
+        doAssert changes == 1,
+                 "invoking the stored callback produced " & $changes & " calls"
+
+    block:
+        # The password character hides the text on screen without changing it.
+        var editor = makeTextEditor(makeString("editor"), WChar(0))
+        doAssert editor.getPasswordCharacter() == 0,
+                 "a plain editor has a password character"
+        editor.setPasswordCharacter(uint16('*'))
+        doAssert editor.getPasswordCharacter() == uint16('*'),
+                 "the password character did not read back"
+        editor.setText(makeString("secret"), false)
+        doAssert $editor.getText() == "secret",
+                 "the password character changed the stored text to " &
+                 $editor.getText()
+
+    shutdownJuce_GUI()
+
+testTextEditorCaret()
+
+# The configuration pairs. Each is a separate binding into a separate field.
+proc testTextEditorConfiguration() =
+    initialiseJuce_GUI()
+
+    var editor = makeTextEditor(makeString("editor"), WChar(0))
+
+    doAssert not editor.isMultiLine(), "an editor starts multi line"
+    editor.setMultiLine(true, true)
+    doAssert editor.isMultiLine(), "setMultiLine did not take"
+
+    editor.setReturnKeyStartsNewLine(true)
+    doAssert editor.getReturnKeyStartsNewLine(),
+             "the return key does not start a new line after being told to"
+
+    doAssert not editor.isTabKeyUsedAsCharacter(), "tab starts as a character"
+    editor.setTabKeyUsedAsCharacter(true)
+    doAssert editor.isTabKeyUsedAsCharacter(), "tab did not become a character"
+
+    doAssert not editor.isReadOnly(), "a new editor is read only"
+    editor.setReadOnly(true)
+    doAssert editor.isReadOnly(), "setReadOnly did not take"
+    # A read-only editor hides its caret.
+    doAssert not editor.isCaretVisible(),
+             "a read only editor still shows a caret"
+    editor.setReadOnly(false)
+    editor.setCaretVisible(true)
+    doAssert editor.isCaretVisible(), "the caret stayed hidden"
+
+    doAssert editor.areScrollbarsShown(), "the scrollbars start hidden"
+    editor.setScrollbarsShown(false)
+    doAssert not editor.areScrollbarsShown(), "the scrollbars stayed shown"
+
+    doAssert editor.isPopupMenuEnabled(), "the popup menu starts disabled"
+    editor.setPopupMenuEnabled(false)
+    doAssert not editor.isPopupMenuEnabled(), "the popup menu stayed enabled"
+    doAssert not editor.isPopupMenuCurrentlyActive(),
+             "a popup menu is open in a headless test"
+
+    # JUCE underlines whitespace by default (juce_TextEditor.h).
+    doAssert editor.isWhitespaceUnderlined(),
+             "whitespace does not start underlined"
+    editor.setWhitespaceUnderlined(false)
+    doAssert not editor.isWhitespaceUnderlined(),
+             "whitespace stayed underlined"
+
+    editor.setTextToShowWhenEmpty(makeString("type here"),
+                                    Colours_grey)
+    doAssert $editor.getTextToShowWhenEmpty() == "type here",
+             "the placeholder reads as " & $editor.getTextToShowWhenEmpty()
+    doAssert editor.isEmpty(),
+             "the placeholder became the editor's own text"
+
+    editor.setIndents(12.cint, 7.cint)
+    doAssert editor.getLeftIndent() == 12,
+             "the left indent is " & $editor.getLeftIndent()
+    doAssert editor.getTopIndent() == 7,
+             "the top indent is " & $editor.getTopIndent()
+
+    editor.setBorder(makeBorderSize(3.cint))
+    doAssert editor.getBorder().getTop() == 3 and
+             editor.getBorder().getLeft() == 3,
+             "the border did not read back"
+
+    shutdownJuce_GUI()
+
+testTextEditorConfiguration()
