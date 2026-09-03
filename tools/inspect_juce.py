@@ -2245,6 +2245,12 @@ def run_main(juce_module_name, juce_class_name_to_export):
         if constants:
             print("\n".join(constants) + "\n")
 
+    # A free function set that differs only in a scalar needs the same casts a
+    # method set does. countNumberOfBits takes uint32 and uint64, and on Linux
+    # Nim's uint64 is `unsigned long` while JUCE's is `unsigned long long` -
+    # the same width and a different type - so the call was ambiguous there.
+    scalar_overloaded_functions = scalar_overloaded_names(all_functions)
+
     # Free functions in the juce namespace. These were collected and then
     # discarded, so countNumberOfBits, findHighestSetBit and the rest had no
     # binding at all.
@@ -2279,7 +2285,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
         if function.spelling in free_functions_bound_by_lifting:
             comment, reason = "# ", "bound by hand in the _lifting file"
 
-        function_args, function_types = [], []
+        function_args, function_types, function_cpp_types = [], [], []
         for count, arg in enumerate(function.get_arguments()):
             # No per-class table here: the loop that built one has ended, so
             # it holds whichever class happened to be last.
@@ -2287,6 +2293,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
                                        global_nested_remap, unambiguous_nested_remap)
             function_args.append(f"{remap_argument_name(arg.spelling, count)}: {argument_type}")
             function_types.append(argument_type)
+            function_cpp_types.append(arg.type.get_canonical().spelling)
 
         function_return = ""
         if function.result_type.spelling != "void":
@@ -2311,7 +2318,11 @@ def run_main(juce_module_name, juce_class_name_to_export):
             "function_return": function_return,
             "juce_module_name": juce_module_name,
             "juce_spelling": namespace_prefix.replace("_", "::") + function.spelling,
-            "juce_args": "@" if function_args else "",
+            "juce_args": (", ".join(f"({cpp_type}) #"
+                                    for cpp_type in function_cpp_types)
+                          if function_args
+                          and function.spelling in scalar_overloaded_functions
+                          else ("@" if function_args else "")),
             "reason": f"  # {reason}" if comment and reason else "" }))
 
     print()

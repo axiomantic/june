@@ -5148,8 +5148,8 @@ let StandardApplicationCommandIDs_undo* {.header: juce_gui_basics, importcpp: "j
 let StandardApplicationCommandIDs_redo* {.header: juce_gui_basics, importcpp: "juce::StandardApplicationCommandIDs::redo".}: cint
 
 proc createSnapshotOfNativeWindow*(nativeWindowHandle: pointer): Image {.header: juce_gui_basics, importcpp: "juce::createSnapshotOfNativeWindow(@)".}
-# proc operator""_px*(px: long double): GridPx {.header: juce_gui_basics, importcpp: "juce::operator""_px(@)".}  # an operator with no Nim spelling
-# proc operator""_px*(px: uint64): GridPx {.header: juce_gui_basics, importcpp: "juce::operator""_px(@)".}  # an operator with no Nim spelling
+# proc operator""_px*(px: long double): GridPx {.header: juce_gui_basics, importcpp: "juce::operator""_px((long double) #)".}  # an operator with no Nim spelling
+# proc operator""_px*(px: uint64): GridPx {.header: juce_gui_basics, importcpp: "juce::operator""_px((unsigned long long) #)".}  # an operator with no Nim spelling
 # proc operator""_fr*(fr: uint64): GridFr {.header: juce_gui_basics, importcpp: "juce::operator""_fr(@)".}  # an operator with no Nim spelling
 
 
