@@ -3472,3 +3472,41 @@ proc testDrawableComposite() =
 
 testMarkerList()
 testDrawableComposite()
+
+# Every no-argument constructor ===============================================
+#
+# An importcpp string reaches the C++ compiler only at a call site, so a
+# constructor nothing calls is never compiled. These had no caller.
+
+proc testEveryNoArgConstructorGuiBasics() =
+    initialiseJuce_GUI()
+    block:
+        discard makeMouseCursor()
+        discard makeFocusTraverser()
+        discard makeComponent()
+        discard makeComponentAnimator()
+        discard makeComponentDragger()
+        discard makeDragAndDropContainer()
+        discard makeHyperlinkButton()
+        discard makeToggleButton()
+        discard makeConcertinaPanel()
+        discard makeResizableBorderComponentZone()
+        discard makeStretchableLayoutManager()
+        discard makeStretchableObjectResizer()
+        discard makeAccessibilityActions()
+        discard makeAccessibilityHandlerInterfaces()
+        discard makeRelativePointPath()
+        discard makeRelativePointPathCloseSubPath()
+        discard makeDrawablePath()
+        discard makeScopedMessageBox()
+        discard makeComponentPeerOptionalBorderSize()
+        discard makeVBlankAttachment()
+        discard makeFileSearchPathListComponent()
+        discard makeImagePreviewComponent()
+        discard makeFlexItemMargin()
+        discard makeGridItemProperty()
+        discard makeGridItemMargin()
+        discard makeScopedDPIAwarenessDisabler()
+    shutdownJuce_GUI()
+
+testEveryNoArgConstructorGuiBasics()

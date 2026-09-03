@@ -4447,7 +4447,6 @@ proc `VBlankAttachment=`*(this: var VBlankAttachment, other: VBlankAttachment): 
 proc isEmpty*(this: VBlankAttachment): bool {.header: juce_gui_basics, importcpp: "#.isEmpty()".}
 proc `==`*(this: VBlankAttachment, other: VBlankAttachment): bool {.error: "juce::VBlankAttachment defines no operator==; compare a property instead".}
 
-proc makeWindowUtils*(): WindowUtils {.header: juce_gui_basics, importcpp: "juce::WindowUtils(@)".}
 proc areThereAnyAlwaysOnTopWindows*(this: typedesc[WindowUtils]): bool {.header: juce_gui_basics, importcpp: "juce::WindowUtils::areThereAnyAlwaysOnTopWindows()".}
 proc `==`*(this: WindowUtils, other: WindowUtils): bool {.error: "juce::WindowUtils defines no operator==; compare a property instead".}
 
@@ -4716,7 +4715,6 @@ proc timerCallback*(this: var ImagePreviewComponent) {.header: juce_gui_basics, 
 proc createAccessibilityHandler*(this: var ImagePreviewComponent): UniquePtr[AccessibilityHandler] {.header: juce_gui_basics, importcpp: "#.createAccessibilityHandler()".}
 proc `==`*(this: ImagePreviewComponent, other: ImagePreviewComponent): bool {.error: "juce::ImagePreviewComponent defines no operator==; compare a property instead".}
 
-proc makeContentSharer*(): ContentSharer {.header: juce_gui_basics, importcpp: "juce::ContentSharer(@)".}
 proc shareFilesScoped*(this: typedesc[ContentSharer], files: Array[URL], callback: CppFunctionObjectN2[bool, String], parent: ptr Component = nil): ScopedMessageBox {.header: juce_gui_basics, importcpp: "juce::ContentSharer::shareFilesScoped(@)".}
 proc shareTextScoped*(this: typedesc[ContentSharer], text: String, callback: CppFunctionObjectN2[bool, String], parent: ptr Component = nil): ScopedMessageBox {.header: juce_gui_basics, importcpp: "juce::ContentSharer::shareTextScoped(@)".}
 proc shareImagesScoped*(this: typedesc[ContentSharer], images: Array[Image], format: UniquePtr[ImageFileFormat], callback: CppFunctionObjectN2[bool, String], parent: ptr Component = nil): ScopedMessageBox {.header: juce_gui_basics, importcpp: "juce::ContentSharer::shareImagesScoped(@)".}
