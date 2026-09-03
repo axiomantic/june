@@ -2197,3 +2197,202 @@ proc testPathGeometry() =
                  $rebuilt.getBounds().getHeight()
 
 testPathGeometry()
+
+# Graphics is where a wrong argument order goes unnoticed, because a drawing
+# call returns nothing. These assert on the PIXELS: what got painted and, just
+# as importantly, what did not.
+proc litPixelCount(image: Image): int =
+    for x in 0.cint ..< image.getWidth():
+        for y in 0.cint ..< image.getHeight():
+            if image.getPixelAt(x, y).getAlpha() > 0'u8:
+                result += 1
+
+proc testGraphicsShapes() =
+    block:
+        # drawRect outlines and fillRect fills: the centre tells them apart.
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        g.setColour(Colours_white)
+        g.drawRect(makeRectangle(10.cint, 10.cint, 20.cint, 20.cint), 1.cint)
+
+        doAssert image.getPixelAt(10.cint, 10.cint).getAlpha() > 0'u8,
+                 "the outline's corner was not drawn"
+        doAssert image.getPixelAt(20.cint, 20.cint).getAlpha() == 0'u8,
+                 "drawRect filled the middle"
+        doAssert image.getPixelAt(35.cint, 35.cint).getAlpha() == 0'u8,
+                 "drawRect painted outside its rectangle"
+
+    block:
+        # A line is drawn between the two points it is given, and nowhere else.
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        g.setColour(Colours_white)
+        g.drawLine(5.0'f32, 20.0'f32, 35.0'f32, 20.0'f32, 1.0'f32)
+
+        doAssert image.getPixelAt(20.cint, 20.cint).getAlpha() > 0'u8,
+                 "the line's midpoint was not drawn"
+        doAssert image.getPixelAt(20.cint, 5.cint).getAlpha() == 0'u8,
+                 "the line painted well above itself"
+        doAssert image.getPixelAt(2.cint, 20.cint).getAlpha() == 0'u8,
+                 "the line ran past its start"
+
+        # drawVerticalLine takes the other axis, which is the pair a caller
+        # confuses.
+        let other = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g2 = makeGraphics(other)
+        g2.setColour(Colours_white)
+        g2.drawVerticalLine(20.cint, 5.0'f32, 35.0'f32)
+        doAssert other.getPixelAt(20.cint, 20.cint).getAlpha() > 0'u8,
+                 "the vertical line's midpoint was not drawn"
+        doAssert other.getPixelAt(5.cint, 20.cint).getAlpha() == 0'u8,
+                 "drawVerticalLine drew a horizontal line"
+
+    block:
+        # A path fills the shape it describes; stroking it leaves the middle
+        # empty.
+        var triangle = makePath()
+        triangle.addTriangle(20.0'f32, 2.0'f32, 38.0'f32, 38.0'f32,
+                             2.0'f32, 38.0'f32)
+
+        let filled = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(filled)
+        g.setColour(Colours_white)
+        g.fillPath(triangle)
+        doAssert filled.getPixelAt(20.cint, 30.cint).getAlpha() > 0'u8,
+                 "fillPath left the inside of the triangle empty"
+
+        let stroked = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g2 = makeGraphics(stroked)
+        g2.setColour(Colours_white)
+        g2.strokePath(triangle, makePathStrokeType(1.0'f32),
+                      AffineTransform.identity())
+        doAssert stroked.getPixelAt(20.cint, 30.cint).getAlpha() == 0'u8,
+                 "strokePath filled the inside of the triangle"
+        doAssert litPixelCount(stroked) < litPixelCount(filled),
+                 "the stroked triangle lit " & $litPixelCount(stroked) &
+                 " pixels and the filled one " & $litPixelCount(filled)
+
+    block:
+        # An ellipse leaves its corners clear, which is how it differs from the
+        # rectangle that bounds it.
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        g.setColour(Colours_white)
+        g.fillEllipse(makeRectangle(0.0'f32, 0.0'f32, 40.0'f32, 40.0'f32))
+        doAssert image.getPixelAt(20.cint, 20.cint).getAlpha() > 0'u8,
+                 "the ellipse's centre is empty"
+        doAssert image.getPixelAt(0.cint, 0.cint).getAlpha() == 0'u8,
+                 "the ellipse filled its bounding box's corner"
+
+        # And a rounded rectangle leaves less of the corner than a square one.
+        let rounded = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g2 = makeGraphics(rounded)
+        g2.setColour(Colours_white)
+        g2.fillRoundedRectangle(0.0'f32, 0.0'f32, 40.0'f32, 40.0'f32, 10.0'f32)
+        doAssert rounded.getPixelAt(0.cint, 0.cint).getAlpha() == 0'u8,
+                 "the rounded rectangle filled its corner"
+        doAssert litPixelCount(rounded) > litPixelCount(image),
+                 "the rounded rectangle lit " & $litPixelCount(rounded) &
+                 " pixels and the ellipse " & $litPixelCount(image) &
+                 ", so it is not the fatter shape"
+
+proc testGraphicsState() =
+    block:
+        # The clip region is part of the saved state, and restoreState puts it
+        # back. Drawing outside the clip paints nothing.
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        g.setColour(Colours_white)
+
+        g.saveState()
+        discard g.reduceClipRegion(makeRectangle(0.cint, 0.cint, 20.cint, 20.cint))
+        g.fillAll()
+        doAssert image.getPixelAt(10.cint, 10.cint).getAlpha() > 0'u8,
+                 "the clipped fill painted nothing inside the clip"
+        doAssert image.getPixelAt(30.cint, 30.cint).getAlpha() == 0'u8,
+                 "the fill escaped the clip region"
+        g.restoreState()
+
+        # With the clip restored, the same call reaches the whole image.
+        g.fillAll()
+        doAssert image.getPixelAt(30.cint, 30.cint).getAlpha() > 0'u8,
+                 "restoreState did not put the clip region back"
+
+    block:
+        # excludeClipRegion is the complement: it removes a hole.
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        g.setColour(Colours_white)
+        g.excludeClipRegion(makeRectangle(10.cint, 10.cint, 20.cint, 20.cint))
+        g.fillAll()
+        doAssert image.getPixelAt(2.cint, 2.cint).getAlpha() > 0'u8,
+                 "the fill missed the area outside the hole"
+        doAssert image.getPixelAt(20.cint, 20.cint).getAlpha() == 0'u8,
+                 "the fill reached inside the excluded hole"
+
+    block:
+        # Opacity multiplies into the alpha that is written.
+        let image = makeImage(ImagePixelFormat_ARGB, 10.cint, 10.cint, true)
+        var g = makeGraphics(image)
+        g.setColour(Colours_white)
+        g.setOpacity(0.5'f32)
+        g.fillAll()
+        let alpha = image.getPixelAt(5.cint, 5.cint).getAlpha()
+        doAssert alpha > 100'u8 and alpha < 155'u8,
+                 "a half opaque fill wrote alpha " & $alpha
+
+    block:
+        # A transform moves what is drawn afterwards, and only afterwards.
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        g.setColour(Colours_white)
+        g.addTransform(AffineTransform.translation(20.0'f32, 20.0'f32))
+        g.fillRect(makeRectangle(0.cint, 0.cint, 10.cint, 10.cint))
+
+        doAssert image.getPixelAt(25.cint, 25.cint).getAlpha() > 0'u8,
+                 "the transformed rectangle did not land where it was moved to"
+        doAssert image.getPixelAt(5.cint, 5.cint).getAlpha() == 0'u8,
+                 "the rectangle was drawn at its untransformed position too"
+
+    block:
+        # A gradient paints different colours at its two ends.
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 10.cint, true)
+        var g = makeGraphics(image)
+        g.setGradientFill(makeColourGradient(Colours_black, 0.0'f32, 0.0'f32,
+                                             Colours_white, 40.0'f32, 0.0'f32,
+                                             false))
+        g.fillAll()
+        doAssert image.getPixelAt(38.cint, 5.cint).getRed() >
+                 image.getPixelAt(1.cint, 5.cint).getRed(),
+                 "the gradient's far end (" &
+                 $image.getPixelAt(38.cint, 5.cint).getRed() &
+                 ") is not lighter than its near end (" &
+                 $image.getPixelAt(1.cint, 5.cint).getRed() & ")"
+
+    block:
+        # An image drawn into another arrives at the position it was given.
+        let source = makeImage(ImagePixelFormat_ARGB, 10.cint, 10.cint, true)
+        var sourceGraphics = makeGraphics(source)
+        sourceGraphics.setColour(Colours_white)
+        sourceGraphics.fillAll()
+
+        let target = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(target)
+        g.drawImageAt(source, 20.cint, 20.cint, false)
+        doAssert target.getPixelAt(25.cint, 25.cint).getAlpha() > 0'u8,
+                 "the image did not arrive where it was placed"
+        doAssert target.getPixelAt(5.cint, 5.cint).getAlpha() == 0'u8,
+                 "the image was drawn at the origin as well"
+
+    block:
+        # The font a Graphics carries is the one it was last given.
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        g.setFont(makeFont(makeFontOptions(23.0'f32)))
+        doAssert g.getCurrentFont().getHeight() == 23.0'f32,
+                 "the current font is " & $g.getCurrentFont().getHeight() & " tall"
+
+initialiseJuce_GUI()
+testGraphicsShapes()
+testGraphicsState()
+shutdownJuce_GUI()
