@@ -557,6 +557,29 @@ def unbound_type_reason(rendered, member=False):
         return ("takes a type from juce::detail, which is JUCE's own "
                 "implementation; the class is obtained from the API that "
                 "creates it")
+    # The shapes that turn up often enough to name. The bare fallback below
+    # says nothing a reader can act on, and 21 procs were sitting behind it.
+    if re.search(r"\bauto\b", rendered):
+        return ("a deduced return type, which cannot be spelled without "
+                "instantiating the template")
+    if "std::variant" in rendered:
+        return "a std::variant, which Nim cannot spell"
+    if "SingletonHolder" in rendered:
+        return "JUCE's SingletonHolder, which is reached through the singleton it holds"
+    if "ListenerList" in rendered:
+        return ("a ListenerList over a nested type, which has no name outside "
+                "the class; addListener and removeListener reach it")
+    if "__CFString" in rendered or "CFString" in rendered:
+        return "a Core Foundation type, which is not bound"
+    if "nullopt_t" in rendered:
+        return "std::nullopt_t, which is a tag rather than a value Nim can pass"
+    if "ScopedPointer" in rendered:
+        return "juce::ScopedPointer, which JUCE removed and does not define"
+    if re.search(r"\(\s*pointer[^)]*\)", rendered):
+        return "a C++ function pointer parameter, which the generator cannot spell"
+    if "::" in rendered:
+        return ("a nested or template name that survived remapping, so it is "
+                "not valid Nim")
     return "a type that cannot be spelled in Nim"
 
 def nested_class_descendants(cursor, nim_prefix, cpp_prefix):

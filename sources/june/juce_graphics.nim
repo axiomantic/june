@@ -824,9 +824,9 @@ proc height*(this: ImagePixelData): cint {.header: juce_graphics, importcpp: "#.
 proc userData*(this: ImagePixelData): NamedValueSet {.header: juce_graphics, importcpp: "#.userData".}
 proc userData*(this: var ImagePixelData): var NamedValueSet {.header: juce_graphics, importcpp: "#.userData".}
 proc `userData=`*(this: var ImagePixelData, value: NamedValueSet) {.header: juce_graphics, importcpp: "#.userData = #".}
-# proc listeners*(this: ImagePixelData): ListenerList<Listener> {.header: juce_graphics, importcpp: "#.listeners".}  # a type that cannot be spelled in Nim
-# proc listeners*(this: var ImagePixelData): var ListenerList<Listener> {.header: juce_graphics, importcpp: "#.listeners".}  # a type that cannot be spelled in Nim
-# proc `listeners=`*(this: var ImagePixelData, value: ListenerList<Listener>) {.header: juce_graphics, importcpp: "#.listeners = #".}  # a type that cannot be spelled in Nim
+# proc listeners*(this: ImagePixelData): ListenerList<Listener> {.header: juce_graphics, importcpp: "#.listeners".}  # a ListenerList over a nested type, which has no name outside the class; addListener and removeListener reach it
+# proc listeners*(this: var ImagePixelData): var ListenerList<Listener> {.header: juce_graphics, importcpp: "#.listeners".}  # a ListenerList over a nested type, which has no name outside the class; addListener and removeListener reach it
+# proc `listeners=`*(this: var ImagePixelData, value: ListenerList<Listener>) {.header: juce_graphics, importcpp: "#.listeners = #".}  # a ListenerList over a nested type, which has no name outside the class; addListener and removeListener reach it
 proc createLowLevelContext*(this: var ImagePixelData): UniquePtr[LowLevelGraphicsContext] {.header: juce_graphics, importcpp: "#.createLowLevelContext()".}
 proc clone*(this: var ImagePixelData): ReferenceCountedObjectPtr[ImagePixelData] {.header: juce_graphics, importcpp: "#.clone()".}
 proc createType*(this: ImagePixelData): UniquePtr[ImageType] {.header: juce_graphics, importcpp: "#.createType()".}
@@ -942,9 +942,9 @@ proc transform*(this: var ImageLayer): var AffineTransform {.header: juce_graphi
 proc `transform=`*(this: var ImageLayer, value: AffineTransform) {.header: juce_graphics, importcpp: "#.transform = #".}
 proc `==`*(this: ImageLayer, other: ImageLayer): bool {.error: "juce::ImageLayer defines no operator==; compare a property instead".}
 
-# proc layer*(this: GlyphLayer): std::variant<ColourLayer, ImageLayer> {.header: juce_graphics, importcpp: "#.layer".}  # a type that cannot be spelled in Nim
-# proc layer*(this: var GlyphLayer): var std::variant<ColourLayer, ImageLayer> {.header: juce_graphics, importcpp: "#.layer".}  # a type that cannot be spelled in Nim
-# proc `layer=`*(this: var GlyphLayer, value: std::variant<ColourLayer, ImageLayer>) {.header: juce_graphics, importcpp: "#.layer = #".}  # a type that cannot be spelled in Nim
+# proc layer*(this: GlyphLayer): std::variant<ColourLayer, ImageLayer> {.header: juce_graphics, importcpp: "#.layer".}  # a std::variant, which Nim cannot spell
+# proc layer*(this: var GlyphLayer): var std::variant<ColourLayer, ImageLayer> {.header: juce_graphics, importcpp: "#.layer".}  # a std::variant, which Nim cannot spell
+# proc `layer=`*(this: var GlyphLayer, value: std::variant<ColourLayer, ImageLayer>) {.header: juce_graphics, importcpp: "#.layer = #".}  # a std::variant, which Nim cannot spell
 proc `==`*(this: GlyphLayer, other: GlyphLayer): bool {.error: "juce::GlyphLayer defines no operator==; compare a property instead".}
 
 proc makeTypefaceMetrics*(): TypefaceMetrics {.header: juce_graphics, importcpp: "juce::TypefaceMetrics(@)".}  # implicit default constructor
