@@ -1977,3 +1977,56 @@ countries: pi
                  "merging dropped the original entry"
 
 testLocalisedStrings()
+
+# The GZIP streams and SubregionStream ========================================
+#
+# A compress-then-decompress round trip, so the assertion is that the bytes
+# came back rather than that something was written. The text is repetitive on
+# purpose: compressed output has to be smaller than the input, which says the
+# compressor really ran.
+
+proc testCompressionAndSubregion() =
+    block:
+        let original = makeString("june june june june june june june june june june")
+        var compressed = makeMemoryBlock()
+
+        block:
+            var sink = makeMemoryOutputStream(compressed, false)
+            var deflater = makeGZIPCompressorOutputStream(sink, 9.cint, 15.cint)
+            doAssert deflater.writeText(original, false, false, "\n".toConstChar),
+                     "writing to the compressor failed"
+            deflater.flush()
+
+        doAssert compressed.getSize() > 0,
+                 "the compressor produced " & $compressed.getSize() & " bytes"
+        doAssert compressed.getSize().int < original.length(),
+                 "compressing " & $original.length() & " bytes gave " &
+                 $compressed.getSize() & ", which is no smaller"
+
+        block:
+            var source = makeMemoryInputStream(compressed, false)
+            var inflater = makeGZIPDecompressorInputStream(source)
+            doAssert $inflater.readEntireStreamAsString() == $original,
+                     "the round trip did not give the text back"
+
+    block:
+        # A subregion is a window onto part of another stream, so it reports
+        # its own length and reads only what is inside it.
+        var digits = makeMemoryBlock()
+        block:
+            var writer = makeMemoryOutputStream(digits, false)
+            doAssert writer.writeText(makeString("0123456789"), false, false,
+                                      "\n".toConstChar),
+                     "writing the digits failed"
+            writer.flush()
+
+        var whole = makeMemoryInputStream(digits, false)
+        var middle = makeSubregionStream(
+            cast[ptr InputStream](addr whole), 3'i64, 4'i64, false)
+
+        doAssert middle.getTotalLength() == 4'i64,
+                 "the subregion is " & $middle.getTotalLength() & " bytes"
+        doAssert $middle.readEntireStreamAsString() == "3456",
+                 "the subregion reads " & $middle.readEntireStreamAsString()
+
+testCompressionAndSubregion()
