@@ -21,11 +21,11 @@ type
   ChangeListener* {.header: juce_events, importcpp: "juce::ChangeListener", inheritable, pure.} = object
   ChangeBroadcaster* {.header: juce_events, importcpp: "juce::ChangeBroadcaster", inheritable, pure.} = object
   Timer* {.header: juce_events, importcpp: "juce::Timer", inheritable, pure.} = object
-  TimedCallback* {.header: juce_events, importcpp: "juce::TimedCallback", inheritable, pure.} = object of Timer
+  TimedCallback* {.header: juce_events, importcpp: "juce::TimedCallback", inheritable, pure.} = object
   MultiTimer* {.header: juce_events, importcpp: "juce::MultiTimer", inheritable, pure.} = object
-  ChildProcessManager* {.header: juce_events, importcpp: "juce::ChildProcessManager", inheritable, pure.} = object of DeletedAtShutdown
+  ChildProcessManager* {.header: juce_events, importcpp: "juce::ChildProcessManager", inheritable, pure.} = object
   InterprocessConnection* {.header: juce_events, importcpp: "juce::InterprocessConnection", inheritable, pure.} = object
-  InterprocessConnectionServer* {.header: juce_events, importcpp: "juce::InterprocessConnectionServer", inheritable, pure.} = object of Thread
+  InterprocessConnectionServer* {.header: juce_events, importcpp: "juce::InterprocessConnectionServer", inheritable, pure.} = object
   ChildProcessWorker* {.header: juce_events, importcpp: "juce::ChildProcessWorker", inheritable, pure.} = object
   ChildProcessCoordinator* {.header: juce_events, importcpp: "juce::ChildProcessCoordinator", inheritable, pure.} = object
   NetworkServiceDiscovery* {.header: juce_events, importcpp: "juce::NetworkServiceDiscovery", inheritable, pure.} = object
@@ -192,6 +192,11 @@ proc callPendingTimersSynchronously*(this: typedesc[Timer]) {.header: juce_event
 proc `==`*(this: Timer, other: Timer): bool {.error: "juce::Timer defines no operator==; compare a property instead".}
 
 proc makeTimedCallback*(callbackIn: CppFunctionObjectN0): TimedCallback {.header: juce_events, importcpp: "juce::TimedCallback(@)".}
+proc startTimer*(this: var TimedCallback, intervalInMilliseconds: cint) {.header: juce_events, importcpp: "#.startTimer(@)".}
+proc startTimerHz*(this: var TimedCallback, timerFrequencyHz: cint) {.header: juce_events, importcpp: "#.startTimerHz(@)".}
+proc stopTimer*(this: var TimedCallback) {.header: juce_events, importcpp: "#.stopTimer()".}
+proc isTimerRunning*(this: TimedCallback): bool {.header: juce_events, importcpp: "#.isTimerRunning()".}
+proc getTimerInterval*(this: TimedCallback): cint {.header: juce_events, importcpp: "#.getTimerInterval()".}
 proc `==`*(this: TimedCallback, other: TimedCallback): bool {.error: "juce::TimedCallback defines no operator==; compare a property instead".}
 
 proc timerCallback*(this: var MultiTimer, timerID: cint) {.header: juce_events, importcpp: "#.timerCallback(@)".}

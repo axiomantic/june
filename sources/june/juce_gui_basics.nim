@@ -14,7 +14,7 @@ type
   KeyListener* {.header: juce_gui_basics, importcpp: "juce::KeyListener", inheritable, pure.} = object
   ComponentTraverser* {.header: juce_gui_basics, importcpp: "juce::ComponentTraverser", inheritable, pure.} = object
   FocusTraverser* {.header: juce_gui_basics, importcpp: "juce::FocusTraverser", inheritable, pure.} = object of ComponentTraverser
-  ModalComponentManager* {.header: juce_gui_basics, importcpp: "juce::ModalComponentManager", inheritable, pure.} = object of AsyncUpdater
+  ModalComponentManager* {.header: juce_gui_basics, importcpp: "juce::ModalComponentManager", inheritable, pure.} = object
   ModalComponentManagerCallback* {.header: juce_gui_basics, importcpp: "juce::ModalComponentManager::Callback", inheritable, pure.} = object
   ModalComponentManagerKey* {.header: juce_gui_basics, importcpp: "juce::ModalComponentManager::Key", inheritable, pure.} = object
   ModalCallbackFunction* {.header: juce_gui_basics, importcpp: "juce::ModalCallbackFunction", inheritable, pure.} = object
@@ -27,7 +27,7 @@ type
   ComponentAnimator* {.header: juce_gui_basics, importcpp: "juce::ComponentAnimator", inheritable, pure.} = object of ChangeBroadcaster
   FocusChangeListener* {.header: juce_gui_basics, importcpp: "juce::FocusChangeListener", inheritable, pure.} = object
   DarkModeSettingListener* {.header: juce_gui_basics, importcpp: "juce::DarkModeSettingListener", inheritable, pure.} = object
-  Desktop* {.header: juce_gui_basics, importcpp: "juce::Desktop", inheritable, pure.} = object of DeletedAtShutdown
+  Desktop* {.header: juce_gui_basics, importcpp: "juce::Desktop", inheritable, pure.} = object
   Displays* {.header: juce_gui_basics, importcpp: "juce::Displays", inheritable, pure.} = object
   DisplaysDisplay* {.header: juce_gui_basics, importcpp: "juce::Displays::Display", inheritable, pure.} = object
   ComponentBoundsConstrainer* {.header: juce_gui_basics, importcpp: "juce::ComponentBoundsConstrainer", inheritable, pure.} = object
@@ -37,7 +37,7 @@ type
   DragAndDropTargetSourceDetails* {.header: juce_gui_basics, importcpp: "juce::DragAndDropTarget::SourceDetails", inheritable, pure.} = object
   DragAndDropContainer* {.header: juce_gui_basics, importcpp: "juce::DragAndDropContainer", inheritable, pure.} = object
   FileDragAndDropTarget* {.header: juce_gui_basics, importcpp: "juce::FileDragAndDropTarget", inheritable, pure.} = object
-  MouseInactivityDetector* {.header: juce_gui_basics, importcpp: "juce::MouseInactivityDetector", inheritable, pure.} = object of Timer
+  MouseInactivityDetector* {.header: juce_gui_basics, importcpp: "juce::MouseInactivityDetector", inheritable, pure.} = object
   MouseInactivityDetectorListener* {.header: juce_gui_basics, importcpp: "juce::MouseInactivityDetector::Listener", inheritable, pure.} = object
   TextDragAndDropTarget* {.header: juce_gui_basics, importcpp: "juce::TextDragAndDropTarget", inheritable, pure.} = object
   TooltipClient* {.header: juce_gui_basics, importcpp: "juce::TooltipClient", inheritable, pure.} = object
@@ -49,7 +49,7 @@ type
   ApplicationCommandInfo* {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandInfo", inheritable, pure.} = object
   ApplicationCommandTarget* {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandTarget", inheritable, pure.} = object
   ApplicationCommandTargetInvocationInfo* {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandTarget::InvocationInfo", inheritable, pure.} = object
-  ApplicationCommandManager* {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandManager", inheritable, pure.} = object of AsyncUpdater
+  ApplicationCommandManager* {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandManager", inheritable, pure.} = object
   ApplicationCommandManagerListener* {.header: juce_gui_basics, importcpp: "juce::ApplicationCommandManagerListener", inheritable, pure.} = object
   KeyPressMappingSet* {.header: juce_gui_basics, importcpp: "juce::KeyPressMappingSet", inheritable, pure.} = object of KeyListener
   Button* {.header: juce_gui_basics, importcpp: "juce::Button", inheritable, pure.} = object of Component
@@ -109,7 +109,7 @@ type
   PopupMenuOptions* {.header: juce_gui_basics, importcpp: "juce::PopupMenu::Options", inheritable, pure.} = object
   PopupMenuMenuItemIterator* {.header: juce_gui_basics, importcpp: "juce::PopupMenu::MenuItemIterator", inheritable, pure.} = object
   PopupMenuLookAndFeelMethods* {.header: juce_gui_basics, importcpp: "juce::PopupMenu::LookAndFeelMethods", inheritable, pure.} = object
-  MenuBarModel* {.header: juce_gui_basics, importcpp: "juce::MenuBarModel", inheritable, pure.} = object of AsyncUpdater
+  MenuBarModel* {.header: juce_gui_basics, importcpp: "juce::MenuBarModel", inheritable, pure.} = object
   MenuBarModelListener* {.header: juce_gui_basics, importcpp: "juce::MenuBarModel::Listener", inheritable, pure.} = object
   MenuBarComponent* {.header: juce_gui_basics, importcpp: "juce::MenuBarComponent", inheritable, pure.} = object of Component
   RelativeCoordinate* {.header: juce_gui_basics, importcpp: "juce::RelativeCoordinate", inheritable, pure.} = object
@@ -171,8 +171,8 @@ type
   ToolbarItemPalette* {.header: juce_gui_basics, importcpp: "juce::ToolbarItemPalette", inheritable, pure.} = object of Component
   BurgerMenuComponent* {.header: juce_gui_basics, importcpp: "juce::BurgerMenuComponent", inheritable, pure.} = object of Component
   ToolbarButton* {.header: juce_gui_basics, importcpp: "juce::ToolbarButton", inheritable, pure.} = object of ToolbarItemComponent
-  DropShadower* {.header: juce_gui_basics, importcpp: "juce::DropShadower", inheritable, pure.} = object of ComponentListener
-  FocusOutline* {.header: juce_gui_basics, importcpp: "juce::FocusOutline", inheritable, pure.} = object of ComponentListener
+  DropShadower* {.header: juce_gui_basics, importcpp: "juce::DropShadower", inheritable, pure.} = object
+  FocusOutline* {.header: juce_gui_basics, importcpp: "juce::FocusOutline", inheritable, pure.} = object
   FocusOutlineOutlineWindowProperties* {.header: juce_gui_basics, importcpp: "juce::FocusOutline::OutlineWindowProperties", inheritable, pure.} = object
   TreeViewItem* {.header: juce_gui_basics, importcpp: "juce::TreeViewItem", inheritable, pure.} = object
   TreeViewItemOpennessRestorer* {.header: juce_gui_basics, importcpp: "juce::TreeViewItem::OpennessRestorer", inheritable, pure.} = object
@@ -185,7 +185,7 @@ type
   AlertWindowLookAndFeelMethods* {.header: juce_gui_basics, importcpp: "juce::AlertWindow::LookAndFeelMethods", inheritable, pure.} = object
   CallOutBox* {.header: juce_gui_basics, importcpp: "juce::CallOutBox", inheritable, pure.} = object of Component
   CallOutBoxLookAndFeelMethods* {.header: juce_gui_basics, importcpp: "juce::CallOutBox::LookAndFeelMethods", inheritable, pure.} = object
-  ComponentPeer* {.header: juce_gui_basics, importcpp: "juce::ComponentPeer", inheritable, pure.} = object of FocusChangeListener
+  ComponentPeer* {.header: juce_gui_basics, importcpp: "juce::ComponentPeer", inheritable, pure.} = object
   ComponentPeerOptionalBorderSize* {.header: juce_gui_basics, importcpp: "juce::ComponentPeer::OptionalBorderSize", inheritable, pure.} = object
   ComponentPeerDragInfo* {.header: juce_gui_basics, importcpp: "juce::ComponentPeer::DragInfo", inheritable, pure.} = object
   ComponentPeerScaleFactorListener* {.header: juce_gui_basics, importcpp: "juce::ComponentPeer::ScaleFactorListener", inheritable, pure.} = object
@@ -200,9 +200,9 @@ type
   ThreadWithProgressWindow* {.header: juce_gui_basics, importcpp: "juce::ThreadWithProgressWindow", inheritable, pure.} = object of Thread
   TooltipWindow* {.header: juce_gui_basics, importcpp: "juce::TooltipWindow", inheritable, pure.} = object of Component
   TooltipWindowLookAndFeelMethods* {.header: juce_gui_basics, importcpp: "juce::TooltipWindow::LookAndFeelMethods", inheritable, pure.} = object
-  VBlankAttachment* {.header: juce_gui_basics, importcpp: "juce::VBlankAttachment", inheritable, pure.} = object of ComponentListener
+  VBlankAttachment* {.header: juce_gui_basics, importcpp: "juce::VBlankAttachment", inheritable, pure.} = object
   WindowUtils* {.header: juce_gui_basics, importcpp: "juce::WindowUtils", inheritable, pure.} = object
-  NativeScaleFactorNotifier* {.header: juce_gui_basics, importcpp: "juce::NativeScaleFactorNotifier", inheritable, pure.} = object of ComponentMovementWatcher
+  NativeScaleFactorNotifier* {.header: juce_gui_basics, importcpp: "juce::NativeScaleFactorNotifier", inheritable, pure.} = object
   MultiDocumentPanelWindow* {.header: juce_gui_basics, importcpp: "juce::MultiDocumentPanelWindow", inheritable, pure.} = object of DocumentWindowImpl
   MultiDocumentPanel* {.header: juce_gui_basics, importcpp: "juce::MultiDocumentPanel", inheritable, pure.} = object of Component
   SidePanel* {.header: juce_gui_basics, importcpp: "juce::SidePanel", inheritable, pure.} = object of Component
@@ -216,7 +216,7 @@ type
   FileChooser* {.header: juce_gui_basics, importcpp: "juce::FileChooser", inheritable, pure.} = object
   FileChooserNative* {.header: juce_gui_basics, importcpp: "juce::FileChooser::Native", inheritable, pure.} = object
   FileChooserDialogBox* {.header: juce_gui_basics, importcpp: "juce::FileChooserDialogBox", inheritable, pure.} = object of ResizableWindow
-  FileListComponent* {.header: juce_gui_basics, importcpp: "juce::FileListComponent", inheritable, pure.} = object of ListBoxModel
+  FileListComponent* {.header: juce_gui_basics, importcpp: "juce::FileListComponent", inheritable, pure.} = object of ListBox
   FilenameComponentListener* {.header: juce_gui_basics, importcpp: "juce::FilenameComponentListener", inheritable, pure.} = object
   FilenameComponent* {.header: juce_gui_basics, importcpp: "juce::FilenameComponent", inheritable, pure.} = object of Component
   FilenameComponentLookAndFeelMethods* {.header: juce_gui_basics, importcpp: "juce::FilenameComponent::LookAndFeelMethods", inheritable, pure.} = object
@@ -4322,6 +4322,8 @@ proc setContentComponentSize*(this: var ResizableWindow, width: cint, height: ci
 proc getBorderThickness*(this: ResizableWindow): BorderSize[cint] {.header: juce_gui_basics, importcpp: "#.getBorderThickness()".}
 proc getContentComponentBorder*(this: ResizableWindow): BorderSize[cint] {.header: juce_gui_basics, importcpp: "#.getContentComponentBorder()".}
 proc setContentComponent*(this: var ResizableWindow, newContentComponent: ptr Component, deleteOldOne: bool = true, resizeToFit: bool = false) {.header: juce_gui_basics, importcpp: "#.setContentComponent(@)".}
+proc addToDesktop*(this: var ResizableWindow) {.header: juce_gui_basics, importcpp: "#.addToDesktop()".}
+proc addToDesktop*(this: var ResizableWindow, windowStyleFlags: cint, nativeWindowToAttachTo: pointer = nil) {.header: juce_gui_basics, importcpp: "#.addToDesktop(@)".}
 proc `==`*(this: ResizableWindow, other: ResizableWindow): bool {.error: "juce::ResizableWindow defines no operator==; compare a property instead".}
 
 proc drawCornerResizer*(this: var ResizableWindowLookAndFeelMethods, arg1: var Graphics, w: cint, h: cint, isMouseOver: bool, isMouseDragging: bool) {.header: juce_gui_basics, importcpp: "#.drawCornerResizer(@)".}
@@ -4559,7 +4561,7 @@ proc `isReadOnly=`*(this: var DirectoryContentsListFileInfo, value: bool) {.head
 proc `==`*(this: DirectoryContentsListFileInfo, other: DirectoryContentsListFileInfo): bool {.error: "juce::DirectoryContentsList::FileInfo defines no operator==; compare a property instead".}
 
 # proc makeDirectoryContentsDisplayComponent*(listToShow: var DirectoryContentsList): DirectoryContentsDisplayComponent {.header: juce_gui_basics, importcpp: "juce::DirectoryContentsDisplayComponent(@)".}  # DirectoryContentsDisplayComponent is abstract; build a CustomDirectoryContentsDisplayComponent instead
-proc directoryContentsList*(this: DirectoryContentsDisplayComponent): DirectoryContentsList {.header: juce_gui_basics, importcpp: "#.directoryContentsList".}
+proc directoryContentsList*(this: var DirectoryContentsDisplayComponent): var DirectoryContentsList {.header: juce_gui_basics, importcpp: "#.directoryContentsList".}
 proc getNumSelectedFiles*(this: DirectoryContentsDisplayComponent): cint {.header: juce_gui_basics, importcpp: "#.getNumSelectedFiles()".}
 proc getSelectedFile*(this: DirectoryContentsDisplayComponent, index: cint): File {.header: juce_gui_basics, importcpp: "#.getSelectedFile(@)".}
 proc deselectAllFiles*(this: var DirectoryContentsDisplayComponent) {.header: juce_gui_basics, importcpp: "#.deselectAllFiles()".}
