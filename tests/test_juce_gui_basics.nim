@@ -4780,4 +4780,46 @@ proc testEveryStaticVariableGuiBasics() =
         discard AlertWindow.`InfoIcon`()
         discard FlexItem.`autoValue`()
 
+# A generated nested listener, end to end =====================================
+#
+# ComboBox::Listener is one of the 58 nested interfaces the subclass generator
+# used to skip. This is the whole path an application takes: implement the
+# listener in Nim, register it with the widget, and let JUCE call it.
+
+proc testComboBoxListener() =
+    initialiseJuce_GUI()
+
+    block:
+        var changes: seq[cint] = @[]
+        var listener = newCustomComboBoxListener()
+        listener[].setComboBoxChangedHandler(proc(box: ptr ComboBox) =
+            changes.add(box[].getSelectedId()))
+
+        var box = makeComboBox(makeString("choices"))
+        box.addItem(makeString("one"), 1.cint)
+        box.addItem(makeString("two"), 2.cint)
+        box.addListener(cast[ptr ComboBoxListener](listener))
+
+        # Synchronously, so the assertion does not race the message queue.
+        box.setSelectedId(2.cint, NotificationType_sendNotificationSync)
+        doAssert changes == @[2.cint],
+                 "the listener saw " & $changes
+
+        # A change with no notification does not reach the listener, which is
+        # what says the notification is what carried it.
+        box.setSelectedId(1.cint, NotificationType_dontSendNotification)
+        doAssert changes == @[2.cint],
+                 "a silent change reached the listener, leaving " & $changes
+
+        box.removeListener(cast[ptr ComboBoxListener](listener))
+        box.setSelectedId(2.cint, NotificationType_sendNotificationSync)
+        doAssert changes == @[2.cint],
+                 "a removed listener was still called, leaving " & $changes
+
+        cdelete listener
+
+    shutdownJuce_GUI()
+
+
 testEveryStaticVariableGuiBasics()
+testComboBoxListener()
