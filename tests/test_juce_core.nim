@@ -401,8 +401,10 @@ proc testDynamicObjectMethod() =
   let asFunction = makejuce_var(answer)
   doAssert asFunction.isMethod(), "a var built from a std::function is not a method"
   var native = asFunction.getNativeFunction()
-  let noArguments = makejuce_varNativeFunctionArgs(asFunction, nil, 0.cint)
-  let direct = `()`(native, noArguments)
+  var noArguments = makejuce_varNativeFunctionArgs(asFunction, nil, 0.cint)
+  # By pointer: the const-reference form takes its argument the way the handler
+  # receives it, and C++ dereferences it into the reference std::function declares.
+  let direct = `()`(native, noArguments.addr)
   doAssert $direct.toString() == "7",
            "calling the std::function directly gave " & $direct.toString()
 
@@ -2774,3 +2776,36 @@ proc testUnitTestRegistry() =
                  "the registry did not shrink when the test was deleted"
 
 testUnitTestRegistry()
+
+# std::function over a const reference =========================================
+#
+# JUCE asks for std::function<void(const T&)> where T cannot be passed by value.
+# Only the value-returning form of that had a Nim type, so the void-returning
+# ones bound as std::function<void(T)> - a type C++ cannot even form when T is
+# non-copyable. And a field of that type was read as a reference field, because
+# its spelling carries an ampersand inside the template argument, so it got no
+# setter: readable, and impossible to install.
+
+proc testConstReferenceFunctionObjects() =
+    block:
+        var command = makeConsoleApplicationCommand()
+        command.commandOption = makeString("--greet")
+
+        var seen = 0
+        # A Nim string rather than a juce::String: the closure environment is
+        # Nim-managed memory, and a C++ object captured into it is not
+        # constructed or destroyed the way C++ requires.
+        var received = ""
+        command.command = bindConstRefClosure(proc(arguments: ptr ArgumentList) =
+            seen += 1
+            received = $arguments[].executableName)
+
+        var held = command.command()
+        var arguments = makeArgumentList(makeString("june"), makeString("--greet"))
+        held(addr arguments)
+
+        doAssert seen == 1, "the command ran " & $seen & " times"
+        doAssert received == "june",
+                 "the command saw the executable as " & received
+
+testConstReferenceFunctionObjects()
