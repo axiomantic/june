@@ -582,6 +582,17 @@ def unbound_type_reason(rendered, member=False):
                 "not valid Nim")
     return "a type that cannot be spelled in Nim"
 
+# A nested class whose flattened name collides with a top-level one. Both
+# juce::MessageManagerLock and juce::MessageManager::Lock flatten to
+# MessageManagerLock, and the type declaration ended up naming the nested one
+# while every method bound onto it came from the top-level class - so the
+# constructor could not be called and the methods were attributed to a class
+# that does not have them.
+nested_class_renames = {
+    "juce::MessageManager::Lock": "MessageManagerInnerLock",
+}
+
+
 def nested_class_descendants(cursor, nim_prefix, cpp_prefix):
     """Every public class nested under a cursor, at any depth.
 
@@ -595,8 +606,9 @@ def nested_class_descendants(cursor, nim_prefix, cpp_prefix):
                 or child.access_specifier != AccessSpecifier.PUBLIC
                 or not child.spelling):
             continue
-        nim_name = f"{nim_prefix}{child.spelling}"
         cpp_name = f"{cpp_prefix}::{child.spelling}"
+        nim_name = nested_class_renames.get(
+            cpp_name, f"{nim_prefix}{child.spelling}")
         yield child, nim_name, cpp_name
         yield from nested_class_descendants(child, nim_name, cpp_name)
 
