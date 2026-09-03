@@ -10213,3 +10213,122 @@ proc testDesktop() =
     shutdownJuce_GUI()
 
 testDesktop()
+
+# The rest of ListBox: the row components, the scrollbars and the switches
+# that decide what a click does.
+proc testListBoxRowsAndScrolling() =
+    initialiseJuce_GUI()
+
+    block:
+        let model = newCustomListBoxModel()
+        model[].setNumRowsHandler(proc(): cint = 40.cint)
+
+        var box = makeListBox(makeString("list"), cast[ptr ListBoxModel](model))
+        box.setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 100.cint))
+        box.setRowHeight(20.cint)
+        # A component starts INVISIBLE, and the viewport builds a row component
+        # only for a row it would actually draw, so nothing exists until the
+        # box is shown.
+        box.setVisible(true)
+        box.updateContent()
+
+        # Only the rows on screen have a component, and each one answers with
+        # its own row number - the two lookups invert.
+        let onScreen = box.getNumRowsOnScreen()
+        doAssert onScreen > 0 and onScreen < 40,
+                 $onScreen & " of 40 rows fit in a 100 pixel box"
+
+        # getComponentForRowNumber does not give the ROW: it gives the custom
+        # component the MODEL supplied for that row through
+        # refreshComponentForRow (juce_ListBox.cpp:873). This model supplies
+        # none, so every row answers with nothing - on screen or not.
+        doAssert box.getComponentForRowNumber(0.cint).isNil,
+                 "a model that supplies no component produced one for row 0"
+        doAssert box.getComponentForRowNumber(39.cint).isNil,
+                 "a row far off screen has a component"
+        doAssert box.getRowNumberOfComponent(nil) == -1,
+                 "a component that is not in the list reports row " &
+                 $box.getRowNumberOfComponent(nil)
+
+        # The visible widths are the box less whatever the scrollbar takes.
+        doAssert box.getVisibleContentWidth() > 0 and
+                 box.getVisibleContentWidth() <= 200,
+                 "the visible content is " & $box.getVisibleContentWidth() &
+                 " wide"
+        doAssert box.getVisibleRowWidth() > 0,
+                 "a row is " & $box.getVisibleRowWidth() & " wide"
+
+        # A minimum content width wider than the box forces the horizontal
+        # scrollbar into use.
+        doAssert not box.getHorizontalScrollBar().isVisible(),
+                 "the horizontal scrollbar is shown with nothing to scroll"
+        box.setMinimumContentWidth(600.cint)
+        doAssert box.getHorizontalScrollBar().isVisible(),
+                 "a 600 pixel content did not bring out the horizontal scrollbar"
+        box.setMinimumContentWidth(0.cint)
+
+        # The vertical one is out already: 40 rows do not fit.
+        doAssert box.getVerticalScrollBar().isVisible(),
+                 "40 rows in a 5 row box did not bring out the scrollbar"
+
+        # Scrolling to a row off the bottom moves the view; scrolling to one
+        # already on screen does not.
+        let before = box.getVerticalPosition()
+        box.scrollToEnsureRowIsOnscreen(39.cint)
+        doAssert box.getVerticalPosition() > before,
+                 "scrolling to the last row left the view at " &
+                 $box.getVerticalPosition()
+        let after = box.getVerticalPosition()
+        box.scrollToEnsureRowIsOnscreen(39.cint)
+        doAssert box.getVerticalPosition() == after,
+                 "scrolling to a row already on screen moved the view to " &
+                 $box.getVerticalPosition()
+
+        box.scrollToEnsureRowIsOnscreen(0.cint)
+        doAssert box.getVerticalPosition() == 0.0,
+                 "scrolling back to row 0 gave " & $box.getVerticalPosition()
+
+        # repaintRow has no reader; what is asserted is that it runs and leaves
+        # the box consistent.
+        box.repaintRow(1.cint)
+        doAssert box.getNumRowsOnScreen() == onScreen,
+                 "repainting a row changed how many fit"
+
+        cdelete model
+
+    block:
+        # The switches that decide what a click does. Each is asserted from
+        # its documented default and then in both directions.
+        let model = newCustomListBoxModel()
+        model[].setNumRowsHandler(proc(): cint = 5.cint)
+        var box = makeListBox(makeString("list"), cast[ptr ListBoxModel](model))
+        box.setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 200.cint))
+        box.updateContent()
+
+        doAssert box.getRowSelectedOnMouseDown(),
+                 "a row is selected on mouse UP by default"
+        box.setRowSelectedOnMouseDown(false)
+        doAssert not box.getRowSelectedOnMouseDown(),
+                 "the switch stayed on"
+
+        # These have no reader of their own.
+        box.setClickingTogglesRowSelection(true)
+        box.setMouseMoveSelectsRows(true)
+        doAssert box.getNumRowsOnScreen() > 0,
+                 "the switches emptied the box"
+
+        # A header component becomes a child and is reachable again.
+        doAssert box.getHeaderComponent().isNil,
+                 "a new box has a header component"
+        let header = newCustomComponent()
+        header[].setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 20.cint))
+        box.setHeaderComponent(makeUniquePtr(cast[ptr Component](header)))
+        doAssert box.getHeaderComponent() == cast[ptr Component](header),
+                 "the header component is a different one"
+
+        # The box owns the header now, so nothing here deletes it.
+        cdelete model
+
+    shutdownJuce_GUI()
+
+testListBoxRowsAndScrolling()
