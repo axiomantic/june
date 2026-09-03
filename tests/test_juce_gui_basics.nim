@@ -4047,5 +4047,66 @@ when defined(macosx):
 
 
 testCurvesAndBurgerMenu()
+# The last of the small gui classes ===========================================
+#
+# A bail-out checker, a drop shadower and a toolbar palette. The checker is the
+# interesting one: it says whether the component it watched has gone, which is
+# how JUCE code survives a callback deleting the thing it was called about.
+
+proc testBailOutCheckerAndFriends() =
+    initialiseJuce_GUI()
+
+    block:
+        var watched = newCustomComponent()
+        let checker = makeComponentBailOutChecker(cast[ptr Component](watched))
+        doAssert not checker.shouldBailOut(),
+                 "the checker wanted to bail out while its component was alive"
+
+        cdelete watched
+        doAssert checker.shouldBailOut(),
+                 "the checker did not notice its component going away"
+
+    block:
+        var shadowed = newCustomComponent()
+        shadowed[].setBounds(makeRectangle(0.cint, 0.cint, 40.cint, 40.cint))
+
+        # The shadower is scoped inside the component's lifetime: it keeps a
+        # raw pointer to its owner, and JUCE's setOwner asserts that the
+        # component is not null, so there is no way to detach one.
+        block:
+            var shadower = makeDropShadower(makeDropShadow(
+                makeColour(0'u8, 0'u8, 0'u8, 128'u8), 4.cint,
+                makePoint(2.cint, 2.cint)))
+            shadower.setOwner(cast[ptr Component](shadowed))
+
+        cdelete shadowed
+
+    block:
+        var factory = newCustomToolbarItemFactory()
+        factory[].setGetAllToolbarItemIdsHandler(proc(ids: ptr Array[cint]) =
+            ids[].add(3001.cint))
+        factory[].setGetDefaultItemSetHandler(proc(ids: ptr Array[cint]) =
+            ids[].add(3001.cint))
+        factory[].setCreateItemHandler(proc(itemId: cint): ptr ToolbarItemComponent =
+            cast[ptr ToolbarItemComponent](
+                newCustomToolbarItemComponent(itemId, makeString("Item"), true)))
+
+        var bar = makeToolbar()
+        var palette = makeToolbarItemPalette(
+            cast[ptr CustomToolbarItemFactory](factory)[], bar)
+        palette.setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 60.cint))
+        palette.resized()
+
+        # The palette shows one component per item the factory offers.
+        doAssert palette.getNumChildComponents() > 0,
+                 "the palette holds " & $palette.getNumChildComponents() &
+                 " child components"
+
+        cdelete factory
+
+    shutdownJuce_GUI()
+
+
 when defined(macosx):
     testDocumentWindow()
+testBailOutCheckerAndFriends()
