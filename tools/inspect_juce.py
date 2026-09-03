@@ -17,6 +17,12 @@ nim_enum_def = """  {enum_name}* {{.header: {juce_module_name}, importcpp: "{spe
 
 nim_dollar_def = """proc `$`*(this: {class_name}): string = $this.toString()"""
 
+# `$` on an importcpp object with no toString falls through to Nim's default,
+# which prints "()" because these declare no fields - a silent, useless answer
+# in exactly the place a person is trying to see what a value is. 610 of the
+# 630 bound types were in that state. Marked {.error.}, it says so instead.
+nim_no_dollar_def = """proc `$`*(this: {class_name}): string {{.error: "{spelling} has no toString; print a property instead".}}"""
+
 nim_no_equality_def = """proc `==`*(this: {class_name}, other: {class_name}): bool {{.error: "{spelling} defines no operator==; compare a property instead".}}"""
 
 nim_enum_constant_def = """let {constant_name}* {{.header: {juce_module_name}, importcpp: "{spelling}".}}: {enum_name}"""
@@ -471,6 +477,9 @@ wrapped_by_lifting = {
 # The generator only sees members, so it would emit its no-equality guard and
 # collide with the operator the _lifting file binds.
 equality_bound_by_lifting = {"String", "juce_var"}
+
+# Types whose `$` the hand-written layer provides.
+dollar_bound_by_lifting = {"String", "Rectangle", "Point", "CppString", "Toolbar"}
 
 def remap_wrapped_method_name(class_name, method_name):
     return wrapped_by_lifting.get((class_name, method_name), method_name)
@@ -1808,6 +1817,9 @@ def run_main(juce_module_name, juce_class_name_to_export):
             # before it, the call resolves to Nim's default $ for an object,
             # which prints "()" because these declare no fields.
             dollar_definitions.append(nim_dollar_def.format(**{"class_name": class_name}))
+        elif class_name not in dollar_bound_by_lifting:
+            dollar_definitions.append(nim_no_dollar_def.format(**{
+                "class_name": class_name, "spelling": qualified_name}))
 
         if (not class_bound_equality and class_name not in equality_bound_by_lifting
                 and class_name not in classes_with_free_equality):

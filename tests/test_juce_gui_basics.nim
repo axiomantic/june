@@ -4914,12 +4914,23 @@ proc testEqualityGuard() =
         doAssert not compiles(first != second),
                  "two values of a class with no C++ equality compared with !="
 
+        # `$` gets the same treatment. Without it Nim falls through to its
+        # default for an object, which prints "()" because these declare no
+        # fields - a silent, useless answer in exactly the place a person is
+        # trying to see what a value is.
+        doAssert not compiles($first),
+                 "a class with no toString printed something anyway"
+
         # A class that does define equality is unaffected.
         let red = makeColour(255'u8, 0'u8, 0'u8, 255'u8)
         doAssert compiles(red == red),
                  "a class with a real operator== was guarded by mistake"
         doAssert red == makeColour(255'u8, 0'u8, 0'u8, 255'u8),
                  "two identical colours are not equal"
+
+        # And a class that does define toString still prints.
+        doAssert compiles($red), "a class with a toString was guarded by mistake"
+        doAssert $red != "()", "the colour printed as an empty object"
 
     shutdownJuce_GUI()
 
