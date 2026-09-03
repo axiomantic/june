@@ -1472,3 +1472,92 @@ proc testGeneratedConstructorsForwardGraphics() =
 initialiseJuce_GUI()
 testGeneratedConstructorsForwardGraphics()
 shutdownJuce_GUI()
+
+
+# Every public field round-trips ===============================================
+#
+# A field getter and setter are importcpp procs like any other: they reach the
+# C++ compiler only where something calls them, so a setter nothing assigns is
+# never compiled. Each is set to a distinctive value and read back; where the
+# field's type compares, the read is asserted against what went in.
+
+proc testFieldRoundTrips() =
+    block:
+        var value = makeAffineTransform()
+        value.mat00 = 1.5'f32
+        doAssert value.mat00() == 1.5'f32,
+                 "AffineTransform.mat00 came back as " & $value.mat00()
+        value.mat01 = 1.5'f32
+        doAssert value.mat01() == 1.5'f32,
+                 "AffineTransform.mat01 came back as " & $value.mat01()
+        value.mat02 = 1.5'f32
+        doAssert value.mat02() == 1.5'f32,
+                 "AffineTransform.mat02 came back as " & $value.mat02()
+        value.mat10 = 1.5'f32
+        doAssert value.mat10() == 1.5'f32,
+                 "AffineTransform.mat10 came back as " & $value.mat10()
+        value.mat11 = 1.5'f32
+        doAssert value.mat11() == 1.5'f32,
+                 "AffineTransform.mat11 came back as " & $value.mat11()
+        value.mat12 = 1.5'f32
+        doAssert value.mat12() == 1.5'f32,
+                 "AffineTransform.mat12 came back as " & $value.mat12()
+    block:
+        var value = makeAttributedStringAttribute()
+        value.font = makeFont()
+        discard value.font()
+        value.range = makeRange(1.cint, 5.cint)
+        discard value.range()
+    block:
+        var value = makeColourGradient()
+        value.isRadial = true
+        doAssert value.isRadial() == true,
+                 "ColourGradient.isRadial came back as " & $value.isRadial()
+        value.point1 = makePoint(1.0'f32, 2.0'f32)
+        discard value.point1()
+        value.point2 = makePoint(1.0'f32, 2.0'f32)
+        discard value.point2()
+    block:
+        var value = makeDropShadow()
+        value.offset = makePoint(1.cint, 2.cint)
+        discard value.offset()
+        value.radius = 7.cint
+        doAssert value.radius() == 7.cint,
+                 "DropShadow.radius came back as " & $value.radius()
+    block:
+        var value = makeFillType()
+        value.image = makeImage()
+        discard value.image()
+        value.transform = makeAffineTransform()
+        discard value.transform()
+    block:
+        var value = makeImageLayer()
+        value.image = makeImage()
+        discard value.image()
+        value.transform = makeAffineTransform()
+        discard value.transform()
+    block:
+        var value = makeTextLayoutLine()
+        value.descent = 1.5'f32
+        doAssert value.descent() == 1.5'f32,
+                 "TextLayoutLine.descent came back as " & $value.descent()
+        value.leading = 1.5'f32
+        doAssert value.leading() == 1.5'f32,
+                 "TextLayoutLine.leading came back as " & $value.leading()
+        value.lineOrigin = makePoint(1.0'f32, 2.0'f32)
+        discard value.lineOrigin()
+        value.stringRange = makeRange(1.cint, 5.cint)
+        discard value.stringRange()
+    block:
+        var value = makeTextLayoutRun()
+        value.font = makeFont()
+        discard value.font()
+        value.stringRange = makeRange(1.cint, 5.cint)
+        discard value.stringRange()
+    block:
+        var value = makeTypefaceMetrics()
+        value.heightToPoints = 1.5'f32
+        doAssert value.heightToPoints() == 1.5'f32,
+                 "TypefaceMetrics.heightToPoints came back as " & $value.heightToPoints()
+
+testFieldRoundTrips()

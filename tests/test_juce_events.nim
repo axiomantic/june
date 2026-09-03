@@ -468,3 +468,26 @@ proc testChildProcessExitedListener() =
     shutdownJuce_GUI()
 
 testChildProcessExitedListener()
+
+
+# Every public field round-trips ===============================================
+#
+# A field getter and setter are importcpp procs like any other: they reach the
+# C++ compiler only where something calls them, so a setter nothing assigns is
+# never compiled. Each is set to a distinctive value and read back; where the
+# field's type compares, the read is asserted against what went in.
+
+proc testFieldRoundTrips() =
+    block:
+        var value = makeNetworkServiceDiscoveryService()
+        value.address = makeIPAddress()
+        discard value.address()
+        value.description = makeString("a value")
+        discard value.description()
+        value.lastSeen = makeTime()
+        discard value.lastSeen()
+        value.port = 7.cint
+        doAssert value.port() == 7.cint,
+                 "NetworkServiceDiscoveryService.port came back as " & $value.port()
+
+testFieldRoundTrips()
