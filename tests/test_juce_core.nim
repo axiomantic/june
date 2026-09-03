@@ -3969,3 +3969,150 @@ proc testXmlElementEditing() =
              "elements with different values are equivalent"
 
 testXmlElementEditing()
+
+# BigInteger is an arbitrary-width integer that is also a bit set, and the two
+# faces have to agree: setting a bit is the same as adding a power of two.
+proc testBigIntegerArithmetic() =
+  block:
+    var value = makeBigInteger(0.cint)
+    doAssert value.isZero(), "a new BigInteger is not zero"
+    doAssert not value.isNegative(), "zero is negative"
+    doAssert value.getHighestBit() == -1,
+             "zero's highest bit is " & $value.getHighestBit()
+    doAssert value.countNumberOfSetBits() == 0,
+             "zero has " & $value.countNumberOfSetBits() & " bits set"
+
+    # The bit set and the number are the same thing seen twice.
+    discard value.setBit(3.cint)
+    doAssert value.toInteger() == 8,
+             "setting bit 3 gave " & $value.toInteger()
+    doAssert value[3.cint], "bit 3 did not read back"
+    doAssert value.getHighestBit() == 3,
+             "the highest bit is " & $value.getHighestBit()
+    doAssert value.countNumberOfSetBits() == 1,
+             "one bit reads as " & $value.countNumberOfSetBits()
+
+    discard value.setBit(0.cint)
+    doAssert value.toInteger() == 9,
+             "setting bit 0 as well gave " & $value.toInteger()
+    doAssert value.countNumberOfSetBits() == 2,
+             "two bits read as " & $value.countNumberOfSetBits()
+
+    doAssert value.findNextSetBit(1.cint) == 3,
+             "the next set bit after 0 is " & $value.findNextSetBit(1.cint)
+    doAssert value.findNextClearBit(0.cint) == 1,
+             "the next clear bit from 0 is " & $value.findNextClearBit(0.cint)
+
+    # A bit range reads several bits at once, and the range is [start, count).
+    doAssert value.getBitRange(0.cint, 4.cint).toInteger() == 9,
+             "the low four bits read as " &
+             $value.getBitRange(0.cint, 4.cint).toInteger()
+    doAssert value.getBitRange(1.cint, 3.cint).toInteger() == 4,
+             "bits 1..3 read as " & $value.getBitRange(1.cint, 3.cint).toInteger()
+
+    discard value.setBitRangeAsInt(8.cint, 4.cint, 5'u32)
+    doAssert value.getBitRange(8.cint, 4.cint).toInteger() == 5,
+             "the written range reads back as " &
+             $value.getBitRange(8.cint, 4.cint).toInteger()
+    doAssert value.getBitRange(0.cint, 4.cint).toInteger() == 9,
+             "writing a high range changed the low one to " &
+             $value.getBitRange(0.cint, 4.cint).toInteger()
+
+  block:
+    # A shift is a multiplication by a power of two, in both directions.
+    var value = makeBigInteger(5.cint)
+    discard value.shiftBits(4.cint, 0.cint)
+    doAssert value.toInteger() == 80, "5 << 4 gave " & $value.toInteger()
+    discard value.shiftBits(-4.cint, 0.cint)
+    doAssert value.toInteger() == 5, "shifting back gave " & $value.toInteger()
+
+    # inc and dec walk by one.
+    var counter = makeBigInteger(10.cint)
+    discard counter.inc()
+    doAssert counter.toInteger() == 11, "inc gave " & $counter.toInteger()
+    discard counter.dec()
+    discard counter.dec()
+    doAssert counter.toInteger() == 9, "two decs gave " & $counter.toInteger()
+
+  block:
+    # The sign is carried separately from the magnitude, which is why negate
+    # and setNegative are different operations.
+    var value = makeBigInteger(7.cint)
+    doAssert not value.isNegative(), "7 is negative"
+    value.negate()
+    doAssert value.isNegative(), "negate did not change the sign"
+    doAssert value.toInteger() == -7, "negating 7 gave " & $value.toInteger()
+
+    value.setNegative(false)
+    doAssert value.toInteger() == 7, "clearing the sign gave " & $value.toInteger()
+    value.setNegative(false)
+    doAssert value.toInteger() == 7,
+             "setting the sign twice the same way gave " & $value.toInteger()
+
+    # compareAbsolute ignores the sign; compare does not.
+    let negative = makeBigInteger(-9.cint)
+    let positive = makeBigInteger(9.cint)
+    doAssert negative.compareAbsolute(positive) == 0,
+             "the magnitudes compare as " & $negative.compareAbsolute(positive)
+    doAssert negative.compare(positive) < 0,
+             "-9 does not compare below 9"
+
+  block:
+    # divideBy writes the quotient into the receiver and the remainder into its
+    # argument, which is the shape a caller has to know.
+    var value = makeBigInteger(47.cint)
+    var remainder = makeBigInteger(0.cint)
+    value.divideBy(makeBigInteger(5.cint), remainder)
+    doAssert value.toInteger() == 9, "47 / 5 gave " & $value.toInteger()
+    doAssert remainder.toInteger() == 2, "47 %% 5 gave " & $remainder.toInteger()
+
+    # The greatest common divisor of 48 and 18 is 6.
+    doAssert makeBigInteger(48.cint).findGreatestCommonDivisor(
+                makeBigInteger(18.cint)).toInteger() == 6,
+             "gcd(48, 18) gave " &
+             $makeBigInteger(48.cint).findGreatestCommonDivisor(
+                 makeBigInteger(18.cint)).toInteger()
+
+    # 3^4 mod 5 is 81 mod 5, which is 1.
+    var power = makeBigInteger(3.cint)
+    power.exponentModulo(makeBigInteger(4.cint), makeBigInteger(5.cint))
+    doAssert power.toInteger() == 1,
+             "3^4 mod 5 gave " & $power.toInteger()
+
+  block:
+    # A number survives a round trip through its own text, in each base it
+    # knows.
+    var value = makeBigInteger(0.cint)
+    value.parseString(makeString("255"), 10.cint)
+    doAssert value.toInteger() == 255, "parsing 255 gave " & $value.toInteger()
+    doAssert $value.toString(16.cint, 0.cint) == "ff",
+             "255 in hex is " & $value.toString(16.cint, 0.cint)
+
+    var fromHex = makeBigInteger(0.cint)
+    fromHex.parseString(makeString("ff"), 16.cint)
+    doAssert fromHex.toInteger() == 255,
+             "parsing ff in base 16 gave " & $fromHex.toInteger()
+
+    # A number wider than an int survives the trip too, which is the whole
+    # point of the type.
+    var wide = makeBigInteger(0.cint)
+    wide.parseString(makeString("123456789012345678901234567890"), 10.cint)
+    doAssert $wide.toString(10.cint, 0.cint) == "123456789012345678901234567890",
+             "a 30 digit number came back as " & $wide.toString(10.cint, 0.cint)
+    doAssert wide.getHighestBit() > 63,
+             "a 30 digit number's highest bit is " & $wide.getHighestBit() &
+             ", so it fits in 64 bits"
+
+  block:
+    # A number survives a round trip through raw memory.
+    var value = makeBigInteger(0.cint)
+    value.parseString(makeString("987654321098765432109876543210"), 10.cint)
+    let block1 = value.toMemoryBlock()
+
+    var restored = makeBigInteger(0.cint)
+    restored.loadFromMemoryBlock(block1)
+    doAssert restored.compare(value) == 0,
+             "the round trip through memory gave " &
+             $restored.toString(10.cint, 0.cint)
+
+testBigIntegerArithmetic()
