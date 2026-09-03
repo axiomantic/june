@@ -2861,6 +2861,21 @@ proc testIntegerLiteralOverloads() =
         doAssert $makeString(4294967296) == "4294967296",
                  "a value above uint32 came back as " & $makeString(4294967296)
 
+        # Adding the int form must not make any concrete width ambiguous, so
+        # every one JUCE declares is passed through a variable of that type.
+        var asCint: cint = 1
+        var asInt16: int16 = 2
+        var asUint16: uint16 = 3
+        var asUint32: uint32 = 4
+        var asInt64: int64 = 5
+        var asUint64: uint64 = 6
+        var asInt: int = 7
+        doAssert $makeString(asCint) & $makeString(asInt16) &
+                 $makeString(asUint16) & $makeString(asUint32) &
+                 $makeString(asInt64) & $makeString(asUint64) &
+                 $makeString(asInt) == "1234567",
+                 "one of the seven widths did not come back as itself"
+
     block:
         let value = makejuce_var(7)
         doAssert value.isInt64() or value.isInt(),
