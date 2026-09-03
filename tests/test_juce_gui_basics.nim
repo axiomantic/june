@@ -4989,6 +4989,23 @@ proc testPointerMembers() =
         doAssert event.eventComponent != event.originalComponent,
                  "the two component fields returned the same pointer"
 
+        # The rest of MouseEvent's fields are const, so they have getters and
+        # no setters. Each is read against what the event was built with.
+        doAssert event.pressure() == 1.0'f32,
+                 "the pressure is " & $event.pressure()
+        doAssert event.orientation() == 0.0'f32,
+                 "the orientation is " & $event.orientation()
+        doAssert event.mouseDownPosition() == makePoint(3.0'f32, 4.0'f32),
+                 "the mouse-down position is not the one it was built with"
+        doAssert event.eventTime() <= Time.getCurrentTime(),
+                 "the event time is in the future"
+        doAssert event.mouseDownTime() <= Time.getCurrentTime(),
+                 "the mouse-down time is in the future"
+        doAssert not event.mods().isAnyMouseButtonDown(),
+                 "a mouse button was down in an event built with none"
+        doAssert event.source().getIndex() >= 0,
+                 "the mouse source has index " & $event.source().getIndex()
+
         cdelete target
         cdelete other
 
@@ -6781,3 +6798,146 @@ proc testCommandStructureFields() =
     shutdownJuce_GUI()
 
 testCommandStructureFields()
+
+# The remaining gui fields =====================================================
+
+proc testRemainingGuiFields() =
+    initialiseJuce_GUI()
+
+    block:
+        var diagnostics = makeComponentPaintDiagnostics()
+        discard diagnostics.totalPaintDuration()
+        discard diagnostics.paintDuration()
+        discard diagnostics.paintOverChildrenDuration()
+        discard diagnostics.applyEffectDuration()
+
+    block:
+        var display = makeDisplaysDisplay()
+        display.verticalFrequencyHz = makeCppOptional(60.0)
+        doAssert display.verticalFrequencyHz().hasValue(),
+                 "the frequency is empty after being set"
+        doAssert display.verticalFrequencyHz().value() == 60.0,
+                 "the frequency is " & $display.verticalFrequencyHz().value()
+
+    block:
+        var details = makeDragAndDropTargetSourceDetails(
+            makejuce_var(1.cint), nil, makePoint(0.cint, 0.cint))
+        details.localPosition = makePoint(3.cint, 4.cint)
+        doAssert details.localPosition() == makePoint(3.cint, 4.cint),
+                 "the local position did not come back as it was set"
+
+    block:
+        var interfaces = makeAccessibilityHandlerInterfaces()
+        interfaces.table = makeUniquePtr[AccessibilityTableInterface]()
+        interfaces.cell = makeUniquePtr[AccessibilityCellInterface]()
+        doAssert interfaces.table().isNil and interfaces.cell().isNil,
+                 "an interface is not the empty pointer it was set to"
+
+    block:
+        var item = makePopupMenuItem()
+        item.customComponent = makeReferenceCountedObjectPtr[PopupMenuCustomComponent]()
+        item.customCallback = makeReferenceCountedObjectPtr[PopupMenuCustomCallback]()
+        item.commandManager = nil
+        doAssert item.customComponent().isNil and item.customCallback().isNil,
+                 "a custom item is not the empty pointer it was set to"
+        doAssert item.commandManager().isNil,
+                 "the command manager is not the nil it was set to"
+
+    block:
+        var span = makeGridItemSpan(2.cint)
+        span.number = 5.cint
+        doAssert span.number() == 5, "the span is " & $span.number()
+
+        var fraction = makeGridFr(3.cint)
+        fraction.fraction = 7'u64
+        doAssert fraction.fraction() == 7'u64,
+                 "the fraction is " & $fraction.fraction()
+
+    block:
+        var slider = makeSlider(makeString("slider"))
+        slider.textFromValueFunction = bindClosure(
+            proc(value: cdouble): String = makeString($value.int & " units"))
+        doAssert $slider.getTextFromValue(4.0) == "4 units",
+                 "the slider rendered " & $slider.getTextFromValue(4.0)
+
+    shutdownJuce_GUI()
+
+testRemainingGuiFields()
+
+# The last of the fields =======================================================
+#
+# Each of these needs something the class itself supplies: a value read from
+# its own getter where no constructor can build one, or an instance JUCE hands
+# out where the class has no constructor at all.
+
+proc testLastFields() =
+    initialiseJuce_GUI()
+
+    block:
+        # TimedDiagnostic has no constructor, so the only value of that type is
+        # the one the diagnostics already hold.
+        var diagnostics = makeComponentPaintDiagnostics()
+        diagnostics.totalPaintDuration = diagnostics.totalPaintDuration()
+        diagnostics.paintDuration = diagnostics.paintDuration()
+        diagnostics.paintOverChildrenDuration = diagnostics.paintOverChildrenDuration()
+        diagnostics.applyEffectDuration = diagnostics.applyEffectDuration()
+        diagnostics.wroteToCache = true
+        doAssert diagnostics.wroteToCache(), "wroteToCache came back false"
+
+    block:
+        # Displays has no constructor either; the desktop owns the one there is.
+        var screens = Desktop.getInstance().getDisplays()
+        screens.displays = screens.displays()
+        doAssert screens.displays().size() >= 0,
+                 "the display list reports a negative size"
+
+    block:
+        var options = makePropertiesFileOptions()
+        options.storageFormat = PropertiesFileStorageFormat_storeAsBinary
+        options.processLock = nil
+        doAssert options.storageFormat() == PropertiesFileStorageFormat_storeAsBinary,
+                 "the storage format did not come back as it was set"
+        doAssert options.processLock().isNil,
+                 "the process lock is not the nil it was set to"
+
+    block:
+        var start = makeRelativePointPathStartSubPath(makeRelativePoint())
+        start.startPos = makeRelativePoint()
+        discard start.startPos()
+
+        var line = makeRelativePointPathLineTo(makeRelativePoint())
+        line.endPoint = makeRelativePoint()
+        discard line.endPoint()
+
+    block:
+        # MouseEvent's source is the one field of it that is not const.
+        let target = newCustomComponent()
+        var event = makeMouseEvent(Desktop.getInstance().getMainMouseSource(),
+                                   makePoint(0.0'f32, 0.0'f32), makeModifierKeys(),
+                                   1.0'f32, 0.0'f32, 0.0'f32, 0.0'f32, 0.0'f32,
+                                   cast[ptr Component](target), nil,
+                                   Time.getCurrentTime(),
+                                   makePoint(0.0'f32, 0.0'f32),
+                                   Time.getCurrentTime(), 1, false)
+        event.source = Desktop.getInstance().getMainMouseSource()
+        doAssert event.source().getIndex() ==
+                 Desktop.getInstance().getMainMouseSource().getIndex(),
+                 "the source did not come back as it was set"
+        cdelete target
+
+    block:
+        var choices = makeStringArray()
+        choices.add(makeString("one"))
+        var values: Array[juce_var]
+        values.add(makejuce_var(1.cint))
+        var control = makeValue(makejuce_var(1.cint))
+        var component = makeMultiChoicePropertyComponent(
+            control, makeString("choices"), choices, values, -1.cint)
+
+        var resized = 0
+        component.onHeightChange = bindClosure(proc() = resized += 1)
+        doAssert resized == 0, "the height closure ran before any resize"
+
+    shutdownJuce_GUI()
+
+testLastFields()

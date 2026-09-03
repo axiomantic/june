@@ -1561,3 +1561,135 @@ proc testFieldRoundTrips() =
                  "TypefaceMetrics.heightToPoints came back as " & $value.heightToPoints()
 
 testFieldRoundTrips()
+
+# The remaining graphics fields ================================================
+
+proc testRemainingGraphicsFields() =
+    block:
+        var fill = makeFillType()
+        fill.gradient = makeUniquePtr[ColourGradient]()
+        doAssert fill.gradient().isNil, "the gradient is not the empty one it was set to"
+
+    block:
+        var setting = makeFontFeatureSetting(makeFontFeatureTag(0x6C696761'u32),
+                                             1'u32)
+        setting.tag = makeFontFeatureTag(0x6B65726E'u32)
+        discard setting.tag()
+
+    block:
+        var iterator1 = makePathIterator(makePath())
+        iterator1.elementType = PathIteratorPathElementType_startNewSubPath
+        iterator1.x1 = 1.0'f32
+        iterator1.y1 = 2.0'f32
+        iterator1.x2 = 3.0'f32
+        iterator1.y2 = 4.0'f32
+        iterator1.x3 = 5.0'f32
+        iterator1.y3 = 6.0'f32
+        doAssert iterator1.elementType() == PathIteratorPathElementType_startNewSubPath,
+                 "the element type did not come back as it was set"
+        doAssert iterator1.x1() == 1.0'f32 and iterator1.y1() == 2.0'f32,
+                 "the first point is " & $iterator1.x1() & "," & $iterator1.y1()
+        doAssert iterator1.x2() == 3.0'f32 and iterator1.y2() == 4.0'f32,
+                 "the second point is " & $iterator1.x2() & "," & $iterator1.y2()
+        doAssert iterator1.x3() == 5.0'f32 and iterator1.y3() == 6.0'f32,
+                 "the third point is " & $iterator1.x3() & "," & $iterator1.y3()
+
+    block:
+        var flat = makePathFlatteningIterator(makePath(), makeAffineTransform(),
+                                              6.0'f32)
+        flat.x1 = 1.0'f32
+        flat.y1 = 2.0'f32
+        flat.x2 = 3.0'f32
+        flat.y2 = 4.0'f32
+        flat.closesSubPath = true
+        flat.subPathIndex = 2.cint
+        doAssert flat.x1() == 1.0'f32 and flat.y2() == 4.0'f32,
+                 "the flattened points did not come back as they were set"
+        doAssert flat.closesSubPath(), "closesSubPath came back false"
+        doAssert flat.subPathIndex() == 2,
+                 "the sub-path index is " & $flat.subPathIndex()
+
+    block:
+        var glyph = makeTextLayoutGlyph(7.cint, makePoint(1.0'f32, 2.0'f32), 3.0'f32)
+        glyph.glyphCode = 9.cint
+        glyph.anchor = makePoint(4.0'f32, 5.0'f32)
+        doAssert glyph.glyphCode() == 9, "the glyph code is " & $glyph.glyphCode()
+        doAssert glyph.anchor() == makePoint(4.0'f32, 5.0'f32),
+                 "the anchor did not come back as it was set"
+
+    block:
+        var run = makeTextLayoutRun()
+        discard run.glyphs()
+        var line = makeTextLayoutLine()
+        discard line.runs()
+
+    block:
+        var relative = makeRelativePointPath()
+        discard relative.elements()
+
+initialiseJuce_GUI()
+testRemainingGraphicsFields()
+shutdownJuce_GUI()
+
+# The image data fields ========================================================
+#
+# BitmapData is how a program reaches an Image's pixels, and its fields are the
+# whole description of the buffer: none had been written or read.
+
+proc testImageDataFields() =
+    block:
+        var image = makeImage(ImagePixelFormat_ARGB, 8.cint, 6.cint, true)
+        var data = makeImageBitmapData(image, 0.cint, 0.cint, 8.cint, 6.cint,
+                                       ImageBitmapDataReadWriteMode_readWrite)
+
+        doAssert data.width() == 8, "the data is " & $data.width() & " wide"
+        doAssert data.height() == 6, "the data is " & $data.height() & " tall"
+        doAssert data.pixelFormat() == ImagePixelFormat_ARGB,
+                 "the pixel format is not the image's"
+        doAssert data.pixelStride() == 4,
+                 "an ARGB pixel is " & $data.pixelStride() & " bytes"
+        doAssert data.lineStride() >= data.width() * data.pixelStride(),
+                 "the line stride is " & $data.lineStride() &
+                 ", less than a row of pixels"
+        doAssert data.size() > 0'u64, "the buffer reports no size"
+        doAssert data.data() != nil, "the buffer has no data pointer"
+
+        # Written as well as read, which is what puts the setters in front of
+        # the compiler. The values go back to what they were.
+        let stride = data.lineStride()
+        data.lineStride = 99.cint
+        doAssert data.lineStride() == 99,
+                 "the line stride is " & $data.lineStride() & " after being set"
+        data.lineStride = stride
+        data.pixelStride = data.pixelStride()
+        data.width = data.width()
+        data.height = data.height()
+        data.pixelFormat = data.pixelFormat()
+        data.size = data.size()
+        data.data = data.data()
+        data.dataReleaser = makeUniquePtr[ImageBitmapDataBitmapDataReleaser]()
+        doAssert data.dataReleaser().isNil,
+                 "the releaser is not the empty pointer it was set to"
+
+    block:
+        let pixels = newCustomImagePixelData(ImagePixelFormat_ARGB, 4.cint, 4.cint)
+        pixels[].userData = makeNamedValueSet()
+        doAssert pixels[].userData().size() == 0,
+                 "the user data holds " & $pixels[].userData().size() & " entries"
+        doAssert pixels[].pixelFormat() == ImagePixelFormat_ARGB,
+                 "the pixel data format is not the one it was built with"
+        cdelete pixels
+
+initialiseJuce_GUI()
+testImageDataFields()
+shutdownJuce_GUI()
+
+# TextLayoutRun's glyphs =======================================================
+
+proc testTextLayoutRunGlyphs() =
+    var run = makeTextLayoutRun()
+    run.glyphs = makeArray[TextLayoutGlyph]()
+    doAssert run.glyphs().size() == 0,
+             "the run holds " & $run.glyphs().size() & " glyphs"
+
+testTextLayoutRunGlyphs()
