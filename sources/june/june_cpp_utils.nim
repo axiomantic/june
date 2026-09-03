@@ -96,26 +96,87 @@ proc cppTemplateName(name: string): string {.compiletime.} =
   result = cppPrimitiveName(name)
 
 
+# The CppFunctionObject family is the one place where a Nim bracket type and
+# its C++ spelling are different SHAPES rather than different names.
+# CppFunctionObjectN1[bool] is std::function<void (bool)>: the head carries the
+# return type and the arity, and the arguments move inside a second pair of
+# parentheses. Substituting the head, which is what every other bracket type
+# needs, would give CppFunctionObjectN1<bool>, a type that does not exist. So
+# the whole expression is rewritten here instead.
+#
+# The name encodes the shape: N means the function returns void and R means the
+# first type argument is the return type, the digit is the argument count, and a
+# Ref suffix makes the single argument a const reference. Anything outside that
+# pattern returns "" and falls through to the ordinary head substitution.
+proc cppFunctionObjectShape(head: string): tuple[ok: bool, returnsVoid: bool,
+                                                 arity: int, byConstRef: bool]
+    {.compiletime.} =
+  const prefix = "CppFunctionObject"
+  if head.len <= prefix.len or head[0 ..< prefix.len] != prefix:
+    return (false, false, 0, false)
+
+  var rest = head[prefix.len .. ^1]
+  var byConstRef = false
+  if rest.len > 3 and rest[^3 .. ^1] == "Ref":
+    byConstRef = true
+    rest = rest[0 ..< rest.len - 3]
+
+  # What is left is one letter and one digit: N0 through R9.
+  if rest.len != 2: return (false, false, 0, false)
+  if rest[0] notin {'N', 'R'}: return (false, false, 0, false)
+  if rest[1] notin {'0' .. '9'}: return (false, false, 0, false)
+
+  let arity = ord(rest[1]) - ord('0')
+  # A const reference needs something to refer to, so Ref is meaningless at
+  # arity zero and the parser should not accept a name that claims it.
+  if byConstRef and arity == 0: return (false, false, 0, false)
+
+  result = (true, rest[0] == 'N', arity, byConstRef)
+
+
 proc cppTypeSpelling(node: NimNode, aliases: seq[(string, string)]): string {.compiletime.} =
   case node.kind:
   of nnkBracketExpr:
-    # The head goes through the same lookup as a plain name, so a nested class
-    # used as a template head is spelled the way C++ knows it rather than by
-    # its flattened Nim name.
-    result = cppAliasName($node[0], aliases)
-    if result.len == 0:
-      result = cppTemplateName($node[0])
-    result &= "<"
-    for index in 1 ..< node.len:
-      if index > 1: result &= ", "
-      result &= cppTypeSpelling(node[index], aliases)
-    result &= ">"
+    let shape = cppFunctionObjectShape($node[0])
+    if shape.ok:
+      # std::function<Ret (Args...)>. With an R head the first type argument is
+      # the return type and the rest are the parameters; with an N head every
+      # one of them is a parameter and the return type is void.
+      let firstArgument = if shape.returnsVoid: 1 else: 2
+      let returnType =
+        if shape.returnsVoid: "void"
+        else: cppTypeSpelling(node[1], aliases)
+      result = "std::function<" & returnType & " ("
+      for index in firstArgument ..< node.len:
+        if index > firstArgument: result &= ", "
+        let argument = cppTypeSpelling(node[index], aliases)
+        result &= (if shape.byConstRef: "const " & argument & "&" else: argument)
+      result &= ")>"
+    else:
+      # The head goes through the same lookup as a plain name, so a nested class
+      # used as a template head is spelled the way C++ knows it rather than by
+      # its flattened Nim name.
+      result = cppAliasName($node[0], aliases)
+      if result.len == 0:
+        result = cppTemplateName($node[0])
+      result &= "<"
+      for index in 1 ..< node.len:
+        if index > 1: result &= ", "
+        result &= cppTypeSpelling(node[index], aliases)
+      result &= ">"
   of nnkPtrTy:
     result = cppTypeSpelling(node[0], aliases) & "*"
   else:
-    result = cppAliasName($node, aliases)
-    if result.len == 0:
-      result = cppPrimitiveName($node)
+    # CppFunctionObjectN0 is the only member of the family that takes no type
+    # arguments, so it is the only one that arrives as a plain name. R0 still
+    # carries its return type in brackets.
+    let shape = cppFunctionObjectShape($node)
+    if shape.ok and shape.returnsVoid and shape.arity == 0:
+      result = "std::function<void ()>"
+    else:
+      result = cppAliasName($node, aliases)
+      if result.len == 0:
+        result = cppPrimitiveName($node)
 
 
 proc makeCppType(node: NimNode, aliases: seq[(string, string)] = @[]): CppType {.compiletime.} =

@@ -822,6 +822,15 @@ proc setMouseBecameActiveHandler*(this: var CustomMouseInactivityDetectorListene
 proc setMouseBecameInactiveHandler*(this: var CustomMouseInactivityDetectorListener, handler: proc() {.closure.}) =
     this.onMouseBecameInactive = bindClosure(handler)
 
+defineCppClassInternal CustomMultiDocumentPanel of MultiDocumentPanel:
+    include "juce_gui_basics/juce_gui_basics.h"
+    proc tryToCloseDocumentAsync(component: ptr Component, callback: CppFunctionObjectN1[bool]) = discard
+
+proc newCustomMultiDocumentPanel*(): ptr CustomMultiDocumentPanel {.importcpp: "(new june::CustomMultiDocumentPanel)".}
+
+proc setTryToCloseDocumentAsyncHandler*(this: var CustomMultiDocumentPanel, handler: proc(component: ptr Component, callback: CppFunctionObjectN1[bool]) {.closure.}) =
+    this.onTryToCloseDocumentAsync = bindClosure(handler)
+
 defineCppClassInternal CustomPopupMenuCustomCallback of PopupMenuCustomCallback:
     include "juce_gui_basics/juce_gui_basics.h"
     cppParent "juce::PopupMenu::CustomCallback"
@@ -1440,6 +1449,5 @@ proc setGetTreeViewIndentSizeHandler*(this: var CustomTreeViewLookAndFeelMethods
 #   ComponentPeer: a pure virtual is private, so no subclass can implement it
 #   DocumentWindowLookAndFeelMethods: DocumentWindow & in drawDocumentWindowTitleBar has no Nim spelling
 #   FileBrowserComponentLookAndFeelMethods: drawFileBrowserRow takes 12 arguments, and a std::function Nim can spell carries at most 10 here
-#   MultiDocumentPanel: std::function<void (bool)> in tryToCloseDocumentAsync has no Nim spelling
 #   ScrollBarLookAndFeelMethods: drawScrollbar takes 11 arguments, and a std::function Nim can spell carries at most 10 here
 #   SidePanelLookAndFeelMethods: getSidePanelTitleJustification returns Justification, which has no default constructor, and Nim builds a temporary for a closure's result
