@@ -2713,7 +2713,7 @@ proc getUrl*(this: AndroidDocument): URL {.header: juce_core, importcpp: "#.getU
 proc getInfo*(this: AndroidDocument): AndroidDocumentInfo {.header: juce_core, importcpp: "#.getInfo()".}
 proc copyDocumentToParentDocument*(this: AndroidDocument, target: AndroidDocument): AndroidDocument {.header: juce_core, importcpp: "#.copyDocumentToParentDocument(@)".}
 proc moveDocumentFromParentToParent*(this: var AndroidDocument, currentParent: AndroidDocument, newParent: AndroidDocument): bool {.header: juce_core, importcpp: "#.moveDocumentFromParentToParent(@)".}
-proc getNativeInfo*(this: AndroidDocument): AndroidDocumentNativeInfo {.header: juce_core, importcpp: "#.getNativeInfo()".}
+# proc getNativeInfo*(this: AndroidDocument): AndroidDocumentNativeInfo {.header: juce_core, importcpp: "#.getNativeInfo()".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
 
 proc `==`*(this: AndroidDocumentNativeInfo, other: AndroidDocumentNativeInfo): bool {.error: "juce::AndroidDocument::NativeInfo defines no operator==; compare a property instead".}
 
