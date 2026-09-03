@@ -3567,4 +3567,57 @@ proc testEveryNoArgConstructorGuiBasics() =
     shutdownJuce_GUI()
 
 testEveryNoArgConstructorGuiBasics()
+# MarkerList::ValueTreeWrapper ================================================
+#
+# The persistent form of a MarkerList: markers stored in a ValueTree so a
+# layout can be saved. applyTo pushes them back into a live list, which is the
+# half that says the tree really carries them.
+
+proc testMarkerListValueTreeWrapper() =
+    initialiseJuce_GUI()
+
+    block:
+        var tree = makeValueTree(makeIdentifier(makeString("MARKERS")))
+        var wrapper = makeMarkerListValueTreeWrapper(tree)
+        doAssert wrapper.getNumMarkers() == 0,
+                 "a fresh wrapper holds " & $wrapper.getNumMarkers() & " markers"
+
+        wrapper.setMarker(makeMarkerListMarker(makeString("left"),
+                                               makeRelativeCoordinate(10.0)), nil)
+        wrapper.setMarker(makeMarkerListMarker(makeString("right"),
+                                               makeRelativeCoordinate(90.0)), nil)
+        doAssert wrapper.getNumMarkers() == 2,
+                 "the wrapper holds " & $wrapper.getNumMarkers() & " markers"
+
+        # The markers live in the tree, so the tree has a child per marker.
+        doAssert tree.getNumChildren() == 2,
+                 "the tree carries " & $tree.getNumChildren() & " children"
+
+        let stored = wrapper.getMarkerState(makeString("right"))
+        doAssert wrapper.containsMarker(stored),
+                 "the wrapper does not recognise its own marker state"
+        doAssert $wrapper.getMarker(stored).name() == "right",
+                 "the stored marker is called " & $wrapper.getMarker(stored).name()
+        doAssert wrapper.getMarker(stored).position().resolve(nil) == 90.0,
+                 "the stored marker sits at " &
+                 $wrapper.getMarker(stored).position().resolve(nil)
+
+        # Pushed back into a live list, which is where a layout would read them.
+        var live = makeMarkerList()
+        wrapper.applyTo(live)
+        doAssert live.getNumMarkers() == 2,
+                 "the live list received " & $live.getNumMarkers() & " markers"
+        doAssert not live.getMarker(makeString("left")).isNil(),
+                 "the live list has no marker called left"
+
+        wrapper.removeMarker(stored, nil)
+        doAssert wrapper.getNumMarkers() == 1,
+                 "after removing one the wrapper holds " & $wrapper.getNumMarkers()
+        doAssert tree.getNumChildren() == 1,
+                 "the tree still carries " & $tree.getNumChildren() & " children"
+
+    shutdownJuce_GUI()
+
+
 testImageComponentAndShapeButton()
+testMarkerListValueTreeWrapper()
