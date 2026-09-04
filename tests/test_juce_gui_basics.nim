@@ -10815,3 +10815,128 @@ proc testAccessibilityHandler() =
     shutdownJuce_GUI()
 
 testAccessibilityHandler()
+
+# The rest of Component: the key listeners, the modal state, and the queries
+# that answer for the screen rather than for the component.
+proc testComponentListenersAndModality() =
+    initialiseJuce_GUI()
+
+    block:
+        # A KeyListener is one of the few JUCE listener interfaces with a pure
+        # virtual, so it gets a Custom subclass and its handler can be called.
+        let component = newCustomComponent()
+        component[].setBounds(makeRectangle(0.cint, 0.cint, 100.cint, 40.cint))
+
+        let listener = newCustomKeyListener()
+        var pressed = 0
+        listener[].setKeyPressedHandler(proc(key: ptr KeyPress,
+                                             originatingComponent: ptr Component): bool =
+            pressed += 1
+            true)
+
+        component[].addKeyListener(cast[ptr KeyListener](listener))
+        component[].removeKeyListener(cast[ptr KeyListener](listener))
+
+        # Nothing delivers a key press in a test with no input, so the handler
+        # is invoked directly to show it reaches Nim at all.
+        let space = makeKeyPress(KeyPress.spaceKey)
+        doAssert listener[].keyPressed(space, cast[ptr Component](component)),
+                 "the key handler reported that it did not consume the key"
+        doAssert pressed == 1, "the handler ran " & $pressed & " times"
+
+        cdelete listener
+        cdelete component
+
+    block:
+        # The modal state. A component is not modal until it enters one, and
+        # entering blocks its siblings rather than itself.
+        let parent = newCustomComponent()
+        parent[].setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 200.cint))
+        parent[].setVisible(true)
+        let modal = newCustomComponent()
+        let other = newCustomComponent()
+        parent[].addAndMakeVisible(cast[ptr Component](modal))
+        parent[].addAndMakeVisible(cast[ptr Component](other))
+
+        doAssert not modal[].isCurrentlyModal(), "a new component is modal"
+        doAssert not other[].isCurrentlyBlockedByAnotherModalComponent(),
+                 "a component is blocked before anything is modal"
+
+        modal[].enterModalState(false, nil, false)
+        doAssert modal[].isCurrentlyModal(), "enterModalState did not take"
+        doAssert not modal[].isCurrentlyBlockedByAnotherModalComponent(),
+                 "the modal component blocked itself"
+        doAssert other[].isCurrentlyBlockedByAnotherModalComponent(),
+                 "a sibling of a modal component is not blocked"
+        doAssert modal[].canModalEventBeSentToComponent(
+                     cast[ptr Component](other)) == false,
+                 "the modal component accepts events for a blocked sibling"
+
+        modal[].exitModalState(0.cint)
+        doAssert not modal[].isCurrentlyModal(), "exitModalState did not take"
+        doAssert not other[].isCurrentlyBlockedByAnotherModalComponent(),
+                 "the sibling is still blocked after the modal state ended"
+
+        cdelete other
+        cdelete modal
+        cdelete parent
+
+    block:
+        # The screen queries. Off the desktop there is no peer and no handle,
+        # but the scale factor and the monitor area still answer, because they
+        # come from the Desktop rather than from the component.
+        let component = newCustomComponent()
+        component[].setBounds(makeRectangle(0.cint, 0.cint, 100.cint, 40.cint))
+
+        doAssert component[].getPeer().isNil,
+                 "an off-desktop component has a peer"
+        doAssert component[].getWindowHandle().isNil,
+                 "an off-desktop component has a window handle"
+        doAssert component[].getPositioner().isNil,
+                 "a new component has a positioner"
+
+        doAssert component[].getDesktopScaleFactor() > 0.0'f32,
+                 "the desktop scale factor is " &
+                 $component[].getDesktopScaleFactor()
+        doAssert component[].getParentMonitorArea().getWidth() > 0,
+                 "the monitor area is " &
+                 $component[].getParentMonitorArea().getWidth() & " wide"
+
+        # The mouse is nowhere in particular, but the query answers.
+        discard component[].getMouseXYRelative()
+        doAssert not component[].isMouseOverOrDragging(false),
+                 "the mouse is over a component in a test with no input"
+
+        # findControlAtPoint asks which window control - close, minimise,
+        # maximise - is at a point, and a plain component has none.
+        doAssert component[].findControlAtPoint(
+                     makePoint(5.0'f32, 5.0'f32)) ==
+                 ComponentWindowControlKind_client,
+                 "a plain component reports a window control at a point"
+
+        # The focus cannot be grabbed without a peer, and giving it away is
+        # safe either way.
+        component[].grabKeyboardFocus()
+        doAssert not component[].hasKeyboardFocus(false),
+                 "an off-desktop component took the keyboard focus"
+        component[].giveAwayKeyboardFocus()
+        component[].moveKeyboardFocusToSibling(true)
+        doAssert not component[].hasKeyboardFocus(true),
+                 "moving the focus to a sibling gave it to this component"
+
+        # These have no reader; what is asserted is that they run and leave the
+        # component consistent.
+        component[].sendLookAndFeelChange()
+        component[].updateMouseCursor()
+        component[].invalidateAccessibilityHandler()
+        component[].postCommandMessage(1.cint)
+        component[].setCachedComponentImage(nil)
+        doAssert component[].getBounds().getWidth() == 100,
+                 "one of those changed the component's width to " &
+                 $component[].getBounds().getWidth()
+
+        cdelete component
+
+    shutdownJuce_GUI()
+
+testComponentListenersAndModality()
