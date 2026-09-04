@@ -10709,3 +10709,109 @@ proc testTextEditorClipboardAndGeometry() =
     shutdownJuce_GUI()
 
 testTextEditorClipboardAndGeometry()
+
+# AccessibilityHandler is what a screen reader sees, and it mirrors the
+# component: the title, description and help text the component was given, and
+# a state built from its flags.
+#
+# It is reached through createAccessibilityHandler, NOT through
+# getAccessibilityHandler. The latter returns nullptr unless the component has
+# a native window handle (juce_Component.cpp:3325), which nothing here has, so
+# the handler HIERARCHY - getParent, getChildren, isParentOf - cannot be
+# exercised at all: those walk from one component's installed handler to
+# another's, and none is installed. The compile harness covers them.
+proc testAccessibilityHandler() =
+    initialiseJuce_GUI()
+
+    block:
+        let component = newCustomComponent()
+        component[].setBounds(makeRectangle(0.cint, 0.cint, 100.cint, 40.cint))
+        component[].setTitle(makeString("Volume"))
+        component[].setDescription(makeString("The output level"))
+        component[].setHelpText(makeString("Drag to change"))
+        component[].setVisible(true)
+
+        # No window handle, so no installed handler.
+        doAssert component[].getWindowHandle().isNil,
+                 "an off-desktop component has a window handle"
+        doAssert component[].getAccessibilityHandler().isNil,
+                 "a component with no window handle installed a handler"
+
+        var handler = component[].createAccessibilityHandler()
+        doAssert not handler.isNil(), "the component built no handler"
+
+        # The handler points back at the component it describes.
+        doAssert (addr handler.get()[].getComponent()) ==
+                 cast[ptr Component](component),
+                 "the handler describes a different component"
+
+        # And it carries the text the component was given.
+        doAssert $handler.get()[].getTitle() == "Volume",
+                 "the handler's title is " & $handler.get()[].getTitle()
+        doAssert $handler.get()[].getDescription() == "The output level",
+                 "the handler's description is " & $handler.get()[].getDescription()
+        doAssert $handler.get()[].getHelp() == "Drag to change",
+                 "the handler's help is " & $handler.get()[].getHelp()
+
+        # A plain Component is an unspecified role rather than a widget one.
+        doAssert handler.get()[].getRole() == AccessibilityRole_unspecified,
+                 "a plain component's role is not unspecified"
+
+        # None of the four specialised interfaces applies to a plain component.
+        doAssert handler.get()[].getValueInterface().isNil,
+                 "a plain component has a value interface"
+        doAssert handler.get()[].getTableInterface().isNil,
+                 "a plain component has a table interface"
+        doAssert handler.get()[].getCellInterface().isNil,
+                 "a plain component has a cell interface"
+        doAssert handler.get()[].getTextInterface().isNil,
+                 "a plain component has a text interface"
+
+        # Nothing holds the accessibility focus in a test with no input.
+        doAssert not handler.get()[].hasFocus(false),
+                 "the handler holds the accessibility focus"
+        doAssert handler.get()[].getChildFocus().isNil,
+                 "a child holds the accessibility focus"
+        handler.get()[].giveAwayFocus()
+
+        # A plain component's handler offers no actions, and invoking one it
+        # does not have answers false rather than doing something.
+        doAssert not handler.get()[].getActions().contains(
+                     AccessibilityActionType_press),
+                 "a plain component's handler offers a press action"
+        doAssert not handler.get()[].getActions().invoke(
+                     AccessibilityActionType_press),
+                 "invoking an absent action reported success"
+
+        cdelete component
+
+    block:
+        # The BASE handler's state does not consult the component's flags. It
+        # is focusable unconditionally, and focused only while it holds the
+        # accessibility focus (juce_AccessibilityHandler.cpp:121) - a widget's
+        # handler overrides getCurrentState to say more. So a component that
+        # does not want keyboard focus still reports focusable here, and the
+        # test records that rather than asserting the flag it does not read.
+        let component = newCustomComponent()
+        component[].setBounds(makeRectangle(0.cint, 0.cint, 100.cint, 40.cint))
+        component[].setVisible(true)
+
+        doAssert not component[].getWantsKeyboardFocus(),
+                 "a new component wants keyboard focus"
+        var plain = component[].createAccessibilityHandler()
+        doAssert plain.get()[].getCurrentState().isFocusable(),
+                 "the base handler's state is not focusable"
+        doAssert not plain.get()[].getCurrentState().isFocused(),
+                 "a handler that does not hold the focus reports focused"
+
+        # And none of the other flags is set by the base.
+        doAssert not plain.get()[].getCurrentState().isSelected(),
+                 "the base handler's state is selected"
+        doAssert not plain.get()[].getCurrentState().isIgnored(),
+                 "the base handler's state is ignored"
+
+        cdelete component
+
+    shutdownJuce_GUI()
+
+testAccessibilityHandler()
