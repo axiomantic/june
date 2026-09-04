@@ -66,9 +66,12 @@ def called_names():
         if path.name == HARNESS:
             continue
         text = path.read_text()
+        # The backticks are optional: a method whose name is a Nim keyword is
+        # called as `x.\`type\`()`, and without them the call reads as
+        # uncalled while the test really does make it.
         names |= {m.group(1)
                   for m in re.finditer(
-                      r"\.([A-Za-z_][A-Za-z0-9_]*)\s*[(.]", text)}
+                      r"\.`?([A-Za-z_][A-Za-z0-9_]*)`?\s*[(.]", text)}
     return names
 
 
