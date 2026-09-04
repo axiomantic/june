@@ -4246,7 +4246,126 @@ when defined(macosx):
             doAssert window.getMenuBarComponent() == nil,
                      "clearing the model left a menu bar"
 
+            # A menu bar can also be a component of its own, which the window
+            # then owns (juce_DocumentWindow.cpp: menuBar.reset).
+            var bar = newCustomComponent()
+            window.setMenuBarComponent(cast[ptr Component](bar))
+            doAssert window.getMenuBarComponent() ==
+                     cast[ptr Component](bar),
+                     "the window took a different menu bar component"
+            window.setMenuBarComponent(nil)
+            doAssert window.getMenuBarComponent() == nil,
+                     "clearing the menu bar component left one behind"
+
             cdelete model
+
+        block:
+            # The style flags carry one bit per title bar button asked for
+            # (juce_DocumentWindow.cpp: getDesktopWindowStyleFlags), so a
+            # window with only a close button differs from one with all three.
+            var all = makeDocumentWindowImpl(
+                makeString("all"), makeColour(20'u8, 20'u8, 20'u8, 255'u8),
+                cint(DocumentWindow_allButtons), false)
+            var one = makeDocumentWindowImpl(
+                makeString("one"), makeColour(20'u8, 20'u8, 20'u8, 255'u8),
+                DocumentWindowTitleBarButtons_closeButton.cint, false)
+
+            doAssert (all.getDesktopWindowStyleFlags() and
+                      ComponentPeerStyleFlags_windowHasMinimiseButton.cint) != 0,
+                     "a window with all buttons has no minimise flag"
+            doAssert (one.getDesktopWindowStyleFlags() and
+                      ComponentPeerStyleFlags_windowHasMinimiseButton.cint) == 0,
+                     "a window with only a close button has a minimise flag"
+            doAssert (one.getDesktopWindowStyleFlags() and
+                      ComponentPeerStyleFlags_windowHasCloseButton.cint) != 0,
+                     "a window with a close button has no close flag"
+
+            doAssert one.getMinimiseButton() == nil,
+                     "a window with only a close button grew a minimise button"
+
+            # The required buttons can be changed afterwards, and the buttons
+            # follow.
+            one.setTitleBarButtonsRequired(
+                cint(DocumentWindow_allButtons), true)
+            doAssert one.getMinimiseButton() != nil,
+                     "asking for all buttons did not make a minimise button"
+            doAssert (one.getDesktopWindowStyleFlags() and
+                      ComponentPeerStyleFlags_windowHasMinimiseButton.cint) != 0,
+                     "the style flags did not follow the buttons"
+
+        block:
+            var window = makeDocumentWindowImpl(
+                makeString("Document"), makeColour(20'u8, 20'u8, 20'u8, 255'u8),
+                cint(DocumentWindow_allButtons), false)
+            window.setSize(200.cint, 120.cint)
+            window.setTitleBarHeight(26.cint)
+
+            # The title bar area sits inside the window's border and is as
+            # high as the title bar (juce_DocumentWindow.cpp: getTitleBarArea).
+            let area = window.getTitleBarArea()
+            doAssert area.getHeight() == 26,
+                     "the title bar area is " & $area.getHeight() & " high"
+            doAssert area.getWidth() <= window.getWidth(),
+                     "the title bar area is wider than the window"
+
+            # Centring the title bar text and giving the window an icon are
+            # both look-and-feel input with no getter, so what is asserted is
+            # that neither disturbs the layout.
+            window.setTitleBarTextCentred(false)
+            window.setIcon(makeImage(ImagePixelFormat_ARGB, 16.cint, 16.cint,
+                                     true))
+            window.setTitleBarTextCentred(true)
+            doAssert window.getTitleBarArea() == area,
+                     "the title bar area moved to " & $window.getTitleBarArea()
+
+            # activeWindowStatusChanged enables or disables the title bar
+            # buttons to match the window (juce_DocumentWindow.cpp). Off the
+            # desktop the window is never active, so the buttons end disabled.
+            window.activeWindowStatusChanged()
+            doAssert not window.getCloseButton()[].isEnabled(),
+                     "a window that is not active has an enabled close button"
+
+            # The three button handlers are the window's own virtuals. The
+            # base closeButtonPressed is a jassertfalse telling the subclass
+            # to override it, which only breaks under a debugger
+            # (juce_PlatformDefs.h:167), so calling it here merely logs.
+            window.closeButtonPressed()
+
+            # Minimising needs a desktop peer and this window has none, so
+            # minimiseButtonPressed is inert
+            # (juce_ResizableWindow.cpp:458 falls through to jassertfalse).
+            window.minimiseButtonPressed()
+            doAssert not window.isMinimised(),
+                     "a window off the desktop was minimised"
+
+            # Going full screen does NOT need one: off the desktop
+            # setFullScreen sets the flag itself and resizes the window to its
+            # parent area (juce_ResizableWindow.cpp:setFullScreen). A window
+            # with no parent takes the monitor it sits on, which is what
+            # getParentWidth reports for a parentless component.
+            window.maximiseButtonPressed()
+            doAssert window.isFullScreen(),
+                     "maximiseButtonPressed did not go full screen"
+            doAssert window.getWidth() == window.getParentWidth() and
+                     window.getHeight() == window.getParentHeight(),
+                     "a parentless full screen window is " &
+                     $window.getWidth() & "x" & $window.getHeight() &
+                     " inside a parent area of " & $window.getParentWidth() &
+                     "x" & $window.getParentHeight()
+
+            # And the same call again toggles it back. It restores
+            # lastNonFullScreenPos, which is only recorded while the window is
+            # SHOWING (juce_ResizableWindow.cpp:updateLastPosIfShowing). This
+            # window never was, so the 200x120 it was given is lost and the
+            # constructor's own 50,50,256,256 comes back instead
+            # (juce_ResizableWindow.cpp:72).
+            window.maximiseButtonPressed()
+            doAssert not window.isFullScreen(),
+                     "the second press did not leave full screen"
+            doAssert window.getBounds() ==
+                     makeRectangle(50.cint, 50.cint, 256.cint, 256.cint),
+                     "leaving full screen left the window at " &
+                     $window.getBounds()
 
         shutdownJuce_GUI()
 
