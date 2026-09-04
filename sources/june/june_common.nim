@@ -49,5 +49,18 @@ proc `==`*[T](a: ConstPtr[T], b: ConstPtr[T]): bool {.importcpp: "(# == #)", nod
 proc `==`*[T](a: ConstPtr[T], b: ptr T): bool {.importcpp: "(# == #)", nodecl.}
 proc `==`*[T](a: ptr T, b: ConstPtr[T]): bool {.importcpp: "(# == #)", nodecl.}
 
+# `#@` splices the CONSTRUCTOR'S arguments into `new T ...`, and it puts no
+# separator between the first and the rest: a two-argument constructor reaches
+# clang as `new juce::FileInputSource(fileNIM_FALSE)`. So cnew is good for a
+# construction of at most one argument, which is every use the library has.
+#
+# The alternative, `(new '*0(@))`, wraps the whole expression instead - and
+# C++17 elides the temporary, so it costs nothing and works for any arity. It
+# is not used because it then needs the argument to BE the construction: given
+# a Nim value of the type, it asks for a copy, and the classes this is most
+# useful for are exactly the ones that delete theirs.
+#
+# A class whose heap form is worth having anyway gets a named `new...` binding
+# of its own; newFileInputSource in juce_core_lifting is the first.
 proc cnew*[T](x: T): ptr T {.importcpp: "(new '*0#@)", nodecl.}
 proc cdelete*[T](x: ptr T) {.importcpp: "(delete @)", nodecl.}
