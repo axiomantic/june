@@ -3933,3 +3933,90 @@ proc testDrawablePlacement() =
     shutdownJuce_GUI()
 
 testDrawablePlacement()
+
+# The rest of FontOptions: the typeface, the metrics kind and the OpenType
+# feature settings. testFontOptionsBuilding above covers the sizes and names.
+proc testFontOptionsFeatures() =
+    initialiseJuce_GUI()
+
+    block:
+        let base = makeFontOptions(14.0'f32)
+        doAssert base.getTypeface().isNil(),
+                 "a new options object names a typeface"
+
+        # A typeface supplied outright wins over the name, and reads back.
+        var typeface = makeFont(makeFontOptions(14.0'f32)).getTypefacePtr()
+        doAssert not typeface.isNil(), "the default font has no typeface"
+        let supplied = base.withTypeface(typeface)
+        doAssert not supplied.getTypeface().isNil(),
+                 "withTypeface left the typeface unset"
+        doAssert base.getTypeface().isNil(),
+                 "withTypeface changed the original"
+
+        # The metrics kind is one of the two JUCE defines.
+        let portable = base.withMetricsKind(TypefaceMetricsKind_portable)
+        doAssert portable.getMetricsKind() == TypefaceMetricsKind_portable,
+                 "withMetricsKind did not take"
+        let legacy = base.withMetricsKind(TypefaceMetricsKind_legacy)
+        doAssert legacy.getMetricsKind() == TypefaceMetricsKind_legacy,
+                 "the legacy metrics kind did not take"
+        doAssert portable.getMetricsKind() != legacy.getMetricsKind(),
+                 "the two metrics kinds are the same"
+
+    block:
+        # A feature setting is an OpenType tag and a value. The four methods
+        # that manage them are asserted against the span they produce.
+        let base = makeFontOptions(14.0'f32)
+        doAssert base.getFeatureSettings().size() == 0'u64,
+                 "a new options object carries " &
+                 $base.getFeatureSettings().size() & " feature settings"
+
+        let ligatures = FontFeatureTag.fromString(makeString("liga"))
+        let kerning = FontFeatureTag.fromString(makeString("kern"))
+        doAssert not (ligatures == kerning),
+                 "two different feature tags are equal"
+
+        # withFeatureEnabled and withFeatureDisabled both ADD a setting; they
+        # differ in the value they give it, not in whether one removes.
+        let enabled = base.withFeatureEnabled(ligatures)
+        doAssert enabled.getFeatureSettings().size() == 1'u64,
+                 "enabling a feature gave " &
+                 $enabled.getFeatureSettings().size() & " settings"
+        let disabled = base.withFeatureDisabled(ligatures)
+        doAssert disabled.getFeatureSettings().size() == 1'u64,
+                 "disabling a feature gave " &
+                 $disabled.getFeatureSettings().size() & " settings"
+        doAssert enabled.getFeatureSettings()[0'u64].value() !=
+                 disabled.getFeatureSettings()[0'u64].value(),
+                 "enabling and disabling gave the same value"
+
+        # Two different features accumulate.
+        let both = enabled.withFeatureEnabled(kerning)
+        doAssert both.getFeatureSettings().size() == 2'u64,
+                 "two features gave " & $both.getFeatureSettings().size() &
+                 " settings"
+
+        # withFeatureRemoved takes one out and leaves the other.
+        let fewer = both.withFeatureRemoved(ligatures)
+        doAssert fewer.getFeatureSettings().size() == 1'u64,
+                 "removing one left " & $fewer.getFeatureSettings().size()
+        doAssert fewer.getFeatureSettings()[0'u64].tag() == kerning,
+                 "removing the wrong feature left " &
+                 $fewer.getFeatureSettings()[0'u64].tag().toString()
+        doAssert both.getFeatureSettings().size() == 2'u64,
+                 "withFeatureRemoved changed the original"
+
+        # And a setting made by hand carries the tag and the value it was
+        # given, which is what the with- forms build.
+        let setting = makeFontFeatureSetting(
+            kerning, uint32(FontFeatureSetting.featureEnabled))
+        let byHand = base.withFeatureSetting(setting)
+        doAssert byHand.getFeatureSettings().size() == 1'u64,
+                 "the hand-made setting did not join"
+        doAssert byHand.getFeatureSettings()[0'u64].tag() == kerning,
+                 "the hand-made setting names " &
+                 $byHand.getFeatureSettings()[0'u64].tag().toString()
+
+    shutdownJuce_GUI()
+
+testFontOptionsFeatures()
