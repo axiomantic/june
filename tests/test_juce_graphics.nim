@@ -113,6 +113,18 @@ proc testFontOptionsOverrides() =
   doAssert not cleared.getAscentOverride().hasValue()
   doAssert cleared.getAscentOverride().valueOr(-1.0'f32) == -1.0'f32
 
+  # The descent override is the same shape and a SEPARATE field, so setting
+  # one is asserted not to set the other.
+  let withDescent = plain.withDescentOverride(makeCppOptional(0.35'f32))
+  doAssert withDescent.getDescentOverride().hasValue(),
+           "withDescentOverride left the descent unset"
+  doAssert withDescent.getDescentOverride().value() == 0.35'f32,
+           "the descent override reads " & $withDescent.getDescentOverride().value()
+  doAssert not withDescent.getAscentOverride().hasValue(),
+           "setting the descent override set the ascent one too"
+  doAssert not withAscent.getDescentOverride().hasValue(),
+           "setting the ascent override set the descent one too"
+
 testFontOptionsOverrides()
 
 # HeapBlock is JUCE's owning raw buffer, and createLookupTable is the one place
