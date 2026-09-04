@@ -11131,8 +11131,13 @@ proc testTextEditorClipboardAndGeometry() =
 
         # These have no reader; what is asserted is that they run and leave the
         # editor consistent.
-        editor.setText(makeString("one\ntwo\nthree\nfour\nfive"), false)
+        #
+        # setMultiLine FIRST. setText asserts that a single-line editor is not
+        # being given line feeds (juce_TextEditor.cpp:551), so the other order
+        # makes JUCE complain about text this editor is about to be able to
+        # hold.
         editor.setMultiLine(true, false)
+        editor.setText(makeString("one\ntwo\nthree\nfour\nfive"), false)
         discard editor.pageDown(false)
         discard editor.pageUp(false)
         discard editor.scrollDown()
