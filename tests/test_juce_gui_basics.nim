@@ -3126,8 +3126,20 @@ proc testFileBrowserComponent() =
 
         # Naming a file makes it the current one, which is how a save dialog
         # reports what the user typed.
-        browser.setFileName(makeString("alpha.txt"))
-        doAssert $browser.getHighlightedFile().getFileName() == "alpha.txt",
+        #
+        # The selection only lands once the directory listing has finished
+        # loading, which happens on a background thread
+        # (juce_FileListComponent.cpp:77 checks isStillLoading and otherwise
+        # only remembers the file for later). So the name is set again until
+        # it takes, rather than once and hoped for.
+        var highlighted = false
+        for attempt in 0 ..< 200:
+            browser.setFileName(makeString("alpha.txt"))
+            if $browser.getHighlightedFile().getFileName() == "alpha.txt":
+                highlighted = true
+                break
+            Thread.sleep(10.cint)
+        doAssert highlighted,
                  "the highlighted file is " &
                  $browser.getHighlightedFile().getFileName()
         doAssert browser.currentFileIsValid(),
@@ -15007,3 +15019,222 @@ proc testComboBoxPopupAndHeaderMenu() =
     shutdownJuce_GUI()
 
 testComboBoxPopupAndHeaderMenu()
+
+# TableListBox's own header, and ComponentBuilder ============================
+proc testTableListBoxHeaderAndBuilder() =
+    initialiseJuce_GUI()
+
+    block:
+        var model = newCustomTableListBoxModel()
+        model[].setGetNumRowsHandler(proc(): cint = 2.cint)
+        model[].setPaintRowBackgroundHandler(
+            proc(g: ptr Graphics, rowNumber, width, height: cint,
+                 rowIsSelected: bool) = discard)
+        model[].setPaintCellHandler(
+            proc(g: ptr Graphics, rowNumber, columnId, width, height: cint,
+                 rowIsSelected: bool) = discard)
+
+        var table = makeTableListBox(makeString("table"),
+                                     cast[ptr TableListBoxModel](model))
+        table.setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 100.cint))
+
+        # A table starts with a header of its own, and setHeader replaces it -
+        # taking ownership, which is why it is passed as a unique_ptr.
+        doAssert table.getHeader().getNumColumns(true) == 0,
+                 "the default header carries " &
+                 $table.getHeader().getNumColumns(true) & " columns"
+
+        table.setHeader(makeUniquePtr[TableHeaderComponent](
+            cnew(makeTableHeaderComponent())))
+        let visible = cint(TableHeaderComponentColumnPropertyFlags_visible) or
+                      cint(TableHeaderComponentColumnPropertyFlags_sortable)
+        table.getHeader().addColumn(makeString("Name"), 1.cint, 100.cint,
+                                    30.cint, 400.cint, visible)
+        doAssert table.getHeader().getNumColumns(true) == 1,
+                 "the new header carries " &
+                 $table.getHeader().getNumColumns(true) & " columns"
+
+        # The table IS the header's listener, so the four callbacks are its
+        # own methods. Calling them directly is what a header does when a
+        # column moves, resizes or changes the sort order.
+        var header = table.getHeader().addr
+        table.tableColumnsChanged(header)
+        table.tableColumnsResized(header)
+        table.tableSortOrderChanged(header)
+        table.tableColumnDraggingChanged(header, 1.cint)
+        table.tableColumnDraggingChanged(header, 0.cint)
+        doAssert table.getHeader().getNumColumns(true) == 1,
+                 "the callbacks changed the header to " &
+                 $table.getHeader().getNumColumns(true) & " columns"
+
+        cdelete model
+
+    block:
+        # Three of the listener's four methods are pure virtual, so those have
+        # overrides; tableColumnDraggingChanged has a body in JUCE and does
+        # not. All four are reached through the base class.
+        var told: seq[string] = @[]
+        var listener = newCustomTableHeaderComponentListener()
+        listener[].setTableColumnsChangedHandler(
+            proc(tableHeader: ptr TableHeaderComponent) =
+                told.add("changed"))
+        listener[].setTableColumnsResizedHandler(
+            proc(tableHeader: ptr TableHeaderComponent) =
+                told.add("resized"))
+        listener[].setTableSortOrderChangedHandler(
+            proc(tableHeader: ptr TableHeaderComponent) =
+                told.add("sorted"))
+
+        var header = makeTableHeaderComponent()
+        var base = cast[ptr TableHeaderComponentListener](listener)
+        base[].tableColumnsChanged(addr header)
+        base[].tableColumnsResized(addr header)
+        base[].tableSortOrderChanged(addr header)
+        base[].tableColumnDraggingChanged(addr header, 1.cint)
+        doAssert told == @["changed", "resized", "sorted"],
+                 "the listener heard " & $told
+
+        # A listener attached to a real header hears nothing INLINE: the
+        # header posts its notification through triggerAsyncUpdate
+        # (juce_TableHeaderComponent.cpp: reSortTable), and this suite has no
+        # way to turn that queue. What is asserted is that the sort itself
+        # landed and that nothing arrived early.
+        header.addColumn(makeString("Name"), 1.cint, 100.cint, 30.cint,
+                         400.cint,
+                         cint(TableHeaderComponentColumnPropertyFlags_visible) or
+                         cint(TableHeaderComponentColumnPropertyFlags_sortable))
+        header.addListener(base)
+        told = @[]
+        header.setSortColumnId(1.cint, true)
+        doAssert header.getSortColumnId() == 1,
+                 "the header sorts by column " & $header.getSortColumnId()
+        doAssert told.len == 0,
+                 "the header told its listener " & $told & " inline"
+        header.removeListener(base)
+
+        cdelete listener
+
+    block:
+        # ComponentBuilder turns a ValueTree into a component tree. Without a
+        # handler for the root's type it builds nothing, which is the answer
+        # worth pinning: createComponent returns null rather than asserting.
+        var state = makeValueTree(makeIdentifier(makeString("UNKNOWN")))
+        var builder = makeComponentBuilder(state)
+        doAssert builder.getNumHandlers() == 0,
+                 "a fresh builder knows " & $builder.getNumHandlers() &
+                 " types"
+        # With no handler registered, createComponent has nothing to build
+        # from. JUCE asserts about it - twice, once for the empty type list
+        # and once for the unknown tree - and returns null, which only logs
+        # outside a debugger.
+        doAssert builder.createComponent().isNil,
+                 "a builder with no handler built something"
+        doAssert builder.getManagedComponent().isNil,
+                 "a builder with no handler is managing something"
+
+        # registerStandardComponentTypes registers NOTHING. Its body is empty
+        # in JUCE 8 (juce_ComponentBuilder.cpp:191), so the name is all that
+        # is left of it and a caller who relies on it gets no handlers.
+        builder.registerStandardComponentTypes()
+        doAssert builder.getNumHandlers() == 0,
+                 "registering the standard types added " &
+                 $builder.getNumHandlers() & " handlers"
+
+        # A handler the caller registers itself IS used. The builder makes the
+        # component once and keeps it, so getManagedComponent hands back the
+        # same one createComponent built.
+        var built = 0
+        var componentState = makeValueTree(makeIdentifier(makeString("WIDGET")))
+        var componentBuilder = makeComponentBuilder(componentState)
+        var handler = newCustomComponentBuilderTypeHandler(
+            makeIdentifier(makeString("WIDGET")))
+        handler[].setAddNewComponentFromStateHandler(
+            proc(state: ptr ValueTree, parent: ptr Component): ptr Component =
+                built += 1
+                cast[ptr Component](newCustomComponent()))
+        handler[].setUpdateComponentFromStateHandler(
+            proc(component: ptr Component, state: ptr ValueTree) = discard)
+        componentBuilder.registerTypeHandler(
+            cast[ptr ComponentBuilderTypeHandler](handler))
+
+        doAssert componentBuilder.getNumHandlers() == 1,
+                 "the builder knows " & $componentBuilder.getNumHandlers() &
+                 " types"
+        doAssert componentBuilder.getHandlerForState(componentState) ==
+                 cast[ptr ComponentBuilderTypeHandler](handler),
+                 "the builder found a different handler for the state"
+
+        let component = componentBuilder.getManagedComponent()
+        doAssert not component.isNil, "the builder made nothing"
+        doAssert built == 1, "the builder built " & $built & " components"
+        doAssert componentBuilder.getManagedComponent() == component,
+                 "the builder handed back two different components"
+
+        # createComponent builds a FRESH one every time and hands ownership to
+        # the caller; getManagedComponent is the one that builds once and
+        # keeps it (juce_ComponentBuilder.cpp: getManagedComponent calls
+        # createComponent only when it holds nothing).
+        let fresh = componentBuilder.createComponent()
+        doAssert not fresh.isNil, "createComponent made nothing"
+        doAssert fresh != component,
+                 "createComponent handed back the managed component"
+        doAssert built == 2, "the builder built " & $built & " components"
+
+        # The component createComponent handed back is the caller's; the
+        # handler is NOT. registerTypeHandler puts it in the builder's own
+        # OwnedArray (juce_ComponentBuilder.cpp: types.add), so deleting it
+        # here would be a second free.
+        cdelete fresh
+
+        # The handler knows the type it was built for and the builder that
+        # took it: registerTypeHandler sets the back pointer
+        # (juce_ComponentBuilder.cpp: type->builder = this).
+        var handlerBase = cast[ptr ComponentBuilderTypeHandler](handler)
+        doAssert handlerBase[].`type`() == makeIdentifier(makeString("WIDGET")),
+                 "the handler answers for " & $handlerBase[].`type`()
+        doAssert handlerBase[].getBuilder() == addr componentBuilder,
+                 "the handler points at another builder"
+
+        # And the two overrides are reachable through the base class, which is
+        # how the builder itself calls them.
+        var host = newCustomComponent()
+        let direct = handlerBase[].addNewComponentFromState(
+            componentState, cast[ptr Component](host))
+        doAssert not direct.isNil, "the handler built nothing"
+        handlerBase[].updateComponentFromState(direct, componentState)
+
+        # The handler was called directly rather than through the builder, so
+        # nothing adopted what it made and this end owns both.
+        cdelete direct
+        cdelete host
+
+        # The image provider is remembered as given, and null clears it.
+        doAssert builder.getImageProvider().isNil,
+                 "a fresh builder already has an image provider"
+        builder.setImageProvider(nil)
+        doAssert builder.getImageProvider().isNil,
+                 "clearing the image provider left one"
+
+        # updateChildComponents brings a parent's children into line with a
+        # ValueTree. With no children in the tree it removes what is there.
+        var parent = newCustomComponent()
+        var child = newCustomComponent()
+        parent[].addAndMakeVisible(cast[ptr Component](child))
+        doAssert parent[].getNumChildComponents() == 1,
+                 "the parent holds " & $parent[].getNumChildComponents() &
+                 " children"
+        # updateChildComponents takes OWNERSHIP of the parent's existing
+        # children - it puts them in an OwnedArray and deletes the ones the
+        # new tree does not reclaim (juce_ComponentBuilder.cpp:257). So the
+        # child is gone after this, and deleting it here would be a second
+        # free.
+        builder.updateChildComponents(
+            parent[], makeValueTree(makeIdentifier(makeString("CHILDREN"))))
+        doAssert parent[].getNumChildComponents() == 0,
+                 "the parent still holds " &
+                 $parent[].getNumChildComponents() & " children"
+        cdelete parent
+
+    shutdownJuce_GUI()
+
+testTableListBoxHeaderAndBuilder()
