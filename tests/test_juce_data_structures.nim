@@ -731,3 +731,179 @@ proc testUndoManagerTransactions() =
     manager.setMaxNumberOfStoredUnits(100.cint, 2.cint)
 
 testUndoManagerTransactions()
+
+# ValueTree's navigation and its copying. A tree is a handle onto shared state,
+# so an assignment shares and createCopy does not - the same distinction Image
+# has, and the one a caller gets wrong.
+proc testValueTreeNavigationAndCopies() =
+  block:
+    var root = makeValueTree(makeIdentifier("root"))
+    doAssert root.hasType(makeIdentifier("root")),
+             "the tree does not have the type it was made with"
+    doAssert not root.hasType(makeIdentifier("other")),
+             "the tree has a type it was never given"
+
+    var first = makeValueTree(makeIdentifier("child"))
+    discard first.setProperty(makeIdentifier("name"), makejuce_var(makeString("first")),
+                      nil)
+    var second = makeValueTree(makeIdentifier("child"))
+    discard second.setProperty(makeIdentifier("name"),
+                       makejuce_var(makeString("second")), nil)
+    var other = makeValueTree(makeIdentifier("different"))
+
+    root.appendChild(first, nil)
+    root.appendChild(second, nil)
+    root.appendChild(other, nil)
+    doAssert root.getNumChildren() == 3,
+             "the root holds " & $root.getNumChildren() & " children"
+
+    # getParent walks back up, and the root has none.
+    doAssert first.getParent() == root,
+             "the child's parent is not the root"
+    doAssert not root.getParent().isValid(),
+             "the root has a parent"
+
+    # getSibling walks the child list by an offset from this child.
+    doAssert first.getSibling(1.cint) == second,
+             "the next sibling of the first child is not the second"
+    doAssert second.getSibling(-1.cint) == first,
+             "the previous sibling of the second child is not the first"
+    doAssert not first.getSibling(-1.cint).isValid(),
+             "the first child has a previous sibling"
+    doAssert not other.getSibling(1.cint).isValid(),
+             "the last child has a next sibling"
+
+    # getChildWithName finds the FIRST child of that type, and
+    # getChildWithProperty finds by a value rather than a type.
+    doAssert root.getChildWithName(makeIdentifier("child")) == first,
+             "getChildWithName found a different child"
+    doAssert not root.getChildWithName(makeIdentifier("absent")).isValid(),
+             "getChildWithName invented a child"
+    doAssert root.getChildWithProperty(makeIdentifier("name"),
+                                       makejuce_var(makeString("second"))) ==
+             second,
+             "getChildWithProperty found a different child"
+    doAssert not root.getChildWithProperty(
+                 makeIdentifier("name"),
+                 makejuce_var(makeString("absent"))).isValid(),
+             "getChildWithProperty invented a child"
+
+    # getOrCreateChildWithName returns the existing one rather than adding a
+    # second, and adds one when there is none.
+    doAssert root.getOrCreateChildWithName(makeIdentifier("child"), nil) == first,
+             "getOrCreateChildWithName added a second child of an existing type"
+    doAssert root.getNumChildren() == 3,
+             "the root holds " & $root.getNumChildren() & " children after the " &
+             "existing one was asked for"
+    let created = root.getOrCreateChildWithName(makeIdentifier("fresh"), nil)
+    doAssert created.isValid(), "getOrCreateChildWithName created nothing"
+    doAssert root.getNumChildren() == 4,
+             "the root holds " & $root.getNumChildren() & " children after one " &
+             "was created"
+
+    # moveChild reorders without adding or removing.
+    root.moveChild(0.cint, 2.cint, nil)
+    doAssert root.getChild(2.cint) == first,
+             "the moved child is at index " & $root.indexOf(first)
+    doAssert root.getNumChildren() == 4,
+             "moving a child changed the count to " & $root.getNumChildren()
+
+  block:
+    # A tree is a handle onto shared state. An assignment shares it.
+    var original = makeValueTree(makeIdentifier("root"))
+    discard original.setProperty(makeIdentifier("value"), makejuce_var(1.cint), nil)
+
+    var shared = original
+    discard shared.setProperty(makeIdentifier("value"), makejuce_var(2.cint), nil)
+    doAssert original.getProperty(makeIdentifier("value")).toInt() == 2,
+             "writing through the shared handle did not reach the original"
+
+    # createCopy is a deep copy: neither the properties nor the children are
+    # shared afterwards.
+    original.appendChild(makeValueTree(makeIdentifier("child")), nil)
+    var copied = original.createCopy()
+    doAssert copied.getNumChildren() == 1,
+             "the copy holds " & $copied.getNumChildren() & " children"
+    discard copied.setProperty(makeIdentifier("value"), makejuce_var(9.cint), nil)
+    doAssert original.getProperty(makeIdentifier("value")).toInt() == 2,
+             "writing to the copy reached the original"
+
+    var copiedChild = copied.getChild(0.cint)
+    discard copiedChild.setProperty(makeIdentifier("deep"),
+                                    makejuce_var(1.cint), nil)
+    doAssert not original.getChild(0.cint).hasProperty(makeIdentifier("deep")),
+             "writing to the copy's child reached the original's child"
+
+  block:
+    # The property-copying methods differ in whether they bring the children.
+    var source = makeValueTree(makeIdentifier("source"))
+    discard source.setProperty(makeIdentifier("a"), makejuce_var(1.cint), nil)
+    source.appendChild(makeValueTree(makeIdentifier("child")), nil)
+
+    var propertiesOnly = makeValueTree(makeIdentifier("target"))
+    propertiesOnly.copyPropertiesFrom(source, nil)
+    doAssert propertiesOnly.getProperty(makeIdentifier("a")).toInt() == 1,
+             "copyPropertiesFrom did not bring the property"
+    doAssert propertiesOnly.getNumChildren() == 0,
+             "copyPropertiesFrom brought " & $propertiesOnly.getNumChildren() &
+             " children"
+
+    var everything = makeValueTree(makeIdentifier("target"))
+    everything.copyPropertiesAndChildrenFrom(source, nil)
+    doAssert everything.getProperty(makeIdentifier("a")).toInt() == 1,
+             "copyPropertiesAndChildrenFrom did not bring the property"
+    doAssert everything.getNumChildren() == 1,
+             "copyPropertiesAndChildrenFrom brought " &
+             $everything.getNumChildren() & " children"
+
+    # And removeAllProperties leaves the children alone, which is the mirror
+    # of copyPropertiesFrom.
+    everything.removeAllProperties(nil)
+    doAssert everything.getNumProperties() == 0,
+             "removeAllProperties left " & $everything.getNumProperties()
+    doAssert everything.getNumChildren() == 1,
+             "removeAllProperties removed a child too"
+
+  block:
+    # A property is also reachable as a Value, which is a view of the same
+    # storage rather than a copy of it.
+    var tree = makeValueTree(makeIdentifier("root"))
+    discard tree.setProperty(makeIdentifier("value"), makejuce_var(5.cint), nil)
+
+    var asValue = tree.getPropertyAsValue(makeIdentifier("value"), nil, false)
+    doAssert asValue.getValue().toInt() == 5,
+             "the value reads " & $asValue.getValue().toInt()
+    asValue.setValue(makejuce_var(7.cint))
+    doAssert tree.getProperty(makeIdentifier("value")).toInt() == 7,
+             "writing through the Value did not reach the tree; it holds " &
+             $tree.getProperty(makeIdentifier("value")).toInt()
+
+    # setPropertyExcludingListener writes the same way; the exclusion only
+    # decides who is told.
+    discard tree.setPropertyExcludingListener(nil, makeIdentifier("value"),
+                                      makejuce_var(11.cint), nil)
+    doAssert tree.getProperty(makeIdentifier("value")).toInt() == 11,
+             "the excluding setter left " &
+             $tree.getProperty(makeIdentifier("value")).toInt()
+    tree.sendPropertyChangeMessage(makeIdentifier("value"))
+
+  block:
+    # A tree round trips through its own XML string.
+    var tree = makeValueTree(makeIdentifier("settings"))
+    discard tree.setProperty(makeIdentifier("volume"), makejuce_var(11.cint), nil)
+    tree.appendChild(makeValueTree(makeIdentifier("window")), nil)
+
+    let text = tree.toXmlString(makeXmlElementTextFormat())
+    doAssert text.isNotEmpty(), "toXmlString gave nothing"
+    doAssert ($text).contains("settings"),
+             "the XML does not name the tree: " & $text
+
+    let rebuilt = ValueTree.fromXml(makeString($text))
+    doAssert rebuilt.hasType(makeIdentifier("settings")),
+             "the round trip changed the type"
+    doAssert rebuilt.getProperty(makeIdentifier("volume")).toInt() == 11,
+             "the round trip lost the property"
+    doAssert rebuilt.getNumChildren() == 1,
+             "the round trip left " & $rebuilt.getNumChildren() & " children"
+
+testValueTreeNavigationAndCopies()
