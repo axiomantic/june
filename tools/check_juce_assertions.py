@@ -118,13 +118,6 @@ EXPECTED = {
          "thread affinity is not supported in this build, and the Thread"
          "test calls setAffinityMask to pin that it is inert rather than"
          "fatal"),
-    "juce_ActionBroadcaster.cpp:67":
-        ("any",
-         "an ActionBroadcaster built before initialiseJuce_GUI; the"
-         "subclass tests build one outside the GUI block on purpose"),
-    "juce_ActionBroadcaster.cpp:73":
-        ("any",
-         "the same object destroyed after shutdownJuce_GUI"),
     "juce_Timer.cpp:376":
         ("macos",
          "startTimer with no running MessageManager, which every headless"
