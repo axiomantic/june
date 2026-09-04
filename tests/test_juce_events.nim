@@ -585,3 +585,155 @@ proc testMessageManagerIdentity() =
   shutdownJuce_GUI()
 
 testMessageManagerIdentity()
+
+# A live InterprocessConnection ===============================================
+#
+# Both ends live in this one process, joined by a named pipe. The connection is
+# built with callbacksOnMessageThread false, so connectionMade, messageReceived
+# and connectionLost arrive on the connection's OWN thread rather than being
+# posted to a message queue the suite cannot drain
+# (juce_InterprocessConnection.cpp:connectionMadeInt).
+#
+# The handlers therefore run on a thread Nim did not start, so they only touch
+# these globals and never allocate.
+
+var connectionsMade = 0
+var connectionsLost = 0
+var messagesReceived = 0
+var lastMessage: array[64, char]
+var lastMessageSize = 0
+
+proc waitUntil(condition: proc(): bool, milliseconds: int): bool =
+    for i in 0 ..< milliseconds div 10:
+        if condition():
+            return true
+        Thread.sleep(10.cint)
+    condition()
+
+proc testInterprocessConnectionOverAPipe() =
+    initialiseJuce_GUI()
+
+    const magic = 0x6a756e65'u32
+    let pipeName = makeString("june-test-pipe")
+
+    block:
+        var server = newCustomInterprocessConnection(false, magic)
+        server[].setConnectionMadeHandler(proc() = connectionsMade += 1)
+        server[].setConnectionLostHandler(proc() = connectionsLost += 1)
+        server[].setMessageReceivedHandler(proc(message: ptr MemoryBlock) =
+            let size = int(message[].getSize())
+            lastMessageSize = size
+            if size <= lastMessage.len:
+                message[].copyTo(addr lastMessage[0], 0.cint, uint64(size))
+            messagesReceived += 1)
+
+        var client = newCustomInterprocessConnection(false, magic)
+        client[].setConnectionMadeHandler(proc() = connectionsMade += 1)
+        client[].setConnectionLostHandler(proc() = connectionsLost += 1)
+        client[].setMessageReceivedHandler(proc(message: ptr MemoryBlock) =
+            messagesReceived += 1)
+
+        var serverBase = cast[ptr InterprocessConnection](server)
+        var clientBase = cast[ptr InterprocessConnection](client)
+
+        doAssert not serverBase[].isConnected(),
+                 "a fresh connection reports itself connected"
+        doAssert serverBase[].getPipe().isNil, "a fresh connection has a pipe"
+        doAssert serverBase[].getSocket().isNil, "a fresh connection has a socket"
+        doAssert $serverBase[].getConnectedHostName() == "",
+                 "a fresh connection names the host " &
+                 $serverBase[].getConnectedHostName()
+
+        doAssert serverBase[].createPipe(pipeName, 2000.cint, false),
+                 "the pipe was not created"
+        doAssert clientBase[].connectToPipe(pipeName, 2000.cint),
+                 "nothing connected to the pipe"
+
+        doAssert waitUntil(proc(): bool = connectionsMade == 2, 5000),
+                 "only " & $connectionsMade & " of the two ends connected"
+        doAssert serverBase[].isConnected() and clientBase[].isConnected(),
+                 "one of the two ends is not connected"
+
+        # A pipe is a pipe: there is no socket, and the host is this machine.
+        doAssert not serverBase[].getPipe().isNil, "the server has no pipe"
+        doAssert serverBase[].getSocket().isNil, "the server grew a socket"
+        doAssert $serverBase[].getConnectedHostName() ==
+                 $IPAddress.local().toString(),
+                 "the connected host is " & $serverBase[].getConnectedHostName()
+
+        # A message crosses the pipe intact. sendMessage frames it with the
+        # magic header both ends were built with
+        # (juce_InterprocessConnection.cpp:sendMessage), so a mismatched magic
+        # number would drop it.
+        let payload = "hello over a pipe"
+        doAssert clientBase[].sendMessage(
+                     makeMemoryBlock(constPointer(payload[0].addr),
+                                     uint64(payload.len))),
+                 "the message was not written"
+        doAssert waitUntil(proc(): bool = messagesReceived == 1, 5000),
+                 "the server received " & $messagesReceived & " messages"
+        doAssert lastMessageSize == payload.len,
+                 "the message arrived with " & $lastMessageSize & " bytes"
+        var arrived = newString(lastMessageSize)
+        for i in 0 ..< lastMessageSize:
+            arrived[i] = lastMessage[i]
+        doAssert arrived == payload, "the message arrived as " & arrived
+
+        # Disconnecting with Notify::yes calls connectionLost on THIS end
+        # (juce_InterprocessConnection.cpp:disconnect). The other end learns of
+        # it when its own read fails, which is why only one count is asserted
+        # exactly and the other is bounded.
+        clientBase[].disconnect(2000.cint, InterprocessConnectionNotify_yes)
+        doAssert waitUntil(proc(): bool = connectionsLost >= 1, 5000),
+                 "neither end noticed the disconnection"
+        doAssert not clientBase[].isConnected(),
+                 "the client is still connected after disconnecting"
+
+        # And with Notify::no it does not, so a second disconnect on an
+        # already-closed connection is silent.
+        let lostSoFar = connectionsLost
+        clientBase[].disconnect(2000.cint, InterprocessConnectionNotify_no)
+        doAssert connectionsLost == lostSoFar,
+                 "a silent disconnect still reported a lost connection"
+
+        serverBase[].disconnect(2000.cint, InterprocessConnectionNotify_no)
+        cdelete client
+        cdelete server
+
+    block:
+        # connectionMade, connectionLost and messageReceived are the model's
+        # own virtuals, and calling them through the base class is what proves
+        # the Nim overrides reached C++.
+        var connection = newCustomInterprocessConnection(false, magic)
+        connection[].setConnectionMadeHandler(proc() = connectionsMade += 1)
+        connection[].setConnectionLostHandler(proc() = connectionsLost += 1)
+        connection[].setMessageReceivedHandler(proc(message: ptr MemoryBlock) =
+            messagesReceived += 1)
+        var base = cast[ptr InterprocessConnection](connection)
+
+        let madeBefore = connectionsMade
+        base[].connectionMade()
+        doAssert connectionsMade == madeBefore + 1,
+                 "connectionMade did not reach the override"
+
+        let lostBefore = connectionsLost
+        base[].connectionLost()
+        doAssert connectionsLost == lostBefore + 1,
+                 "connectionLost did not reach the override"
+
+        let receivedBefore = messagesReceived
+        base[].messageReceived(makeMemoryBlock(4'u64, true))
+        doAssert messagesReceived == receivedBefore + 1,
+                 "messageReceived did not reach the override"
+
+        # Connecting to a socket nothing is listening on fails rather than
+        # blocking for the whole timeout.
+        doAssert not base[].connectToSocket(makeString("127.0.0.1"),
+                                            1.cint, 200.cint),
+                 "a connection was made to a port nothing is listening on"
+
+        cdelete connection
+
+    shutdownJuce_GUI()
+
+testInterprocessConnectionOverAPipe()
