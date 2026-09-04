@@ -15423,3 +15423,83 @@ proc testToolbarDragHandling() =
     shutdownJuce_GUI()
 
 testToolbarDragHandling()
+
+# RelativeCoordinatePositionerBase ===========================================
+#
+# The positioner watches whatever a component's relative coordinates depend on
+# and re-lays it out when any of it moves. Its three pure virtuals have
+# overrides; the five methods here are its own, and each is called through the
+# base class, which is how the marker lists and the component reach them.
+proc testRelativeCoordinatePositioner() =
+    initialiseJuce_GUI()
+
+    block:
+        var registered = 0
+        var applied = 0
+
+        var owner = newCustomComponent()
+        owner[].setBounds(makeRectangle(0.cint, 0.cint, 100.cint, 50.cint))
+
+        var positioner = newCustomRelativeCoordinatePositionerBase(
+            cast[ptr Component](owner)[])
+        positioner[].setApplyNewBoundsHandler(
+            proc(newBounds: ptr Rectangle[cint]) = discard)
+        positioner[].setRegisterCoordinatesHandler(proc(): bool =
+            registered += 1
+            true)
+        positioner[].setApplyToComponentBoundsHandler(proc() = applied += 1)
+
+        var base = cast[ptr RelativeCoordinatePositionerBase](positioner)
+
+        # The positioner knows the component it was built for.
+        doAssert base[].getComponent().getWidth() == 100,
+                 "the positioner's component is " &
+                 $base[].getComponent().getWidth() & " wide"
+
+        # apply registers the coordinates once and then lays out. A second
+        # apply lays out again without registering again, because the first
+        # registration reported success (juce_RelativeCoordinatePositioner.cpp:
+        # apply only registers while registeredOk is false).
+        base[].apply()
+        doAssert registered == 1 and applied == 1,
+                 "the first apply registered " & $registered &
+                 " times and laid out " & $applied
+        base[].apply()
+        doAssert registered == 1 and applied == 2,
+                 "the second apply registered " & $registered &
+                 " times and laid out " & $applied
+
+        # A coordinate the positioner can evaluate is accepted; one that names
+        # something it cannot find is not.
+        doAssert base[].addCoordinate(makeRelativeCoordinate(10.0)),
+                 "an absolute coordinate was refused"
+        doAssert not base[].addCoordinate(
+                     makeRelativeCoordinate(makeString("nothing.left"))),
+                 "a coordinate naming an unknown scope was accepted"
+
+        # A point is two coordinates, so it is accepted only when both are.
+        doAssert base[].addPoint(makeRelativePoint(
+                     makePoint(1.0'f32, 2.0'f32))),
+                 "an absolute point was refused"
+
+        # markersChanged is what a marker list calls when it moves, and it
+        # lays the component out again.
+        var markers = makeMarkerList()
+        let before = applied
+        base[].markersChanged(addr markers)
+        doAssert applied == before + 1,
+                 "a marker change laid out " & $(applied - before) & " times"
+
+        # markerListBeingDeleted drops the list from the ones being watched.
+        # JUCE asserts that the list really is among them, which only logs.
+        base[].markerListBeingDeleted(addr markers)
+        base[].apply()
+        doAssert applied == before + 2,
+                 "the positioner stopped working after a list was dropped"
+
+        cdelete positioner
+        cdelete owner
+
+    shutdownJuce_GUI()
+
+testRelativeCoordinatePositioner()

@@ -57,6 +57,12 @@ UNREACHABLE = {
     "JUCEApplicationBase": "the process's single application instance",
     "JUCEApplication": "the process's single application instance",
     "JUCEApplicationImpl": "the process's single application instance",
+    # Abstract, and no subclass is generated for it: getRowSpan returns an
+    # Optional<Span> the generator cannot spell, which
+    # juce_gui_basics_subclasses.nim records among the withheld ones. So the
+    # only instance a test could reach comes from an AccessibilityHandler,
+    # which needs a native window handle.
+    "AccessibilityTableInterface": "abstract, and no subclass is generated",
 }
 
 # The same, one method at a time, for a class whose OTHER methods a test can
