@@ -1316,8 +1316,8 @@ proc readFromStream*(this: typedesc[juce_var], input: var InputStream): juce_var
 
 proc makejuce_varNativeFunctionArgs*(thisObject: juce_var, args: ptr juce_var, numArgs: cint): juce_varNativeFunctionArgs {.header: juce_core, importcpp: "juce::var::NativeFunctionArgs(@)".}
 proc thisObject*(this: juce_varNativeFunctionArgs): juce_var {.header: juce_core, importcpp: "#.thisObject".}
-proc arguments*(this: juce_varNativeFunctionArgs): ptr juce_var {.header: juce_core, importcpp: "#.arguments".}
-proc arguments*(this: var juce_varNativeFunctionArgs): var ptr juce_var {.header: juce_core, importcpp: "#.arguments".}
+proc arguments*(this: juce_varNativeFunctionArgs): ConstPtr[juce_var] {.header: juce_core, importcpp: "#.arguments".}
+proc arguments*(this: var juce_varNativeFunctionArgs): var ConstPtr[juce_var] {.header: juce_core, importcpp: "#.arguments".}
 proc `arguments=`*(this: var juce_varNativeFunctionArgs, value: ptr juce_var) {.header: juce_core, importcpp: "#.arguments = #".}
 proc numArguments*(this: juce_varNativeFunctionArgs): cint {.header: juce_core, importcpp: "#.numArguments".}
 proc numArguments*(this: var juce_varNativeFunctionArgs): var cint {.header: juce_core, importcpp: "#.numArguments".}
@@ -2622,7 +2622,7 @@ proc removeValue*(this: var PropertySet, keyName: StringRef) {.header: juce_core
 proc containsKey*(this: PropertySet, keyName: StringRef): bool {.header: juce_core, importcpp: "#.containsKey(@)".}
 proc clear*(this: var PropertySet) {.header: juce_core, importcpp: "#.clear()".}
 proc getAllProperties*(this: var PropertySet): var StringPairArray {.header: juce_core, importcpp: "#.getAllProperties()".}
-proc getLock*(this: PropertySet): CriticalSection {.header: juce_core, importcpp: "#.getLock()".}
+proc getLock*(this: PropertySet): ConstPtr[CriticalSection] {.header: juce_core, importcpp: "(&(#.getLock()))".}
 proc createXml*(this: PropertySet, nodeName: String): UniquePtr[XmlElement] {.header: juce_core, importcpp: "#.createXml(@)".}
 proc restoreFromXml*(this: var PropertySet, xml: XmlElement) {.header: juce_core, importcpp: "#.restoreFromXml(@)".}
 proc setFallbackPropertySet*(this: var PropertySet, fallbackProperties: ptr PropertySet) {.header: juce_core, importcpp: "#.setFallbackPropertySet(@)".}

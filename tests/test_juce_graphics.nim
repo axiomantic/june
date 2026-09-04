@@ -4278,13 +4278,22 @@ proc testImagePixelData() =
         # can make another image of the same kind.
         let imageType = data.get()[].createType()
         doAssert not imageType.get().isNil, "the pixel data has no image type"
-        doAssert imageType.get()[].getTypeID() ==
-                 makeNativeImageType().getTypeID(),
-                 "an ordinary image is not of the native type"
+        # createType names the type that actually MADE the pixels, not the
+        # type that was asked for. juce_Image.cpp:675 builds every plain Image
+        # through NativeImageType, but on Linux and BSD NativeImageType::create
+        # returns a SoftwarePixelData (juce_Image.cpp:645), and that names the
+        # software type. So the answer differs by platform even though the
+        # call is the same.
+        when defined(linux) or defined(bsd):
+            let expectedTypeID = makeSoftwareImageType().getTypeID()
+        else:
+            let expectedTypeID = makeNativeImageType().getTypeID()
+        doAssert imageType.get()[].getTypeID() == expectedTypeID,
+                 "an ordinary image reports type id " &
+                 $imageType.get()[].getTypeID() & " rather than " &
+                 $expectedTypeID
 
-        # The native type is the platform's own, which on macOS is not the
-        # software one (juce_Image.cpp:675 builds every plain Image through
-        # NativeImageType).
+        # An image asked for the software type reports it everywhere.
         var software = makeImage(ImagePixelFormat_ARGB, 4.cint, 4.cint, true,
                                  makeSoftwareImageType())
         doAssert software.getPixelData().get()[].createType().get()[].getTypeID() ==
