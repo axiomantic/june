@@ -95,21 +95,64 @@ def called_names():
     return names
 
 
-def methods_by_class():
-    per = collections.defaultdict(set)
+def methods_by_module():
+    """{module: {class: {method}}}, from the generated bindings only."""
+    per_module = {}
     for path in sorted(SOURCES.glob("juce_*.nim")):
         if path.name.endswith(("_lifting.nim", "_subclasses.nim")):
             continue
+        per = collections.defaultdict(set)
         for line in path.read_text().splitlines():
             match = re.match(
                 r"proc (`?[A-Za-z_][A-Za-z0-9_]*`?)\*\("
                 r"this: (?:var )?([A-Za-z_][A-Za-z0-9_]*)[,)]", line)
             if match:
                 per[match.group(2)].add(match.group(1).strip("`"))
+        per_module[path.stem] = per
+    return per_module
+
+
+def methods_by_class():
+    per = collections.defaultdict(set)
+    for module in methods_by_module().values():
+        for cls, names in module.items():
+            per[cls] |= names
     return per
 
 
+def is_reachable(cls, method):
+    return (cls not in UNREACHABLE
+            and f"{cls}.{method}" not in UNREACHABLE_METHODS)
+
+
+def print_remaining():
+    """Every reachable-and-uncalled method, by module and then by class.
+
+    This is what docs/coverage-roadmap.rst describes the shape of. The doc
+    carries the shape because that is what a reader needs; this carries the
+    list, because a list in a document is wrong the moment a test is written.
+    """
+    called = called_names()
+    for module, per in methods_by_module().items():
+        rows = []
+        for cls, names in per.items():
+            left = sorted(n for n in names - called if is_reachable(cls, n))
+            if left:
+                rows.append((len(left), cls, left))
+        if not rows:
+            continue
+        rows.sort(key=lambda row: (-row[0], row[1]))
+        methods = sum(row[0] for row in rows)
+        print(f"\n{module}  ({methods} methods, {len(rows)} classes)")
+        for count, cls, left in rows:
+            print(f"  {count}  {cls}: {' '.join(left)}")
+    return 0
+
+
 def main():
+    if "--remaining" in sys.argv[1:]:
+        return print_remaining()
+
     called = called_names()
     per = methods_by_class()
 
