@@ -12334,3 +12334,146 @@ proc testTreeViewNavigation() =
     shutdownJuce_GUI()
 
 testTreeViewNavigation()
+
+# Slider's last few: the explicit skew, the text box's own visibility, and the
+# drag hooks JUCE calls that a caller can also call directly.
+proc testSliderSkewAndTextBox() =
+    initialiseJuce_GUI()
+
+    block:
+        # setSkewFactor is the raw form of setSkewFactorFromMidPoint. A factor
+        # below one pushes the midpoint towards the low end; above one pushes
+        # it the other way.
+        let slider = newCustomSlider()
+        slider[].setRange(0.0, 100.0, 0.0)
+
+        doAssert slider[].getSkewFactor() == 1.0,
+                 "the default skew is " & $slider[].getSkewFactor()
+        doAssert abs(slider[].valueToProportionOfLength(50.0) - 0.5) < 1.0e-9,
+                 "unskewed, 50 sits at " &
+                 $slider[].valueToProportionOfLength(50.0)
+
+        slider[].setSkewFactor(0.5, false)
+        doAssert slider[].getSkewFactor() == 0.5,
+                 "the skew factor is " & $slider[].getSkewFactor()
+        doAssert not slider[].isSymmetricSkew(),
+                 "an asymmetric skew reports symmetric"
+        doAssert slider[].valueToProportionOfLength(50.0) > 0.5,
+                 "with a skew of 0.5 the midpoint sits at " &
+                 $slider[].valueToProportionOfLength(50.0)
+
+        slider[].setSkewFactor(2.0, false)
+        doAssert slider[].valueToProportionOfLength(50.0) < 0.5,
+                 "with a skew of 2 the midpoint sits at " &
+                 $slider[].valueToProportionOfLength(50.0)
+
+        # The symmetric form bends both halves away from the centre, so the
+        # midpoint stays where it was.
+        slider[].setSkewFactor(2.0, true)
+        doAssert slider[].isSymmetricSkew(), "the symmetric flag did not take"
+        doAssert abs(slider[].valueToProportionOfLength(50.0) - 0.5) < 1.0e-6,
+                 "a symmetric skew moved the midpoint to " &
+                 $slider[].valueToProportionOfLength(50.0)
+
+        cdelete slider
+
+    block:
+        # The text box is a child of the slider, so showing and hiding it
+        # changes the child count.
+        let slider = newCustomSlider()
+        slider[].setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 40.cint))
+        slider[].setRange(0.0, 10.0, 1.0)
+        slider[].setTextBoxStyle(SliderTextEntryBoxPosition_TextBoxLeft, false,
+                                 60.cint, 20.cint)
+        slider[].setValue(5.0, NotificationType_dontSendNotification)
+
+        let before = slider[].getNumChildComponents()
+        slider[].showTextBox()
+        doAssert slider[].getNumChildComponents() >= before,
+                 "showing the text box removed a child"
+
+        slider[].hideTextBox(false)
+        doAssert slider[].getValue() == 5.0,
+                 "hiding the text box without discarding changed the value to " &
+                 $slider[].getValue()
+
+        slider[].showTextBox()
+        slider[].hideTextBox(true)
+        doAssert slider[].getValue() == 5.0,
+                 "hiding the text box and discarding changed the value to " &
+                 $slider[].getValue()
+
+        cdelete slider
+
+    block:
+        # The drag hooks. JUCE calls these around a real drag; calling them
+        # directly is what compiles them, and the assertion is that the value
+        # survives.
+        let slider = newCustomSlider()
+        slider[].setRange(0.0, 10.0, 0.0)
+        slider[].setValue(3.0, NotificationType_dontSendNotification)
+
+        slider[].startedDragging()
+        doAssert slider[].getValue() == 3.0,
+                 "startedDragging changed the value to " & $slider[].getValue()
+        slider[].stoppedDragging()
+        doAssert slider[].getValue() == 3.0,
+                 "stoppedDragging changed the value to " & $slider[].getValue()
+
+        # valueChanged is the hook a subclass overrides; the base does
+        # nothing, so the value is untouched.
+        slider[].valueChanged()
+        doAssert slider[].getValue() == 3.0,
+                 "valueChanged changed the value to " & $slider[].getValue()
+
+        # setChangeNotificationOnlyOnRelease decides when onValueChange fires;
+        # the value itself still changes at once either way.
+        var changes = 0
+        slider[].onValueChanged = bindClosure(proc() = changes += 1)
+        slider[].setChangeNotificationOnlyOnRelease(true)
+        slider[].setValue(7.0, NotificationType_sendNotificationSync)
+        doAssert slider[].getValue() == 7.0,
+                 "the value is " & $slider[].getValue()
+        doAssert changes > 0,
+                 "setValue with a synchronous notification produced " &
+                 $changes & " callbacks"
+
+        # The two text hooks read back as the std::functions they were set to.
+        # testSliderValueAndStyle sets them; here they are read, which is a
+        # different binding from the setter.
+        # There is no isNil for a bound std::function, so the hooks are read
+        # back and INVOKED - which proves both that the getter returns the one
+        # that was set and that the Nim closure behind it still runs.
+        slider[].textFromValueFunction = bindClosure(proc(value: float64): String =
+            makeString("v" & $int(value)))
+        var renderHook = slider[].textFromValueFunction
+        doAssert $renderHook.invoke(4.0) == "v4",
+                 "reading the hook back and invoking it gave " &
+                 $renderHook.invoke(4.0)
+
+        slider[].valueFromTextFunction = bindConstRefClosure(
+            proc(text: ptr String): float64 = 8.0)
+        # The Ref form takes its argument by POINTER on the Nim side, because
+        # the C++ signature is a const reference, and it is invoked through
+        # the () operator rather than through invoke.
+        # Bound to a var first: written inline, Nim reads the parentheses as
+        # arguments to the GETTER rather than as the call operator on what it
+        # returns.
+        var parsed = makeString("anything")
+        var parseHook = slider[].valueFromTextFunction
+        doAssert parseHook(addr parsed) == 8.0,
+                 "reading the parse hook back and invoking it gave " &
+                 $parseHook(addr parsed)
+
+        slider[].setIncDecButtonsMode(
+            SliderIncDecButtonMode_incDecButtonsDraggable_Vertical)
+        slider[].setPopupDisplayEnabled(true, false, nil, 2000.cint)
+        doAssert slider[].getValue() == 7.0,
+                 "the display settings changed the value to " &
+                 $slider[].getValue()
+
+        cdelete slider
+
+    shutdownJuce_GUI()
+
+testSliderSkewAndTextBox()

@@ -9,12 +9,20 @@ is, one method on one class. A free function, an operator and a static are not
 counted, because the harness classifies those separately and they have no
 receiver to group them under.
 
-A method counts as CALLED when its name appears after a dot anywhere in a
-behavioural test file. That is deliberately generous: it matches by name rather
-than by receiver, so a method called on one class marks the same name on
-another. The number it produces is therefore a LOWER BOUND on what is uncalled,
-and it is useful for the same reason a lower bound usually is - it never claims
-coverage that is not there.
+A method counts as CALLED when its name appears after a dot AND before an open
+parenthesis, anywhere in a behavioural test file. That is generous in one
+direction and strict in another, and both matter:
+
+  - generous, because it matches by name rather than by receiver, so a method
+    called on one class marks the same name on another;
+  - strict, because a getter read as a VALUE has no parenthesis after it.
+    `slider[].textFromValueFunction` exercises the binding and this script
+    cannot see it.
+
+So a name reported uncalled may still be exercised, and a name reported called
+may have been called on a different class. The figure is a rough measure meant
+for tracking a direction between runs, not a coverage guarantee - the gate that
+actually fails a build is tools/check_handwritten_covered.py.
 
 test_juce_compiles.nim is excluded, because counting it would mark everything
 covered and answer the harness's question instead of this one.
