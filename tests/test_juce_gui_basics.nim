@@ -13193,3 +13193,59 @@ proc testPopupMenuItemKinds() =
     shutdownJuce_GUI()
 
 testPopupMenuItemKinds()
+
+# ComponentListener's callbacks. JUCE gives every one an empty body, so no
+# Custom subclass is generated and the base is the only instance obtainable -
+# the same limitation MouseListener has. Calling each proves the binding
+# compiles and that the base changes nothing.
+proc testComponentListenerDefaults() =
+    initialiseJuce_GUI()
+
+    block:
+        var listener = makeComponentListener()
+        let component = newCustomComponent()
+        component[].setBounds(makeRectangle(0.cint, 0.cint, 100.cint, 50.cint))
+        component[].setName(makeString("watched"))
+        let bounds = component[].getBounds()
+
+        # Registering and deregistering by pointer, which is what a program
+        # does even though the callbacks cannot be overridden from Nim.
+        component[].addComponentListener(addr listener)
+
+        listener.componentMovedOrResized(component[], true, true)
+        listener.componentBroughtToFront(component[])
+        listener.componentVisibilityChanged(component[])
+        listener.componentChildrenChanged(component[])
+        listener.componentParentHierarchyChanged(component[])
+        listener.componentNameChanged(component[])
+        listener.componentEnablementChanged(component[])
+        listener.componentBeingDeleted(component[])
+
+        doAssert component[].getBounds() == bounds,
+                 "a listener callback moved the component to " &
+                 $component[].getBounds().getX() & "," &
+                 $component[].getBounds().getY()
+        doAssert $component[].getName() == "watched",
+                 "a listener callback renamed the component to " &
+                 $component[].getName()
+        doAssert component[].isEnabled(),
+                 "a listener callback disabled the component"
+
+        component[].removeComponentListener(addr listener)
+        cdelete component
+
+    block:
+        # componentPainted is a LISTENER callback like the others, and it
+        # carries a diagnostics record describing what was painted.
+        var listener = makeComponentListener()
+        let component = newCustomComponent()
+        component[].setBounds(makeRectangle(0.cint, 0.cint, 20.cint, 20.cint))
+        let bounds = component[].getBounds()
+        listener.componentPainted(component[], makeComponentPaintDiagnostics())
+        doAssert component[].getBounds() == bounds,
+                 "componentPainted moved the component"
+        cdelete component
+
+    shutdownJuce_GUI()
+
+testComponentListenerDefaults()
