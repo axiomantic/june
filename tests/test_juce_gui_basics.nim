@@ -11742,3 +11742,102 @@ proc testScrollBarRange() =
     shutdownJuce_GUI()
 
 testScrollBarRange()
+
+# The rest of Viewport: the maximum visible sizes, the step sizes, and the
+# hooks JUCE calls on it that a caller can also call directly.
+proc testViewportRemaining() =
+    initialiseJuce_GUI()
+
+    block:
+        var port = makeViewport(makeString("port"))
+        port.setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 150.cint))
+        port.setScrollBarThickness(12.cint)
+
+        let content = newCustomComponent()
+        content[].setBounds(makeRectangle(0.cint, 0.cint, 1000.cint, 800.cint))
+        port.setViewedComponent(cast[ptr Component](content), false)
+
+        # getMaximumVisibleWidth is the CONTENT HOLDER's width
+        # (juce_Viewport.cpp:242), which is already inset by whatever the
+        # scrollbars take - not the width the viewport would have without
+        # them. So with both bars out it is the viewport less the bar
+        # thickness, and it agrees with getViewWidth rather than exceeding it.
+        doAssert port.getMaximumVisibleWidth() == 200 - 12,
+                 "with a 12 pixel bar the maximum visible width is " &
+                 $port.getMaximumVisibleWidth()
+        doAssert port.getMaximumVisibleHeight() == 150 - 12,
+                 "with a 12 pixel bar the maximum visible height is " &
+                 $port.getMaximumVisibleHeight()
+        doAssert port.getViewWidth() == port.getMaximumVisibleWidth(),
+                 "the view is " & $port.getViewWidth() & " and the maximum " &
+                 $port.getMaximumVisibleWidth()
+
+        # With the bars off, the holder takes the whole viewport.
+        port.setScrollBarsShown(false, false)
+        doAssert port.getMaximumVisibleWidth() == 200,
+                 "with no scrollbars the maximum visible width is " &
+                 $port.getMaximumVisibleWidth()
+        port.setScrollBarsShown(true, true)
+
+        # The single step is how far one arrow click scrolls, and it reaches
+        # the scrollbars rather than the viewport.
+        port.setSingleStepSizes(7.cint, 9.cint)
+        doAssert port.getHorizontalScrollBar().getSingleStepSize() == 7.0,
+                 "the horizontal step is " &
+                 $port.getHorizontalScrollBar().getSingleStepSize()
+        doAssert port.getVerticalScrollBar().getSingleStepSize() == 9.0,
+                 "the vertical step is " &
+                 $port.getVerticalScrollBar().getSingleStepSize()
+
+        # scrollBarMoved is the hook a scrollbar calls; calling it directly
+        # moves the view, which is how the two are connected.
+        port.setViewPosition(0.cint, 0.cint)
+        port.scrollBarMoved(addr port.getVerticalScrollBar(), 100.0)
+        doAssert port.getViewPositionY() == 100,
+                 "moving the vertical scrollbar to 100 left the view at " &
+                 $port.getViewPositionY()
+
+        # visibleAreaChanged and viewedComponentChanged are notifications with
+        # no reader; what is asserted is that they leave the viewport
+        # consistent.
+        port.visibleAreaChanged(port.getViewArea())
+        port.viewedComponentChanged(cast[ptr Component](content))
+        port.componentMovedOrResized(content[], false, true)
+        doAssert port.getViewedComponent() == cast[ptr Component](content),
+                 "the notifications changed the viewed component"
+
+        # recreateScrollbars throws the bars away and builds new ones, but the
+        # VIEWPORT holds the step sizes and puts them back - so the setting
+        # survives a rebuild rather than reverting. That is what makes the
+        # call safe to make at any time.
+        port.recreateScrollbars()
+        doAssert port.getVerticalScrollBar().getSingleStepSize() == 9.0,
+                 "the rebuilt scrollbar has step size " &
+                 $port.getVerticalScrollBar().getSingleStepSize()
+        doAssert port.getViewedComponent() == cast[ptr Component](content),
+                 "recreateScrollbars dropped the viewed component"
+
+        # autoScroll moves the view when the point is near an edge and leaves
+        # it alone otherwise.
+        port.setViewPosition(100.cint, 100.cint)
+        let before = port.getViewPositionY()
+        doAssert not port.autoScroll(100.cint, 75.cint, 10.cint, 5.cint),
+                 "a point in the middle triggered an auto-scroll"
+        doAssert port.getViewPositionY() == before,
+                 "the view moved without an auto-scroll, to " &
+                 $port.getViewPositionY()
+        doAssert port.autoScroll(100.cint, 2.cint, 10.cint, 5.cint),
+                 "a point at the top edge did not trigger an auto-scroll"
+        doAssert port.getViewPositionY() < before,
+                 "the auto-scroll at the top edge moved the view down, to " &
+                 $port.getViewPositionY()
+
+        port.setScrollOnDragEnabled(true)
+        doAssert port.isScrollOnDragEnabled(),
+                 "setScrollOnDragEnabled did not take"
+
+        cdelete content
+
+    shutdownJuce_GUI()
+
+testViewportRemaining()
