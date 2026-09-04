@@ -3696,3 +3696,125 @@ proc testTypefaceGlyphs() =
     shutdownJuce_GUI()
 
 testTypefaceGlyphs()
+
+# PixelARGB is the packed pixel a Colour turns into. The premultiplied and
+# non-premultiplied forms are the pair to get right, and they differ only when
+# the alpha is not full.
+proc testPixelARGB() =
+    block:
+        # A fully opaque pixel is the same either way.
+        let opaque = Colour.fromRGBA(200'u8, 100'u8, 50'u8, 255'u8)
+        var packed = opaque.getPixelARGB()
+        doAssert packed.getRed() == 200'u8 and packed.getGreen() == 100'u8 and
+                 packed.getBlue() == 50'u8 and packed.getAlpha() == 255'u8,
+                 "the packed pixel is " & $packed.getRed() & "," &
+                 $packed.getGreen() & "," & $packed.getBlue()
+
+        # unpremultiply and premultiply are inverses at full alpha, because
+        # there is nothing to scale.
+        var roundTripped = opaque.getPixelARGB()
+        roundTripped.unpremultiply()
+        roundTripped.premultiply()
+        doAssert roundTripped.getRed() == 200'u8,
+                 "a round trip at full alpha gave red " & $roundTripped.getRed()
+
+    block:
+        # At half alpha the two forms differ, which is the whole point of the
+        # distinction.
+        let faded = Colour.fromRGBA(200'u8, 100'u8, 50'u8, 128'u8)
+        var premultiplied = faded.getPixelARGB()
+        var plain = faded.getNonPremultipliedPixelARGB()
+
+        doAssert plain.getRed() == 200'u8,
+                 "the non-premultiplied red is " & $plain.getRed()
+        doAssert premultiplied.getRed() < 200'u8,
+                 "the premultiplied red is " & $premultiplied.getRed() &
+                 ", which is not scaled by the alpha"
+        doAssert premultiplied.getAlpha() == plain.getAlpha(),
+                 "the two forms disagree on the alpha: " &
+                 $premultiplied.getAlpha() & " and " & $plain.getAlpha()
+
+        # getUnpremultiplied gives the other form without changing this one.
+        let recovered = premultiplied.getUnpremultiplied()
+        doAssert recovered.getRed() > premultiplied.getRed(),
+                 "unpremultiplying gave red " & $recovered.getRed() &
+                 " from " & $premultiplied.getRed()
+        doAssert premultiplied.getRed() < 200'u8,
+                 "getUnpremultiplied changed the original"
+
+        # And the in-place forms move the pixel the same way.
+        var mutated = faded.getPixelARGB()
+        let before = mutated.getRed()
+        mutated.unpremultiply()
+        doAssert mutated.getRed() > before,
+                 "unpremultiply in place gave red " & $mutated.getRed() &
+                 " from " & $before
+        mutated.premultiply()
+        doAssert mutated.getRed() <= before + 2'u8 and
+                 mutated.getRed() + 2'u8 >= before,
+                 "premultiplying back gave red " & $mutated.getRed() &
+                 " from " & $before
+
+    block:
+        # The byte-order accessors are how a renderer reaches the channels, and
+        # the two halves together are the whole pixel.
+        let colour = Colour.fromRGBA(0x11'u8, 0x22'u8, 0x33'u8, 0xFF'u8)
+        var packed = colour.getPixelARGB()
+
+        doAssert packed.getNativeARGB() != 0'u32,
+                 "the native word is zero for a visible pixel"
+        doAssert packed.getInARGBMaskOrder() != 0'u32,
+                 "the mask-order word is zero"
+        doAssert packed.getInARGBMemoryOrder() != 0'u32,
+                 "the memory-order word is zero"
+
+        # The even and odd byte pairs each hold two of the four channels, so
+        # neither is the whole pixel on its own.
+        doAssert packed.getEvenBytes() != packed.getOddBytes(),
+                 "the even and odd byte pairs are the same"
+
+    block:
+        # blend takes a PixelRGB, not another PixelARGB - a source with no
+        # alpha of its own, so it always replaces what is underneath.
+        var white = makePixelRGB()
+        white.setARGB(255'u8, 255'u8, 255'u8, 255'u8)
+        var target = Colour.fromRGBA(0'u8, 0'u8, 0'u8, 255'u8).getPixelARGB()
+        target.blend(white)
+        doAssert target.getRed() == 255'u8,
+                 "an opaque white blended over black gave red " &
+                 $target.getRed()
+
+        # PixelRGB carries no alpha channel, so it always reads as opaque
+        # however it was set.
+        doAssert white.getAlpha() == 255'u8,
+                 "a PixelRGB reports alpha " & $white.getAlpha()
+        white.setAlpha(0'u8)
+        doAssert white.getAlpha() == 255'u8,
+                 "setting the alpha on a PixelRGB gave " & $white.getAlpha()
+
+        # The remaining PixelARGB mutators, each asserted through what it
+        # leaves behind.
+        var faded = Colour.fromRGBA(200'u8, 100'u8, 50'u8, 255'u8).getPixelARGB()
+        faded.multiplyAlpha(128.cint)
+        doAssert faded.getAlpha() < 255'u8,
+                 "multiplying the alpha left it at " & $faded.getAlpha()
+
+        var built = makePixelARGB()
+        built.setARGB(255'u8, 10'u8, 20'u8, 30'u8)
+        doAssert built.getRed() == 10'u8 and built.getGreen() == 20'u8 and
+                 built.getBlue() == 30'u8,
+                 "setARGB gave " & $built.getRed() & "," & $built.getGreen() &
+                 "," & $built.getBlue()
+        built.setAlpha(64'u8)
+        doAssert built.getAlpha() == 64'u8,
+                 "setAlpha gave " & $built.getAlpha()
+
+        var grey = makePixelARGB()
+        grey.setARGB(255'u8, 200'u8, 100'u8, 50'u8)
+        grey.desaturate()
+        doAssert grey.getRed() == grey.getGreen() and
+                 grey.getGreen() == grey.getBlue(),
+                 "the desaturated pixel is " & $grey.getRed() & "," &
+                 $grey.getGreen() & "," & $grey.getBlue()
+
+testPixelARGB()
