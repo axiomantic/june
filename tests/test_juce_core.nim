@@ -5761,3 +5761,103 @@ proc testUrlUploadsAndReads() =
              "the temporary files could not be removed"
 
 testUrlUploadsAndReads()
+
+# JSONFormatOptions and ThreadRealtimeOptions are value builders, and their
+# with- methods pair mechanically with their getters - which is exactly where
+# one can be wired to the wrong field with nothing to notice.
+proc testOptionBuilders() =
+  block:
+    let base = makeJSONFormatOptions()
+
+    # Each with- moves its own field and leaves the neighbours.
+    let spaced = base.withSpacing(JSONSpacing_multiLine)
+    doAssert spaced.getSpacing() == JSONSpacing_multiLine,
+             "withSpacing did not take"
+    doAssert spaced.getIndentLevel() == base.getIndentLevel(),
+             "withSpacing moved the indent level to " &
+             $spaced.getIndentLevel()
+
+    let indented = base.withIndentLevel(4.cint)
+    doAssert indented.getIndentLevel() == 4,
+             "the indent level is " & $indented.getIndentLevel()
+    doAssert indented.getSpacing() == base.getSpacing(),
+             "withIndentLevel moved the spacing"
+    doAssert base.getIndentLevel() != 4,
+             "withIndentLevel changed the original, which now reads " &
+             $base.getIndentLevel()
+
+    let encoded = base.withEncoding(JSONEncoding_utf8)
+    doAssert encoded.getEncoding() == JSONEncoding_utf8,
+             "withEncoding did not take"
+
+    let rounded = base.withMaxDecimalPlaces(3.cint)
+    doAssert rounded.getMaxDecimalPlaces() == 3,
+             "the decimal places read " & $rounded.getMaxDecimalPlaces()
+    doAssert rounded.getEncoding() == base.getEncoding(),
+             "withMaxDecimalPlaces moved the encoding"
+
+    # And the options reach JSON.toString, which is what they are for:
+    # multi-line spacing puts a newline in and the default does not.
+    let value = makejuce_var(makeArray[juce_var]())
+    let onOneLine = $JSON.toString(makejuce_var(makeString("x")), base)
+    doAssert not onOneLine.contains("\n"),
+             "the default spacing wrapped: " & onOneLine
+
+  block:
+    let base = makeThreadRealtimeOptions()
+
+    let periodic = base.withPeriodMs(5.0)
+    doAssert periodic.getPeriodMs().hasValue(),
+             "withPeriodMs left the period unset"
+    doAssert periodic.getPeriodMs().value() == 5.0,
+             "the period is " & $periodic.getPeriodMs().value() & "ms"
+    doAssert not base.getPeriodMs().hasValue(),
+             "withPeriodMs changed the original"
+
+    # withPeriodHz is the same field named the other way round, so 100Hz is a
+    # 10ms period.
+    let byRate = base.withPeriodHz(100.0)
+    doAssert byRate.getPeriodMs().hasValue(),
+             "withPeriodHz left the period unset"
+    doAssert abs(byRate.getPeriodMs().value() - 10.0) < 1.0e-9,
+             "100Hz is a period of " & $byRate.getPeriodMs().value() & "ms"
+
+    let timed = base.withProcessingTimeMs(2.0)
+    doAssert timed.getProcessingTimeMs().hasValue(),
+             "withProcessingTimeMs left the time unset"
+    doAssert timed.getProcessingTimeMs().value() == 2.0,
+             "the processing time is " & $timed.getProcessingTimeMs().value()
+    doAssert not timed.getMaximumProcessingTimeMs().hasValue(),
+             "withProcessingTimeMs set the MAXIMUM as well"
+
+    let capped = base.withMaximumProcessingTimeMs(8.0)
+    doAssert capped.getMaximumProcessingTimeMs().hasValue(),
+             "withMaximumProcessingTimeMs left the maximum unset"
+    doAssert capped.getMaximumProcessingTimeMs().value() == 8.0,
+             "the maximum is " & $capped.getMaximumProcessingTimeMs().value()
+    doAssert not capped.getProcessingTimeMs().hasValue(),
+             "withMaximumProcessingTimeMs set the plain time as well"
+
+    let prioritised = base.withPriority(7.cint)
+    doAssert prioritised.getPriority() == 7,
+             "the priority is " & $prioritised.getPriority()
+    doAssert base.getPriority() != 7,
+             "withPriority changed the original"
+
+    # withApproximateAudioProcessingTime sets ONLY the maximum: it works out
+    # the frame time and forwards to withMaximumProcessingTimeMs
+    # (juce_Thread.h:142), leaving the period and the plain processing time
+    # alone. The name suggests it fills in more than it does.
+    let audio = base.withApproximateAudioProcessingTime(512.cint, 48000.0)
+    doAssert audio.getMaximumProcessingTimeMs().hasValue(),
+             "the audio shortcut left the maximum unset"
+    doAssert abs(audio.getMaximumProcessingTimeMs().value() - 512.0 / 48.0) <
+             0.1,
+             "512 frames at 48kHz is " &
+             $audio.getMaximumProcessingTimeMs().value() & "ms"
+    doAssert not audio.getProcessingTimeMs().hasValue(),
+             "the audio shortcut also set the plain processing time"
+    doAssert not audio.getPeriodMs().hasValue(),
+             "the audio shortcut also set the period"
+
+testOptionBuilders()
