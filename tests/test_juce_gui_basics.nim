@@ -15291,3 +15291,135 @@ proc testTooltipWindow() =
     shutdownJuce_GUI()
 
 testTooltipWindow()
+
+# ThreadWithProgressWindow ===================================================
+#
+# macOS only, for the reason check_handwritten_covered.py records: it is a
+# top-level window, and building one on the headless Linux container segfaults
+# the same way AlertWindow does.
+when defined(macosx):
+    proc testThreadWithProgressWindow() =
+        initialiseJuce_GUI()
+
+        block:
+            var ran = 0
+            var window = newCustomThreadWithProgressWindow(
+                makeString("Working"), true, true, 10000.cint,
+                makeString("Cancel"), nil)
+            window[].setRunHandler(proc() = ran += 1)
+            var base = cast[ptr ThreadWithProgressWindow](window)
+
+            # The window owns an AlertWindow, which is what a caller reaches
+            # for to restyle the dialog.
+            doAssert not base[].getAlertWindow().isNil,
+                     "the progress window has no alert window"
+
+            # Progress and the status message are both written from the worker
+            # thread and read by a timer on the message thread, so neither has
+            # a getter. What is asserted is that setting them leaves the
+            # window intact.
+            base[].setProgress(0.5)
+            base[].setStatusMessage(makeString("halfway"))
+            base[].setProgress(1.0)
+            doAssert not base[].getAlertWindow().isNil,
+                     "setting the progress lost the alert window"
+
+            # threadComplete is the hook the timer calls when the work ends.
+            # JUCE gives it an empty body, so no override is generated and it
+            # is only called - once for each of the two outcomes.
+            base[].threadComplete(false)
+            base[].threadComplete(true)
+
+            # The run body is the Nim override. It is reached twice: once
+            # through Thread's own startThread, and once through launchThread,
+            # which also shows the dialog and starts the timer that watches
+            # for the work to end.
+            var thread = cast[ptr june.Thread](window)
+            doAssert thread[].startThread(), "the worker thread did not start"
+            doAssert thread[].waitForThreadToExit(5000.cint),
+                     "the worker thread did not finish"
+            doAssert ran == 1, "the run body ran " & $ran & " times"
+
+            # launchThread puts the alert window into a modal state that only
+            # the message queue leaves, and this suite cannot turn that queue.
+            # The window is destroyed while still modal, which JUCE handles:
+            # the thread is what is waited for here, not the dialog.
+            base[].launchThread(ThreadPriority_normal)
+            doAssert thread[].waitForThreadToExit(5000.cint),
+                     "the launched thread did not finish"
+            doAssert ran == 2,
+                     "the run body ran " & $ran & " times after launchThread"
+
+            cdelete window
+
+        shutdownJuce_GUI()
+
+    testThreadWithProgressWindow()
+
+# Toolbar's drag handling ====================================================
+#
+# Two of the toolbar's methods are not here, and each is listed method by
+# method in the coverage report with the reason:
+#
+#   showCustomisationDialog builds a modal DialogWindow and enters modal state
+#   (juce_Toolbar.cpp: showCustomisationDialog), which is a top-level window
+#   on a queue this suite cannot turn.
+#
+#   setCurrentDragImage indexes dragImageComponents[0] and calls through it
+#   (juce_DragAndDropContainer.cpp: setCurrentDragImage). With no drag in
+#   progress that array is empty, OwnedArray hands back a null pointer, and
+#   the call dereferences it.
+proc testToolbarDragHandling() =
+    initialiseJuce_GUI()
+
+    block:
+        var factory = newCustomToolbarItemFactory()
+        factory[].setGetAllToolbarItemIdsHandler(proc(ids: ptr Array[cint]) =
+            ids[].add(5001.cint))
+        factory[].setGetDefaultItemSetHandler(proc(ids: ptr Array[cint]) =
+            ids[].add(5001.cint))
+        factory[].setCreateItemHandler(
+            proc(itemId: cint): ptr ToolbarItemComponent =
+                cast[ptr ToolbarItemComponent](
+                    newCustomToolbarItemComponent(itemId,
+                                                  makeString("Item"), true)))
+
+        var bar = makeToolbar()
+        bar.setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 40.cint))
+        bar.addDefaultItems(factory[])
+        doAssert bar.getNumItems() == 1,
+                 "the toolbar holds " & $bar.getNumItems() & " items"
+
+        # A drag over the toolbar moves and then leaves. Neither adds an item
+        # - only a drop does - so the count is what says they were harmless.
+        var source = newCustomComponent()
+        let details = makeDragAndDropTargetSourceDetails(
+            makejuce_var(makeString("Toolbar Item 5001")),
+            cast[ptr Component](source), makePoint(10.cint, 10.cint))
+
+        bar.itemDragEnter(details)
+        bar.itemDragMove(details)
+        bar.itemDragExit(details)
+        doAssert bar.getNumItems() == 1,
+                 "dragging over the toolbar left " & $bar.getNumItems() &
+                 " items"
+
+        # startDragging does nothing outside a mouse callback: it looks for a
+        # mouse source that is actually dragging and returns when there is
+        # none (juce_DragAndDropContainer.cpp: startDragging). JUCE asserts
+        # about it, which only logs.
+        doAssert not bar.isDragAndDropActive(),
+                 "a toolbar nobody touched is dragging"
+        bar.startDragging(makejuce_var(makeString("Toolbar Item 5001")),
+                          cast[ptr Component](source),
+                          makeImage(ImagePixelFormat_ARGB, 8.cint, 8.cint,
+                                    true))
+        doAssert not bar.isDragAndDropActive(),
+                 "startDragging outside a mouse callback started a drag"
+
+        cdelete source
+        cdelete factory
+
+    shutdownJuce_GUI()
+
+testToolbarDragHandling()
