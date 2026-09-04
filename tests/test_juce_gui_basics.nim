@@ -14806,3 +14806,122 @@ proc testAccessibilityTextInterface() =
     shutdownJuce_GUI()
 
 testAccessibilityTextInterface()
+
+# ComboBox's popup and TableHeaderComponent's column menu ====================
+proc testComboBoxPopupAndHeaderMenu() =
+    initialiseJuce_GUI()
+
+    block:
+        var box = makeComboBox(makeString("choices"))
+        box.addItem(makeString("First"), 1.cint)
+        box.addItem(makeString("Second"), 2.cint)
+        box.setSelectedId(2.cint, NotificationTypeDontSendNotification)
+
+        # The root menu is the box's own list, so the two counts agree.
+        doAssert not box.getRootMenu().isNil, "the box has no root menu"
+        doAssert box.getRootMenu()[].getNumItems() == box.getNumItems(),
+                 "the root menu holds " & $box.getRootMenu()[].getNumItems() &
+                 " items against " & $box.getNumItems()
+
+        # The selected id is also a Value, so it can be attached to something
+        # else, and it tracks the selection.
+        doAssert box.getSelectedIdAsValue().getValue().toInt() == 2,
+                 "the selected id reads " &
+                 $box.getSelectedIdAsValue().getValue().toInt()
+        box.setSelectedId(1.cint, NotificationTypeDontSendNotification)
+        doAssert box.getSelectedIdAsValue().getValue().toInt() == 1,
+                 "the selected id did not follow the selection"
+
+        # onChange is a std::function field, so it is installed and invoked
+        # directly rather than through a mouse.
+        var changed = 0
+        box.onChange = bindClosure(proc() = changed += 1)
+        box.onChange().invoke()
+        doAssert changed == 1, "the callback ran " & $changed & " times"
+
+    block:
+        # showPopup shows a modal menu, which this suite has no way to close:
+        # the message queue it would be dismissed through is one nothing here
+        # turns. A DISABLED box returns before it opens anything
+        # (juce_ComboBox.cpp: showPopup returns at once when not enabled),
+        # which is the one path that can be taken.
+        var box = makeComboBox(makeString("disabled"))
+        box.addItem(makeString("First"), 1.cint)
+        box.setEnabled(false)
+        box.showPopup()
+        doAssert box.getNumItems() == 1,
+                 "showPopup changed the box to " & $box.getNumItems() &
+                 " items"
+
+        # And hiding one that was never shown is harmless.
+        box.hidePopup()
+        doAssert box.getSelectedId() == 0,
+                 "hidePopup selected item " & $box.getSelectedId()
+
+    block:
+        var header = makeTableHeaderComponent()
+        # defaultFlags is an anonymous enumerator JUCE builds from the five
+        # named ones, so the binding has the parts and not the whole.
+        let defaultFlags =
+            cint(TableHeaderComponentColumnPropertyFlags_visible) or
+            cint(TableHeaderComponentColumnPropertyFlags_resizable) or
+            cint(TableHeaderComponentColumnPropertyFlags_draggable) or
+            cint(TableHeaderComponentColumnPropertyFlags_appearsOnColumnMenu) or
+            cint(TableHeaderComponentColumnPropertyFlags_sortable)
+        header.addColumn(makeString("Name"), 1.cint, 100.cint, 30.cint,
+                         400.cint, defaultFlags)
+        header.addColumn(makeString("Size"), 2.cint, 80.cint, 30.cint,
+                         400.cint, defaultFlags)
+
+        # addMenuItems fills a caller's menu with one entry per column that
+        # may be hidden.
+        var menu = makePopupMenu()
+        header.addMenuItems(menu, 1.cint)
+        doAssert menu.getNumItems() >= 2,
+                 "the column menu holds " & $menu.getNumItems() & " items"
+
+        # reactToMenuItem toggles a column's visibility, and the id is the
+        # column's own.
+        doAssert header.isColumnVisible(2.cint), "the second column is hidden"
+        header.reactToMenuItem(2.cint, 1.cint)
+        doAssert not header.isColumnVisible(2.cint),
+                 "the menu item did not hide the column"
+        header.reactToMenuItem(2.cint, 1.cint)
+        doAssert header.isColumnVisible(2.cint),
+                 "the menu item did not show the column again"
+
+        # Clicking a sortable column sorts by it, and clicking it again
+        # reverses the order.
+        header.columnClicked(1.cint, makeModifierKeys())
+        doAssert header.getSortColumnId() == 1,
+                 "the table is sorted by column " & $header.getSortColumnId()
+        let forwards = header.isSortedForwards()
+        header.columnClicked(1.cint, makeModifierKeys())
+        doAssert header.isSortedForwards() != forwards,
+                 "clicking the same column twice did not reverse the sort"
+
+        # reSortTable tells the listeners without changing which column sorts.
+        header.reSortTable()
+        doAssert header.getSortColumnId() == 1,
+                 "reSortTable changed the sort column to " &
+                 $header.getSortColumnId()
+
+    block:
+        # showColumnChooserMenu opens a modal menu only when there is
+        # something to put in it (juce_TableHeaderComponent.cpp: it returns
+        # when addMenuItems added nothing). A header with no columns is that
+        # case, and it is the only one this suite can take.
+        var header = makeTableHeaderComponent()
+        var empty = makePopupMenu()
+        header.addMenuItems(empty, 0.cint)
+        doAssert empty.getNumItems() == 0,
+                 "an empty header offered " & $empty.getNumItems() &
+                 " menu items"
+        header.showColumnChooserMenu(0.cint)
+        doAssert header.getNumColumns(true) == 0,
+                 "the empty header grew " & $header.getNumColumns(true) &
+                 " columns"
+
+    shutdownJuce_GUI()
+
+testComboBoxPopupAndHeaderMenu()
