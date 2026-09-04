@@ -13606,3 +13606,90 @@ proc testComponentAnimator() =
     shutdownJuce_GUI()
 
 testComponentAnimator()
+
+# Displays' lookup methods. What displays a machine has is its own business, so
+# every assertion here is a RELATION between the answers rather than a size or
+# a position - which is what holds on a desktop, on a virtual X server and on a
+# headless build alike.
+proc testDisplaysLookups() =
+    initialiseJuce_GUI()
+
+    block:
+        let displays = Desktop.getInstance().getDisplays()
+
+        if Desktop.getInstance().isHeadless():
+            echo "  note: no displays attached, so the lookups are only called"
+            doAssert displays.displays().size() == 0.cint,
+                     "a headless Desktop lists " & $displays.displays().size()
+            discard displays.getPrimaryDisplay()
+            discard displays.getTotalBounds(true)
+            shutdownJuce_GUI()
+            return
+
+        doAssert displays.displays().size() > 0.cint,
+                 "a Desktop with a window server lists no displays"
+
+        let primary = displays.getPrimaryDisplay()
+        doAssert not primary.isNil, "there is no primary display"
+        let area = primary[].totalArea()
+        doAssert area.getWidth() > 0 and area.getHeight() > 0,
+                 "the primary display is " & $area.getWidth() & "x" &
+                 $area.getHeight()
+
+        # A point inside the primary display finds it, and the two spellings
+        # of that question agree.
+        let inside = area.getCentre()
+        doAssert displays.getDisplayForPoint(inside) == primary,
+                 "the centre of the primary display found another one"
+        # The find* forms return the display BY VALUE where the get* forms
+        # return a pointer, so they are compared by the area they describe.
+        doAssert displays.findDisplayForPoint(inside).totalArea() == area,
+                 "the two point lookups describe different displays"
+
+        # And so do the two rectangle spellings, for a rectangle inside it.
+        let smallArea = makeRectangle(area.getX() + 1, area.getY() + 1,
+                                      10.cint, 10.cint)
+        doAssert displays.getDisplayForRect(smallArea) == primary,
+                 "a rectangle inside the primary display found another one"
+        doAssert displays.findDisplayForRect(smallArea).totalArea() == area,
+                 "the two rectangle lookups describe different displays"
+
+        # A component off the desktop has no display of its own, so
+        # getDisplayContaining answers for its bounds - which are at the
+        # origin and therefore on the primary display.
+        let component = newCustomComponent()
+        component[].setBounds(makeRectangle(area.getX(), area.getY(),
+                                            10.cint, 10.cint))
+        doAssert displays.getDisplayContaining(
+                     component[].getBounds().getCentre()).totalArea() == area,
+                 "a component at the origin is not on the primary display"
+        doAssert displays.getMainDisplay().totalArea() == area,
+                 "the main display is not the primary one"
+        cdelete component
+
+    block:
+        # The total bounds cover every display, so they are at least as large
+        # as the primary one.
+        let displays = Desktop.getInstance().getDisplays()
+        let total = displays.getTotalBounds(true)
+        let primary = displays.getPrimaryDisplay()
+        doAssert total.getWidth() >= primary[].totalArea().getWidth(),
+                 "the total bounds are " & $total.getWidth() &
+                 " wide and the primary display " &
+                 $primary[].totalArea().getWidth()
+
+        # The rectangle list holds one entry per display.
+        doAssert displays.getRectangleList(true).getNumRectangles() ==
+                 displays.displays().size(),
+                 "the rectangle list holds " &
+                 $displays.getRectangleList(true).getNumRectangles() &
+                 " entries for " & $displays.displays().size() & " displays"
+
+        # Asking for the USER area rather than the whole display gives
+        # something no larger - the menu bar and the dock come off.
+        doAssert displays.getTotalBounds(false).getWidth() <= total.getWidth(),
+                 "the user area is wider than the whole display"
+
+    shutdownJuce_GUI()
+
+testDisplaysLookups()
