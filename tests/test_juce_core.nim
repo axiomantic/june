@@ -6835,3 +6835,145 @@ proc testArgumentListArgument() =
 testPropertySetFallbackAndXml()
 testRelativeTimeUnits()
 testArgumentListArgument()
+
+# TimeSliceThread's client queue and the rest of NamedValueSet ================
+
+proc testTimeSliceThreadQueue() =
+    block:
+        # The queue is asserted while the thread is NOT running, so the clients
+        # are added and removed without a worker racing the counts. Whether a
+        # started thread has already called a client is a race; whether the
+        # queue holds it is not.
+        var thread = makeTimeSliceThread(makeString("june-slices"))
+        doAssert thread.getNumClients() == 0,
+                 "a new thread already has " & $thread.getNumClients() &
+                 " clients"
+
+        var first = newCustomTimeSliceClient()
+        first[].setUseTimeSliceHandler(proc(): cint = -1)
+        var second = newCustomTimeSliceClient()
+        second[].setUseTimeSliceHandler(proc(): cint = -1)
+
+        var firstBase = cast[ptr TimeSliceClient](first)
+        var secondBase = cast[ptr TimeSliceClient](second)
+
+        thread.addTimeSliceClient(firstBase)
+        thread.addTimeSliceClient(secondBase, 100.cint)
+        doAssert thread.getNumClients() == 2,
+                 "the thread holds " & $thread.getNumClients() & " clients"
+        doAssert thread.contains(firstBase) and thread.contains(secondBase),
+                 "the thread lost one of the two clients"
+        doAssert thread.getClient(0.cint) == firstBase,
+                 "the first client is not first in the queue"
+        doAssert thread.getClient(1.cint) == secondBase,
+                 "the second client is not second in the queue"
+
+        # moveToFrontOfQueue does NOT reorder the array. It sets the client's
+        # next call time to now, so the running thread reaches it first
+        # (juce_TimeSliceThread.cpp: moveToFrontOfQueue). The array getClient
+        # indexes is untouched, and a client that is not in the queue is
+        # ignored.
+        thread.moveToFrontOfQueue(secondBase)
+        doAssert thread.getClient(0.cint) == firstBase,
+                 "moveToFrontOfQueue reordered the array after all"
+        doAssert thread.getNumClients() == 2,
+                 "moveToFrontOfQueue changed the count to " &
+                 $thread.getNumClients()
+
+        # Adding a client that is already there does not add it twice.
+        thread.addTimeSliceClient(firstBase)
+        doAssert thread.getNumClients() == 2,
+                 "adding a client twice gave " & $thread.getNumClients() &
+                 " clients"
+
+        thread.removeTimeSliceClient(firstBase)
+        doAssert thread.getNumClients() == 1 and
+                 not thread.contains(firstBase),
+                 "the removed client is still among the " &
+                 $thread.getNumClients() & " in the queue"
+
+        thread.removeAllClients()
+        doAssert thread.getNumClients() == 0,
+                 "removeAllClients left " & $thread.getNumClients() & " behind"
+
+        cdelete first
+        cdelete second
+
+proc testNamedValueSetRest() =
+    block:
+        var values = makeNamedValueSet()
+        discard values.set(makeIdentifier(makeString("name")),
+                           makejuce_var(makeString("june")))
+        discard values.set(makeIdentifier(makeString("count")),
+                           makejuce_var(7.cint))
+
+        # By index rather than by name.
+        doAssert values.getValueAt(0.cint) == values[
+                     makeIdentifier(makeString("name"))],
+                 "the value at 0 is not the one called name"
+        doAssert values.getVarPointerAt(0.cint)[].toString() ==
+                 makeString("june"),
+                 "the pointer at 0 holds " &
+                 $values.getVarPointerAt(0.cint)[].toString()
+
+        # The pointer is INTO the set, so writing through it changes the set.
+        values.getVarPointerAt(1.cint)[] = makejuce_var(9.cint)
+        doAssert values[makeIdentifier(makeString("count"))].toInt() == 9,
+                 "writing through the pointer left the value at " &
+                 $values[makeIdentifier(makeString("count"))].toInt()
+
+        var byName = values.getVarPointer(makeIdentifier(makeString("count")))
+        doAssert byName == values.getVarPointerAt(1.cint),
+                 "the two ways of reaching the same value disagree"
+        doAssert values.getVarPointer(
+                     makeIdentifier(makeString("missing"))).isNil,
+                 "a name nobody set has a pointer"
+
+        # The span is the set's own storage, one NamedValue per entry.
+        let span = values.asSpan()
+        doAssert span.size() == csize_t(values.size()),
+                 "the span holds " & $span.size() & " of " & $values.size() &
+                 " entries"
+        doAssert span[0.csize_t].name() == values.getName(0.cint),
+                 "the first span entry is called " & $span[0.csize_t].name()
+
+    block:
+        # Every value round-trips through an XML element's attributes.
+        var values = makeNamedValueSet()
+        discard values.set(makeIdentifier(makeString("colour")),
+                           makejuce_var(makeString("red")))
+        discard values.set(makeIdentifier(makeString("size")),
+                           makejuce_var(12.cint))
+
+        var element = makeXmlElement(makeString("STYLE"))
+        values.copyToXmlAttributes(element)
+        doAssert element.getNumAttributes() == 2,
+                 "the element carries " & $element.getNumAttributes() &
+                 " attributes"
+        doAssert $element.getStringAttribute(makeString("colour")) == "red",
+                 "the colour attribute is " &
+                 $element.getStringAttribute(makeString("colour"))
+
+        var restored = makeNamedValueSet()
+        discard restored.set(makeIdentifier(makeString("stale")),
+                             makejuce_var(1.cint))
+        restored.setFromXmlAttributes(element)
+        doAssert restored.size() == 2,
+                 "the restored set holds " & $restored.size() & " entries"
+        doAssert not restored.contains(makeIdentifier(makeString("stale"))),
+                 "setFromXmlAttributes kept an entry the element did not have"
+        doAssert $restored[makeIdentifier(makeString("colour"))].toString() ==
+                 "red",
+                 "the restored colour is " &
+                 $restored[makeIdentifier(makeString("colour"))].toString()
+
+        # An XML attribute has no type, so a number comes back as a string
+        # (juce_NamedValueSet.cpp: setFromXmlAttributes stores the text).
+        doAssert restored[makeIdentifier(makeString("size"))].isString(),
+                 "the restored size is not a string"
+        doAssert restored[makeIdentifier(makeString("size"))].toInt() == 12,
+                 "the restored size reads as " &
+                 $restored[makeIdentifier(makeString("size"))].toInt()
+
+testTimeSliceThreadQueue()
+testNamedValueSetRest()
