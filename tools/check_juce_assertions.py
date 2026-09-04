@@ -124,15 +124,10 @@ EXPECTED = {
          "timer test does"),
     "juce_Timer.cpp:99":
         ("any",
-         "JUCE's shared TimerThread is a static torn down at PROCESS EXIT,"
-         "after the MessageManager has gone. It fires in the two suites"
-         "that start a Timer at all and in none of the others, and no test"
-         "can change the order two statics are destroyed in"),
-    "juce_Component.cpp:2407":
-        ("any",
-         "a Component method called from a thread that is not the message"
-         "thread; the MessageManagerLock tests do this to show the lock is"
-         "what makes it safe"),
+         "JUCE's shared TimerThread torn down with no MessageManager left. "
+         "It is reached by the one suite that starts a Timer and does not "
+         "stop it before the GUI goes - a PropertiesFile holds one - and by "
+         "none of the others"),
     "juce_GraphicsContext.cpp:138":
         ("linux",
          "the SAME jassertquiet as juce_GraphicsContext.cpp:141 above. It"

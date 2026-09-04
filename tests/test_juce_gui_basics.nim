@@ -7937,64 +7937,72 @@ testTextEditorCaret()
 proc testTextEditorConfiguration() =
     initialiseJuce_GUI()
 
-    var editor = makeTextEditor(makeString("editor"), WChar(0))
+    # The editor lives in a BLOCK, so it is destroyed BEFORE the shutdown
+    # below. At proc scope Nim destroys it at the END of the proc, after
+    # JUCE has gone - and ~TextEditor tears down its Viewport, whose
+    # destructor calls removeMouseListener (juce_Viewport.cpp:54) with no
+    # MessageManager left to lock.
+    block:
 
-    doAssert not editor.isMultiLine(), "an editor starts multi line"
-    editor.setMultiLine(true, true)
-    doAssert editor.isMultiLine(), "setMultiLine did not take"
+        var editor = makeTextEditor(makeString("editor"), WChar(0))
 
-    editor.setReturnKeyStartsNewLine(true)
-    doAssert editor.getReturnKeyStartsNewLine(),
-             "the return key does not start a new line after being told to"
+        doAssert not editor.isMultiLine(), "an editor starts multi line"
+        editor.setMultiLine(true, true)
+        doAssert editor.isMultiLine(), "setMultiLine did not take"
 
-    doAssert not editor.isTabKeyUsedAsCharacter(), "tab starts as a character"
-    editor.setTabKeyUsedAsCharacter(true)
-    doAssert editor.isTabKeyUsedAsCharacter(), "tab did not become a character"
+        editor.setReturnKeyStartsNewLine(true)
+        doAssert editor.getReturnKeyStartsNewLine(),
+                 "the return key does not start a new line after being told to"
 
-    doAssert not editor.isReadOnly(), "a new editor is read only"
-    editor.setReadOnly(true)
-    doAssert editor.isReadOnly(), "setReadOnly did not take"
-    # A read-only editor hides its caret.
-    doAssert not editor.isCaretVisible(),
-             "a read only editor still shows a caret"
-    editor.setReadOnly(false)
-    editor.setCaretVisible(true)
-    doAssert editor.isCaretVisible(), "the caret stayed hidden"
+        doAssert not editor.isTabKeyUsedAsCharacter(), "tab starts as a character"
+        editor.setTabKeyUsedAsCharacter(true)
+        doAssert editor.isTabKeyUsedAsCharacter(), "tab did not become a character"
 
-    doAssert editor.areScrollbarsShown(), "the scrollbars start hidden"
-    editor.setScrollbarsShown(false)
-    doAssert not editor.areScrollbarsShown(), "the scrollbars stayed shown"
+        doAssert not editor.isReadOnly(), "a new editor is read only"
+        editor.setReadOnly(true)
+        doAssert editor.isReadOnly(), "setReadOnly did not take"
+        # A read-only editor hides its caret.
+        doAssert not editor.isCaretVisible(),
+                 "a read only editor still shows a caret"
+        editor.setReadOnly(false)
+        editor.setCaretVisible(true)
+        doAssert editor.isCaretVisible(), "the caret stayed hidden"
 
-    doAssert editor.isPopupMenuEnabled(), "the popup menu starts disabled"
-    editor.setPopupMenuEnabled(false)
-    doAssert not editor.isPopupMenuEnabled(), "the popup menu stayed enabled"
-    doAssert not editor.isPopupMenuCurrentlyActive(),
-             "a popup menu is open in a headless test"
+        doAssert editor.areScrollbarsShown(), "the scrollbars start hidden"
+        editor.setScrollbarsShown(false)
+        doAssert not editor.areScrollbarsShown(), "the scrollbars stayed shown"
 
-    # JUCE underlines whitespace by default (juce_TextEditor.h).
-    doAssert editor.isWhitespaceUnderlined(),
-             "whitespace does not start underlined"
-    editor.setWhitespaceUnderlined(false)
-    doAssert not editor.isWhitespaceUnderlined(),
-             "whitespace stayed underlined"
+        doAssert editor.isPopupMenuEnabled(), "the popup menu starts disabled"
+        editor.setPopupMenuEnabled(false)
+        doAssert not editor.isPopupMenuEnabled(), "the popup menu stayed enabled"
+        doAssert not editor.isPopupMenuCurrentlyActive(),
+                 "a popup menu is open in a headless test"
 
-    editor.setTextToShowWhenEmpty(makeString("type here"),
-                                    Colours_grey)
-    doAssert $editor.getTextToShowWhenEmpty() == "type here",
-             "the placeholder reads as " & $editor.getTextToShowWhenEmpty()
-    doAssert editor.isEmpty(),
-             "the placeholder became the editor's own text"
+        # JUCE underlines whitespace by default (juce_TextEditor.h).
+        doAssert editor.isWhitespaceUnderlined(),
+                 "whitespace does not start underlined"
+        editor.setWhitespaceUnderlined(false)
+        doAssert not editor.isWhitespaceUnderlined(),
+                 "whitespace stayed underlined"
 
-    editor.setIndents(12.cint, 7.cint)
-    doAssert editor.getLeftIndent() == 12,
-             "the left indent is " & $editor.getLeftIndent()
-    doAssert editor.getTopIndent() == 7,
-             "the top indent is " & $editor.getTopIndent()
+        editor.setTextToShowWhenEmpty(makeString("type here"),
+                                        Colours_grey)
+        doAssert $editor.getTextToShowWhenEmpty() == "type here",
+                 "the placeholder reads as " & $editor.getTextToShowWhenEmpty()
+        doAssert editor.isEmpty(),
+                 "the placeholder became the editor's own text"
 
-    editor.setBorder(makeBorderSize(3.cint))
-    doAssert editor.getBorder().getTop() == 3 and
-             editor.getBorder().getLeft() == 3,
-             "the border did not read back"
+        editor.setIndents(12.cint, 7.cint)
+        doAssert editor.getLeftIndent() == 12,
+                 "the left indent is " & $editor.getLeftIndent()
+        doAssert editor.getTopIndent() == 7,
+                 "the top indent is " & $editor.getTopIndent()
+
+        editor.setBorder(makeBorderSize(3.cint))
+        doAssert editor.getBorder().getTop() == 3 and
+                 editor.getBorder().getLeft() == 3,
+                 "the border did not read back"
+
 
     shutdownJuce_GUI()
 
