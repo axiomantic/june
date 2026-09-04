@@ -480,6 +480,17 @@ constructor, a bound constant, a static variable or a field accessor is never
 exercised. Every defect this branch fixed was found that way or by a test
 written against it.
 
+``tools/report_behavioural_coverage.py`` measures the second layer against the
+first and prints a fixed-column table, so a later run can be diffed against an
+earlier one::
+
+  python3 tools/report_behavioural_coverage.py
+
+One unit is one bound method on one class; overloads collapse into one, since a
+test calling either exercises the name. The match is by name rather than by
+receiver, which makes the uncalled figure a LOWER bound - it never claims
+coverage that is not there.
+
 What the behavioural layer does NOT reach, and why:
 
 - Anything needing a real window server or real input. On Linux CI the suite
