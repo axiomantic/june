@@ -3231,3 +3231,173 @@ proc testImageFormatsAndCopies() =
     shutdownJuce_GUI()
 
 testImageFormatsAndCopies()
+
+# GlyphArrangement is the laid-out text a Graphics draws. Every assertion here
+# is on the glyph count or the bounding box, which are the two things that hold
+# whatever font the host has installed.
+proc testGlyphArrangement() =
+    initialiseJuce_GUI()
+
+    block:
+        let font = makeFont(makeFontOptions(16.0'f32))
+        var glyphs = makeGlyphArrangement()
+        doAssert glyphs.getNumGlyphs() == 0,
+                 "a new arrangement holds " & $glyphs.getNumGlyphs() & " glyphs"
+
+        glyphs.addLineOfText(font, makeString("abc"), 0.0'f32, 20.0'f32)
+        doAssert glyphs.getNumGlyphs() == 3,
+                 "three characters gave " & $glyphs.getNumGlyphs() & " glyphs"
+
+        # The bounding box covers the glyphs it is asked about, and a wider
+        # range covers more.
+        let firstOnly = glyphs.getBoundingBox(0.cint, 1.cint, true)
+        let allThree = glyphs.getBoundingBox(0.cint, 3.cint, true)
+        doAssert firstOnly.getWidth() > 0.0'f32,
+                 "one glyph measures " & $firstOnly.getWidth() & " wide"
+        doAssert allThree.getWidth() > firstOnly.getWidth(),
+                 "three glyphs measure " & $allThree.getWidth() &
+                 " and one measures " & $firstOnly.getWidth()
+
+        # findGlyphIndexAt asks each GLYPH to hit-test the point, not the
+        # arrangement's bounding box (juce_GlyphArrangement.cpp:763), so the
+        # point has to come from the glyph's own rectangle - the two are not
+        # the same, because the bounding box is built from different metrics.
+        # And the hit test wants the point inside the glyph's OUTLINE, not
+        # merely inside its rectangle (juce_GlyphArrangement.cpp:124) - the
+        # centre of an "a" can fall in the hole. So the box is scanned for a
+        # point that is on the letter, and the assertion is that one exists
+        # and names glyph 0.
+        let glyphBounds = glyphs.getGlyph(0.cint).getBounds()
+        var found = -1
+        for step in 0 ..< 100:
+            let x = glyphBounds.getX() +
+                    glyphBounds.getWidth() * float32(step mod 10) / 10.0'f32
+            let y = glyphBounds.getY() +
+                    glyphBounds.getHeight() * float32(step div 10) / 10.0'f32
+            if glyphs.findGlyphIndexAt(x, y) == 0:
+                found = 0
+                break
+        doAssert found == 0,
+                 "no point in the first glyph's rectangle is on the glyph"
+        doAssert glyphs.findGlyphIndexAt(1000.0'f32, 1000.0'f32) == -1,
+                 "a point far away names glyph " &
+                 $glyphs.findGlyphIndexAt(1000.0'f32, 1000.0'f32)
+
+        # A glyph knows its own character, and its rectangle agrees with the
+        # separate edge accessors.
+        doAssert glyphs.getGlyph(0.cint).getCharacter() == uint16('a'),
+                 "the first glyph is not an 'a'"
+        doAssert glyphBounds.getX() == glyphs.getGlyph(0.cint).getLeft(),
+                 "getBounds and getLeft disagree"
+        doAssert glyphBounds.getRight() == glyphs.getGlyph(0.cint).getRight(),
+                 "getBounds and getRight disagree"
+        doAssert not glyphs.getGlyph(0.cint).isWhitespace(),
+                 "the letter 'a' is whitespace"
+
+    block:
+        # moveRangeOfGlyphs shifts the glyphs it names and leaves the rest.
+        let font = makeFont(makeFontOptions(16.0'f32))
+        var glyphs = makeGlyphArrangement()
+        glyphs.addLineOfText(font, makeString("abcd"), 0.0'f32, 20.0'f32)
+
+        let firstBefore = glyphs.getBoundingBox(0.cint, 1.cint, true)
+        let lastBefore = glyphs.getBoundingBox(3.cint, 1.cint, true)
+
+        glyphs.moveRangeOfGlyphs(0.cint, 2.cint, 100.0'f32, 0.0'f32)
+        doAssert abs(glyphs.getBoundingBox(0.cint, 1.cint, true).getX() -
+                     (firstBefore.getX() + 100.0'f32)) < 0.5'f32,
+                 "the moved glyph is at " &
+                 $glyphs.getBoundingBox(0.cint, 1.cint, true).getX() &
+                 " and was at " & $firstBefore.getX()
+        doAssert abs(glyphs.getBoundingBox(3.cint, 1.cint, true).getX() -
+                     lastBefore.getX()) < 0.5'f32,
+                 "moving the first two glyphs moved the last one too"
+
+        # stretchRangeOfGlyphs widens them.
+        let widthBefore = glyphs.getBoundingBox(2.cint, 2.cint, true).getWidth()
+        glyphs.stretchRangeOfGlyphs(2.cint, 2.cint, 2.0'f32)
+        doAssert glyphs.getBoundingBox(2.cint, 2.cint, true).getWidth() >
+                 widthBefore,
+                 "stretching by two gave " &
+                 $glyphs.getBoundingBox(2.cint, 2.cint, true).getWidth() &
+                 " from " & $widthBefore
+
+        # removeRangeOfGlyphs takes exactly what it names.
+        glyphs.removeRangeOfGlyphs(0.cint, 2.cint)
+        doAssert glyphs.getNumGlyphs() == 2,
+                 "removing two of four left " & $glyphs.getNumGlyphs()
+        doAssert glyphs.getGlyph(0.cint).getCharacter() == uint16('c'),
+                 "the survivor is not the third character"
+
+        glyphs.clear()
+        doAssert glyphs.getNumGlyphs() == 0,
+                 "clear left " & $glyphs.getNumGlyphs() & " glyphs"
+
+    block:
+        # The three text-layout entry points each produce glyphs, and the
+        # curtailed one produces no more than the plain one for text that does
+        # not fit.
+        let font = makeFont(makeFontOptions(16.0'f32))
+        let sentence = makeString("a longer piece of text")
+
+        var plain = makeGlyphArrangement()
+        plain.addLineOfText(font, sentence, 0.0'f32, 20.0'f32)
+
+        var curtailed = makeGlyphArrangement()
+        curtailed.addCurtailedLineOfText(font, sentence, 0.0'f32, 20.0'f32,
+                                         30.0'f32, true)
+        doAssert curtailed.getNumGlyphs() > 0,
+                 "the curtailed line produced no glyphs"
+        doAssert curtailed.getNumGlyphs() < plain.getNumGlyphs(),
+                 "curtailing to 30 pixels gave " & $curtailed.getNumGlyphs() &
+                 " glyphs and the full line gave " & $plain.getNumGlyphs()
+
+        var justified = makeGlyphArrangement()
+        justified.addJustifiedText(font, sentence, 0.0'f32, 20.0'f32, 60.0'f32,
+                                   makeJustification(
+                                       JustificationFlags_left.cint), 0.0'f32)
+        doAssert justified.getNumGlyphs() > 0,
+                 "the justified text produced no glyphs"
+        doAssert justified.getBoundingBox(
+                     0.cint, justified.getNumGlyphs(), false).getHeight() >
+                 plain.getBoundingBox(0.cint, plain.getNumGlyphs(),
+                                      false).getHeight(),
+                 "wrapping to 60 pixels did not make the text taller than one line"
+
+        var fitted = makeGlyphArrangement()
+        fitted.addFittedText(font, sentence, 0.0'f32, 0.0'f32, 60.0'f32,
+                             40.0'f32,
+                             makeJustification(JustificationFlags_centred.cint),
+                             2.cint, 1.0'f32, makeGlyphArrangementOptions())
+        doAssert fitted.getNumGlyphs() > 0, "the fitted text produced no glyphs"
+
+    block:
+        # One arrangement appended to another gives the sum of their glyphs,
+        # and a single glyph can be appended too.
+        let font = makeFont(makeFontOptions(16.0'f32))
+        var first = makeGlyphArrangement()
+        first.addLineOfText(font, makeString("ab"), 0.0'f32, 20.0'f32)
+        var second = makeGlyphArrangement()
+        second.addLineOfText(font, makeString("cde"), 0.0'f32, 40.0'f32)
+
+        first.addGlyphArrangement(second)
+        doAssert first.getNumGlyphs() == 5,
+                 "two and three glyphs gave " & $first.getNumGlyphs()
+
+        first.addGlyph(second.getGlyph(0.cint))
+        doAssert first.getNumGlyphs() == 6,
+                 "appending one glyph gave " & $first.getNumGlyphs()
+
+        # justifyGlyphs moves a range into a rectangle, so the glyphs end up
+        # inside it.
+        first.justifyGlyphs(0.cint, first.getNumGlyphs(), 10.0'f32, 10.0'f32,
+                            200.0'f32, 100.0'f32,
+                            makeJustification(JustificationFlags_centred.cint))
+        let box = first.getBoundingBox(0.cint, first.getNumGlyphs(), false)
+        doAssert box.getX() >= 10.0'f32 and box.getRight() <= 210.0'f32,
+                 "the justified glyphs run from " & $box.getX() & " to " &
+                 $box.getRight()
+
+    shutdownJuce_GUI()
+
+testGlyphArrangement()
