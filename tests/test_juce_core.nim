@@ -4791,3 +4791,121 @@ proc testTimeCalendar() =
     discard now.isDaylightSavingTime()
 
 testTimeCalendar()
+
+# ArgumentList is what a console program parses its command line into. The
+# option lookups accept several spellings of the same option, which is the part
+# a caller has to know, and the "AndRemove" variants consume what they find.
+proc testArgumentListOptions() =
+  block:
+    var args = makeArgumentList(
+        makeString("june"),
+        makeString("--input=in.txt --verbose -o out.txt extra"))
+
+    doAssert $args.executableName == "june",
+             "the executable is " & $args.executableName
+    # Five: --input=in.txt, --verbose, -o, out.txt, extra. A value given as a
+    # SEPARATE argument stays a separate argument; only the =value form is one.
+    doAssert args.size() == 5,
+             "the command line parsed into " & $args.size() & " arguments"
+
+    # An option is found by any of its spellings, and a missing one is not.
+    doAssert args.containsOption(makeString("--verbose")),
+             "--verbose was not found"
+    doAssert not args.containsOption(makeString("--quiet")),
+             "an option that is not there was found"
+    doAssert args.indexOfOption(makeString("--verbose")) == 1,
+             "--verbose is at index " & $args.indexOfOption(makeString("--verbose"))
+    doAssert args.indexOfOption(makeString("--quiet")) == -1,
+             "a missing option is at index " &
+             $args.indexOfOption(makeString("--quiet"))
+
+    # A pipe separates the spellings JUCE will accept for one option, which is
+    # how a short and a long form are given together.
+    doAssert args.containsOption(makeString("-o|--output")),
+             "the short form -o was not found through -o|--output"
+
+    # A value is taken from --option=value or from the next argument.
+    doAssert $args.getValueForOption(makeString("--input")) == "in.txt",
+             "the =value form gave " & $args.getValueForOption(makeString("--input"))
+    doAssert $args.getValueForOption(makeString("-o")) == "out.txt",
+             "the separate-argument form gave " &
+             $args.getValueForOption(makeString("-o"))
+    doAssert args.getValueForOption(makeString("--quiet")).isEmpty(),
+             "a missing option has the value " &
+             $args.getValueForOption(makeString("--quiet"))
+
+    # A file for an option is the value as a path.
+    doAssert $args.getFileForOption(makeString("--input")).getFileName() ==
+             "in.txt",
+             "the file for --input is " &
+             $args.getFileForOption(makeString("--input")).getFileName()
+
+  block:
+    # The AndRemove variants consume what they find, and the plain ones do not.
+    var args = makeArgumentList(makeString("june"),
+                                makeString("--verbose --input=in.txt"))
+    let before = args.size()
+
+    doAssert $args.getValueForOption(makeString("--input")) == "in.txt",
+             "the value was not found before removing it"
+    doAssert args.size() == before,
+             "the plain lookup consumed an argument"
+
+    doAssert $args.removeValueForOption(makeString("--input")) == "in.txt",
+             "removeValueForOption gave a different value"
+    doAssert not args.containsOption(makeString("--input")),
+             "removeValueForOption left the option behind"
+    doAssert args.size() < before,
+             "removeValueForOption left " & $args.size() & " arguments"
+
+    doAssert args.removeOptionIfFound(makeString("--verbose")),
+             "removeOptionIfFound did not find --verbose"
+    doAssert not args.containsOption(makeString("--verbose")),
+             "removeOptionIfFound left the option behind"
+    doAssert not args.removeOptionIfFound(makeString("--verbose")),
+             "removing an option twice succeeded twice"
+
+  block:
+    # The file lookups come in four shapes: file or folder, each with and
+    # without removal. The two "existing" ones raise on a path that is not
+    # there, so they are given one that is.
+    let directory = File.getSpecialLocation(
+        FileSpecialLocationType_tempDirectory)
+    let file = directory.getChildFile(makeString("june_argument_list.txt"))
+    discard file.replaceWithText(makeString("x"))
+
+    var args = makeArgumentList(
+        makeString("june"),
+        makeString("--file=" & $file.getFullPathName() &
+                   " --dir=" & $directory.getFullPathName()))
+
+    doAssert args.getExistingFileForOption(makeString("--file")) == file,
+             "the existing file is " &
+             $args.getExistingFileForOption(makeString("--file")).getFullPathName()
+    doAssert args.getExistingFolderForOption(makeString("--dir")) == directory,
+             "the existing folder is " &
+             $args.getExistingFolderForOption(makeString("--dir")).getFullPathName()
+
+    # The removing variants give the same answer and consume the argument.
+    let sizeBefore = args.size()
+    doAssert args.getExistingFileForOptionAndRemove(makeString("--file")) == file,
+             "the removing lookup gave a different file"
+    doAssert args.size() < sizeBefore,
+             "the removing lookup left " & $args.size() & " arguments"
+    doAssert args.getExistingFolderForOptionAndRemove(makeString("--dir")) ==
+             directory,
+             "the removing folder lookup gave a different folder"
+
+    doAssert file.deleteFile(), "the temporary file could not be removed"
+
+  block:
+    # The two checks pass silently when they are satisfied. They call exit on
+    # failure, so only the passing path is exercised.
+    var args = makeArgumentList(makeString("june"),
+                                makeString("--needed one two"))
+    args.checkMinNumArguments(1.cint)
+    args.failIfOptionIsMissing(makeString("--needed"))
+    doAssert args.size() == 3,
+             "the checks changed the argument count to " & $args.size()
+
+testArgumentListOptions()
