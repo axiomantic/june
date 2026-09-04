@@ -13249,3 +13249,187 @@ proc testComponentListenerDefaults() =
     shutdownJuce_GUI()
 
 testComponentListenerDefaults()
+
+# The last of Button, TextEditor and TabbedComponent. The on* members are read
+# BACK here rather than only assigned: the getter is a different binding from
+# the setter, and reading one as a value is a shape the coverage script cannot
+# see either way.
+proc testWidgetCallbackGettersAndCommands() =
+    initialiseJuce_GUI()
+
+    block:
+        # A button wired to a command manager reports the command it triggers,
+        # and its text comes from there.
+        var manager = makeApplicationCommandManager()
+        var target = newCustomApplicationCommandTarget()
+        const commandId = 200.cint
+        target[].setGetAllCommandsHandler(proc(commands: ptr Array[cint]) =
+            commands[].add(commandId))
+        target[].setGetCommandInfoHandler(proc(id: cint,
+                                               info: ptr ApplicationCommandInfo) =
+            info[].setInfo(makeString("Save"), makeString("Saves the file"),
+                           makeString("File"), 0.cint))
+        target[].setPerformHandler(proc(info: ptr ApplicationCommandTargetInvocationInfo): bool =
+            true)
+        target[].setGetNextCommandTargetHandler(proc(): ptr ApplicationCommandTarget =
+            nil)
+        manager.registerAllCommandsForTarget(
+            cast[ptr ApplicationCommandTarget](target))
+
+        let button = newCustomButton(makeString("button"))
+        doAssert button[].getCommandID() == 0,
+                 "a new button triggers command " & $button[].getCommandID()
+
+        button[].setCommandToTrigger(addr manager, commandId, true)
+        doAssert button[].getCommandID() == commandId,
+                 "the button triggers command " & $button[].getCommandID()
+        # setCommandToTrigger's third argument is generateTooltip, not "take
+        # the command's name": the button keeps its own text and gets the
+        # command's description as a tooltip instead.
+        doAssert $button[].getButtonText() == "button",
+                 "the button's text became " & $button[].getButtonText()
+        # The tooltip it generates is built from the command's description AND
+        # its keyboard shortcut, and this command has none - so it comes out
+        # empty. What the flag controls is asserted through getCommandID
+        # above; the tooltip is only called here.
+        discard button[].getTooltip()
+
+        # The repeat speed and the press timer have no reader between clicks;
+        # what is asserted is that they run and that nothing is held down.
+        button[].setRepeatSpeed(500.cint, 100.cint, 50.cint)
+        # getMillisecondsSinceButtonDown measures from the press time, which is
+        # ZERO on a button nobody has pressed - so it answers with the whole
+        # millisecond counter rather than with 0. It is only meaningful inside
+        # a press, and the test says so rather than pinning a number.
+        doAssert button[].getMillisecondsSinceButtonDown() > 0'u32,
+                 "the never-pressed button reports " &
+                 $button[].getMillisecondsSinceButtonDown() & "ms"
+
+        # The toggle state is also a Value, and it is a view of the same flag.
+        button[].setToggleable(true)
+        button[].setToggleState(true, NotificationType_dontSendNotification)
+        doAssert button[].getToggleStateValue().getValue().toBool(),
+                 "the value object does not agree that the button is on"
+        button[].getToggleStateValue().setValue(makejuce_var(false))
+        doAssert not button[].getToggleState(),
+                 "writing through the value object did not turn the button off"
+
+        # The two callbacks are read back and invoked, which proves the getter
+        # returns what the setter stored.
+        var clicks = 0
+        var stateChanges = 0
+        button[].onClick = bindClosure(proc() = clicks += 1)
+        button[].onStateChange = bindClosure(proc() = stateChanges += 1)
+        button[].onClick.invoke()
+        doAssert clicks == 1 and stateChanges == 0,
+                 "invoking onClick gave " & $clicks & " clicks and " &
+                 $stateChanges & " state changes"
+        button[].onStateChange.invoke()
+        doAssert stateChanges == 1,
+                 "invoking onStateChange gave " & $stateChanges & " calls"
+
+        # triggerClick posts a command message rather than clicking inline, so
+        # it is called and asserted NOT to have run the callback.
+        button[].triggerClick()
+        doAssert clicks == 1,
+                 "triggerClick called back inline; there are now " & $clicks
+
+        cdelete button
+        cdelete target
+
+    block:
+        # TextEditor's four callbacks, read back and invoked.
+        var editor = makeTextEditor(makeString("editor"), WChar(0))
+        var textChanges, returns, escapes, focusLosses = 0
+        editor.onTextChange = bindClosure(proc() = textChanges += 1)
+        editor.onReturnKey = bindClosure(proc() = returns += 1)
+        editor.onEscapeKey = bindClosure(proc() = escapes += 1)
+        editor.onFocusLost = bindClosure(proc() = focusLosses += 1)
+
+        var stored = editor.onTextChange
+        stored.invoke()
+        doAssert textChanges == 1,
+                 "the read-back text callback ran " & $textChanges & " times"
+        editor.onReturnKey.invoke()
+        editor.onEscapeKey.invoke()
+        editor.onFocusLost.invoke()
+        doAssert returns == 1 and escapes == 1 and focusLosses == 1,
+                 "the other three ran " & $returns & ", " & $escapes & " and " &
+                 $focusLosses & " times"
+
+        # The text is also a Value, and it is a view of the same storage.
+        editor.setText(makeString("through the value"), false)
+        doAssert $editor.getTextValue().getValue().toString() ==
+                 "through the value",
+                 "the value object reads " &
+                 $editor.getTextValue().getValue().toString()
+
+        # The popup menu is built on demand into a menu the caller owns, and
+        # performPopupMenuAction acts on an id from it.
+        var menu = makePopupMenu()
+        editor.addPopupMenuItems(menu, nil)
+        doAssert menu.getNumItems() > 0,
+                 "the editor added " & $menu.getNumItems() & " menu items"
+
+        discard editor.selectAll()
+        editor.performPopupMenuAction(
+            cint(StandardApplicationCommandIDs_copy))
+        doAssert $editor.getText() == "through the value",
+                 "a copy action changed the text to " & $editor.getText()
+
+    block:
+        # TabbedComponent's content components and its appearance.
+        var tabs = makeTabbedComponent(TabbedButtonBarOrientation_TabsAtTop)
+        tabs.setBounds(makeRectangle(0.cint, 0.cint, 300.cint, 200.cint))
+
+        let first = newCustomComponent()
+        let second = newCustomComponent()
+        tabs.addTab(makeString("First"), Colours_grey,
+                    cast[ptr Component](first), false, -1.cint)
+        tabs.addTab(makeString("Second"), Colours_darkgrey,
+                    cast[ptr Component](second), false, -1.cint)
+
+        doAssert tabs.getTabContentComponent(0.cint) ==
+                 cast[ptr Component](first),
+                 "tab 0 holds a different component"
+        doAssert tabs.getCurrentContentComponent() ==
+                 cast[ptr Component](first),
+                 "the current content is not the first tab's"
+
+        tabs.setCurrentTabIndex(1.cint, false)
+        doAssert tabs.getCurrentContentComponent() ==
+                 cast[ptr Component](second),
+                 "after switching, the current content is not the second tab's"
+
+        # The colour is per tab and reads back through the bar.
+        tabs.setTabBackgroundColour(0.cint, Colours_red)
+        doAssert tabs.getTabbedButtonBar().getTabBackgroundColour(0.cint) ==
+                 Colours_red,
+                 "the tab colour reads as " &
+                 $tabs.getTabbedButtonBar().getTabBackgroundColour(0.cint)
+        doAssert tabs.getTabbedButtonBar().getTabBackgroundColour(1.cint) !=
+                 Colours_red,
+                 "colouring one tab coloured the other"
+
+        # The indent and outline have no reader; what is asserted is that they
+        # run and leave the tabs alone.
+        tabs.setIndent(4.cint)
+        tabs.setOutline(2.cint)
+        doAssert tabs.getNumTabs() == 2,
+                 "the appearance settings changed the tab count to " &
+                 $tabs.getNumTabs()
+
+        # The two notification hooks the base implements do nothing beyond
+        # what switching already did.
+        tabs.currentTabChanged(1.cint, makeString("Second"))
+        tabs.popupMenuClickOnTab(0.cint, makeString("First"))
+        doAssert tabs.getCurrentTabIndex() == 1,
+                 "the notifications moved the current tab to " &
+                 $tabs.getCurrentTabIndex()
+
+        cdelete second
+        cdelete first
+
+    shutdownJuce_GUI()
+
+testWidgetCallbackGettersAndCommands()
