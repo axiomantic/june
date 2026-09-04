@@ -6977,3 +6977,100 @@ proc testNamedValueSetRest() =
 
 testTimeSliceThreadQueue()
 testNamedValueSetRest()
+
+# ChildProcess against a real process =========================================
+#
+# /bin/echo, /bin/sleep and /bin/sh are on both platforms this suite runs on,
+# so the test drives a real child rather than a stub.
+
+proc testChildProcess() =
+    block:
+        var process = makeChildProcess()
+        doAssert not process.isRunning(),
+                 "a process that was never started is running"
+
+        doAssert process.start(makeString("/bin/echo hello from june"),
+                               ChildProcessStreamFlags_wantStdOut.cint),
+                 "/bin/echo did not start"
+        let output = process.readAllProcessOutput()
+        doAssert "hello from june" in $output,
+                 "the child wrote " & $output
+
+        # readAllProcessOutput waits for the child to finish, so by now it has
+        # exited cleanly.
+        doAssert process.waitForProcessToFinish(2000.cint),
+                 "the finished child did not report finishing"
+        doAssert not process.isRunning(),
+                 "the finished child is still running"
+        doAssert process.getExitCode() == 0'u32,
+                 "the child exited with " & $process.getExitCode()
+
+    block:
+        # An argument list is the other way to start one, and it needs no
+        # shell quoting.
+        var arguments = makeStringArray()
+        arguments.add(makeString("/bin/echo"))
+        arguments.add(makeString("one two"))
+
+        var process = makeChildProcess()
+        doAssert process.start(arguments,
+                               ChildProcessStreamFlags_wantStdOut.cint),
+                 "/bin/echo did not start from an argument list"
+        doAssert "one two" in $process.readAllProcessOutput(),
+                 "the argument was split by a shell"
+
+    block:
+        # A failing command's exit code comes back as its own. The argument
+        # list is used because the String form splits on whitespace and does
+        # no shell quoting, so a quoted argument would arrive with its quotes
+        # and the shell would exit 127 instead.
+        var arguments = makeStringArray()
+        arguments.add(makeString("/bin/sh"))
+        arguments.add(makeString("-c"))
+        arguments.add(makeString("exit 3"))
+
+        var process = makeChildProcess()
+        doAssert process.start(arguments,
+                               ChildProcessStreamFlags_wantStdOut.cint),
+                 "the shell did not start"
+        discard process.readAllProcessOutput()
+        doAssert process.getExitCode() == 3'u32,
+                 "the child exited with " & $process.getExitCode()
+
+    block:
+        # A child that is still running can be killed, and waiting for a
+        # timeout shorter than it needs reports that it has not finished.
+        var process = makeChildProcess()
+        doAssert process.start(makeString("/bin/sleep 30"),
+                               ChildProcessStreamFlags_wantStdOut.cint),
+                 "/bin/sleep did not start"
+        doAssert process.isRunning(), "the sleeping child is not running"
+        doAssert not process.waitForProcessToFinish(50.cint),
+                 "a child sleeping for 30 seconds finished within 50ms"
+        doAssert process.kill(), "the child was not killed"
+        doAssert process.waitForProcessToFinish(2000.cint),
+                 "the killed child never finished"
+
+    block:
+        # readProcessOutput fills a caller's buffer rather than a String, and
+        # returns how many bytes it wrote.
+        var process = makeChildProcess()
+        doAssert process.start(makeString("/bin/echo abcdef"),
+                               ChildProcessStreamFlags_wantStdOut.cint),
+                 "/bin/echo did not start"
+        var buffer: array[64, char]
+        var total = 0
+        while total < buffer.len:
+            let read = process.readProcessOutput(
+                addr buffer[total], cint(buffer.len - total))
+            if read <= 0:
+                break
+            total += read
+        doAssert total >= 6, "the child's output came back as " & $total &
+                 " bytes"
+        var arrived = newString(total)
+        for i in 0 ..< total:
+            arrived[i] = buffer[i]
+        doAssert "abcdef" in arrived, "the buffer holds " & arrived
+
+testChildProcess()
