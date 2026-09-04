@@ -12957,3 +12957,143 @@ proc testConcertinaPanel() =
     shutdownJuce_GUI()
 
 testConcertinaPanel()
+
+# MouseListener's methods all have empty bodies in JUCE, so no Custom subclass
+# is generated and the base is the only instance obtainable. Calling each one
+# proves the binding compiles and that the base does nothing - which is the
+# whole of what an empty body can be checked for.
+proc testMouseListenerDefaults() =
+    initialiseJuce_GUI()
+
+    block:
+        var listener = makeMouseListener()
+        let component = newCustomComponent()
+        component[].setBounds(makeRectangle(0.cint, 0.cint, 100.cint, 50.cint))
+        let bounds = component[].getBounds()
+
+        let now = Time.getCurrentTime()
+        let event = makeMouseEvent(Desktop.getInstance().getMainMouseSource(),
+                                   makePoint(5.0'f32, 5.0'f32),
+                                   makeModifierKeys(),
+                                   1.0'f32, 0.0'f32, 0.0'f32, 0.0'f32, 0.0'f32,
+                                   cast[ptr Component](component),
+                                   cast[ptr Component](component),
+                                   now, makePoint(5.0'f32, 5.0'f32), now,
+                                   1.cint, false)
+
+        listener.mouseMove(event)
+        listener.mouseEnter(event)
+        listener.mouseExit(event)
+        listener.mouseDown(event)
+        listener.mouseDrag(event)
+        listener.mouseUp(event)
+        listener.mouseDoubleClick(event)
+        listener.mouseWheelMove(event, makeMouseWheelDetails())
+        listener.mouseMagnify(event, 2.0'f32)
+
+        doAssert component[].getBounds() == bounds,
+                 "a listener callback moved the component to " &
+                 $component[].getBounds().getX() & "," &
+                 $component[].getBounds().getY()
+
+        cdelete component
+
+    shutdownJuce_GUI()
+
+testMouseListenerDefaults()
+
+# ToolbarItemComponent's own methods, as opposed to the two handlers a
+# CustomToolbarItemComponent overrides. Reached through a toolbar, because an
+# item's toolbar answers for its orientation and its editing mode.
+proc testToolbarItemComponent() =
+    initialiseJuce_GUI()
+
+    const itemId = 1.cint
+
+    block:
+        var factory = newCustomToolbarItemFactory()
+        factory[].setGetAllToolbarItemIdsHandler(proc(ids: ptr Array[cint]) =
+            ids[].add(itemId))
+        factory[].setGetDefaultItemSetHandler(proc(ids: ptr Array[cint]) =
+            ids[].add(itemId))
+        factory[].setCreateItemHandler(proc(id: cint): ptr ToolbarItemComponent =
+            var made = newCustomToolbarItemComponent(id, makeString("item"), true)
+            made[].setGetToolbarItemSizesHandler(proc(toolbarThickness: cint,
+                                                      isToolbarVertical: bool,
+                                                      preferredSize: ptr cint,
+                                                      minSize: ptr cint,
+                                                      maxSize: ptr cint): bool =
+                preferredSize[] = 40.cint
+                minSize[] = 20.cint
+                maxSize[] = 80.cint
+                true)
+            made[].setPaintButtonAreaHandler(proc(g: ptr Graphics, width: cint,
+                                                  height: cint,
+                                                  isMouseOver: bool,
+                                                  isMouseDown: bool) = discard)
+            cast[ptr ToolbarItemComponent](made))
+
+        var bar = makeToolbar()
+        bar.setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 40.cint))
+        bar.addDefaultItems(cast[ptr CustomToolbarItemFactory](factory)[])
+        let item = bar.getItemComponent(0.cint)
+        doAssert not item.isNil, "the toolbar made no item component"
+
+        # The item knows the toolbar it is in, and answers for its direction.
+        doAssert item[].getToolbar() == addr bar,
+                 "the item belongs to a different toolbar"
+        doAssert not item[].isToolbarVertical(),
+                 "a horizontal toolbar's item reports vertical"
+        bar.setVertical(true)
+        doAssert item[].isToolbarVertical(),
+                 "the item did not follow the toolbar going vertical"
+        bar.setVertical(false)
+
+        # The sizes come from the handler the factory set.
+        var preferred, minimum, maximum: cint
+        doAssert item[].getToolbarItemSizes(40.cint, false, preferred, minimum,
+                                            maximum),
+                 "the item refused to report its sizes"
+        doAssert preferred == 40 and minimum == 20 and maximum == 80,
+                 "the item reported " & $preferred & ", " & $minimum & ", " &
+                 $maximum
+
+        # The editing mode is set by the toolbar and read back from the item.
+        doAssert item[].getEditingMode() ==
+                 ToolbarItemComponentToolbarEditingMode_normalMode,
+                 "a new item is not in normal mode"
+        item[].setEditingMode(
+            ToolbarItemComponentToolbarEditingMode_editableOnToolbar)
+        doAssert item[].getEditingMode() ==
+                 ToolbarItemComponentToolbarEditingMode_editableOnToolbar,
+                 "setEditingMode did not take"
+        item[].setEditingMode(
+            ToolbarItemComponentToolbarEditingMode_normalMode)
+
+        # contentAreaChanged is a notification with no reader; what is
+        # asserted is that it runs and leaves the item where it was.
+        let itemBounds = item[].getBounds()
+        item[].contentAreaChanged(makeRectangle(0.cint, 0.cint, 10.cint, 10.cint))
+        doAssert item[].getBounds() == itemBounds,
+                 "contentAreaChanged moved the item"
+
+        # paintButton draws through the handler the factory set, which draws
+        # nothing - so the image stays empty.
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        g.setColour(Colours_white)
+        item[].paintButton(g, false, false)
+        item[].paintButtonArea(g, 40.cint, 40.cint, false, false)
+        var lit = 0
+        for x in 0.cint ..< 40.cint:
+            for y in 0.cint ..< 40.cint:
+                if image.getPixelAt(x, y).getAlpha() > 0'u8:
+                    lit += 1
+        doAssert lit == 0,
+                 "the item's paint handlers drew " & $lit & " pixels"
+
+        cdelete factory
+
+    shutdownJuce_GUI()
+
+testToolbarItemComponent()
