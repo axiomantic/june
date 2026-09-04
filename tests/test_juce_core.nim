@@ -7587,3 +7587,88 @@ proc testUnitTestEntryPoints() =
         cdelete subject
 
 testUnitTestEntryPoints()
+
+# File's five OS-integration methods =========================================
+#
+# addToDock is NOT here. It writes the user's Dock preferences with `defaults
+# write` and then quits the Dock (juce_Files_mac.mm:491), so there is no path
+# through it that leaves the machine as it found it. It is listed method by
+# method in the coverage report instead.
+
+proc testFileOsIntegration() =
+    let root = june.File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                   .getNonexistentChildFile(makeString("june-os"),
+                                            makeString(""))
+    doAssert root.createDirectory().wasOk(), "could not make the directory"
+    defer: discard root.deleteRecursively(false)
+
+    block:
+        # A bundle is a directory the platform treats as one file. A plain
+        # directory is not one anywhere.
+        doAssert not root.isBundle(), "a plain directory is a bundle"
+        let file = root.getChildFile(makeStringRef("plain.txt"))
+        doAssert file.replaceWithText(makeString("x")),
+                 "could not write the file"
+        doAssert not file.isBundle(), "a text file is a bundle"
+
+    block:
+        # The working directory is process-wide, so it is put back straight
+        # away and the assertion is against what it was changed to.
+        # The directory is identified by a marker file inside it rather than
+        # by its path: the temp directory reaches this process through a
+        # symlink (/var -> /private/var on macOS), so the working directory
+        # comes back spelled differently from the path that was asked for
+        # even though it is the same directory.
+        let marker = root.getChildFile(makeStringRef("marker"))
+        doAssert marker.replaceWithText(makeString("x")),
+                 "could not write the marker"
+
+        let before = june.File.getCurrentWorkingDirectory()
+        doAssert root.setAsCurrentWorkingDirectory(),
+                 "could not change to the temp directory"
+        doAssert june.File.getCurrentWorkingDirectory()
+                     .getChildFile(makeStringRef("marker")).existsAsFile(),
+                 "the working directory is " &
+                 $june.File.getCurrentWorkingDirectory().getFullPathName()
+        doAssert before.setAsCurrentWorkingDirectory(),
+                 "could not change back"
+        doAssert not june.File.getCurrentWorkingDirectory()
+                     .getChildFile(makeStringRef("marker")).existsAsFile(),
+                 "the working directory was left at " &
+                 $june.File.getCurrentWorkingDirectory().getFullPathName()
+
+        # A path that is not a directory cannot become one.
+        doAssert not root.getChildFile(makeStringRef("nowhere"))
+                      .setAsCurrentWorkingDirectory(),
+                 "a path that does not exist became the working directory"
+
+    block:
+        # Starting a file that is not there fails rather than launching
+        # anything.
+        doAssert not root.getChildFile(makeStringRef("missing"))
+                      .startAsProcess(makeString("")),
+                 "a file that does not exist started as a process"
+
+        # revealToUser opens a file manager, so the only call that leaves the
+        # machine alone is one on a path whose PARENT does not exist either:
+        # JUCE walks up to the parent and stops when that is missing too
+        # (juce_Files_mac.mm:461).
+        root.getChildFile(makeStringRef("gone"))
+            .getChildFile(makeStringRef("also-gone"))
+            .revealToUser()
+
+    block:
+        # moveToTrash on a file that is not there reports success and does
+        # nothing (juce_Files_mac.mm: it returns true when the file does not
+        # exist), and on one that is there it really removes it.
+        doAssert root.getChildFile(makeStringRef("never-existed")).moveToTrash(),
+                 "trashing a file that is not there reported failure"
+
+        let doomed = root.getChildFile(makeStringRef("doomed.txt"))
+        doAssert doomed.replaceWithText(makeString("x")),
+                 "could not write the file to trash"
+        doAssert doomed.moveToTrash(), "the file was not trashed"
+        doAssert not doomed.existsAsFile(),
+                 "the trashed file is still where it was"
+
+testFileOsIntegration()
