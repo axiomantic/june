@@ -5451,7 +5451,7 @@ proc testThreadPoolJobList() =
 
     # A job that waits until it is released, so the pool's state can be read
     # while it is genuinely running rather than after it has finished.
-    var release = makeWaitableEvent(false)
+    var release = makeWaitableEvent(true)
     var blocking = newCustomThreadPoolJob(makeString("blocking"))
     let gate = addr release
     blocking[].setRunJobHandler(proc(): cint =
@@ -5468,9 +5468,13 @@ proc testThreadPoolJobList() =
     doAssert $pool.getNamesOfAllJobs(false)[0.cint] == "blocking",
              "the pool names the job " & $pool.getNamesOfAllJobs(false)[0.cint]
 
-    # A second job queued behind it, so one is running and one is waiting.
+    # A second job that waits on the SAME gate. It has to block too: a job
+    # that returns at once may finish before the count below is read, and the
+    # pool drops a finished job from its list - which made this assertion fail
+    # on a fast machine and pass on a slow one.
     var queued = newCustomThreadPoolJob(makeString("queued"))
     queued[].setRunJobHandler(proc(): cint =
+      discard gate[].wait(5000.0)
       cint(ThreadPoolJobJobStatus_jobHasFinished))
     pool.addJob(cast[ptr ThreadPoolJob](queued), false)
     doAssert pool.getNumJobs() == 2,
@@ -5479,7 +5483,8 @@ proc testThreadPoolJobList() =
     # moveJobToFront only moves a job that has not started.
     pool.moveJobToFront(cast[ptr ThreadPoolJob](queued))
 
-    # Releasing the gate lets both finish.
+    # Releasing the gate lets both finish. The event is manual-reset, so one
+    # signal releases both rather than only whichever thread wakes first.
     release.signal()
     doAssert pool.waitForJobToFinish(cast[ptr ThreadPoolJob](blocking),
                                      5000.cint),
@@ -5859,3 +5864,84 @@ proc testOptionBuilders() =
              "the audio shortcut also set the period"
 
 testOptionBuilders()
+
+# Expression's STRUCTURE. An expression parsed from text can be taken apart
+# without a scope: the operator, the inputs and the symbol names are all in the
+# tree itself.
+#
+# What needs a scope cannot be tested here. Expression::Scope gives every one
+# of its methods a body rather than making it pure (juce_Expression.h:127-162),
+# so the generator emits no CustomExpressionScope and there is no way to supply
+# symbol values from Nim. referencesSymbol, findReferencedSymbols and
+# withRenamedSymbol all resolve through the scope, so with the base one they
+# answer for an expression whose symbols are unknown - which is asserted below
+# as the limitation it is, rather than left looking like a passing test.
+proc testExpressionStructure() =
+  block:
+    var parseError = makeString("")
+    let sum = makeExpression(makeString("x + y * 2"), parseError)
+    doAssert parseError.isEmpty(),
+             "the expression did not parse: " & $parseError
+
+    # A binary operation has two inputs, each an expression of its own.
+    doAssert sum.getNumInputs() == 2,
+             "the sum has " & $sum.getNumInputs() & " inputs"
+    doAssert sum.getType() == ExpressionType_operatorType,
+             "a sum is not an operator"
+    doAssert $sum.getSymbolOrFunction() == "+",
+             "the sum's operator is " & $sum.getSymbolOrFunction()
+
+    # The first input is the symbol x, which knows its own name; the second is
+    # the multiplication, which is an operator with two inputs of its own.
+    let firstInput = sum.getInput(0.cint)
+    doAssert firstInput.getType() == ExpressionType_symbolType,
+             "the first input is not a symbol"
+    doAssert $firstInput.getSymbolOrFunction() == "x",
+             "the first input names " & $firstInput.getSymbolOrFunction()
+    doAssert firstInput.getNumInputs() == 0,
+             "a symbol has " & $firstInput.getNumInputs() & " inputs"
+
+    let secondInput = sum.getInput(1.cint)
+    doAssert secondInput.getType() == ExpressionType_operatorType,
+             "the second input is not an operator"
+    doAssert secondInput.getNumInputs() == 2,
+             "the multiplication has " & $secondInput.getNumInputs() & " inputs"
+
+    doAssert sum.usesAnySymbols(), "x + y * 2 uses no symbols"
+
+  block:
+    # A constant depends on nothing and needs no scope at all.
+    let constant = makeExpression(3.0)
+    doAssert not constant.usesAnySymbols(), "the number 3 uses symbols"
+    doAssert constant.getNumInputs() == 0,
+             "the number 3 has " & $constant.getNumInputs() & " inputs"
+    doAssert constant.getType() == ExpressionType_constantType,
+             "the number 3 is not a constant"
+
+    # The scope-taking methods DO work on an expression with no symbols to
+    # resolve, which is the one case a base scope can answer.
+    var scope = makeExpressionScope()
+    let x = makeExpressionSymbol(makeString(""), makeString("x"))
+    doAssert not constant.referencesSymbol(x, scope),
+             "the number 3 references x"
+
+    var found = makeArray[ExpressionSymbol]()
+    constant.findReferencedSymbols(found, scope)
+    doAssert found.size() == 0,
+             "the number 3 references " & $found.size() & " symbols"
+
+    doAssert not constant.withRenamedSymbol(x, makeString("w"), scope)
+                        .usesAnySymbols(),
+             "renaming a symbol in a constant introduced one"
+
+    # adjustedToGiveNewResult rewrites an expression so it evaluates to a
+    # wanted value, which is what a UI does when a user types a number into a
+    # field driven by a formula.
+    let adjusted = constant.adjustedToGiveNewResult(10.0, scope)
+    doAssert adjusted.evaluate() == 10.0,
+             "the adjusted expression evaluates to " & $adjusted.evaluate()
+    doAssert constant.evaluate() == 3.0,
+             "adjustedToGiveNewResult changed the original, which now gives " &
+             $constant.evaluate()
+
+testExpressionStructure()
