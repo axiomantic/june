@@ -428,10 +428,10 @@ proc compare*(this: typedesc[CharacterFunctions], char1: WChar, char2: WChar): c
 proc compareIgnoreCase*(this: typedesc[CharacterFunctions], char1: WChar, char2: WChar): cint {.header: juce_core, importcpp: "juce::CharacterFunctions::compareIgnoreCase(@)".}
 proc `==`*(this: CharacterFunctions, other: CharacterFunctions): bool {.error: "juce::CharacterFunctions defines no operator==; compare a property instead".}
 
-proc makeCharPointer_UTF8*(rawPointer: ptr char): CharPointer_UTF8 {.header: juce_core, importcpp: "juce::CharPointer_UTF8(@)".}
-proc toChar*(this: CharPointer_UTF8): ptr char {.header: juce_core, importcpp: "static_cast<const char *>(#)".}
+proc makeCharPointer_UTF8*(rawPointer: constChar): CharPointer_UTF8 {.header: juce_core, importcpp: "juce::CharPointer_UTF8(@)".}
+proc toChar*(this: CharPointer_UTF8): constChar {.header: juce_core, importcpp: "static_cast<const char *>(#)".}
 proc `CharPointer_UTF8=`*(this: var CharPointer_UTF8, other: CharPointer_UTF8): var CharPointer_UTF8 {.header: juce_core, importcpp: "#.operator=(@)".}
-proc `CharPointer_UTF8=`*(this: var CharPointer_UTF8, text: ptr char): var CharPointer_UTF8 {.header: juce_core, importcpp: "#.operator=(@)".}
+proc `CharPointer_UTF8=`*(this: var CharPointer_UTF8, text: constChar): var CharPointer_UTF8 {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `==`*(this: CharPointer_UTF8, other: CharPointer_UTF8): bool {.header: juce_core, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: CharPointer_UTF8, other: CharPointer_UTF8): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `<=`*(this: CharPointer_UTF8, other: CharPointer_UTF8): bool {.header: juce_core, importcpp: "#.operator<=(@)".}
@@ -477,14 +477,14 @@ proc getDoubleValue*(this: CharPointer_UTF8): float64 {.header: juce_core, impor
 proc findEndOfWhitespace*(this: CharPointer_UTF8): CharPointer_UTF8 {.header: juce_core, importcpp: "#.findEndOfWhitespace()".}
 proc incrementToEndOfWhitespace*(this: var CharPointer_UTF8) {.header: juce_core, importcpp: "#.incrementToEndOfWhitespace()".}
 proc canRepresent*(this: typedesc[CharPointer_UTF8], character: WChar): bool {.header: juce_core, importcpp: "juce::CharPointer_UTF8::canRepresent(@)".}
-proc isValidString*(this: typedesc[CharPointer_UTF8], codeUnits: ptr char, maxBytesToRead: cint): bool {.header: juce_core, importcpp: "juce::CharPointer_UTF8::isValidString(@)".}
+proc isValidString*(this: typedesc[CharPointer_UTF8], codeUnits: constChar, maxBytesToRead: cint): bool {.header: juce_core, importcpp: "juce::CharPointer_UTF8::isValidString(@)".}
 proc atomicSwap*(this: var CharPointer_UTF8, newValue: CharPointer_UTF8): CharPointer_UTF8 {.header: juce_core, importcpp: "#.atomicSwap(@)".}
 proc isByteOrderMark*(this: typedesc[CharPointer_UTF8], possibleByteOrder: constPointer): bool {.header: juce_core, importcpp: "juce::CharPointer_UTF8::isByteOrderMark(@)".}
 
-proc makeCharPointer_UTF16*(rawPointer: ptr int16): CharPointer_UTF16 {.header: juce_core, importcpp: "juce::CharPointer_UTF16(@)".}
-proc toInt16*(this: CharPointer_UTF16): ptr int16 {.header: juce_core, importcpp: "static_cast<const short *>(#)".}
+proc makeCharPointer_UTF16*(rawPointer: ConstPtr[int16]): CharPointer_UTF16 {.header: juce_core, importcpp: "juce::CharPointer_UTF16(@)".}
+proc toInt16*(this: CharPointer_UTF16): ConstPtr[int16] {.header: juce_core, importcpp: "static_cast<const short *>(#)".}
 proc `CharPointer_UTF16=`*(this: var CharPointer_UTF16, other: CharPointer_UTF16): var CharPointer_UTF16 {.header: juce_core, importcpp: "#.operator=(@)".}
-proc `CharPointer_UTF16=`*(this: var CharPointer_UTF16, text: ptr int16): var CharPointer_UTF16 {.header: juce_core, importcpp: "#.operator=(@)".}
+proc `CharPointer_UTF16=`*(this: var CharPointer_UTF16, text: ConstPtr[int16]): var CharPointer_UTF16 {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `==`*(this: CharPointer_UTF16, other: CharPointer_UTF16): bool {.header: juce_core, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: CharPointer_UTF16, other: CharPointer_UTF16): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `<=`*(this: CharPointer_UTF16, other: CharPointer_UTF16): bool {.header: juce_core, importcpp: "#.operator<=(@)".}
@@ -529,15 +529,15 @@ proc getDoubleValue*(this: CharPointer_UTF16): float64 {.header: juce_core, impo
 proc findEndOfWhitespace*(this: CharPointer_UTF16): CharPointer_UTF16 {.header: juce_core, importcpp: "#.findEndOfWhitespace()".}
 proc incrementToEndOfWhitespace*(this: var CharPointer_UTF16) {.header: juce_core, importcpp: "#.incrementToEndOfWhitespace()".}
 proc canRepresent*(this: typedesc[CharPointer_UTF16], character: WChar): bool {.header: juce_core, importcpp: "juce::CharPointer_UTF16::canRepresent(@)".}
-proc isValidString*(this: typedesc[CharPointer_UTF16], codeUnits: ptr int16, maxBytesToRead: cint): bool {.header: juce_core, importcpp: "juce::CharPointer_UTF16::isValidString(@)".}
+proc isValidString*(this: typedesc[CharPointer_UTF16], codeUnits: ConstPtr[int16], maxBytesToRead: cint): bool {.header: juce_core, importcpp: "juce::CharPointer_UTF16::isValidString(@)".}
 proc atomicSwap*(this: var CharPointer_UTF16, newValue: CharPointer_UTF16): CharPointer_UTF16 {.header: juce_core, importcpp: "#.atomicSwap(@)".}
 proc isByteOrderMarkBigEndian*(this: typedesc[CharPointer_UTF16], possibleByteOrder: constPointer): bool {.header: juce_core, importcpp: "juce::CharPointer_UTF16::isByteOrderMarkBigEndian(@)".}
 proc isByteOrderMarkLittleEndian*(this: typedesc[CharPointer_UTF16], possibleByteOrder: constPointer): bool {.header: juce_core, importcpp: "juce::CharPointer_UTF16::isByteOrderMarkLittleEndian(@)".}
 
-proc makeCharPointer_UTF32*(rawPointer: ptr WChar): CharPointer_UTF32 {.header: juce_core, importcpp: "juce::CharPointer_UTF32(@)".}
-proc toWChar*(this: CharPointer_UTF32): ptr WChar {.header: juce_core, importcpp: "static_cast<const wchar_t *>(#)".}
+proc makeCharPointer_UTF32*(rawPointer: ConstPtr[WChar]): CharPointer_UTF32 {.header: juce_core, importcpp: "juce::CharPointer_UTF32(@)".}
+proc toWChar*(this: CharPointer_UTF32): ConstPtr[WChar] {.header: juce_core, importcpp: "static_cast<const wchar_t *>(#)".}
 proc `CharPointer_UTF32=`*(this: var CharPointer_UTF32, other: CharPointer_UTF32): var CharPointer_UTF32 {.header: juce_core, importcpp: "#.operator=(@)".}
-proc `CharPointer_UTF32=`*(this: var CharPointer_UTF32, text: ptr WChar): var CharPointer_UTF32 {.header: juce_core, importcpp: "#.operator=(@)".}
+proc `CharPointer_UTF32=`*(this: var CharPointer_UTF32, text: ConstPtr[WChar]): var CharPointer_UTF32 {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `==`*(this: CharPointer_UTF32, other: CharPointer_UTF32): bool {.header: juce_core, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: CharPointer_UTF32, other: CharPointer_UTF32): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `<=`*(this: CharPointer_UTF32, other: CharPointer_UTF32): bool {.header: juce_core, importcpp: "#.operator<=(@)".}
@@ -584,13 +584,13 @@ proc getDoubleValue*(this: CharPointer_UTF32): float64 {.header: juce_core, impo
 proc findEndOfWhitespace*(this: CharPointer_UTF32): CharPointer_UTF32 {.header: juce_core, importcpp: "#.findEndOfWhitespace()".}
 proc incrementToEndOfWhitespace*(this: var CharPointer_UTF32) {.header: juce_core, importcpp: "#.incrementToEndOfWhitespace()".}
 proc canRepresent*(this: typedesc[CharPointer_UTF32], character: WChar): bool {.header: juce_core, importcpp: "juce::CharPointer_UTF32::canRepresent(@)".}
-proc isValidString*(this: typedesc[CharPointer_UTF32], codeUnits: ptr WChar, maxBytesToRead: cint): bool {.header: juce_core, importcpp: "juce::CharPointer_UTF32::isValidString(@)".}
+proc isValidString*(this: typedesc[CharPointer_UTF32], codeUnits: ConstPtr[WChar], maxBytesToRead: cint): bool {.header: juce_core, importcpp: "juce::CharPointer_UTF32::isValidString(@)".}
 proc atomicSwap*(this: var CharPointer_UTF32, newValue: CharPointer_UTF32): CharPointer_UTF32 {.header: juce_core, importcpp: "#.atomicSwap(@)".}
 
-proc makeCharPointer_ASCII*(rawPointer: ptr char): CharPointer_ASCII {.header: juce_core, importcpp: "juce::CharPointer_ASCII(@)".}
-proc toChar*(this: CharPointer_ASCII): ptr char {.header: juce_core, importcpp: "static_cast<const char *>(#)".}
+proc makeCharPointer_ASCII*(rawPointer: constChar): CharPointer_ASCII {.header: juce_core, importcpp: "juce::CharPointer_ASCII(@)".}
+proc toChar*(this: CharPointer_ASCII): constChar {.header: juce_core, importcpp: "static_cast<const char *>(#)".}
 proc `CharPointer_ASCII=`*(this: var CharPointer_ASCII, other: CharPointer_ASCII): var CharPointer_ASCII {.header: juce_core, importcpp: "#.operator=(@)".}
-proc `CharPointer_ASCII=`*(this: var CharPointer_ASCII, text: ptr char): var CharPointer_ASCII {.header: juce_core, importcpp: "#.operator=(@)".}
+proc `CharPointer_ASCII=`*(this: var CharPointer_ASCII, text: constChar): var CharPointer_ASCII {.header: juce_core, importcpp: "#.operator=(@)".}
 proc `==`*(this: CharPointer_ASCII, other: CharPointer_ASCII): bool {.header: juce_core, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: CharPointer_ASCII, other: CharPointer_ASCII): bool {.header: juce_core, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `<=`*(this: CharPointer_ASCII, other: CharPointer_ASCII): bool {.header: juce_core, importcpp: "#.operator<=(@)".}
@@ -638,7 +638,7 @@ proc getDoubleValue*(this: CharPointer_ASCII): float64 {.header: juce_core, impo
 proc findEndOfWhitespace*(this: CharPointer_ASCII): CharPointer_ASCII {.header: juce_core, importcpp: "#.findEndOfWhitespace()".}
 proc incrementToEndOfWhitespace*(this: var CharPointer_ASCII) {.header: juce_core, importcpp: "#.incrementToEndOfWhitespace()".}
 proc canRepresent*(this: typedesc[CharPointer_ASCII], character: WChar): bool {.header: juce_core, importcpp: "juce::CharPointer_ASCII::canRepresent(@)".}
-proc isValidString*(this: typedesc[CharPointer_ASCII], dataToTest: ptr char, maxBytesToRead: cint): bool {.header: juce_core, importcpp: "juce::CharPointer_ASCII::isValidString(@)".}
+proc isValidString*(this: typedesc[CharPointer_ASCII], dataToTest: constChar, maxBytesToRead: cint): bool {.header: juce_core, importcpp: "juce::CharPointer_ASCII::isValidString(@)".}
 
 proc makeString*(): String {.header: juce_core, importcpp: "juce::String(@)".}
 proc makeString*(text: constChar): String {.header: juce_core, importcpp: "juce::String((const char *) #)".}
@@ -792,7 +792,7 @@ proc makeStringRef*(stringLiteral: CharPointer_UTF8): StringRef {.header: juce_c
 proc makeStringRef*(string: String): StringRef {.header: juce_core, importcpp: "juce::StringRef(@)".}
 proc makeStringRef*(string: CppString): StringRef {.header: juce_core, importcpp: "juce::StringRef(@)".}
 proc makeStringRef*(): StringRef {.header: juce_core, importcpp: "juce::StringRef(@)".}
-proc toChar*(this: StringRef): ptr char {.header: juce_core, importcpp: "static_cast<const char *>(#)".}
+proc toChar*(this: StringRef): constChar {.header: juce_core, importcpp: "static_cast<const char *>(#)".}
 proc toCharPointer_UTF8*(this: StringRef): CharPointer_UTF8 {.header: juce_core, importcpp: "static_cast<juce::CharPointer_UTF8>(#)".}
 proc text*(this: StringRef): CharPointer_UTF8 {.header: juce_core, importcpp: "#.text".}
 proc text*(this: var StringRef): var CharPointer_UTF8 {.header: juce_core, importcpp: "#.text".}
@@ -1134,7 +1134,7 @@ proc `==`*(this: Result, other: Result): bool {.header: juce_core, importcpp: "#
 
 proc makeUuid*(): Uuid {.header: juce_core, importcpp: "juce::Uuid(@)".}
 proc makeUuid*(uuidString: String): Uuid {.header: juce_core, importcpp: "juce::Uuid(@)".}
-proc makeUuid*(rawData: ptr uint8): Uuid {.header: juce_core, importcpp: "juce::Uuid(@)".}
+proc makeUuid*(rawData: ConstPtr[uint8]): Uuid {.header: juce_core, importcpp: "juce::Uuid(@)".}
 proc `Uuid=`*(this: var Uuid, arg1: Uuid): var Uuid {.header: juce_core, importcpp: "#.operator=(@)".}
 proc isNull*(this: Uuid): bool {.header: juce_core, importcpp: "#.isNull()".}
 proc null*(this: typedesc[Uuid]): Uuid {.header: juce_core, importcpp: "juce::Uuid::null()".}
@@ -1156,7 +1156,7 @@ proc getNode*(this: Uuid): uint64 {.header: juce_core, importcpp: "#.getNode()".
 proc hash*(this: Uuid): uint64 {.header: juce_core, importcpp: "#.hash()".}
 proc getRawData*(this: Uuid): ConstPtr[uint8] {.header: juce_core, importcpp: "#.getRawData()".}
 proc size*(this: typedesc[Uuid]): uint64 {.header: juce_core, importcpp: "juce::Uuid::size()".}
-proc `Uuid=`*(this: var Uuid, rawData: ptr uint8): var Uuid {.header: juce_core, importcpp: "#.operator=(@)".}
+proc `Uuid=`*(this: var Uuid, rawData: ConstPtr[uint8]): var Uuid {.header: juce_core, importcpp: "#.operator=(@)".}
 
 proc makeArgumentList*(executable: String, arguments: StringArray): ArgumentList {.header: juce_core, importcpp: "juce::ArgumentList(@)".}
 # proc makeArgumentList*(argc: cint, argv: ptr char[]): ArgumentList {.header: juce_core, importcpp: "juce::ArgumentList(@)".}  # a C array parameter; every one of these has an overload taking a String or a value instead
@@ -2136,8 +2136,8 @@ proc retryLock*(this: var ScopedTryWriteLock): bool {.header: juce_core, importc
 proc `==`*(this: ScopedTryWriteLock, other: ScopedTryWriteLock): bool {.error: "juce::ScopedTryWriteLock defines no operator==; compare a property instead".}
 
 proc makeIPAddress*(): IPAddress {.header: juce_core, importcpp: "juce::IPAddress(@)".}
-proc makeIPAddress*(bytes: ptr uint8, IPv6: bool): IPAddress {.header: juce_core, importcpp: "juce::IPAddress(@)".}
-proc makeIPAddress*(bytes: ptr uint16): IPAddress {.header: juce_core, importcpp: "juce::IPAddress(@)".}
+proc makeIPAddress*(bytes: ConstPtr[uint8], IPv6: bool): IPAddress {.header: juce_core, importcpp: "juce::IPAddress(@)".}
+proc makeIPAddress*(bytes: ConstPtr[uint16]): IPAddress {.header: juce_core, importcpp: "juce::IPAddress(@)".}
 proc makeIPAddress*(address1: uint8, address2: uint8, address3: uint8, address4: uint8): IPAddress {.header: juce_core, importcpp: "juce::IPAddress(@)".}
 proc makeIPAddress*(address1: uint16, address2: uint16, address3: uint16, address4: uint16, address5: uint16, address6: uint16, address7: uint16, address8: uint16): IPAddress {.header: juce_core, importcpp: "juce::IPAddress(@)".}
 proc makeIPAddress*(asNativeEndian32Bit: uint32): IPAddress {.header: juce_core, importcpp: "juce::IPAddress(@)".}

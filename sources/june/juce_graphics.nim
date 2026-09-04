@@ -534,7 +534,7 @@ proc makeEdgeTable*(rectanglesToAdd: RectangleList[cfloat]): EdgeTable {.header:
 proc clipToRectangle*(this: var EdgeTable, r: Rectangle[cint]) {.header: juce_graphics, importcpp: "#.clipToRectangle(@)".}
 proc excludeRectangle*(this: var EdgeTable, r: Rectangle[cint]) {.header: juce_graphics, importcpp: "#.excludeRectangle(@)".}
 proc clipToEdgeTable*(this: var EdgeTable, arg1: EdgeTable) {.header: juce_graphics, importcpp: "#.clipToEdgeTable(@)".}
-proc clipLineToMask*(this: var EdgeTable, x: cint, y: cint, mask: ptr uint8, maskStride: cint, numPixels: cint) {.header: juce_graphics, importcpp: "#.clipLineToMask(@)".}
+proc clipLineToMask*(this: var EdgeTable, x: cint, y: cint, mask: ConstPtr[uint8], maskStride: cint, numPixels: cint) {.header: juce_graphics, importcpp: "#.clipLineToMask(@)".}
 proc isEmpty*(this: var EdgeTable): bool {.header: juce_graphics, importcpp: "#.isEmpty()".}
 proc getMaximumBounds*(this: EdgeTable): Rectangle[cint] {.header: juce_graphics, importcpp: "#.getMaximumBounds()".}
 proc translate*(this: var EdgeTable, dx: cfloat, dy: cint) {.header: juce_graphics, importcpp: "#.translate(@)".}

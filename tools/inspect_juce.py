@@ -63,8 +63,22 @@ nim_conversion_def = """{comment}proc to{target}*(this: {class_name}): {nim_type
 
 
 def conversion_target_name(nim_type):
-    """The to<Type> suffix for a conversion operator's result."""
-    bare = nim_type.replace("ptr ", "").replace("var ", "").strip()
+    """The to<Type> suffix for a conversion operator's result.
+
+    Named after what the result POINTS AT, not after the Nim spelling of the
+    pointer. `ConstPtr[int16]` would otherwise give `toConstPtr[int16]`, which
+    is not an identifier at all, and `constChar` would give `toConstChar` where
+    the readable name is `toChar`. Naming by the pointee also means correcting
+    a pointer's constness does not rename the proc.
+    """
+    bare = nim_type.strip()
+    if bare == "constChar":
+        bare = "char"
+    elif bare == "constPointer":
+        bare = "pointer"
+    elif bare.startswith("ConstPtr[") and bare.endswith("]"):
+        bare = bare[len("ConstPtr["):-1]
+    bare = bare.replace("ptr ", "").replace("var ", "").strip()
     # cint reads better as toInt than as toCint, and the c-prefixed names are
     # the only ones where the Nim spelling is not the natural word.
     if bare.startswith("c") and bare[1:] in ("int", "uint", "float", "double", "char", "short", "long"):
@@ -186,6 +200,26 @@ def remap_type(t, *args):
                   and not target.is_const_qualified() else "")
 
     declaration = target.get_declaration()
+
+    # A POINTER TO CONST keeps its constness here, where the typedef branch
+    # below would otherwise drop it. `const CharType *` - how the CharPointer
+    # classes spell `const char *` - reached that branch, resolved the typedef
+    # to `char`, and came back as a mutable `ptr char`. The literal
+    # substitutions further down never saw it, because they match the raw
+    # spelling and the typedef hides the word `char`.
+    #
+    # Five conversion operators were bound that way, and writing through one is
+    # what a caller does next: `toChar()` handed back a pointer C++ will not
+    # let anyone write through, spelled as one Nim will.
+    if (t.kind == TypeKind.POINTER and target.is_const_qualified()
+            and declaration is not None and declaration.kind in (
+                CursorKind.TYPEDEF_DECL, CursorKind.TYPE_ALIAS_DECL)):
+        pointee = remap_type(declaration.underlying_typedef_type, *args)
+        if pointee == "char":
+            return "constChar"
+        if (pointee and "<" not in pointee and "::" not in pointee
+                and "(" not in pointee and not is_c_array(pointee)):
+            return f"ConstPtr[{pointee}]"
 
     # A member typedef names a type rather than being one: X::Ptr is a
     # ReferenceCountedObjectPtr<X>. Resolve through it before anything else.
