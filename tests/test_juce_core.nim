@@ -4695,3 +4695,99 @@ proc testStringArrayOperations() =
              "clearQuick left " & $array.size() & " entries"
 
 testStringArrayOperations()
+
+# Time's calendar accessors. A fixed instant is built from its parts so every
+# field has a known answer, rather than reading the clock and asserting a
+# range - which would pass whatever the binding returned.
+proc testTimeCalendar() =
+  block:
+    # 2024-03-15 was a Friday. Built in LOCAL time, because the getters read
+    # local time: passing useLocalTime=false makes the components UTC and the
+    # hour then reads back shifted by the machine's offset.
+    let moment = makeTime(2024.cint, 2.cint, 15.cint, 14.cint, 30.cint,
+                          45.cint, 500.cint, true)
+
+    doAssert moment.getYear() == 2024, "the year is " & $moment.getYear()
+    doAssert moment.getMonth() == 2,
+             "the month is " & $moment.getMonth() & "; JUCE counts from zero"
+    doAssert moment.getDayOfMonth() == 15,
+             "the day is " & $moment.getDayOfMonth()
+    doAssert moment.getHours() == 14, "the hour is " & $moment.getHours()
+    doAssert moment.getMinutes() == 30, "the minute is " & $moment.getMinutes()
+    doAssert moment.getSeconds() == 45, "the second is " & $moment.getSeconds()
+    doAssert moment.getMilliseconds() == 500,
+             "the millisecond is " & $moment.getMilliseconds()
+
+    # The 15th of March 2024 was a Friday, which JUCE numbers 5 counting
+    # Sunday as 0.
+    doAssert moment.getDayOfWeek() == 5,
+             "the day of the week is " & $moment.getDayOfWeek()
+    # January and February of a leap year are 31 + 29 days, so the 15th of
+    # March is day 74 counting from zero.
+    doAssert moment.getDayOfYear() == 74,
+             "the day of the year is " & $moment.getDayOfYear()
+
+    # The names come from the locale, so what is asserted is that they are
+    # non-empty and that the short form is no longer than the long one.
+    doAssert moment.getMonthName(false).isNotEmpty(),
+             "the month has no name"
+    doAssert moment.getWeekdayName(false).isNotEmpty(),
+             "the weekday has no name"
+    doAssert moment.getMonthName(true).length() <=
+             moment.getMonthName(false).length(),
+             "the abbreviated month name " & $moment.getMonthName(true) &
+             " is longer than the full one " & $moment.getMonthName(false)
+
+    # 14:30 in the afternoon is 2 on a twelve-hour clock.
+    doAssert moment.isAfternoon(), "14:30 is not in the afternoon"
+    doAssert moment.getHoursInAmPmFormat() == 2,
+             "14:00 reads as " & $moment.getHoursInAmPmFormat() & " on a " &
+             "twelve hour clock"
+
+    # A morning instant answers the other way.
+    let morning = makeTime(2024.cint, 2.cint, 15.cint, 9.cint, 0.cint,
+                           0.cint, 0.cint, true)
+    doAssert not morning.isAfternoon(), "09:00 is in the afternoon"
+    doAssert morning.getHoursInAmPmFormat() == 9,
+             "09:00 reads as " & $morning.getHoursInAmPmFormat()
+
+  block:
+    # A format string places the fields where it says.
+    let moment = makeTime(2024.cint, 2.cint, 15.cint, 14.cint, 30.cint,
+                          45.cint, 0.cint, true)
+    doAssert $moment.formatted(makeString("%Y-%m-%d")) == "2024-03-15",
+             "the formatted date is " & $moment.formatted(makeString("%Y-%m-%d"))
+    doAssert $moment.formatted(makeString("%H:%M")) == "14:30",
+             "the formatted time is " & $moment.formatted(makeString("%H:%M"))
+
+    # toString picks the fields by its four flags, so asking for none of them
+    # gives an empty string and asking for the date gives the year.
+    doAssert moment.toString(false, false, false, false).isEmpty(),
+             "asking for no fields gave " &
+             $moment.toString(false, false, false, false)
+    doAssert ($moment.toString(true, false, false, false)).contains("2024"),
+             "the date does not carry the year: " &
+             $moment.toString(true, false, false, false)
+
+  block:
+    # The zone information is the machine's, so what is asserted is that the
+    # pieces agree with each other rather than what they are.
+    let now = Time.getCurrentTime()
+    doAssert now.getTimeZone().isNotEmpty(), "the time zone has no name"
+    doAssert now.getUTCOffsetString(true).isNotEmpty(),
+             "the UTC offset string is empty"
+
+    # The offset in seconds and the string form describe the same offset, so a
+    # zero offset is spelled Z and a non-zero one is not.
+    if now.getUTCOffsetSeconds() == 0:
+      doAssert $now.getUTCOffsetString(true) == "Z",
+               "a zero offset is spelled " & $now.getUTCOffsetString(true)
+    else:
+      doAssert $now.getUTCOffsetString(true) != "Z",
+               "a non-zero offset of " & $now.getUTCOffsetSeconds() &
+               " seconds is spelled Z"
+
+    # Daylight saving is a property of the instant, and both answers are legal.
+    discard now.isDaylightSavingTime()
+
+testTimeCalendar()
