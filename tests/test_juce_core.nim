@@ -5012,3 +5012,103 @@ proc testMemoryBlockEditing() =
              "the bits read back as " & $data.getBitRange(0'u64, 8'u64)
 
 testMemoryBlockEditing()
+
+# Random is a seeded generator, so the property worth asserting is
+# REPRODUCIBILITY: the same seed gives the same sequence, and a different seed
+# gives a different one. Asserting a particular number would pin JUCE's
+# algorithm rather than the binding.
+proc testRandomSeeding() =
+  block:
+    var first = makeRandom(12345'i64)
+    var second = makeRandom(12345'i64)
+    doAssert first.getSeed() == 12345'i64,
+             "the seed reads back as " & $first.getSeed()
+
+    # Every generator method is drawn from both and compared, so one wired to
+    # the wrong C++ method would give a different sequence in one of them.
+    for step in 0 ..< 20:
+      doAssert first.nextInt() == second.nextInt(),
+               "nextInt diverged at step " & $step
+      doAssert first.nextInt64() == second.nextInt64(),
+               "nextInt64 diverged at step " & $step
+      doAssert first.nextBool() == second.nextBool(),
+               "nextBool diverged at step " & $step
+      doAssert first.nextFloat() == second.nextFloat(),
+               "nextFloat diverged at step " & $step
+      doAssert first.nextDouble() == second.nextDouble(),
+               "nextDouble diverged at step " & $step
+      doAssert first.nextLargeNumber(makeBigInteger(1000.cint)).toInteger() ==
+               second.nextLargeNumber(makeBigInteger(1000.cint)).toInteger(),
+               "nextLargeNumber diverged at step " & $step
+
+    # Having drawn the same values, the two are still in step.
+    doAssert first.getSeed() == second.getSeed(),
+             "the two generators ended on different seeds: " &
+             $first.getSeed() & " and " & $second.getSeed()
+
+  block:
+    # A different seed gives a different sequence. Twenty draws is enough that
+    # matching by chance is not worth considering.
+    var one = makeRandom(1'i64)
+    var other = makeRandom(2'i64)
+    var differed = false
+    for step in 0 ..< 20:
+      if one.nextInt() != other.nextInt():
+        differed = true
+    doAssert differed,
+             "two generators seeded 1 and 2 produced the same twenty numbers"
+
+    # setSeed puts a generator back, so it repeats itself.
+    var repeated = makeRandom(99'i64)
+    let firstDraw = repeated.nextInt()
+    repeated.setSeed(99'i64)
+    doAssert repeated.nextInt() == firstDraw,
+             "reseeding did not reproduce the first draw"
+
+    # combineSeed mixes a value in, which changes what comes next.
+    repeated.setSeed(99'i64)
+    repeated.combineSeed(7'i64)
+    doAssert repeated.getSeed() != 99'i64,
+             "combineSeed left the seed at " & $repeated.getSeed()
+    doAssert repeated.nextInt() != firstDraw,
+             "combining a seed did not change the sequence"
+
+    # setSeedRandomly picks one from the system, so it differs from what was
+    # set.
+    repeated.setSeed(99'i64)
+    repeated.setSeedRandomly()
+    doAssert repeated.getSeed() != 99'i64,
+             "setSeedRandomly left the seed where it was"
+
+  block:
+    # The bounded draws stay inside their bounds, over enough draws that a
+    # wrong bound would show.
+    var random = makeRandom(4242'i64)
+    for step in 0 ..< 200:
+      let bounded = random.nextInt(10.cint)
+      doAssert bounded >= 0 and bounded < 10,
+               "a draw bounded by 10 gave " & $bounded
+      let inRange = random.nextInt(makeRange(5.cint, 8.cint))
+      doAssert inRange >= 5 and inRange < 8,
+               "a draw in 5..<8 gave " & $inRange
+      let fraction = random.nextFloat()
+      doAssert fraction >= 0.0'f32 and fraction < 1.0'f32,
+               "nextFloat gave " & $fraction
+
+  block:
+    # fillBitsRandomly writes into a BigInteger, and asking for more bits
+    # gives a larger number to work with.
+    var random = makeRandom(7'i64)
+    var small = makeBigInteger(0.cint)
+    random.fillBitsRandomly(small, 0.cint, 8.cint)
+    doAssert small.getHighestBit() < 8,
+             "eight random bits reached bit " & $small.getHighestBit()
+
+    var large = makeBigInteger(0.cint)
+    random.fillBitsRandomly(large, 0.cint, 128.cint)
+    doAssert large.getHighestBit() < 128,
+             "128 random bits reached bit " & $large.getHighestBit()
+    doAssert large.getHighestBit() > 8,
+             "128 random bits only reached bit " & $large.getHighestBit()
+
+testRandomSeeding()

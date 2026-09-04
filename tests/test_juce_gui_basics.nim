@@ -11946,3 +11946,119 @@ proc testSidePanelShowHide() =
     shutdownJuce_GUI()
 
 testSidePanelShowHide()
+
+# ComponentBoundsConstrainer is pure arithmetic: it takes a proposed rectangle
+# and returns the nearest one that satisfies the limits. No component is
+# needed for most of it, which is what makes it worth asserting directly.
+proc testComponentBoundsConstrainerLimits() =
+    initialiseJuce_GUI()
+
+    block:
+        var limits = makeComponentBoundsConstrainer()
+        limits.setMinimumSize(100.cint, 50.cint)
+        limits.setMaximumSize(400.cint, 300.cint)
+
+        doAssert limits.getMinimumWidth() == 100 and
+                 limits.getMinimumHeight() == 50,
+                 "the minimum is " & $limits.getMinimumWidth() & "x" &
+                 $limits.getMinimumHeight()
+        doAssert limits.getMaximumWidth() == 400 and
+                 limits.getMaximumHeight() == 300,
+                 "the maximum is " & $limits.getMaximumWidth() & "x" &
+                 $limits.getMaximumHeight()
+
+        # The four single-axis setters each move one bound and leave the rest.
+        limits.setMinimumWidth(120.cint)
+        doAssert limits.getMinimumWidth() == 120,
+                 "the minimum width is " & $limits.getMinimumWidth()
+        doAssert limits.getMinimumHeight() == 50,
+                 "setMinimumWidth moved the minimum height to " &
+                 $limits.getMinimumHeight()
+        limits.setMinimumHeight(60.cint)
+        limits.setMaximumWidth(500.cint)
+        limits.setMaximumHeight(350.cint)
+        doAssert limits.getMinimumHeight() == 60 and
+                 limits.getMaximumWidth() == 500 and
+                 limits.getMaximumHeight() == 350,
+                 "one of the four setters reached the wrong bound"
+
+    block:
+        # checkComponentBounds clamps a proposed rectangle to the limits, and
+        # it is asserted at both ends and in the middle.
+        var limits = makeComponentBoundsConstrainer()
+        limits.setSizeLimits(100.cint, 50.cint, 400.cint, 300.cint)
+
+        let component = newCustomComponent()
+        component[].setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 150.cint))
+
+        var tooSmall = makeRectangle(0.cint, 0.cint, 10.cint, 10.cint)
+        limits.checkBounds(tooSmall, component[].getBounds(),
+                           makeRectangle(0.cint, 0.cint, 1000.cint, 1000.cint),
+                           false, false, false, false)
+        doAssert tooSmall.getWidth() == 100 and tooSmall.getHeight() == 50,
+                 "a 10x10 request was clamped to " & $tooSmall.getWidth() & "x" &
+                 $tooSmall.getHeight()
+
+        var tooLarge = makeRectangle(0.cint, 0.cint, 5000.cint, 5000.cint)
+        limits.checkBounds(tooLarge, component[].getBounds(),
+                           makeRectangle(0.cint, 0.cint, 10000.cint, 10000.cint),
+                           false, false, false, false)
+        doAssert tooLarge.getWidth() == 400 and tooLarge.getHeight() == 300,
+                 "a 5000x5000 request was clamped to " & $tooLarge.getWidth() &
+                 "x" & $tooLarge.getHeight()
+
+        var acceptable = makeRectangle(0.cint, 0.cint, 200.cint, 150.cint)
+        limits.checkBounds(acceptable, component[].getBounds(),
+                           makeRectangle(0.cint, 0.cint, 1000.cint, 1000.cint),
+                           false, false, false, false)
+        doAssert acceptable.getWidth() == 200 and acceptable.getHeight() == 150,
+                 "a size already inside the limits was changed to " &
+                 $acceptable.getWidth() & "x" & $acceptable.getHeight()
+
+        # applyBoundsToComponent puts the checked rectangle onto the component.
+        limits.applyBoundsToComponent(component[],
+                                      makeRectangle(0.cint, 0.cint,
+                                                    250.cint, 200.cint))
+        doAssert component[].getWidth() == 250 and component[].getHeight() == 200,
+                 "the component measures " & $component[].getWidth() & "x" &
+                 $component[].getHeight()
+
+        # checkComponentBounds is the same check written against a component.
+        component[].setBounds(makeRectangle(0.cint, 0.cint, 10.cint, 10.cint))
+        limits.checkComponentBounds(cast[ptr Component](component))
+        doAssert component[].getWidth() >= 100 and component[].getHeight() >= 50,
+                 "checkComponentBounds left the component at " &
+                 $component[].getWidth() & "x" & $component[].getHeight()
+
+        # resizeStart and resizeEnd bracket a drag; neither changes the bounds
+        # on its own.
+        let before = component[].getBounds()
+        limits.resizeStart()
+        limits.resizeEnd()
+        doAssert component[].getBounds() == before,
+                 "bracketing a resize changed the bounds to " &
+                 $component[].getWidth() & "x" & $component[].getHeight()
+
+        cdelete component
+
+    block:
+        # A fixed aspect ratio is honoured by the check, which is the one rule
+        # that couples the two axes.
+        var limits = makeComponentBoundsConstrainer()
+        limits.setSizeLimits(10.cint, 10.cint, 1000.cint, 1000.cint)
+        limits.setFixedAspectRatio(2.0)
+        doAssert limits.getFixedAspectRatio() == 2.0,
+                 "the aspect ratio is " & $limits.getFixedAspectRatio()
+
+        var square = makeRectangle(0.cint, 0.cint, 200.cint, 200.cint)
+        limits.checkBounds(square, square,
+                           makeRectangle(0.cint, 0.cint, 2000.cint, 2000.cint),
+                           false, false, false, true)
+        doAssert abs(float64(square.getWidth()) /
+                     float64(square.getHeight()) - 2.0) < 0.05,
+                 "with a 2:1 ratio the checked size is " & $square.getWidth() &
+                 "x" & $square.getHeight()
+
+    shutdownJuce_GUI()
+
+testComponentBoundsConstrainerLimits()
