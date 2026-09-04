@@ -633,6 +633,68 @@ def check_inherited_methods():
     return True
 
 
+def check_macos_only_calls():
+    """A behavioural test calling a macOS-only method does so under a guard.
+
+    The bindings are generated ON macOS, so a method JUCE declares nowhere
+    else still gets a proc here. Nim compiles the call; g++ on Linux does not,
+    and the failure arrives a full CI cycle later. The compile harness already
+    knows which methods these are - MACOS_ONLY_METHODS in its generator - and
+    puts its own calls behind `when defined(macosx)`. This is the same rule
+    for the behavioural tests, which had no check at all: File.isBundle was
+    called unguarded and only Linux CI said so.
+
+    A call counts as guarded when some enclosing line, at a smaller
+    indentation, is `when defined(macosx)`. That is what the suite's own
+    guards look like, and a false ALARM here is cheap to fix while a false
+    all-clear is what this exists to prevent.
+    """
+    harness = open("tools/generate_compile_harness.py").read()
+    block = re.search(r"MACOS_ONLY_METHODS = \{(.*?)\n\}", harness, re.S)
+    if block is None:
+        print("MACOS_ONLY_METHODS is not where this expected it",
+              file=sys.stderr)
+        return False
+    methods = set(re.findall(r'\(\s*"[A-Za-z_]\w*"\s*,\s*"([A-Za-z_]\w*)"\s*\)',
+                             block.group(1)))
+
+    unguarded = []
+    for path in sorted(glob.glob("tests/test_juce_*.nim")):
+        if path.endswith("test_juce_compiles.nim"):
+            continue
+        lines = open(path).read().splitlines()
+        for number, line in enumerate(lines):
+            call = re.search(r"\.(" + "|".join(sorted(methods)) + r")\s*\(",
+                             line)
+            if not call:
+                continue
+            indent = len(line) - len(line.lstrip())
+            guarded = False
+            for earlier in reversed(lines[:number]):
+                if not earlier.strip():
+                    continue
+                earlier_indent = len(earlier) - len(earlier.lstrip())
+                if earlier_indent < indent:
+                    if re.match(r"when defined\(macosx\):", earlier.strip()):
+                        guarded = True
+                        break
+                    indent = earlier_indent
+            if not guarded:
+                unguarded.append(f"{path}:{number + 1}  {call.group(1)}")
+
+    if unguarded:
+        print("These behavioural tests call a macOS-only method without a "
+              "`when defined(macosx)` guard, so they will not compile on "
+              "Linux:", file=sys.stderr)
+        for entry in unguarded:
+            print(f"  {entry}", file=sys.stderr)
+        return False
+
+    print(f"every behavioural call to one of the {len(methods)} macOS-only "
+          f"methods is guarded")
+    return True
+
+
 def check_constants():
     """Every bound constant is read by a test.
 
@@ -856,12 +918,13 @@ def main():
     signatures_ok = check_one_declaration_per_signature()
     literals_ok = check_integer_literal_overloads()
     fields_ok = check_field_accessors()
+    macos_ok = check_macos_only_calls()
 
     if (uncovered or stale or not iterators_ok or not defaults_ok
             or not subclasses_ok or not handlers_ok or not constructors_ok
             or not constants_ok or not statics_ok or not classes_ok
             or not inherited_ok or not signatures_ok
-            or not literals_ok or not fields_ok):
+            or not literals_ok or not fields_ok or not macos_ok):
         sys.exit(1)
 
     print(f"all {len(declared)} hand-written binding names are called "
