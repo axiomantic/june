@@ -11850,3 +11850,99 @@ proc testViewportRemaining() =
     shutdownJuce_GUI()
 
 testViewportRemaining()
+
+# SidePanel slides a component in from an edge. showOrHide is the one method
+# that matters, and the two callbacks tell a program when it moved.
+proc testSidePanelShowHide() =
+    initialiseJuce_GUI()
+
+    block:
+        var panel = makeSidePanel(makeString("Options"), 200.cint, true, nil,
+                                  false)
+
+        # showOrHide does NOTHING without a parent: it reads `parent` and
+        # returns immediately when there is none (juce_SidePanel.cpp:111),
+        # because it animates the panel into the parent's bounds.
+        let host = newCustomComponent()
+        host[].setBounds(makeRectangle(0.cint, 0.cint, 400.cint, 300.cint))
+        host[].addAndMakeVisible(addr panel)
+
+        doAssert $panel.getTitleText() == "Options",
+                 "the title is " & $panel.getTitleText()
+        doAssert panel.isPanelOnLeft(),
+                 "a panel built on the left reports otherwise"
+        doAssert not panel.isPanelShowing(), "a new panel is showing"
+
+        # showOrHide is the door; isPanelShowing is what it changes.
+        panel.showOrHide(true)
+        doAssert panel.isPanelShowing(), "showOrHide(true) did not show it"
+        panel.showOrHide(false)
+        doAssert not panel.isPanelShowing(), "showOrHide(false) did not hide it"
+
+        # The shadow and the safe-area flag are plain settings.
+        doAssert panel.getShadowWidth() > 0,
+                 "the shadow is " & $panel.getShadowWidth() & " wide"
+        panel.setShadowWidth(12.cint)
+        doAssert panel.getShadowWidth() == 12,
+                 "the shadow is " & $panel.getShadowWidth() & " wide"
+
+        # A new panel DOES keep its content inside the safe area - the flag
+        # defaults on, so a phone's notch does not cover it.
+        doAssert panel.isContentRestrictedToSafeArea(),
+                 "a new panel does not restrict its content to the safe area"
+        panel.setContentRestrictedToSafeArea(false)
+        doAssert not panel.isContentRestrictedToSafeArea(),
+                 "the safe-area flag did not turn off"
+
+        # A title bar component is owned by the panel once given, so nothing
+        # here deletes it.
+        doAssert panel.getTitleBarComponent().isNil,
+                 "a new panel has a title bar component"
+        let titleBar = newCustomComponent()
+        panel.setTitleBarComponent(cast[ptr Component](titleBar), false, true)
+        doAssert panel.getTitleBarComponent() == cast[ptr Component](titleBar),
+                 "the title bar component is a different one"
+
+        # The two callbacks are separate std::functions, and showOrHide fires
+        # the show/hide one with the state it moved to.
+        var shown = 0
+        var hiddenState = true
+        panel.onPanelShowHide = bindClosure(proc(isShowing: bool) =
+            shown += 1
+            hiddenState = isShowing)
+        var moved = 0
+        panel.onPanelMove = bindClosure(proc() = moved += 1)
+
+        # Neither fires inline. showOrHide starts a 250ms animation, and
+        # onPanelShowHide is invoked from the panel's own timerCallback once
+        # the animator has finished (juce_SidePanel.cpp:282) - so it needs
+        # message-queue turns this suite cannot make. The state itself changes
+        # at once, which is what a caller reads.
+        panel.showOrHide(true)
+        doAssert panel.isPanelShowing(),
+                 "the state did not change even though the callback is deferred"
+        doAssert shown == 0,
+                 "the show/hide callback fired inline, " & $shown & " times"
+        doAssert moved == 0, "the move callback fired inline"
+
+        # The closures did reach C++: invoking the stored std::functions runs
+        # them, which is what the timer would have done.
+        panel.onPanelShowHide.invoke(true)
+        doAssert shown == 1 and hiddenState,
+                 "invoking the stored show/hide callback gave " & $shown &
+                 " calls with state " & $hiddenState
+        panel.onPanelShowHide.invoke(false)
+        doAssert shown == 2 and not hiddenState,
+                 "the second invocation gave state " & $hiddenState
+        panel.onPanelMove.invoke()
+        doAssert moved == 1,
+                 "invoking the stored move callback gave " & $moved & " calls"
+
+        # The panel is removed before its host goes, because the host does not
+        # own it - it lives on this stack frame.
+        host[].removeChildComponent(addr panel)
+        cdelete host
+
+    shutdownJuce_GUI()
+
+testSidePanelShowHide()
