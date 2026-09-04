@@ -1,4 +1,14 @@
-"""Fail if a hand-written binding is never called.
+"""Fail if something this repository requires of itself is not true.
+
+Each check returns a bool that feeds this script's exit status. Together
+they cover what a test suite cannot state for itself: that every
+hand-written binding is called, that generated subclasses, handler setters,
+constructors, constants, statics, fields and inherited methods are
+exercised, that a withheld begin() names an iterator that exists, that a
+macOS-only method is called only under a platform guard, and that every
+file carries the project's copyright notice exactly once.
+
+The first of those is the one this file is named for.
 
 The generated modules are checked by the generator itself: it reproduces them
 byte for byte, and CI compares. The hand-written layer - june_juce_types,
