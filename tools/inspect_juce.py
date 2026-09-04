@@ -124,16 +124,16 @@ move_only_wrappers = ("UniquePtr[", "OptionalScopedPointer[")
 # A static method has no receiver, so it takes the class as a typedesc and is
 # called as Time.currentTimeMillis(). That is the spelling juce_events_lifting
 # already used for MessageManager.getInstance.
-nim_static_method_def = """{comment}proc {method_name}*(this: typedesc[{class_name}]{method_args}){method_return} {{.header: {juce_module_name}, importcpp: "{qualified_name}::{juce_spelling}({juce_args})".}}{reason}"""
+nim_static_method_def = """{comment}proc {method_name}*(this: typedesc[{class_name}]{method_args}){method_return} {{.header: {juce_module_name}, importcpp: "{address_open}{qualified_name}::{juce_spelling}({juce_args}){address_close}".}}{reason}"""
 
 # The same call with each argument cast to the type its overload declares, for
 # a static method whose overloads differ only in a scalar. The leading `#` is
 # the typedesc, which is compile-time only and expands to nothing: giving it a
 # placeholder of its own inside the parentheses lets the ones after it line up
 # with the real arguments, which is what a bare `#` per parameter could not do.
-nim_static_method_cast_def = """{comment}proc {method_name}*(this: typedesc[{class_name}]{method_args}){method_return} {{.header: {juce_module_name}, importcpp: "(#{qualified_name}::{juce_spelling}({juce_args}))".}}{reason}"""
+nim_static_method_cast_def = """{comment}proc {method_name}*(this: typedesc[{class_name}]{method_args}){method_return} {{.header: {juce_module_name}, importcpp: "{address_open}(#{qualified_name}::{juce_spelling}({juce_args})){address_close}".}}{reason}"""
 
-nim_method_def = """{comment}proc {method_name}*({method_args}){method_return} {{.header: {juce_module_name}, importcpp: "#.{juce_spelling}({juce_args})".}}{reason}"""
+nim_method_def = """{comment}proc {method_name}*({method_args}){method_return} {{.header: {juce_module_name}, importcpp: "{address_open}#.{juce_spelling}({juce_args}){address_close}".}}{reason}"""
 
 # Deliberately not {.constructor.}. That pragma makes Nim emit a C++ declaration,
 # `ValueTree vt(Identifier("x"))`, which C++ reads as a function declaration -
@@ -2117,6 +2117,22 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 field_comment = "# "
                 field_reason = unbound_type_reason(field_type, member=True)
 
+            # A field that is a POINTER TO CONST keeps its constness in the
+            # GETTERS, for the reason the return-type rule below states: C++
+            # does not convert `const T*` to `T*`, so a getter that drops the
+            # const does not compile where anything reads it.
+            # var::NativeFunctionArgs holds its arguments as `const var*`, and
+            # both of its getters named `var*`.
+            #
+            # The setter keeps `ptr T`, because THAT conversion is the one C++
+            # does make: assigning a `T*` into a `const T*` field is legal, and
+            # a caller almost always has the mutable pointer in hand.
+            setter_field_type = field_type
+            if (field.type.kind == TypeKind.POINTER
+                    and field.type.get_pointee().is_const_qualified()
+                    and field_type.startswith("ptr ")):
+                field_type = f"ConstPtr[{field_type[len('ptr '):]}]"
+
             field_name = remap_identifier(field.spelling)
             # Also keyed the way a method is: a class with a field and a
             # method of the same name would otherwise emit both.
@@ -2184,7 +2200,8 @@ def run_main(juce_module_name, juce_class_name_to_export):
                                          if field_type.startswith(move_only_wrappers)
                                          else "#"),
                     "comment": value_comment, "raw_name": field.spelling,
-                    "class_name": class_name, "field_type": field_type.replace("var ", ""),
+                    "class_name": class_name,
+                    "field_type": setter_field_type.replace("var ", ""),
                     "juce_module_name": juce_module_name, "juce_spelling": field.spelling,
                     "reason": f"  # {value_reason}" if value_comment else "" }))
 
@@ -2297,6 +2314,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
 
             reason = deleted_reason
             return_type = ""
+            returns_address = False
             if m.result_type.spelling != "void":
                 rendered_return = remap_type(
                     m.result_type, remap_inner_classes, enum_remap,
@@ -2321,6 +2339,41 @@ def run_main(juce_module_name, juce_class_name_to_export):
                         and rendered_return.startswith("ptr ")):
                     rendered_return = (
                         f"ConstPtr[{rendered_return[len('ptr '):]}]")
+
+                # A CONST REFERENCE to something that cannot be copied is a
+                # pointer. A non-const `T&` already renders as `var T`, which
+                # is a real reference: a caller reaches through it without
+                # copying anything. A const one renders as a plain `T`, which
+                # means "a copy of the referent" - a fine thing to want only
+                # when T can be copied. For an abstract class, or one whose
+                # copy constructor is deleted (every class carrying
+                # JUCE_DECLARE_NON_COPYABLE), that copy is a compile error at
+                # every call site, and `discard` hides it: a discarded call
+                # constructs nothing, so the compile harness passed while the
+                # binding could not be used for anything at all.
+                #
+                # The var getter for a field already had this treatment
+                # (type_is_copyable); the return type of a method did not.
+                if (m.result_type.kind == TypeKind.LVALUEREFERENCE
+                        and not rendered_return.startswith("var ")):
+                    referent = m.result_type.get_pointee()
+                    referent_declaration = referent.get_declaration()
+                    if (referent_declaration is not None
+                            and referent_declaration.spelling
+                            and (not type_is_copyable(referent, non_copyable)
+                                 or (referent_declaration.is_definition()
+                                     and referent_declaration.kind in (
+                                         CursorKind.CLASS_DECL,
+                                         CursorKind.STRUCT_DECL)
+                                     and referent_declaration
+                                         .is_abstract_record()))):
+                        rendered_return = f"ConstPtr[{rendered_return}]"
+                        # C++ hands back a reference; the Nim type is now a
+                        # pointer, so the emitted expression has to take its
+                        # address. Nim does not do that on its own, and
+                        # without it the call is a conversion error at every
+                        # call site rather than a copy error.
+                        returns_address = True
                 return_type = f": {rendered_return}"
 
             if m.result_type.spelling in ["CFStringRef", "OSType"]:
@@ -2440,6 +2493,8 @@ def run_main(juce_module_name, juce_class_name_to_export):
                     "qualified_name": qualified_name,
                     "juce_spelling": method_spelling,
                     "juce_args": emitted_args,
+                    "address_open": "(&(" if returns_address else "",
+                    "address_close": "))" if returns_address else "",
                     "reason": f"  # {reason}" if comment and reason else "",
                 })
             else:
@@ -2451,6 +2506,8 @@ def run_main(juce_module_name, juce_class_name_to_export):
                     "juce_module_name": juce_module_name,
                     "juce_spelling": method_spelling,
                     "juce_args": emitted_args,
+                    "address_open": "(&(" if returns_address else "",
+                    "address_close": "))" if returns_address else "",
                     "reason": f"  # {reason}" if comment and reason else "",
                 })
 
