@@ -4422,3 +4422,124 @@ proc testImagePixelData() =
     shutdownJuce_GUI()
 
 testImagePixelData()
+
+# EdgeTable ===================================================================
+#
+# An EdgeTable is the scanline form of a shape: one run list per row. Nothing
+# reads a level back out from Nim, so every assertion here is about the bounds
+# and about emptiness, which is what the clipping operations actually change.
+proc testEdgeTable() =
+    initialiseJuce_GUI()
+
+    block:
+        var table = makeEdgeTable(makeRectangle(0.cint, 0.cint,
+                                                20.cint, 20.cint))
+        doAssert not table.isEmpty(), "a table over a rectangle is empty"
+        doAssert table.getMaximumBounds() ==
+                 makeRectangle(0.cint, 0.cint, 20.cint, 20.cint),
+                 "the table covers " & $table.getMaximumBounds()
+
+        # optimiseTable repacks the rows and changes nothing observable.
+        table.optimiseTable()
+        doAssert table.getMaximumBounds() ==
+                 makeRectangle(0.cint, 0.cint, 20.cint, 20.cint),
+                 "optimiseTable changed the bounds to " &
+                 $table.getMaximumBounds()
+        doAssert not table.isEmpty(), "optimiseTable emptied the table"
+
+        # Clipping does NOT narrow the bounds to the intersection. It clears
+        # the rows above the clip and trims the BOTTOM edge, and it leaves the
+        # top and both sides where they were: the rows are emptied instead
+        # (juce_EdgeTable.cpp: clipToRectangle only calls bounds.setHeight).
+        # So the bounds stay a bound, which is what the name says.
+        table.clipToRectangle(makeRectangle(5.cint, 5.cint, 10.cint, 10.cint))
+        doAssert table.getMaximumBounds() ==
+                 makeRectangle(0.cint, 0.cint, 20.cint, 15.cint),
+                 "the clipped table covers " & $table.getMaximumBounds()
+
+        # Translating moves the bounds, and the x offset is taken as a whole
+        # number of pixels (juce_EdgeTable.cpp: translate floors it).
+        table.translate(3.0'f32, 4.cint)
+        doAssert table.getMaximumBounds().getX() == 3 and
+                 table.getMaximumBounds().getY() == 4,
+                 "the translated table starts at " &
+                 $table.getMaximumBounds().getX() & "," &
+                 $table.getMaximumBounds().getY()
+
+    block:
+        # Excluding the whole area empties the table, but leaves the bounds
+        # where they were: excludeRectangle changes the runs, not the extent
+        # (juce_EdgeTable.cpp: excludeRectangle).
+        var table = makeEdgeTable(makeRectangle(0.cint, 0.cint,
+                                                20.cint, 20.cint))
+        table.excludeRectangle(makeRectangle(0.cint, 0.cint,
+                                             20.cint, 20.cint))
+        doAssert table.isEmpty(),
+                 "excluding the whole area left something behind"
+
+        # And excluding a part of it does not.
+        var partial = makeEdgeTable(makeRectangle(0.cint, 0.cint,
+                                                  20.cint, 20.cint))
+        partial.excludeRectangle(makeRectangle(0.cint, 0.cint,
+                                               10.cint, 20.cint))
+        doAssert not partial.isEmpty(),
+                 "excluding half the area emptied the table"
+
+    block:
+        # Clipping one table against another intersects the RUNS. As with
+        # clipToRectangle, the bounds are only ever trimmed at the bottom, so
+        # what changes here is emptiness rather than the extent.
+        var table = makeEdgeTable(makeRectangle(0.cint, 0.cint,
+                                                20.cint, 20.cint))
+        let mask = makeEdgeTable(makeRectangle(10.cint, 10.cint,
+                                               20.cint, 20.cint))
+        table.clipToEdgeTable(mask)
+        doAssert table.getMaximumBounds() ==
+                 makeRectangle(0.cint, 0.cint, 20.cint, 20.cint),
+                 "the intersection covers " & $table.getMaximumBounds()
+        doAssert not table.isEmpty(), "the overlapping tables intersect to nothing"
+
+        # Two tables that do not overlap intersect to nothing at all.
+        var apart = makeEdgeTable(makeRectangle(0.cint, 0.cint,
+                                                5.cint, 5.cint))
+        apart.clipToEdgeTable(makeEdgeTable(
+            makeRectangle(50.cint, 50.cint, 5.cint, 5.cint)))
+        doAssert apart.isEmpty(), "two tables that do not overlap intersect"
+
+    block:
+        # A zero multiplier takes every level to nothing. The table does not
+        # mark itself for an emptiness check when it does that
+        # (juce_EdgeTable.cpp: multiplyLevels sets no flag), so the bounds are
+        # what is asserted rather than isEmpty.
+        var table = makeEdgeTable(makeRectangle(0.cint, 0.cint,
+                                                8.cint, 8.cint))
+        table.multiplyLevels(0.5'f32)
+        doAssert table.getMaximumBounds() ==
+                 makeRectangle(0.cint, 0.cint, 8.cint, 8.cint),
+                 "multiplyLevels changed the bounds to " &
+                 $table.getMaximumBounds()
+
+    block:
+        # clipLineToMask intersects ONE row with an alpha mask. A mask of
+        # zeroes clears that row; a mask of 255s leaves it alone.
+        var cleared = makeEdgeTable(makeRectangle(0.cint, 0.cint,
+                                                  4.cint, 1.cint))
+        var zeroes: array[4, uint8]
+        cleared.clipLineToMask(0.cint, 0.cint,
+                               cast[ConstPtr[uint8]](addr zeroes[0]),
+                               1.cint, 4.cint)
+        doAssert cleared.isEmpty(),
+                 "a row masked with zeroes is not empty"
+
+        var kept = makeEdgeTable(makeRectangle(0.cint, 0.cint,
+                                               4.cint, 1.cint))
+        var opaque: array[4, uint8] = [255'u8, 255'u8, 255'u8, 255'u8]
+        kept.clipLineToMask(0.cint, 0.cint,
+                            cast[ConstPtr[uint8]](addr opaque[0]),
+                            1.cint, 4.cint)
+        doAssert not kept.isEmpty(),
+                 "a row masked with 255s came out empty"
+
+    shutdownJuce_GUI()
+
+testEdgeTable()
