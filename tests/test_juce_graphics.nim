@@ -4238,3 +4238,178 @@ proc testLowLevelGraphicsContext() =
     shutdownJuce_GUI()
 
 testLowLevelGraphicsContext()
+
+# The pixel data behind an Image ==============================================
+#
+# Image is a reference-counted handle; ImagePixelData is what it points at.
+# Most of the effects Image offers are forwarded straight to it, and the ones
+# Image does not forward - the in-area variants, initialiseBitmapData,
+# createType - are only reachable through getPixelData.
+proc testImagePixelData() =
+    initialiseJuce_GUI()
+
+    proc filled(width, height: int, colour: Colour): Image =
+        result = makeImage(ImagePixelFormat_ARGB, width.cint, height.cint, true)
+        var g = makeGraphics(result)
+        g.setColour(colour)
+        g.fillAll()
+
+    block:
+        var image = filled(8, 8, Colours_red)
+        var data = image.getPixelData()
+        doAssert not data.get().isNil, "an image has no pixel data"
+
+        doAssert data.get()[].width() == 8 and data.get()[].height() == 8,
+                 "the pixel data is " & $data.get()[].width() & "x" &
+                 $data.get()[].height()
+        doAssert data.get()[].pixelFormat() == ImagePixelFormat_ARGB,
+                 "the pixel format is not the one the image was made with"
+
+        # The handle and the data share a count, so a second Image referring
+        # to the same pixels raises it.
+        let before = data.get()[].getSharedCount()
+        var second = image
+        doAssert data.get()[].getSharedCount() > before,
+                 "a second handle did not raise the shared count from " &
+                 $before
+        doAssert second.getWidth() == 8, "the second handle lost the width"
+
+        # createType names how the pixels are stored, and the type it names
+        # can make another image of the same kind.
+        let imageType = data.get()[].createType()
+        doAssert not imageType.get().isNil, "the pixel data has no image type"
+        doAssert imageType.get()[].getTypeID() ==
+                 makeNativeImageType().getTypeID(),
+                 "an ordinary image is not of the native type"
+
+        # The native type is the platform's own, which on macOS is not the
+        # software one (juce_Image.cpp:675 builds every plain Image through
+        # NativeImageType).
+        var software = makeImage(ImagePixelFormat_ARGB, 4.cint, 4.cint, true,
+                                 makeSoftwareImageType())
+        doAssert software.getPixelData().get()[].createType().get()[].getTypeID() ==
+                 makeSoftwareImageType().getTypeID(),
+                 "an image asked for the software type did not get it"
+
+        # Backup extensions belong to the image types that can drop their
+        # pixels and fetch them back, which the desktop platforms' own types
+        # do not, so an ordinary image offers none.
+        doAssert data.get()[].getBackupExtensions().isNil,
+                 "an ordinary image offers backup extensions"
+
+    block:
+        # initialiseBitmapData is what Image::BitmapData is built on, so the
+        # two must describe the same pixels.
+        var image = filled(8, 8, Colours_red)
+        var data = image.getPixelData()
+
+        var direct = makeImageBitmapData(image, 0.cint, 0.cint, 8.cint, 8.cint,
+                                         ImageBitmapDataReadWriteMode_readOnly)
+        var built = makeImageBitmapData(image, 0.cint, 0.cint, 1.cint, 1.cint,
+                                        ImageBitmapDataReadWriteMode_readOnly)
+        data.get()[].initialiseBitmapData(built, 0.cint, 0.cint,
+                                          ImageBitmapDataReadWriteMode_readOnly)
+        doAssert built.lineStride() == direct.lineStride() and
+                 built.pixelStride() == direct.pixelStride(),
+                 "the bitmap data describes a stride of " &
+                 $built.lineStride() & "/" & $built.pixelStride() &
+                 " against " & $direct.lineStride() & "/" &
+                 $direct.pixelStride()
+        doAssert built.data() == direct.data(),
+                 "the bitmap data points somewhere else entirely"
+
+    block:
+        # The in-area effects touch only their rectangle. Each is checked at a
+        # pixel inside it and at one outside.
+        var image = filled(16, 16, makeColour(200'u8, 40'u8, 40'u8, 255'u8))
+        var data = image.getPixelData()
+        data.get()[].desaturateInArea(makeRectangle(0.cint, 0.cint,
+                                                    8.cint, 16.cint))
+        let inside = image.getPixelAt(2.cint, 2.cint)
+        let outside = image.getPixelAt(12.cint, 2.cint)
+        doAssert inside.getRed() == inside.getGreen() and
+                 inside.getGreen() == inside.getBlue(),
+                 "the desaturated half is still " & $inside.getRed() & "," &
+                 $inside.getGreen() & "," & $inside.getBlue()
+        doAssert outside.getRed() != outside.getGreen(),
+                 "the far half was desaturated too"
+
+    block:
+        var image = filled(16, 16, Colours_red)
+        var data = image.getPixelData()
+        data.get()[].multiplyAllAlphasInArea(
+            makeRectangle(0.cint, 0.cint, 8.cint, 16.cint), 0.5'f32)
+        doAssert image.getPixelAt(2.cint, 2.cint).getAlpha() < 200'u8,
+                 "the alpha in the area is " &
+                 $image.getPixelAt(2.cint, 2.cint).getAlpha()
+        doAssert image.getPixelAt(12.cint, 2.cint).getAlpha() == 255'u8,
+                 "the alpha outside the area is " &
+                 $image.getPixelAt(12.cint, 2.cint).getAlpha()
+
+    block:
+        # A blur spreads a hard edge, so a pixel that was fully transparent
+        # next to the shape picks up some alpha.
+        var image = makeImage(ImagePixelFormat_ARGB, 32.cint, 32.cint, true)
+        block:
+            var g = makeGraphics(image)
+            g.setColour(Colours_white)
+            g.fillRect(makeRectangle(0.cint, 0.cint, 16.cint, 32.cint))
+
+        var data = image.getPixelData()
+        doAssert image.getPixelAt(18.cint, 16.cint).getAlpha() == 0'u8,
+                 "the right half was not empty to begin with"
+        data.get()[].applyGaussianBlurEffect(4.0'f32)
+        doAssert image.getPixelAt(18.cint, 16.cint).getAlpha() > 0'u8,
+                 "the blur did not reach past the edge"
+
+    block:
+        var image = makeImage(ImagePixelFormat_SingleChannel, 32.cint, 32.cint,
+                              true)
+        block:
+            var g = makeGraphics(image)
+            g.setColour(Colours_white)
+            g.fillRect(makeRectangle(0.cint, 0.cint, 16.cint, 32.cint))
+
+        var data = image.getPixelData()
+        data.get()[].applySingleChannelBoxBlurEffect(4.cint)
+        doAssert image.getPixelAt(17.cint, 16.cint).getAlpha() > 0'u8,
+                 "the box blur did not reach past the edge"
+
+        # And the in-area forms of both blurs leave the rest alone.
+        var other = makeImage(ImagePixelFormat_SingleChannel, 32.cint, 32.cint,
+                              true)
+        block:
+            var g = makeGraphics(other)
+            g.setColour(Colours_white)
+            g.fillRect(makeRectangle(0.cint, 0.cint, 8.cint, 32.cint))
+            g.fillRect(makeRectangle(20.cint, 0.cint, 8.cint, 32.cint))
+
+        var otherData = other.getPixelData()
+        otherData.get()[].applySingleChannelBoxBlurEffectInArea(
+            makeRectangle(0.cint, 0.cint, 16.cint, 32.cint), 4.cint)
+        doAssert other.getPixelAt(9.cint, 16.cint).getAlpha() > 0'u8,
+                 "the blur did not run inside its area"
+        doAssert other.getPixelAt(29.cint, 16.cint).getAlpha() == 0'u8,
+                 "the blur ran outside its area"
+
+        var third = filled(32, 32, Colours_white)
+        var thirdData = third.getPixelData()
+        thirdData.get()[].applyGaussianBlurEffectInArea(
+            makeRectangle(0.cint, 0.cint, 16.cint, 32.cint), 4.0'f32)
+        doAssert third.getPixelAt(29.cint, 16.cint).getAlpha() == 255'u8,
+                 "the gaussian blur ran outside its area"
+
+    block:
+        # sendDataChangeMessage tells the listeners, and a listener attached
+        # through a subclass is the only way to hear it from Nim. There is no
+        # binding for the listener list, so what is asserted is that the call
+        # is harmless on data nobody is listening to.
+        var image = filled(4, 4, Colours_red)
+        var data = image.getPixelData()
+        data.get()[].sendDataChangeMessage()
+        doAssert image.getPixelAt(0.cint, 0.cint).getRed() == 255'u8,
+                 "sendDataChangeMessage changed the pixels"
+
+    shutdownJuce_GUI()
+
+testImagePixelData()
