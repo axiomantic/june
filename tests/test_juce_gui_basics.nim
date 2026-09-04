@@ -12601,3 +12601,136 @@ proc testComponentNotificationHooks() =
     shutdownJuce_GUI()
 
 testComponentNotificationHooks()
+
+# TreeViewItem's notification and painting hooks, which JUCE calls and a
+# subclass overrides. The base implementations do nothing, so a direct call
+# proves the binding compiles and the assertion is that the item is unchanged -
+# except for the painting ones, which are asserted through the pixels.
+proc testTreeViewItemHooks() =
+    initialiseJuce_GUI()
+
+    block:
+        var tree = makeTreeView(makeString("tree"))
+        tree.setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 300.cint))
+        tree.setVisible(true)
+
+        let root = newCustomTreeViewItem()
+        root[].setMightContainSubItemsHandler(proc(): bool = true)
+        tree.setRootItem(cast[ptr TreeViewItem](root))
+        let child = newCustomTreeViewItem()
+        root[].addSubItem(cast[ptr TreeViewItem](child))
+        root[].setOpen(true)
+
+        let childCount = root[].getNumSubItems()
+
+        # The notification hooks.
+        root[].itemClicked(makeMouseEvent(
+            Desktop.getInstance().getMainMouseSource(),
+            makePoint(1.0'f32, 1.0'f32), makeModifierKeys(),
+            1.0'f32, 0.0'f32, 0.0'f32, 0.0'f32, 0.0'f32,
+            nil, nil, Time.getCurrentTime(), makePoint(1.0'f32, 1.0'f32),
+            Time.getCurrentTime(), 1.cint, false))
+        # itemDoubleClicked is NOT empty: the base toggles the open state for
+        # an item that might have children (juce_TreeView.cpp:1805), which is
+        # what makes a double click expand a branch without any subclass. So
+        # it is asserted rather than lumped in with the do-nothing hooks.
+        let doubleClick = makeMouseEvent(
+            Desktop.getInstance().getMainMouseSource(),
+            makePoint(1.0'f32, 1.0'f32), makeModifierKeys(),
+            1.0'f32, 0.0'f32, 0.0'f32, 0.0'f32, 0.0'f32,
+            nil, nil, Time.getCurrentTime(), makePoint(1.0'f32, 1.0'f32),
+            Time.getCurrentTime(), 2.cint, false)
+        doAssert root[].isOpen(), "the item is closed before the double click"
+        root[].itemDoubleClicked(doubleClick)
+        doAssert not root[].isOpen(),
+                 "a double click did not close the open item"
+        root[].itemDoubleClicked(doubleClick)
+        doAssert root[].isOpen(),
+                 "a second double click did not reopen the item"
+
+        # A leaf has nothing to expand, so a double click leaves it alone.
+        doAssert not child[].mightContainSubItems(),
+                 "the leaf reports that it might have children"
+        child[].itemDoubleClicked(doubleClick)
+        doAssert not child[].isOpen(),
+                 "a double click opened an item with no children"
+
+        root[].itemSelectionChanged(true)
+        root[].itemOpennessChanged(true)
+        root[].ownerViewChanged(addr tree)
+
+        doAssert root[].getNumSubItems() == childCount,
+                 "a notification changed the child count to " &
+                 $root[].getNumSubItems()
+        doAssert root[].isOpen(), "a notification closed the item"
+        doAssert root[].getOwnerView() == addr tree,
+                 "ownerViewChanged left the item on a different tree"
+
+        # An item accepts neither a drag nor a drop by default, and the
+        # custom-component question answers for an item with none.
+        let dragDetails = makeDragAndDropTargetSourceDetails(
+            makejuce_var(), nil, makePoint(0.cint, 0.cint))
+        doAssert not root[].isInterestedInDragSource(dragDetails),
+                 "the item accepts a drag it was never told about"
+
+        # itemDropped is the base's do-nothing handler for a drop it never
+        # said it wanted, so calling it changes nothing.
+        root[].itemDropped(dragDetails, 0.cint)
+        doAssert root[].getNumSubItems() == childCount,
+                 "a drop that was never accepted added a child; there are " &
+                 $root[].getNumSubItems()
+        doAssert not root[].customComponentUsesTreeViewMouseHandler(),
+                 "an item with no custom component uses the tree's mouse handler"
+
+        # The accessibility name falls back to the item's own text, which for
+        # a plain CustomTreeViewItem is nothing.
+        discard root[].getAccessibilityName()
+
+        # The painting hooks split in two, and lumping them together hides
+        # which is which. paintItem is EMPTY (juce_TreeView.cpp:1777) - an
+        # item draws nothing until a subclass says what. The connecting lines
+        # and the open/close button are NOT: the base draws them through the
+        # tree's LookAndFeel (juce_TreeView.cpp:1789), which is why a plain
+        # TreeView already looks like a tree.
+        proc litPixels(image: Image): int =
+            for x in 0.cint ..< image.getWidth():
+                for y in 0.cint ..< image.getHeight():
+                    if image.getPixelAt(x, y).getAlpha() > 0'u8:
+                        result += 1
+
+        let blank = makeImage(ImagePixelFormat_ARGB, 40.cint, 20.cint, true)
+        var blankGraphics = makeGraphics(blank)
+        blankGraphics.setColour(Colours_white)
+        root[].paintItem(blankGraphics, 40.cint, 20.cint)
+        doAssert litPixels(blank) == 0,
+                 "the base paintItem drew " & $litPixels(blank) & " pixels"
+
+        # The connecting lines are drawn in the TREE's linesColourId, which the
+        # default LookAndFeel_V4 scheme leaves fully transparent - so without
+        # setting it the lines are drawn and nothing appears, which would look
+        # exactly like a binding that did not draw at all.
+        tree.setColour(cint(TreeViewColourIds_linesColourId), Colours_white)
+        let lines = makeImage(ImagePixelFormat_ARGB, 40.cint, 20.cint, true)
+        var lineGraphics = makeGraphics(lines)
+        root[].paintHorizontalConnectingLine(
+            lineGraphics, makeLine(0.0'f32, 10.0'f32, 40.0'f32, 10.0'f32))
+        root[].paintVerticalConnectingLine(
+            lineGraphics, makeLine(20.0'f32, 0.0'f32, 20.0'f32, 20.0'f32))
+        doAssert litPixels(lines) > 0,
+                 "the base connecting lines drew nothing"
+
+        let button = makeImage(ImagePixelFormat_ARGB, 20.cint, 20.cint, true)
+        var buttonGraphics = makeGraphics(button)
+        root[].paintOpenCloseButton(
+            buttonGraphics,
+            makeRectangle(0.0'f32, 0.0'f32, 20.0'f32, 20.0'f32),
+            Colours_white, false)
+        doAssert litPixels(button) > 0,
+                 "the base open/close button drew nothing"
+
+        tree.setRootItem(nil)
+        cdelete root
+
+    shutdownJuce_GUI()
+
+testTreeViewItemHooks()
