@@ -4571,3 +4571,129 @@ proc testRemainingImplicitConstructors() =
     doAssert (addr webListener) != nil, "the WebInputStream listener did not build"
 
 testRemainingImplicitConstructors()
+
+# StringArray's bulk operations. Each is asserted for what it does to the
+# array's CONTENTS and its size together, so an operation that changed the
+# count without changing the strings - or the reverse - would fail.
+proc testStringArrayOperations() =
+  block:
+    # addTokens splits on whitespace by default, and on the characters it is
+    # given otherwise.
+    var words = makeStringArray()
+    discard words.addTokens(makeString("one two three"), false)
+    doAssert words.size() == 3, "the sentence split into " & $words.size()
+    doAssert $words[1.cint] == "two", "the second word is " & $words[1.cint]
+
+    var fields = makeStringArray()
+    discard fields.addTokens(makeString("a,b,,c"), makeString(","), makeString(""))
+    doAssert fields.size() == 4,
+             "the record split into " & $fields.size() & " fields"
+    doAssert fields[2.cint].isEmpty(),
+             "the empty field became " & $fields[2.cint]
+
+    # A quoted section stays whole when a quote character is given.
+    var quoted = makeStringArray()
+    discard quoted.addTokens(makeString("a \"b c\" d"), makeString(" "), makeString("\""))
+    doAssert quoted.size() == 3,
+             "the quoted text split into " & $quoted.size() & " pieces"
+
+    # addLines splits on line breaks and keeps a trailing empty line.
+    var lines = makeStringArray()
+    discard lines.addLines(makeString("first\nsecond\n"))
+    doAssert lines.size() == 3,
+             "two lines and a trailing break gave " & $lines.size() & " lines"
+    doAssert $lines[0.cint] == "first", "the first line is " & $lines[0.cint]
+
+  block:
+    # The cleanup operations. Each removes only what it names.
+    var array = makeStringArray()
+    for text in ["b", "a", "b", "", "c", ""]:
+      array.add(makeString(text))
+    doAssert array.size() == 6, "the array holds " & $array.size() & " entries"
+
+    array.removeEmptyStrings(false)
+    doAssert array.size() == 4,
+             "after removing the empties there are " & $array.size()
+    doAssert not array.contains(makeString("")),
+             "an empty string survived removeEmptyStrings"
+
+    array.removeDuplicates(false)
+    doAssert array.size() == 3,
+             "after removing the duplicates there are " & $array.size()
+    doAssert array.contains(makeString("b")),
+             "removeDuplicates removed both copies rather than one"
+
+    array.removeString(makeString("a"), false)
+    doAssert array.size() == 2,
+             "after removing one string there are " & $array.size()
+    doAssert not array.contains(makeString("a")),
+             "removeString left the string behind"
+    doAssert array.contains(makeString("b")) and array.contains(makeString("c")),
+             "removeString took a neighbour with it"
+
+  block:
+    # Sorting. sort is lexicographic; sortNatural puts 2 before 10, which
+    # lexicographic order does not.
+    var lexical = makeStringArray()
+    for text in ["item10", "item2", "item1"]:
+      lexical.add(makeString(text))
+    lexical.sort(false)
+    doAssert $lexical[0.cint] == "item1" and $lexical[1.cint] == "item10",
+             "lexical order gave " & $lexical[0.cint] & ", " & $lexical[1.cint]
+
+    var natural = makeStringArray()
+    for text in ["item10", "item2", "item1"]:
+      natural.add(makeString(text))
+    natural.sortNatural()
+    doAssert $natural[1.cint] == "item2",
+             "natural order put " & $natural[1.cint] & " second, not item2"
+
+    # move reorders without adding or removing.
+    natural.move(0.cint, 2.cint)
+    doAssert natural.size() == 3, "move changed the size to " & $natural.size()
+    doAssert $natural[2.cint] == "item1",
+             "the moved entry is " & $natural[2.cint]
+
+  block:
+    # The two ways of combining arrays differ in whether duplicates survive.
+    var target = makeStringArray()
+    target.add(makeString("a"))
+    target.add(makeString("b"))
+
+    var source = makeStringArray()
+    source.add(makeString("b"))
+    source.add(makeString("c"))
+
+    var appended = target
+    appended.addArray(source, 0.cint, -1.cint)
+    doAssert appended.size() == 4,
+             "addArray gave " & $appended.size() & " entries"
+
+    var merged = target
+    merged.mergeArray(source, false)
+    doAssert merged.size() == 3,
+             "mergeArray gave " & $merged.size() & " entries"
+    doAssert merged.contains(makeString("c")),
+             "mergeArray did not bring the new entry"
+
+    # joinIntoString is the inverse of addTokens for a simple separator.
+    doAssert $target.joinIntoString(makeString("-"), 0.cint, -1.cint) == "a-b",
+             "joining gave " & $target.joinIntoString(makeString("-"),
+                                                      0.cint, -1.cint)
+
+  block:
+    # The storage operations change nothing a caller can observe except that
+    # clearQuick empties the array.
+    var array = makeStringArray()
+    array.ensureStorageAllocated(64.cint)
+    doAssert array.size() == 0,
+             "reserving space added " & $array.size() & " entries"
+    array.add(makeString("kept"))
+    array.minimiseStorageOverheads()
+    doAssert array.size() == 1 and $array[0.cint] == "kept",
+             "minimising the storage lost the entry"
+    array.clearQuick()
+    doAssert array.size() == 0,
+             "clearQuick left " & $array.size() & " entries"
+
+testStringArrayOperations()
