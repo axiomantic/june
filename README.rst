@@ -544,9 +544,12 @@ assertion site not listed as one the suite provokes on purpose::
 
   python3 tools/check_juce_assertions.py /tmp/test_logs/*.log
 
-Each of the 27 entries carries what JUCE asserts there and which test reaches
-it. A site listed and no longer reached fails the check too, so an entry cannot
-outlive the test that needed it.
+Each entry carries what JUCE asserts there and which test reaches it, and is
+tagged with the platform that reaches it. Two are needed: gcc attributes a
+multi-line assertion to its first line where clang attributes it to its last,
+and some assertions live in per-platform files. A site listed for THIS platform
+and no longer reached fails the check too, so an entry cannot outlive the test
+that needed it.
 
 --------------------------
 Regenerating The Bindings

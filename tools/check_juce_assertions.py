@@ -29,103 +29,158 @@ import collections
 import re
 import sys
 
-# file:line -> why the suite reaches it.
+# file:line -> (platform, why the suite reaches it).
+#
+# The platform is "any", "linux" or "macos". It exists because the two
+# compilers do not agree on which line a multi-line assertion sits on, and
+# because some assertions are in per-platform files, so a site can be
+# deliberately provoked on one and unreachable on the other. The stale check
+# below only considers entries this platform is expected to reach.
 EXPECTED = {
-    # --- deliberately asking for something JUCE refuses -------------------
     "juce_GIFLoader.cpp:460":
-        "writing is not implemented for GIFs, and the ImageFileFormat test "
-        "asserts that GIF's writeImageToStream reports failure",
+        ("any",
+         "writing is not implemented for GIFs, and the ImageFileFormat"
+         "test asserts that GIF's writeImageToStream reports failure"),
     "juce_ComponentBuilder.cpp:145":
-        "createComponent needs a registered type, and the ComponentBuilder "
-        "test asserts that a builder with none builds nothing",
+        ("any",
+         "createComponent needs a registered type, and the"
+         "ComponentBuilder test asserts that a builder with none builds"
+         "nothing"),
     "juce_ComponentBuilder.cpp:150":
-        "the same call again for the unknown ValueTree type it was given",
+        ("any",
+         "the same call again for the unknown ValueTree type it was given"),
     "juce_DocumentWindow.cpp:182":
-        "the base closeButtonPressed is a jassertfalse telling a subclass to "
-        "override it; the DocumentWindow test calls it to show it only logs",
+        ("any",
+         "the base closeButtonPressed is a jassertfalse telling a subclass"
+         "to override it; the DocumentWindow test calls it to show it only"
+         "logs"),
     "juce_ResizableWindow.cpp:469":
-        "setMinimised needs a desktop peer, and the window-state tests assert "
-        "that a window off the desktop is not minimised by it",
+        ("any",
+         "setMinimised needs a desktop peer, and the window-state tests"
+         "assert that a window off the desktop is not minimised by it"),
     "juce_DragAndDropContainer.cpp:438":
-        "startDragging outside a mouse callback finds no dragging source; the "
-        "Toolbar test asserts that no drag starts",
+        ("any",
+         "startDragging outside a mouse callback finds no dragging source;"
+         "the Toolbar test asserts that no drag starts"),
     "juce_DragAndDropContainer.cpp:624":
-        "the same, reached through the other overload",
+        ("any",
+         "the same, reached through the other overload"),
     "juce_ThreadPool.cpp:112":
-        "a pool asked for zero threads; the ThreadPool test pins that JUCE "
-        "gives it one anyway",
+        ("any",
+         "a pool asked for zero threads; the ThreadPool test pins that"
+         "JUCE gives it one anyway"),
     "juce_XmlElement.cpp:927":
-        "getText on an element that is not a text element, which the "
-        "XmlElement test asserts returns nothing",
+        ("any",
+         "getText on an element that is not a text element, which the"
+         "XmlElement test asserts returns nothing"),
     "juce_TreeView.cpp:2203":
-        "getOpennessState needs every item to have a name; the TreeView test "
-        "pins that an unnamed one cannot be saved",
+        ("any",
+         "getOpennessState needs every item to have a name; the TreeView"
+         "test pins that an unnamed one cannot be saved"),
     "juce_TableListBox.cpp:684":
-        "refreshComponentForCell expects nothing to recycle, and the model "
-        "test calls it the way the table would the first time",
+        ("any",
+         "refreshComponentForCell expects nothing to recycle, and the"
+         "model test calls it the way the table would the first time"),
     "juce_RelativeCoordinatePositioner.cpp:285":
-        "markerListBeingDeleted expects the list to be among the watched "
-        "ones; the positioner test drops one that is not",
+        ("any",
+         "markerListBeingDeleted expects the list to be among the watched"
+         "ones; the positioner test drops one that is not"),
     "juce_ConnectedChildProcess.cpp:162":
-        "sendMessageToWorker with no connection; the ChildProcess test "
-        "asserts both spellings report failure",
+        ("any",
+         "sendMessageToWorker with no connection; the ChildProcess test"
+         "asserts both spellings report failure"),
     "juce_ConnectedChildProcess.cpp:287":
-        "sendMessageToCoordinator with no connection, the worker's half",
-
-    # --- a component doing what a headless test can only do off-screen ----
+        ("any",
+         "sendMessageToCoordinator with no connection, the worker's half"),
     "juce_Component.cpp:3027":
-        "grabKeyboardFocus wants the component showing or on the desktop, "
-        "which nothing headless is; the focus tests assert it does not take",
+        ("any",
+         "grabKeyboardFocus wants the component showing or on the desktop,"
+         "which nothing headless is; the focus tests assert it does not"
+         "take"),
     "juce_Component.cpp:793":
-        "the default inputAttemptWhenModal is a jassertfalse, reached by the "
-        "modal tests",
+        ("any",
+         "the default inputAttemptWhenModal is a jassertfalse, reached by"
+         "the modal tests"),
     "juce_EdgeTable.cpp:385":
-        "remapTableForNumEdges shrinking rather than growing, which "
-        "optimiseTable does on a table whose rows are already tight",
+        ("any",
+         "remapTableForNumEdges shrinking rather than growing, which"
+         "optimiseTable does on a table whose rows are already tight"),
     "juce_GraphicsContext.cpp:141":
-        "a drawing coordinate outside the range JUCE will render, which the "
-        "clipping tests reach deliberately",
+        ("macos",
+         "a drawing coordinate outside the range JUCE will render, which"
+         "the clipping tests reach deliberately"),
     "juce_FontOptions.h:126":
-        "a FontOptions carrying both a typeface and a name; the Font tests "
-        "build one to show the name is ignored",
+        ("any",
+         "a FontOptions carrying both a typeface and a name; the Font"
+         "tests build one to show the name is ignored"),
     "juce_TextEditor.cpp:551":
-        "line feeds inserted into a single-line editor, which the TextEditor "
-        "tests do to pin what it keeps",
+        ("any",
+         "line feeds inserted into a single-line editor, which the"
+         "TextEditor tests do to pin what it keeps"),
     "juce_MultiChoicePropertyComponent.cpp:260":
-        "the controlled Value must hold an array; the property tests build "
-        "one over a plain value to show what it does then",
-
-    # --- process and platform ---------------------------------------------
+        ("any",
+         "the controlled Value must hold an array; the property tests"
+         "build one over a plain value to show what it does then"),
     "juce_SharedCode_posix.h:1062":
-        "thread affinity is not supported in this build, and the Thread test "
-        "calls setAffinityMask to pin that it is inert rather than fatal",
+        ("macos",
+         "thread affinity is not supported in this build, and the Thread"
+         "test calls setAffinityMask to pin that it is inert rather than"
+         "fatal"),
     "juce_ActionBroadcaster.cpp:67":
-        "an ActionBroadcaster built before initialiseJuce_GUI; the subclass "
-        "tests build one outside the GUI block on purpose",
+        ("any",
+         "an ActionBroadcaster built before initialiseJuce_GUI; the"
+         "subclass tests build one outside the GUI block on purpose"),
     "juce_ActionBroadcaster.cpp:73":
-        "the same object destroyed after shutdownJuce_GUI",
+        ("any",
+         "the same object destroyed after shutdownJuce_GUI"),
     "juce_Timer.cpp:376":
-        "startTimer with no running MessageManager, which every headless "
-        "timer test does",
+        ("any",
+         "startTimer with no running MessageManager, which every headless"
+         "timer test does"),
     "juce_Timer.cpp:99":
-        "JUCE's shared TimerThread is a static torn down at PROCESS EXIT, "
-        "after the MessageManager has gone. It fires in the two suites that "
-        "start a Timer at all and in none of the others, and no test can "
-        "change the order two statics are destroyed in",
+        ("any",
+         "JUCE's shared TimerThread is a static torn down at PROCESS EXIT,"
+         "after the MessageManager has gone. It fires in the two suites"
+         "that start a Timer at all and in none of the others, and no test"
+         "can change the order two statics are destroyed in"),
     "juce_Component.cpp:2407":
-        "a Component method called from a thread that is not the message "
-        "thread; the MessageManagerLock tests do this to show the lock is "
-        "what makes it safe",
+        ("any",
+         "a Component method called from a thread that is not the message"
+         "thread; the MessageManagerLock tests do this to show the lock is"
+         "what makes it safe"),
+    "juce_GraphicsContext.cpp:138":
+        ("linux",
+         "the SAME jassertquiet as juce_GraphicsContext.cpp:141 above. It"
+         "spans lines 138 to 141, and gcc attributes a multi-line macro"
+         "expansion to its first line where clang attributes it to its"
+         "last, so the two compilers name different lines for one"
+         "assertion"),
+    "juce_Files_linux.cpp:78":
+        ("linux",
+         "File::isOnRemovableDrive is jassertfalse and not implemented on"
+         "Linux; the File test calls it because the binding exists either"
+         "way"),
 }
 
 PATTERN = re.compile(r"JUCE Assertion failure in ([A-Za-z_]+\.(?:cpp|h):\d+)")
 
 
-def main(paths):
+def this_platform():
+    return "macos" if sys.platform == "darwin" else "linux"
+
+
+def main(argv):
+    platform = this_platform()
+    paths = []
+    for argument in argv:
+        if argument.startswith("--platform="):
+            platform = argument.split("=", 1)[1]
+        else:
+            paths.append(argument)
+
     if not paths:
-        print(__doc__.strip().splitlines()[0], file=sys.stderr)
-        print("usage: check_juce_assertions.py <log> [<log> ...]",
-              file=sys.stderr)
+        print("usage: check_juce_assertions.py [--platform=linux|macos] "
+              "<log> [<log> ...]", file=sys.stderr)
         return 2
 
     seen = collections.Counter()
@@ -153,18 +208,26 @@ def main(paths):
               file=sys.stderr)
         return 1
 
-    stale = sorted(site for site in EXPECTED if site not in seen)
+    # Only the entries THIS platform should reach. One tagged for the other is
+    # not stale here; it is simply somewhere else.
+    stale = sorted(site for site, (where_expected, _) in EXPECTED.items()
+                   if where_expected in ("any", platform) and site not in seen)
     if stale:
-        print("These sites are listed as deliberately provoked and no run "
-              "reaches them any more, so the reason they carry is no longer "
-              "checked against anything:", file=sys.stderr)
+        print(f"These sites are listed as deliberately provoked on "
+              f"{platform} and no run reaches them any more, so the reason "
+              f"they carry is no longer checked against anything:",
+              file=sys.stderr)
         for site in stale:
             print(f"  {site}", file=sys.stderr)
-        print("\nRemove them.", file=sys.stderr)
+        print("\nRemove them, or tag them for the platform that does reach "
+              "them.", file=sys.stderr)
         return 1
 
+    elsewhere = sum(1 for _, (w, _) in EXPECTED.items()
+                    if w not in ("any", platform))
     print(f"every one of the {sum(seen.values())} JUCE assertions across "
-          f"{len(seen)} sites is one the suite provokes on purpose")
+          f"{len(seen)} sites is one the suite provokes on purpose "
+          f"({elsewhere} more are listed for the other platform)")
     return 0
 
 
