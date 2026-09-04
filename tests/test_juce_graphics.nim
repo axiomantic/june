@@ -3529,3 +3529,95 @@ proc testAffineTransformAlgebra() =
                  " wide"
 
 testAffineTransformAlgebra()
+
+# Colour's remaining with- methods. Each replaces one component of the polar
+# form; each Multiplied one scales it instead. Both kinds are asserted against
+# a starting colour with a known value, so a with- method wired to the wrong
+# component fails.
+proc testColourComponentReplacement() =
+    block:
+        # A mid-blue: hue 0.6, saturation 0.8, brightness 0.7.
+        let base = Colour.fromHSV(0.6'f32, 0.8'f32, 0.7'f32, 1.0'f32)
+
+        # Each with- sets its own component and leaves the other two.
+        let rehued = base.withHue(0.1'f32)
+        doAssert abs(rehued.getHue() - 0.1'f32) < 1.0e-2'f32,
+                 "withHue gave hue " & $rehued.getHue()
+        doAssert abs(rehued.getSaturation() - base.getSaturation()) < 1.0e-2'f32,
+                 "withHue moved the saturation to " & $rehued.getSaturation()
+        doAssert abs(rehued.getBrightness() - base.getBrightness()) < 1.0e-2'f32,
+                 "withHue moved the brightness to " & $rehued.getBrightness()
+
+        let desaturated = base.withSaturation(0.2'f32)
+        doAssert abs(desaturated.getSaturation() - 0.2'f32) < 1.0e-2'f32,
+                 "withSaturation gave " & $desaturated.getSaturation()
+        doAssert abs(desaturated.getHue() - base.getHue()) < 1.0e-2'f32,
+                 "withSaturation moved the hue to " & $desaturated.getHue()
+
+        doAssert base.getSaturation() > 0.7'f32,
+                 "the original's saturation is " & $base.getSaturation() &
+                 ", so with- did change it"
+
+        # The HSL pair is a different decomposition, so withLightness and
+        # withSaturationHSL move the HSL numbers rather than the HSV ones.
+        let relit = base.withLightness(0.3'f32)
+        doAssert abs(relit.getLightness() - 0.3'f32) < 1.0e-2'f32,
+                 "withLightness gave " & $relit.getLightness()
+        doAssert abs(relit.getHue() - base.getHue()) < 1.0e-2'f32,
+                 "withLightness moved the hue to " & $relit.getHue()
+
+        let hslDesaturated = base.withSaturationHSL(0.25'f32)
+        doAssert abs(hslDesaturated.getSaturationHSL() - 0.25'f32) < 1.0e-2'f32,
+                 "withSaturationHSL gave " & $hslDesaturated.getSaturationHSL()
+
+    block:
+        # The Multiplied forms SCALE rather than replace, so halving twice is
+        # not the same as setting to a half.
+        let base = Colour.fromHSV(0.6'f32, 0.8'f32, 0.8'f32, 1.0'f32)
+
+        doAssert abs(base.withMultipliedSaturation(0.5'f32).getSaturation() -
+                     base.getSaturation() * 0.5'f32) < 1.0e-2'f32,
+                 "halving the saturation gave " &
+                 $base.withMultipliedSaturation(0.5'f32).getSaturation()
+        doAssert abs(base.withMultipliedSaturation(0.5'f32)
+                         .withMultipliedSaturation(0.5'f32).getSaturation() -
+                     base.getSaturation() * 0.25'f32) < 1.0e-2'f32,
+                 "halving twice gave " &
+                 $base.withMultipliedSaturation(0.5'f32)
+                      .withMultipliedSaturation(0.5'f32).getSaturation()
+
+        doAssert base.withMultipliedSaturationHSL(0.5'f32).getSaturationHSL() <
+                 base.getSaturationHSL(),
+                 "the HSL saturation did not come down"
+        doAssert base.withMultipliedLightness(0.5'f32).getLightness() <
+                 base.getLightness(),
+                 "the lightness did not come down"
+
+        # Alpha scales the same way, and a multiplier of zero clears it.
+        let half = base.withMultipliedAlpha(0.5'f32)
+        doAssert half.getAlpha() > 100'u8 and half.getAlpha() < 155'u8,
+                 "halving the alpha gave " & $half.getAlpha()
+        doAssert base.withMultipliedAlpha(0.0'f32).isTransparent(),
+                 "a zero alpha multiplier left the colour visible"
+        doAssert base.isOpaque(),
+                 "withMultipliedAlpha changed the original"
+
+    block:
+        # The two packed forms differ in whether the colour channels are
+        # premultiplied by the alpha, which shows only when alpha is not full.
+        let opaque = Colour.fromRGBA(200'u8, 100'u8, 50'u8, 255'u8)
+        doAssert opaque.getPixelARGB().getRed() ==
+                 opaque.getNonPremultipliedPixelARGB().getRed(),
+                 "at full alpha the two packed forms differ: " &
+                 $opaque.getPixelARGB().getRed() & " against " &
+                 $opaque.getNonPremultipliedPixelARGB().getRed()
+
+        let faded = Colour.fromRGBA(200'u8, 100'u8, 50'u8, 128'u8)
+        doAssert faded.getNonPremultipliedPixelARGB().getRed() == 200'u8,
+                 "the non-premultiplied red is " &
+                 $faded.getNonPremultipliedPixelARGB().getRed()
+        doAssert faded.getPixelARGB().getRed() < 200'u8,
+                 "the premultiplied red is " &
+                 $faded.getPixelARGB().getRed() & ", which is not scaled down"
+
+testColourComponentReplacement()
