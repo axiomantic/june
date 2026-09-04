@@ -6051,3 +6051,104 @@ proc testConsoleApplicationDispatch() =
              "printing changed the command count to " & $app.getCommands().size()
 
 testConsoleApplicationDispatch()
+
+# The two sockets, without a peer. Everything here binds a local port, asks the
+# socket about itself and closes again - no connection is made and nothing
+# leaves the machine, so the test cannot be flaky on a sandboxed runner.
+proc testSocketsWithoutAPeer() =
+  block:
+    # A datagram socket reports no port until it is bound, and an ephemeral
+    # port once it is - the number is the OS's to choose, so only its range is
+    # asserted.
+    var options = makeSocketOptions()
+    var socket = makeDatagramSocket(false, options)
+    doAssert socket.getBoundPort() == -1,
+             "an unbound socket reports port " & $socket.getBoundPort()
+
+    doAssert socket.bindToPort(0.cint),
+             "binding to an ephemeral port failed"
+    let port = socket.getBoundPort()
+    doAssert port > 0 and port <= 65535,
+             "the bound port is " & $port
+
+    doAssert socket.getRawSocketHandle() != -1,
+             "a bound socket has no raw handle"
+
+    # waitUntilReady for READING times out at once: nothing has been sent.
+    doAssert socket.waitUntilReady(true, 50.cint) == 0,
+             "an idle socket reported " & $socket.waitUntilReady(true, 50.cint) &
+             " rather than timing out"
+
+    # These have no reader; what is asserted is that they run and leave the
+    # socket bound.
+    discard socket.setEnablePortReuse(true)
+    discard socket.setMulticastLoopbackEnabled(true)
+    doAssert socket.getBoundPort() == port,
+             "the socket options changed the bound port to " &
+             $socket.getBoundPort()
+
+    # Multicast on a group nothing is serving answers without hanging. What it
+    # answers is the machine's business - a runner with no multicast route
+    # refuses - so only the pair's symmetry is asserted.
+    let joined = socket.joinMulticast(makeString("239.255.0.1"))
+    if joined:
+      doAssert socket.leaveMulticast(makeString("239.255.0.1")),
+               "the socket joined a multicast group and could not leave it"
+
+    socket.shutdown()
+    doAssert socket.getBoundPort() == -1,
+             "after shutdown the socket reports port " & $socket.getBoundPort()
+
+  block:
+    # A streaming socket that is listening is not connected, which is the
+    # distinction the two predicates draw.
+    var socket = makeStreamingSocket()
+    doAssert not socket.isConnected(), "a new socket is connected"
+    doAssert socket.getBoundPort() == -1,
+             "a new socket reports port " & $socket.getBoundPort()
+
+    doAssert socket.createListener(0.cint, makeString("127.0.0.1")),
+             "creating a listener on an ephemeral port failed"
+    let port = socket.getBoundPort()
+    doAssert port > 0 and port <= 65535,
+             "the listening port is " & $port
+    # isConnected means "the socket is OPEN", not "a peer is attached":
+    # createListener sets the flag itself (juce_Socket.cpp:628), and the
+    # assertion at the end of that function allows a listener to be connected.
+    # So a listener nobody has dialled still reports connected.
+    doAssert socket.isConnected(),
+             "a listening socket does not report itself connected"
+    doAssert socket.getRawSocketHandle() != -1,
+             "a listening socket has no raw handle"
+    # getHostName is the name of the OTHER end, so for a listener with no peer
+    # it is the placeholder "listener" rather than the address it bound to.
+    doAssert $socket.getHostName() == "listener",
+             "the listener reports host " & $socket.getHostName()
+    doAssert not socket.isLocal(),
+             "a listener with no peer reports a local peer"
+
+    # waitForNextConnection is NOT called. It has no timeout - it blocks until
+    # a connection arrives or the socket is closed from another thread - so
+    # calling it here hung the test run, which is how this was found. The
+    # compile harness covers it.
+    #
+    # waitUntilReady is the timeout-taking way to ask the same question, and
+    # it reports at once that nothing is waiting to be accepted.
+    doAssert socket.waitUntilReady(true, 50.cint) == 0,
+             "a listener nobody dialled reported " &
+             $socket.waitUntilReady(true, 50.cint) & " rather than timing out"
+
+    socket.close()
+    doAssert socket.getBoundPort() == -1,
+             "after closing, the socket reports port " & $socket.getBoundPort()
+
+  block:
+    # Connecting to a port nothing is listening on fails rather than hanging,
+    # which is what the timeout is for.
+    var socket = makeStreamingSocket()
+    doAssert not socket.connect(makeString("127.0.0.1"), 1.cint, 200.cint),
+             "connecting to port 1 succeeded"
+    doAssert not socket.isConnected(),
+             "a failed connect left the socket connected"
+
+testSocketsWithoutAPeer()
