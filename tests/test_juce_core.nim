@@ -7014,8 +7014,10 @@ proc testChildProcess() =
         doAssert "hello from june" in $output,
                  "the child wrote " & $output
 
-        # readAllProcessOutput waits for the child to finish, so by now it has
-        # exited cleanly.
+        # readAllProcessOutput returns when the PIPE reaches EOF, which can
+        # happen before the kernel has reaped the child - getExitCode polls
+        # with waitpid(WNOHANG) and answers 0 until then. Wait first, or the
+        # assertion below reads the initial 0 and passes for the wrong reason.
         doAssert process.waitForProcessToFinish(2000.cint),
                  "the finished child did not report finishing"
         doAssert not process.isRunning(),
@@ -7052,6 +7054,8 @@ proc testChildProcess() =
                                ChildProcessStreamFlags_wantStdOut.cint),
                  "the shell did not start"
         discard process.readAllProcessOutput()
+        doAssert process.waitForProcessToFinish(2000.cint),
+                 "the child running `exit 3` did not report finishing"
         doAssert process.getExitCode() == 3'u32,
                  "the child exited with " & $process.getExitCode()
 
