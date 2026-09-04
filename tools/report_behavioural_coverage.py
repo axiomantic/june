@@ -63,6 +63,14 @@ UNREACHABLE = {
 # reach. Keyed "Class.method".
 UNREACHABLE_METHODS = {
     "File.addToDock": "writes the user's Dock preferences and restarts the Dock",
+    "Toolbar.showCustomisationDialog":
+        "builds a modal DialogWindow on a queue nothing here turns",
+    "Toolbar.setCurrentDragImage":
+        "dereferences dragImageComponents[0], which is null with no live drag",
+    "ToolbarItemPalette.setCurrentDragImage":
+        "dereferences dragImageComponents[0], which is null with no live drag",
+    "DragAndDropContainer.setCurrentDragImage":
+        "dereferences dragImageComponents[0], which is null with no live drag",
 }
 
 
