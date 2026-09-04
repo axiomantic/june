@@ -7530,3 +7530,60 @@ proc testThreadPoolJobDirectly() =
         cdelete job
 
 testThreadPoolJobDirectly()
+
+# UnitTest's own entry points ================================================
+#
+# The runner tests go through UnitTestRunner. These call the test's own
+# methods, which is what the runner does underneath.
+
+proc testUnitTestEntryPoints() =
+    block:
+        var ran = 0
+        var subject = newCustomUnitTest(makeString("june-direct"),
+                                        makeString("june"))
+        subject[].setRunTestHandler(proc() = ran += 1)
+        var base = cast[ptr UnitTest](subject)
+
+        doAssert $base[].getName() == "june-direct",
+                 "the test is called " & $base[].getName()
+        doAssert $base[].getCategory() == "june",
+                 "the test is in category " & $base[].getCategory()
+
+        # runTest is the virtual, so calling it through the base class is what
+        # shows the Nim override reached C++.
+        base[].runTest()
+        doAssert ran == 1, "the test body ran " & $ran & " times"
+
+        # initialise and shutdown are the runner's hooks around it, and JUCE
+        # gives both empty bodies - a test that needs neither leaves them
+        # alone, which is what makes calling them safe here.
+        base[].initialise()
+        base[].shutdown()
+        doAssert ran == 1,
+                 "the hooks ran the test body " & $ran & " times"
+
+        # performTest is what the runner really calls: it takes the runner,
+        # runs initialise, runTest and shutdown, and reports through it.
+        var runner = makeUnitTestRunner()
+        runner.setAssertOnFailure(false)
+        runner.setPassesAreLogged(false)
+        base[].performTest(addr runner)
+        doAssert ran == 2, "performTest ran the body " & $(ran - 1) & " times"
+
+        # getRandom hands back a generator the runner seeded, so two draws
+        # from it differ - which is all that can be said about a random one.
+        var random = base[].getRandom()
+        var draws: seq[cint] = @[]
+        for i in 0 ..< 8:
+            draws.add(random.nextInt(1000.cint))
+        doAssert draws.len == 8, "eight draws gave " & $draws.len
+        var distinctDraws = 0
+        for i in 0 ..< draws.len:
+            if draws[i] != draws[0]:
+                distinctDraws += 1
+        doAssert distinctDraws > 0,
+                 "eight draws from the test's generator were all " & $draws[0]
+
+        cdelete subject
+
+testUnitTestEntryPoints()

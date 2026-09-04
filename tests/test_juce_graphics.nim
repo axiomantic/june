@@ -4808,3 +4808,62 @@ proc testPathStrokeTypeStyles() =
     shutdownJuce_GUI()
 
 testPathStrokeTypeStyles()
+
+# FillType's three kinds =====================================================
+#
+# A fill is a colour, a gradient or a tiled image, and the three questions
+# discriminate. Each setter is asserted to switch the kind rather than only to
+# store something.
+proc testFillTypeKinds() =
+    initialiseJuce_GUI()
+
+    block:
+        var fill = makeFillType(Colours_red)
+        doAssert fill.isColour(), "a colour fill is not a colour"
+        doAssert not fill.isGradient() and not fill.isTiledImage(),
+                 "a colour fill claims another kind"
+
+        fill.setGradient(makeColourGradient(
+            Colours_red, 0.0'f32, 0.0'f32,
+            Colours_blue, 100.0'f32, 0.0'f32, false))
+        doAssert fill.isGradient(), "the gradient did not take"
+        doAssert not fill.isColour() and not fill.isTiledImage(),
+                 "a gradient fill claims another kind"
+
+        var image = makeImage(ImagePixelFormat_ARGB, 8.cint, 8.cint, true)
+        fill.setTiledImage(image, makeAffineTransform())
+        doAssert fill.isTiledImage(), "the tiled image did not take"
+        doAssert not fill.isColour() and not fill.isGradient(),
+                 "a tiled fill claims another kind"
+
+        # Setting a colour again switches back.
+        fill.setColour(Colours_green)
+        doAssert fill.isColour(), "the colour did not take"
+        # Colours::green is the CSS name, 0xff008000, so its green channel is
+        # 128 and not 255 (juce_Colours.cpp:51). Colours::lime is the bright
+        # one.
+        doAssert fill.colour().getGreen() == 128'u8,
+                 "the colour's green channel is " &
+                 $fill.colour().getGreen()
+        doAssert fill.colour().getRed() == 0'u8 and
+                 fill.colour().getBlue() == 0'u8,
+                 "the colour is not a pure green"
+
+    block:
+        # transformed returns a new fill with the transform folded into the
+        # one it already carries, and leaves the original alone.
+        var fill = makeFillType(makeColourGradient(
+            Colours_red, 0.0'f32, 0.0'f32,
+            Colours_blue, 100.0'f32, 0.0'f32, false))
+
+        let moved = fill.transformed(makeAffineTransform().translated(
+            10.0'f32, 20.0'f32))
+        doAssert moved.isGradient(), "the transformed fill lost its gradient"
+        doAssert moved.transform() != fill.transform(),
+                 "the transform did not change"
+        doAssert fill.transform() == makeAffineTransform(),
+                 "transformed changed the fill it was called on"
+
+    shutdownJuce_GUI()
+
+testFillTypeKinds()
