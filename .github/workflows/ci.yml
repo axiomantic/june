@@ -167,6 +167,16 @@ jobs:
             nimble install -y nim@${{ matrix.nim-version }} || true
             test -x "$(pinned)"
           }
+          # `nimble install nim@X` prints "No nim version matching any
+          # version" and then "Downloading Nim <newest>" even when it goes on
+          # to put the PINNED compiler where the glob below finds it. That
+          # message is about nimble resolving this package's own requirement,
+          # not about the install, and reading it as a failure sends you
+          # hunting for one that is not there. What decides the matter is the
+          # `test -x` on the exact pinned path, and the `--version` line at
+          # the end: on a cold cache nimble really does fetch and build the
+          # pinned version, to the same path hash the cache carries.
+          #
           # Three attempts with a widening gap. Two 15s apart both lost to one
           # SSL failure fetching packages.json, which is the same outage twice
           # rather than two tries.
