@@ -1734,6 +1734,26 @@ proc testUrlInputStreamOptions() =
         doAssert $plain.getExtraHeaders() == "",
                  "withExtraHeaders changed the object it was called on"
 
+        # The response headers and the status code are OUT PARAMETERS: the
+        # options carry a pointer to storage the caller owns, which is where
+        # a request would write them. Nothing here makes a request, so what is
+        # asserted is that the pointer is the caller's own.
+        doAssert plain.getResponseHeaders().isNil,
+                 "a fresh options object already points at response headers"
+        doAssert plain.getStatusCode().isNil,
+                 "a fresh options object already points at a status code"
+
+        var headers = makeStringPairArray()
+        var status: cint = 0
+        let reporting = plain.withResponseHeaders(addr headers)
+                             .withStatusCode(addr status)
+        doAssert reporting.getResponseHeaders() == addr headers,
+                 "the options point at other response headers"
+        doAssert reporting.getStatusCode() == addr status,
+                 "the options point at another status code"
+        doAssert plain.getResponseHeaders().isNil,
+                 "withResponseHeaders changed the object it was called on"
+
         # A two-argument closure, reached back through the options and called.
         var seen: seq[(cint, cint)] = @[]
         let watched = plain.withProgressCallback(
