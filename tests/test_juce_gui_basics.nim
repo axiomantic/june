@@ -11209,3 +11209,80 @@ proc testMouseEventGeometry() =
     shutdownJuce_GUI()
 
 testMouseEventGeometry()
+
+# TableListBoxModel's DEFAULTS. JUCE gives every method except the three pure
+# virtuals an empty or trivial body, so the generator emits no override for
+# them - there is nothing to call into Nim with. What can be tested is the
+# base's own answers, which is what a table gets when a model leaves them
+# alone.
+proc testTableListBoxModelDefaults() =
+    initialiseJuce_GUI()
+
+    block:
+        let model = newCustomTableListBoxModel()
+        model[].setGetNumRowsHandler(proc(): cint = 3.cint)
+        var base = cast[ptr TableListBoxModel](model)
+
+        # The three pure virtuals reach Nim.
+        doAssert base[].getNumRows() == 3,
+                 "the handler answered " & $base[].getNumRows()
+
+        # The defaults. Each is called through the base, which is what a
+        # TableListBox does.
+        doAssert base[].refreshComponentForCell(0.cint, 1.cint, false, nil).isNil,
+                 "the default refreshComponentForCell made a component"
+
+        # An existing component handed in comes back as nothing too, because
+        # the default does not adopt it - which is why a model that returns a
+        # component has to delete the old one itself.
+        let existing = newCustomComponent()
+        doAssert base[].refreshComponentForCell(
+                     0.cint, 1.cint, false,
+                     cast[ptr Component](existing)).isNil,
+                 "the default refreshComponentForCell kept the component " &
+                 "it was handed"
+        cdelete existing
+
+        doAssert base[].getColumnAutoSizeWidth(1.cint) == 0,
+                 "the default auto-size width is " &
+                 $base[].getColumnAutoSizeWidth(1.cint)
+        doAssert base[].getCellTooltip(0.cint, 1.cint).isEmpty(),
+                 "the default tooltip is " & $base[].getCellTooltip(0.cint, 1.cint)
+        doAssert base[].getDragSourceDescription(
+                     makeSparseSet[cint]()).isVoid(),
+                 "the default drag description is not void"
+        doAssert base[].mayDragToExternalWindows(),
+                 "the default model refuses to drag to another window"
+
+        # The notification defaults do nothing, and the assertion is that
+        # calling them leaves the model answering as before.
+        let target = newCustomComponent()
+        target[].setBounds(makeRectangle(0.cint, 0.cint, 100.cint, 40.cint))
+        let now = Time.getCurrentTime()
+        let event = makeMouseEvent(Desktop.getInstance().getMainMouseSource(),
+                                   makePoint(1.0'f32, 1.0'f32),
+                                   makeModifierKeys(),
+                                   1.0'f32, 0.0'f32, 0.0'f32, 0.0'f32, 0.0'f32,
+                                   cast[ptr Component](target),
+                                   cast[ptr Component](target),
+                                   now, makePoint(1.0'f32, 1.0'f32), now,
+                                   1.cint, false)
+
+        base[].cellClicked(0.cint, 1.cint, event)
+        base[].cellDoubleClicked(0.cint, 1.cint, event)
+        base[].backgroundClicked(event)
+        base[].sortOrderChanged(1.cint, true)
+        base[].selectedRowsChanged(0.cint)
+        base[].deleteKeyPressed(0.cint)
+        base[].returnKeyPressed(0.cint)
+        base[].listWasScrolled()
+        doAssert base[].getNumRows() == 3,
+                 "the notifications changed the row count to " &
+                 $base[].getNumRows()
+
+        cdelete target
+        cdelete model
+
+    shutdownJuce_GUI()
+
+testTableListBoxModelDefaults()
