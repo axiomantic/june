@@ -4641,3 +4641,80 @@ proc testImageFileFormats() =
     shutdownJuce_GUI()
 
 testImageFileFormats()
+
+# AttributedString's layout settings and its attribute list ==================
+proc testAttributedStringSettings() =
+    initialiseJuce_GUI()
+
+    block:
+        var text = makeAttributedString(makeString("hello there"))
+
+        # byWord is what JUCE starts with, and the setting round-trips.
+        doAssert text.getWordWrap() == AttributedStringWordWrap_byWord,
+                 "a new attributed string does not wrap by word"
+        text.setWordWrap(AttributedStringWordWrap_none)
+        doAssert text.getWordWrap() == AttributedStringWordWrap_none,
+                 "the word wrap did not stick"
+        text.setWordWrap(AttributedStringWordWrap_byChar)
+        doAssert text.getWordWrap() == AttributedStringWordWrap_byChar,
+                 "the word wrap did not change again"
+
+        doAssert text.getReadingDirection() ==
+                 AttributedStringReadingDirection_natural,
+                 "a new attributed string is not read naturally"
+        text.setReadingDirection(
+            AttributedStringReadingDirection_rightToLeft)
+        doAssert text.getReadingDirection() ==
+                 AttributedStringReadingDirection_rightToLeft,
+                 "the reading direction did not stick"
+
+    block:
+        # Attributes carve the text into ranges, and getAttribute reads one
+        # back out by index.
+        # A string built from text starts with ONE attribute covering all of
+        # it, not none: append() adds a range as it adds the characters.
+        var text = makeAttributedString(makeString("hello there"))
+        doAssert text.getNumAttributes() == 1,
+                 "a new attributed string carries " &
+                 $text.getNumAttributes() & " attributes"
+        doAssert text.getAttribute(0.cint).range() ==
+                 makeRange(0.cint, 11.cint),
+                 "the whole-text attribute covers " &
+                 $text.getAttribute(0.cint).range().getStart() & " to " &
+                 $text.getAttribute(0.cint).range().getEnd()
+
+        # Colouring two halves splits that one attribute into two.
+        text.setColour(makeRange(0.cint, 5.cint), Colours_red)
+        text.setColour(makeRange(6.cint, 11.cint), Colours_blue)
+        doAssert text.getNumAttributes() >= 2,
+                 "the string carries " & $text.getNumAttributes() &
+                 " attributes"
+
+        # The split leaves the runs in text order, so each colour is looked up
+        # by the range it covers rather than by a guessed index.
+        var redAt = -1
+        var blueAt = -1
+        for i in 0 ..< text.getNumAttributes():
+            let attribute = text.getAttribute(i)
+            if attribute.range().getStart() == 0 and
+               attribute.colour().getRed() == 255'u8:
+                redAt = int(i)
+            if attribute.range().getEnd() == 11 and
+               attribute.colour().getBlue() == 255'u8:
+                blueAt = int(i)
+        doAssert redAt >= 0, "no attribute covers the red half"
+        doAssert blueAt >= 0, "no attribute covers the blue half"
+        doAssert redAt < blueAt,
+                 "the attributes are out of text order: red at " & $redAt &
+                 " and blue at " & $blueAt
+
+        # A font set over a range shows up on the attribute too.
+        text.setFont(makeRange(0.cint, 5.cint),
+                     makeFont(makeFontOptions(30.0'f32)))
+        doAssert text.getAttribute(redAt.cint).font().getHeight() == 30.0'f32,
+                 "the attribute's font is " &
+                 $text.getAttribute(redAt.cint).font().getHeight() & " tall"
+
+    shutdownJuce_GUI()
+
+testAttributedStringSettings()
