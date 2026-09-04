@@ -5112,3 +5112,96 @@ proc testRandomSeeding() =
              "128 random bits only reached bit " & $large.getHighestBit()
 
 testRandomSeeding()
+
+# Thread's lifecycle, as seen from the outside. testGeneratedThreadRuns above
+# shows the handler reaches Nim; this covers the state a caller polls and the
+# two ways of asking a thread to stop.
+proc testThreadLifecycle() =
+  block:
+    # A thread that waits until it is told to exit. The signalling is the
+    # thing under test, so the body watches threadShouldExit rather than
+    # sleeping for a fixed time.
+    var thread = newCustomThread(makeString("june-signalled"), 0.csize_t)
+    var sawExitRequest = false
+    var started = false
+    let body = thread
+    thread[].setRunHandler(proc() =
+      started = true
+      while not body[].threadShouldExit():
+        discard body[].wait(10.0)
+      sawExitRequest = true)
+
+    doAssert not thread[].isThreadRunning(), "the thread runs before it starts"
+    doAssert thread[].startThread(), "the thread did not start"
+
+    # The id is real once it is running, and it is the thread's own.
+    doAssert thread[].waitForThreadToExit(0.cint) == false,
+             "the thread exited before it was asked to"
+    doAssert thread[].isThreadRunning(), "the started thread is not running"
+    doAssert thread[].getThreadId() != nil,
+             "a running thread has no id"
+
+    # notify wakes the wait() the body is sitting in, without asking it to
+    # stop - so the thread is still running afterwards.
+    thread[].notify()
+    doAssert thread[].isThreadRunning(),
+             "notify stopped the thread instead of waking it"
+
+    # signalThreadShouldExit is what threadShouldExit reports.
+    thread[].signalThreadShouldExit()
+    doAssert thread[].threadShouldExit(),
+             "signalling did not set the exit flag"
+    thread[].notify()
+    doAssert thread[].waitForThreadToExit(5000.cint),
+             "the thread did not finish after being signalled"
+    doAssert started, "the body never ran"
+    doAssert sawExitRequest, "the body never saw the exit request"
+    doAssert not thread[].isThreadRunning(),
+             "the finished thread still reports running"
+
+    cdelete thread
+
+  block:
+    # A realtime thread is started differently and says so while it runs.
+    var thread = newCustomThread(makeString("june-realtime"), 0.csize_t)
+    let body = thread
+    thread[].setRunHandler(proc() =
+      while not body[].threadShouldExit():
+        discard body[].wait(5.0))
+
+    doAssert not thread[].isRealtime(),
+             "a thread that has not started is realtime"
+
+    var options = makeThreadRealtimeOptions()
+    if thread[].startRealtimeThread(options):
+      # Whether the OS grants realtime priority is its business; what is
+      # asserted is that the thread started and stops cleanly.
+      doAssert thread[].isThreadRunning(),
+               "startRealtimeThread returned true but the thread is not running"
+      thread[].signalThreadShouldExit()
+      thread[].notify()
+      doAssert thread[].waitForThreadToExit(5000.cint),
+               "the realtime thread did not finish"
+    else:
+      echo "  note: the OS refused a realtime thread, so only the call is " &
+           "exercised"
+
+    cdelete thread
+
+  block:
+    # setAffinityMask is accepted before a thread starts. Whether the OS
+    # honours it is not observable through JUCE, so what is asserted is that
+    # the thread still runs afterwards.
+    var thread = newCustomThread(makeString("june-affinity"), 0.csize_t)
+    var ran = false
+    thread[].setRunHandler(proc() = ran = true)
+    thread[].setAffinityMask(1'u32)
+
+    doAssert thread[].startThread(), "the thread did not start"
+    doAssert thread[].waitForThreadToExit(5000.cint),
+             "the thread did not finish"
+    doAssert ran, "the body never ran"
+
+    cdelete thread
+
+testThreadLifecycle()
