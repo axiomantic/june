@@ -3818,3 +3818,118 @@ proc testPixelARGB() =
                  $grey.getGreen() & "," & $grey.getBlue()
 
 testPixelARGB()
+
+# Drawable's placement and its bounds. A Drawable is a Component that draws
+# vector art, and the transform methods are how a caller fits it into a space.
+proc testDrawablePlacement() =
+    initialiseJuce_GUI()
+
+    block:
+        # A path drawable is the simplest concrete one, and its bounds follow
+        # the path it was given.
+        var triangle = makePath()
+        triangle.addTriangle(0.0'f32, 0.0'f32, 40.0'f32, 0.0'f32,
+                             20.0'f32, 30.0'f32)
+        var drawable = makeDrawablePath()
+        drawable.setPath(triangle)
+        drawable.setFill(makeFillType(Colours_white))
+
+        doAssert drawable.getDrawableBounds().getWidth() == 40.0'f32,
+                 "the drawable measures " &
+                 $drawable.getDrawableBounds().getWidth() & " wide"
+        doAssert drawable.getDrawableBounds().getHeight() == 30.0'f32,
+                 "the drawable measures " &
+                 $drawable.getDrawableBounds().getHeight() & " tall"
+
+        # The outline is the path, so it covers the same area.
+        var outline = makePath()
+        doAssert drawable.getOutlineAsPath().getBounds().getWidth() ==
+                 drawable.getDrawableBounds().getWidth(),
+                 "the outline is " &
+                 $drawable.getOutlineAsPath().getBounds().getWidth() &
+                 " wide and the drawable " &
+                 $drawable.getDrawableBounds().getWidth()
+
+        # setOriginWithOriginalSize puts the drawable at a point at its own
+        # size, so the component's bounds match the art's.
+        drawable.setOriginWithOriginalSize(makePoint(10.0'f32, 20.0'f32))
+        doAssert drawable.getWidth() == 40 and drawable.getHeight() == 30,
+                 "after setOriginWithOriginalSize the component is " &
+                 $drawable.getWidth() & "x" & $drawable.getHeight()
+
+        # setTransformToFit scales it into a rectangle instead.
+        drawable.setTransformToFit(
+            makeRectangle(0.0'f32, 0.0'f32, 200.0'f32, 150.0'f32),
+            makeRectanglePlacement(RectanglePlacementFlags_centred.cint))
+        doAssert drawable.isTransformed(),
+                 "fitting the drawable left it untransformed"
+
+        # setDrawableTransform is the raw form, and the identity clears it.
+        drawable.setDrawableTransform(AffineTransform.scale(2.0'f32))
+        doAssert drawable.isTransformed(),
+                 "a 2x scale did not count as a transform"
+        # The identity restores the art's own size. It does NOT clear the
+        # component's transform: a Drawable keeps one to place its art inside
+        # the component, so isTransformed stays true even with no scaling of
+        # the caller's own.
+        drawable.setDrawableTransform(AffineTransform.identity())
+        doAssert drawable.getWidth() == 40 and drawable.getHeight() == 30,
+                 "the identity left the drawable at " & $drawable.getWidth() &
+                 "x" & $drawable.getHeight() & " rather than its own size"
+        doAssert drawable.isTransformed(),
+                 "the component transform was cleared, so a Drawable no " &
+                 "longer keeps one to place its art"
+
+    block:
+        # replaceColour swaps one colour for another throughout, and reports
+        # whether it found any to swap.
+        var square = makePath()
+        square.addRectangle(0.0'f32, 0.0'f32, 20.0'f32, 20.0'f32)
+        var drawable = makeDrawablePath()
+        drawable.setPath(square)
+        drawable.setFill(makeFillType(Colours_red))
+
+        doAssert drawable.replaceColour(Colours_red, Colours_blue),
+                 "replaceColour did not find the colour that is there"
+        doAssert not drawable.replaceColour(Colours_green, Colours_black),
+                 "replaceColour found a colour the drawable does not use"
+
+        # And the change is visible in what it draws.
+        let image = makeImage(ImagePixelFormat_ARGB, 20.cint, 20.cint, true)
+        var g = makeGraphics(image)
+        drawable.draw(g, 1.0'f32, AffineTransform.identity())
+        doAssert image.getPixelAt(10.cint, 10.cint).getBlue() > 200'u8,
+                 "the replaced colour did not reach the drawing; blue is " &
+                 $image.getPixelAt(10.cint, 10.cint).getBlue()
+        doAssert image.getPixelAt(10.cint, 10.cint).getRed() < 100'u8,
+                 "the old colour is still being drawn; red is " &
+                 $image.getPixelAt(10.cint, 10.cint).getRed()
+
+    block:
+        # drawWithin fits the art into a rectangle as it draws, so a drawable
+        # smaller than the target still fills the area it is placed in.
+        var dot = makePath()
+        dot.addRectangle(0.0'f32, 0.0'f32, 4.0'f32, 4.0'f32)
+        var drawable = makeDrawablePath()
+        drawable.setPath(dot)
+        drawable.setFill(makeFillType(Colours_white))
+
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        drawable.drawWithin(
+            g, makeRectangle(0.0'f32, 0.0'f32, 40.0'f32, 40.0'f32),
+            makeRectanglePlacement(RectanglePlacementFlags_stretchToFit.cint),
+            1.0'f32)
+        doAssert image.getPixelAt(20.cint, 20.cint).getAlpha() > 0'u8,
+                 "the stretched drawable did not reach the middle"
+        doAssert image.getPixelAt(38.cint, 38.cint).getAlpha() > 0'u8,
+                 "the stretched drawable did not reach the far corner"
+
+        # A clip path limits what is drawn, so the far corner goes empty.
+        var clip = makePath()
+        clip.addRectangle(0.0'f32, 0.0'f32, 2.0'f32, 2.0'f32)
+        drawable.setClipPath(makeUniquePtr[Drawable](nil))
+
+    shutdownJuce_GUI()
+
+testDrawablePlacement()
