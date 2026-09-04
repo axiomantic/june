@@ -12477,3 +12477,127 @@ proc testSliderSkewAndTextBox() =
     shutdownJuce_GUI()
 
 testSliderSkewAndTextBox()
+
+# Component's notification hooks. JUCE calls these; a subclass overrides them.
+# The base implementations do nothing, so what a direct call proves is that the
+# binding reaches the C++ compiler and that the component is unchanged
+# afterwards - which is exactly what an empty body should leave behind.
+proc testComponentNotificationHooks() =
+    initialiseJuce_GUI()
+
+    block:
+        let parent = newCustomComponent()
+        parent[].setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 200.cint))
+        parent[].setVisible(true)
+        let child = newCustomComponent()
+        child[].setBounds(makeRectangle(10.cint, 10.cint, 50.cint, 50.cint))
+        parent[].addAndMakeVisible(cast[ptr Component](child))
+
+        let bounds = child[].getBounds()
+        let childCount = parent[].getNumChildComponents()
+
+        # The state-change notifications.
+        child[].moved()
+        child[].visibilityChanged()
+        child[].enablementChanged()
+        child[].alphaChanged()
+        child[].colourChanged()
+        child[].lookAndFeelChanged()
+        child[].parentHierarchyChanged()
+        child[].parentSizeChanged()
+        child[].broughtToFront()
+        child[].minimisationStateChanged(false)
+        child[].modifierKeysChanged(makeModifierKeys(0.cint))
+
+        # The ones a parent hears about its children.
+        parent[].childrenChanged()
+        parent[].childBoundsChanged(cast[ptr Component](child))
+        parent[].focusOfChildComponentChanged(
+            ComponentFocusChangeType_focusChangedDirectly)
+
+        # The focus notifications, in both of their spellings.
+        child[].focusGained(ComponentFocusChangeType_focusChangedDirectly)
+        child[].focusGainedWithDirection(
+            ComponentFocusChangeType_focusChangedDirectly,
+            ComponentFocusChangeDirection_forward)
+        child[].focusLost(ComponentFocusChangeType_focusChangedDirectly)
+
+        # The window-manager notifications, which only a top-level component
+        # would ever receive.
+        parent[].userTriedToCloseWindow()
+        parent[].windowControlClickedClose()
+        parent[].windowControlClickedMinimise()
+        parent[].windowControlClickedMaximise()
+
+        # The message and modal hooks.
+        child[].handleCommandMessage(1.cint)
+        child[].inputAttemptWhenModal()
+        doAssert not child[].keyStateChanged(false),
+                 "the base keyStateChanged consumed the event"
+
+        # Nothing above changed anything a caller can see, which is what an
+        # empty base implementation means.
+        doAssert child[].getBounds() == bounds,
+                 "a notification moved the child to " &
+                 $child[].getBounds().getX() & "," & $child[].getBounds().getY()
+        doAssert parent[].getNumChildComponents() == childCount,
+                 "a notification changed the child count to " &
+                 $parent[].getNumChildComponents()
+        doAssert child[].isVisible(), "a notification hid the child"
+        doAssert child[].isEnabled(), "a notification disabled the child"
+
+        cdelete child
+        cdelete parent
+
+    block:
+        # paintOverChildren draws on top of the children, so it is given a real
+        # Graphics and asserted through the pixels.
+        let component = newCustomComponent()
+        component[].setBounds(makeRectangle(0.cint, 0.cint, 20.cint, 20.cint))
+        let image = makeImage(ImagePixelFormat_ARGB, 20.cint, 20.cint, true)
+        var g = makeGraphics(image)
+        g.setColour(Colours_white)
+        component[].paintOverChildren(g)
+
+        # The base draws nothing, so the image is untouched.
+        var lit = 0
+        for x in 0.cint ..< 20.cint:
+            for y in 0.cint ..< 20.cint:
+                if image.getPixelAt(x, y).getAlpha() > 0'u8:
+                    lit += 1
+        doAssert lit == 0,
+                 "the base paintOverChildren drew " & $lit & " pixels"
+
+        cdelete component
+
+    block:
+        # setFocusContainer is the older spelling of setFocusContainerType, and
+        # the two reach the same flag.
+        let component = newCustomComponent()
+        doAssert not component[].isFocusContainer(),
+                 "a new component is a focus container"
+        component[].setFocusContainer(true)
+        doAssert component[].isFocusContainer(),
+                 "setFocusContainer did not reach the same flag as " &
+                 "setFocusContainerType"
+        component[].setFocusContainer(false)
+        doAssert not component[].isFocusContainer(),
+                 "setFocusContainer(false) did not clear the flag"
+
+        # A positioner is owned by the component once given, so clearing it
+        # deletes it and nothing here does.
+        doAssert component[].getPositioner().isNil,
+                 "a new component has a positioner"
+        component[].setPositioner(nil)
+        doAssert component[].getPositioner().isNil,
+                 "setting a nil positioner produced one"
+
+        # getTransform on an untransformed component is the identity.
+        doAssert component[].getTransform().isIdentity(),
+                 "a new component's transform is not the identity"
+
+        cdelete component
+
+    shutdownJuce_GUI()
+
+testComponentNotificationHooks()
