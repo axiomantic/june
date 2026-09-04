@@ -3401,3 +3401,131 @@ proc testGlyphArrangement() =
     shutdownJuce_GUI()
 
 testGlyphArrangement()
+
+# AffineTransform's algebra. Every one of these is a matrix built from another,
+# so the assertions are on what the matrix DOES to a point rather than on its
+# six coefficients - a transposed pair would pass a coefficient check.
+#
+# The transform is applied through the POINT, because AffineTransform's own
+# transformPoint takes its arguments by reference and writes back through them.
+proc testAffineTransformAlgebra() =
+    block:
+        let identity = AffineTransform.identity()
+        doAssert identity.isIdentity(), "the identity is not the identity"
+        doAssert identity.isOnlyTranslation(), "the identity is not a translation"
+        doAssert identity.isOnlyTranslationOrScale(),
+                 "the identity is neither a translation nor a scale"
+        doAssert not identity.isSingularity(), "the identity is singular"
+        doAssert identity.getDeterminant() == 1.0'f32,
+                 "the identity's determinant is " & $identity.getDeterminant()
+
+        # A translation moves a point and preserves distances, so its
+        # determinant stays 1.
+        let moved = AffineTransform.translation(10.0'f32, 20.0'f32)
+        doAssert makePoint(1.0'f32, 2.0'f32).transformedBy(moved) ==
+                 makePoint(11.0'f32, 22.0'f32),
+                 "the translated point is " &
+                 $makePoint(1.0'f32, 2.0'f32).transformedBy(moved)
+        doAssert moved.isOnlyTranslation(), "a translation is not one"
+        doAssert moved.getDeterminant() == 1.0'f32,
+                 "a translation's determinant is " & $moved.getDeterminant()
+
+        # A scale multiplies both axes, and its determinant is the product.
+        let bigger = AffineTransform.scale(2.0'f32, 3.0'f32)
+        doAssert makePoint(1.0'f32, 1.0'f32).transformedBy(bigger) ==
+                 makePoint(2.0'f32, 3.0'f32),
+                 "the scaled point is " &
+                 $makePoint(1.0'f32, 1.0'f32).transformedBy(bigger)
+        doAssert not bigger.isOnlyTranslation(), "a scale is only a translation"
+        doAssert bigger.isOnlyTranslationOrScale(),
+                 "a scale is neither a translation nor a scale"
+        doAssert abs(bigger.getDeterminant() - 6.0'f32) < 1.0e-6'f32,
+                 "a 2 by 3 scale has determinant " & $bigger.getDeterminant()
+
+        # A rotation is neither, and a quarter turn takes (1, 0) to (0, 1).
+        let turned = AffineTransform.rotation(1.5707963'f32)
+        doAssert not turned.isOnlyTranslationOrScale(),
+                 "a rotation counts as a translation or scale"
+        let spun = makePoint(1.0'f32, 0.0'f32).transformedBy(turned)
+        doAssert abs(spun.getX()) < 1.0e-4'f32 and
+                 abs(spun.getY() - 1.0'f32) < 1.0e-4'f32,
+                 "a quarter turn took (1, 0) to " & $spun
+
+        # A shear is none of them.
+        doAssert not AffineTransform.identity().sheared(
+                     1.0'f32, 0.0'f32).isOnlyTranslationOrScale(),
+                 "a shear counts as a translation or scale"
+
+    block:
+        # followedBy composes, and the ORDER matters: scaling then translating
+        # is not the same as translating then scaling.
+        let scale = AffineTransform.scale(2.0'f32)
+        let move = AffineTransform.translation(10.0'f32, 0.0'f32)
+        let unit = makePoint(1.0'f32, 0.0'f32)
+
+        let scaleThenMove = scale.followedBy(move)
+        let moveThenScale = move.followedBy(scale)
+        doAssert unit.transformedBy(scaleThenMove) == makePoint(12.0'f32, 0.0'f32),
+                 "scale then move took (1, 0) to " &
+                 $unit.transformedBy(scaleThenMove)
+        doAssert unit.transformedBy(moveThenScale) == makePoint(22.0'f32, 0.0'f32),
+                 "move then scale took (1, 0) to " &
+                 $unit.transformedBy(moveThenScale)
+
+        # The derived forms are the same composition written shorter.
+        doAssert unit.transformedBy(scale.translated(10.0'f32, 0.0'f32)) ==
+                 unit.transformedBy(scaleThenMove),
+                 "translated and followedBy(translation) disagree"
+        doAssert makePoint(3.0'f32, 0.0'f32).transformedBy(
+                     AffineTransform.identity().scaled(2.0'f32)) ==
+                 makePoint(6.0'f32, 0.0'f32),
+                 "scaled gave a different point than scale"
+        doAssert unit.transformedBy(
+                     AffineTransform.identity().rotated(1.5707963'f32)).getY() >
+                 0.9'f32,
+                 "rotated did not turn the point"
+
+    block:
+        # An inverse undoes what the transform did, which is the only property
+        # that makes it an inverse.
+        let transform = AffineTransform.scale(2.0'f32, 4.0'f32)
+                                       .translated(5.0'f32, 7.0'f32)
+                                       .rotated(0.3'f32)
+        let point = makePoint(11.0'f32, 13.0'f32)
+        let roundTripped = point.transformedBy(transform)
+                                .transformedBy(transform.inverted())
+        doAssert abs(roundTripped.getX() - point.getX()) < 1.0e-3'f32 and
+                 abs(roundTripped.getY() - point.getY()) < 1.0e-3'f32,
+                 "a round trip through the inverse gave " & $roundTripped
+
+        # A singular transform cannot be inverted, and says so.
+        let flat = AffineTransform.scale(0.0'f32, 1.0'f32)
+        doAssert flat.isSingularity(), "a zero scale is not singular"
+        doAssert flat.getDeterminant() == 0.0'f32,
+                 "a zero scale has determinant " & $flat.getDeterminant()
+
+    block:
+        # withAbsoluteTranslation replaces the translation and keeps the rest,
+        # which is what distinguishes it from translated().
+        let scaled = AffineTransform.scale(2.0'f32)
+                                    .translated(100.0'f32, 100.0'f32)
+        let unit = makePoint(1.0'f32, 0.0'f32)
+        doAssert unit.transformedBy(
+                     scaled.withAbsoluteTranslation(0.0'f32, 0.0'f32)) ==
+                 makePoint(2.0'f32, 0.0'f32),
+                 "the replaced translation left the point at " &
+                 $unit.transformedBy(scaled.withAbsoluteTranslation(0.0'f32,
+                                                                    0.0'f32))
+        doAssert unit.transformedBy(scaled) == makePoint(102.0'f32, 100.0'f32),
+                 "withAbsoluteTranslation changed the original"
+
+        # A Rectangle transforms the same way, through itself.
+        doAssert makeRectangle(0.0'f32, 0.0'f32, 10.0'f32, 10.0'f32)
+                     .transformedBy(AffineTransform.scale(2.0'f32))
+                     .getWidth() == 20.0'f32,
+                 "a scaled rectangle is " &
+                 $makeRectangle(0.0'f32, 0.0'f32, 10.0'f32, 10.0'f32)
+                      .transformedBy(AffineTransform.scale(2.0'f32)).getWidth() &
+                 " wide"
+
+testAffineTransformAlgebra()
