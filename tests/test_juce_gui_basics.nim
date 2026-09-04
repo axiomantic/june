@@ -13514,3 +13514,95 @@ proc testFileBrowserParts() =
     shutdownJuce_GUI()
 
 testFileBrowserParts()
+
+# ComponentAnimator moves a component towards a destination over time. Nothing
+# here waits for an animation to finish - the timer that drives one needs
+# message-queue turns this suite cannot make - so the assertions are on the
+# state an animation is in and on where it is heading.
+proc testComponentAnimator() =
+    initialiseJuce_GUI()
+
+    block:
+        var animator = makeComponentAnimator()
+        let component = newCustomComponent()
+        component[].setBounds(makeRectangle(0.cint, 0.cint, 100.cint, 50.cint))
+        component[].setVisible(true)
+
+        doAssert not animator.isAnimating(cast[ptr Component](component)),
+                 "a component nobody animated is animating"
+        doAssert not animator.isAnimating(),
+                 "an animator with nothing to do reports itself busy"
+
+        let destination = makeRectangle(200.cint, 100.cint, 150.cint, 75.cint)
+        animator.animateComponent(cast[ptr Component](component), destination,
+                                  1.0'f32, 5000.cint, false, 1.0, 1.0)
+        doAssert animator.isAnimating(cast[ptr Component](component)),
+                 "the component is not animating after being told to"
+        doAssert animator.isAnimating(),
+                 "the animator reports nothing in flight"
+        doAssert animator.getComponentDestination(
+                     cast[ptr Component](component)) == destination,
+                 "the destination is " &
+                 $animator.getComponentDestination(
+                     cast[ptr Component](component)).getX() & "," &
+                 $animator.getComponentDestination(
+                     cast[ptr Component](component)).getY()
+
+        # A component with no animation has no destination of its own, so the
+        # answer is its current bounds.
+        let other = newCustomComponent()
+        other[].setBounds(makeRectangle(5.cint, 6.cint, 7.cint, 8.cint))
+        doAssert animator.getComponentDestination(
+                     cast[ptr Component](other)) == other[].getBounds(),
+                 "an unanimated component's destination is not its bounds"
+
+        # Cancelling without moving leaves the component where it started;
+        # cancelling WITH moving puts it at the destination at once.
+        animator.cancelAnimation(cast[ptr Component](component), false)
+        doAssert not animator.isAnimating(cast[ptr Component](component)),
+                 "the cancelled animation is still running"
+        doAssert component[].getBounds() !=
+                 makeRectangle(200.cint, 100.cint, 150.cint, 75.cint),
+                 "cancelling without moving jumped the component to the end"
+
+        animator.animateComponent(cast[ptr Component](component), destination,
+                                  1.0'f32, 5000.cint, false, 1.0, 1.0)
+        animator.cancelAnimation(cast[ptr Component](component), true)
+        doAssert component[].getBounds() == destination,
+                 "cancelling WITH moving left the component at " &
+                 $component[].getBounds().getX() & "," &
+                 $component[].getBounds().getY()
+
+        # fadeOut animates the alpha only for a component that is SHOWING
+        # (juce_ComponentAnimator.cpp:276), and isShowing is false off the
+        # desktop - the same peer rule that makes contains() false. So here it
+        # skips the animation and hides the component at once, which is what
+        # is asserted rather than an animation that never starts.
+        doAssert not component[].isShowing(),
+                 "an off-desktop component is showing"
+        animator.fadeOut(cast[ptr Component](component), 5000.cint)
+        doAssert not animator.isAnimating(cast[ptr Component](component)),
+                 "fadeOut animated a component that is not showing"
+        doAssert not component[].isVisible(),
+                 "fadeOut left the component visible"
+
+        # fadeIn makes it visible again, and skips the animation for the same
+        # reason.
+        animator.fadeIn(cast[ptr Component](component), 5000.cint)
+        doAssert component[].isVisible(), "fadeIn left the component hidden"
+
+        # cancelAllAnimations clears whatever is left, and the animator then
+        # reports itself idle.
+        animator.animateComponent(cast[ptr Component](component), destination,
+                                  1.0'f32, 5000.cint, false, 1.0, 1.0)
+        doAssert animator.isAnimating(), "the animator reports nothing running"
+        animator.cancelAllAnimations(false)
+        doAssert not animator.isAnimating(),
+                 "cancelAllAnimations left something running"
+
+        cdelete other
+        cdelete component
+
+    shutdownJuce_GUI()
+
+testComponentAnimator()
