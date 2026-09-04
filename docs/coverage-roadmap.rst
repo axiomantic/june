@@ -111,6 +111,23 @@ one of those is now recorded next to the assertion that found it, with the JUCE
 file and line. Do the same: read the implementation before writing the
 expectation, and when the answer is surprising, write down where it came from.
 
+**Destroy a JUCE object before JUCE is shut down.** A ``var`` declared at proc
+scope is destroyed by Nim at the END of the proc - after the
+``shutdownJuce_GUI()`` that is usually the last statement. If that object's
+destructor touches the MessageManager, it does so when there is none.
+``testTextEditorConfiguration`` did exactly that: ``~TextEditor`` tears down its
+Viewport, whose destructor calls ``removeMouseListener``, and JUCE asserted on
+every run for as long as the test existed. Put the object in a ``block:`` so it
+goes first. A ``let x = newCustom...()`` is a heap pointer that is explicitly
+``cdelete``d and is not affected; it is the by-value ``var`` that is.
+
+The same shape - an object outliving the thing it depends on - produced three
+of the four bugs this audit found. The third was
+``discard makeScopedJuceInitialiser_GUI()`` sitting in the middle of a list of
+constructors: it keeps its own counter, so building and destroying one calls
+``shutdownJuce_GUI``, and everything constructed after it ran with no
+MessageManager.
+
 **Find the ownership rule before the leak gate does.** ``registerTypeHandler``
 puts the handler in the builder's own ``OwnedArray``.
 ``ComponentBuilder::updateChildComponents`` deletes the children the new tree
