@@ -1014,3 +1014,92 @@ proc testPropertiesFileSaving() =
   shutdownJuce_GUI()
 
 testPropertiesFileSaving()
+
+# ValueTree::Listener's default bodies =======================================
+#
+# Every method has an empty body in JUCE, so the generator writes no Custom
+# subclass and nothing can be overridden from Nim. The base IS constructible,
+# though, so the six defaults can be reached - and what they are is that they
+# do nothing at all, which is what a listener that only cares about one of them
+# relies on.
+
+proc testValueTreeListenerDefaults() =
+  var listener = makeValueTreeListener()
+
+  var tree = makeValueTree(makeIdentifier(makeString("ROOT")))
+  var child = makeValueTree(makeIdentifier(makeString("CHILD")))
+  tree.addChild(child, -1.cint, nil)
+  discard tree.setProperty(makeIdentifier(makeString("name")),
+                   makejuce_var(makeString("june")), nil)
+
+  listener.valueTreePropertyChanged(tree, makeIdentifier(makeString("name")))
+  listener.valueTreeChildAdded(tree, child)
+  listener.valueTreeChildRemoved(tree, child, 0.cint)
+  listener.valueTreeChildOrderChanged(tree, 0.cint, 1.cint)
+  listener.valueTreeParentChanged(child)
+  listener.valueTreeRedirected(tree)
+
+  # Nothing the listener was told changed anything about the tree.
+  doAssert tree.getNumChildren() == 1,
+           "the tree now holds " & $tree.getNumChildren() & " children"
+  doAssert $tree.getProperty(makeIdentifier(makeString("name"))).toString() ==
+           "june",
+           "the property now reads " &
+           $tree.getProperty(makeIdentifier(makeString("name"))).toString()
+
+  # And a listener added to a tree hears about a real change without either
+  # side needing an override.
+  tree.addListener(addr listener)
+  discard tree.setProperty(makeIdentifier(makeString("name")),
+                   makejuce_var(makeString("changed")), nil)
+  tree.removeListener(addr listener)
+  doAssert $tree.getProperty(makeIdentifier(makeString("name"))).toString() ==
+           "changed",
+           "the property did not change"
+
+  # setPropertyExcludingListener skips the one listener it names, which is how
+  # a listener avoids hearing its own write back.
+  tree.addListener(addr listener)
+  discard tree.setPropertyExcludingListener(
+      addr listener, makeIdentifier(makeString("name")),
+      makejuce_var(makeString("quiet")), nil)
+  tree.removeListener(addr listener)
+  doAssert $tree.getProperty(makeIdentifier(makeString("name"))).toString() ==
+           "quiet",
+           "the excluded write did not land"
+
+# ValueTreePropertyWithDefault's accessors ===================================
+
+proc testValueTreePropertyWithDefaultAccessors() =
+  var tree = makeValueTree(makeIdentifier(makeString("ROOT")))
+  var undo = makeUndoManager()
+  let property = makeIdentifier(makeString("size"))
+
+  var wrapped = makeValueTreePropertyWithDefault(
+      tree, property, addr undo, makejuce_var(12.cint))
+
+  doAssert wrapped.getPropertyID() == property,
+           "the wrapper names the property " & $wrapped.getPropertyID()
+  doAssert wrapped.getValueTree() == tree,
+           "the wrapper points at another tree"
+  doAssert wrapped.getUndoManager() == addr undo,
+           "the wrapper points at another undo manager"
+  doAssert wrapped.getDefault().toInt() == 12,
+           "the default is " & $wrapped.getDefault().toInt()
+
+  # With nothing set, the value IS the default and the tree holds nothing.
+  doAssert wrapped.get().toInt() == 12,
+           "an unset wrapper reads " & $wrapped.get().toInt()
+  doAssert not tree.hasProperty(property),
+           "reading the default wrote it into the tree"
+
+  # Setting writes through to the tree; the default stays where it was.
+  wrapped.setValue(makejuce_var(20.cint), addr undo)
+  doAssert tree.getProperty(property).toInt() == 20,
+           "the tree holds " & $tree.getProperty(property).toInt()
+  doAssert wrapped.getDefault().toInt() == 12,
+           "setting a value changed the default to " &
+           $wrapped.getDefault().toInt()
+
+testValueTreeListenerDefaults()
+testValueTreePropertyWithDefaultAccessors()
