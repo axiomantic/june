@@ -1531,6 +1531,86 @@ proc testDrawableText() =
         doAssert text.getColour().getRed() == 255, "the colour did not stick"
         doAssert text.getColour().getBlue() == 0, "the colour has the wrong blue"
 
+    block:
+        # The constructor sets a 50x20 bounding box and a 15-point font
+        # (juce_DrawableText.cpp:38), and the font's own metrics then supply
+        # the height and the horizontal scale because applySizeAndScale is
+        # true (juce_DrawableText.cpp:120).
+        var text = makeDrawableText()
+        let box = text.getBoundingBox()
+        doAssert box.getWidth() == 50.0 and box.getHeight() == 20.0,
+                 "the default bounding box is " & $box.getWidth() & "x" &
+                 $box.getHeight()
+        doAssert text.getFontHeight() == 15.0,
+                 "the default font height is " & $text.getFontHeight()
+        doAssert text.getFontHorizontalScale() ==
+                 text.getFont().getHorizontalScale(),
+                 "the horizontal scale is " & $text.getFontHorizontalScale() &
+                 " and the font's own is " &
+                 $text.getFont().getHorizontalScale()
+
+        # Height and horizontal scale are the drawable's own, kept apart from
+        # the font: refreshBounds copies them into a SCALED font and leaves
+        # the one getFont returns alone (juce_DrawableText.cpp:126).
+        let originalHeight = text.getFont().getHeight()
+        text.setFontHeight(30.0)
+        doAssert text.getFontHeight() == 30.0,
+                 "the font height is " & $text.getFontHeight()
+        doAssert text.getFont().getHeight() == originalHeight,
+                 "setFontHeight changed the font itself to " &
+                 $text.getFont().getHeight()
+
+        text.setFontHorizontalScale(2.0)
+        doAssert text.getFontHorizontalScale() == 2.0,
+                 "the horizontal scale is " & $text.getFontHorizontalScale()
+
+        # Setting a font WITHOUT applying its size and scale leaves both of
+        # them where they were.
+        text.setFont(makeFont(makeFontOptions(40.0'f32)), false)
+        doAssert text.getFontHeight() == 30.0,
+                 "the font height became " & $text.getFontHeight()
+        doAssert text.getFontHorizontalScale() == 2.0,
+                 "the horizontal scale became " & $text.getFontHorizontalScale()
+
+        # And WITH, both follow the new font. It has to be a DIFFERENT font
+        # from the one just set: setFont returns early when the font is
+        # unchanged, so applySizeAndScale never runs (juce_DrawableText.cpp:118)
+        # and re-setting the same font would leave the height at 30.
+        text.setFont(makeFont(makeFontOptions(60.0'f32)), true)
+        doAssert text.getFontHeight() == 60.0,
+                 "the font height is " & $text.getFontHeight()
+
+    block:
+        var text = makeDrawableText()
+
+        # centredLeft is the constructor's choice (juce_DrawableText.cpp:40).
+        doAssert text.getJustification() ==
+                 makeJustification(cint(JustificationFlags_centredLeft)),
+                 "the default justification is " & $text.getJustification().getFlags()
+        text.setJustification(makeJustification(cint(JustificationFlags_centred)))
+        doAssert text.getJustification().testFlags(
+                     cint(JustificationFlags_horizontallyCentred)),
+                 "the justification did not stick"
+
+        # A bounding box is a parallelogram, so it keeps all three corners
+        # rather than a position and a size.
+        text.setBoundingBox(makeParallelogram(
+            makeRectangle(10.0'f32, 20.0'f32, 100.0'f32, 40.0'f32)))
+        let box = text.getBoundingBox()
+        doAssert box.topLeft() == makePoint(10.0'f32, 20.0'f32),
+                 "the top left is " & $box.topLeft()
+        doAssert box.getWidth() == 100.0 and box.getHeight() == 40.0,
+                 "the bounding box is " & $box.getWidth() & "x" &
+                 $box.getHeight()
+
+        # Whitespace preservation picks between drawText and drawFittedText
+        # (juce_DrawableText.cpp:182), so it has no getter and no effect on
+        # anything the test can read back.
+        text.setText(makeString("  spaced  "))
+        text.setPreserveWhitespace(true)
+        doAssert $text.getText() == "  spaced  ",
+                 "the text is " & $text.getText()
+
     shutdownJuce_GUI()
 
 testMessageBoxOptions()
