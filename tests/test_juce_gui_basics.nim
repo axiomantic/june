@@ -11323,11 +11323,20 @@ proc testLookAndFeelServices() =
                  "withDefaultMetrics changed the height to " &
                  $stamped.getHeight()
 
+        # isUsingNativeAlertWindows is hard-coded false on Linux and BSD -
+        # JUCE has no native alert window there (juce_LookAndFeel.cpp:194) -
+        # so the setter is honoured only on the other platforms. Both halves
+        # are asserted, which is what makes the difference visible rather than
+        # a test that only ever runs one way.
         doAssert not feel.isUsingNativeAlertWindows(),
                  "a new LookAndFeel uses native alert windows"
         feel.setUsingNativeAlertWindows(true)
-        doAssert feel.isUsingNativeAlertWindows(),
-                 "setUsingNativeAlertWindows did not take"
+        when defined(linux) or defined(bsd):
+            doAssert not feel.isUsingNativeAlertWindows(),
+                     "Linux reported native alert windows, which it has none of"
+        else:
+            doAssert feel.isUsingNativeAlertWindows(),
+                     "setUsingNativeAlertWindows did not take"
         feel.setUsingNativeAlertWindows(false)
 
     block:

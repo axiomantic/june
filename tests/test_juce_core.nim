@@ -4909,3 +4909,106 @@ proc testArgumentListOptions() =
              "the checks changed the argument count to " & $args.size()
 
 testArgumentListOptions()
+
+# MemoryBlock's editing operations. Every one is asserted on the BYTES
+# afterwards, not just the size, so an operation that resized without moving
+# the data - or moved it wrongly - fails.
+proc testMemoryBlockEditing() =
+  # MemoryBlock has no bound byte accessor - begin/end are commented out
+  # because the Nim iterator replaces them - so the bytes are read through
+  # getData, which is the pointer JUCE hands out for exactly this.
+  proc bytesOf(data: MemoryBlock): string =
+    let bytes = cast[ptr UncheckedArray[char]](data.getData())
+    for index in 0 ..< int(data.getSize()):
+      result.add(bytes[index])
+
+  block:
+    var data = makeMemoryBlock(0'u64, false)
+    data.append(cast[constPointer](cstring"abcdef"), 6'u64)
+    doAssert bytesOf(data) == "abcdef", "the block holds " & bytesOf(data)
+
+    # removeSection takes exactly what it names and closes the gap.
+    data.removeSection(2'u64, 2'u64)
+    doAssert bytesOf(data) == "abef",
+             "after removing two bytes the block holds " & bytesOf(data)
+
+    # insert puts bytes at a position and pushes the rest along.
+    data.insert(cast[constPointer](cstring"CD"), 2'u64, 2'u64)
+    doAssert bytesOf(data) == "abCDef",
+             "after inserting the block holds " & bytesOf(data)
+
+    # replaceAll throws the lot away.
+    data.replaceAll(cast[constPointer](cstring"xy"), 2'u64)
+    doAssert bytesOf(data) == "xy", "replaceAll left " & bytesOf(data)
+
+  block:
+    # copyFrom and copyTo move bytes in and out at an offset, and copyFrom
+    # grows the block if it has to.
+    var data = makeMemoryBlock(4'u64, true)
+    data.copyFrom(cast[constPointer](cstring"XY"), 1.cint, 2'u64)
+    doAssert bytesOf(data)[1] == 'X' and bytesOf(data)[2] == 'Y',
+             "copying at offset 1 gave " & bytesOf(data)
+    doAssert bytesOf(data)[0] == '\0',
+             "copying at offset 1 changed byte 0"
+
+    var out1 = newString(2)
+    data.copyTo(addr out1[0], 1.cint, 2'u64)
+    doAssert out1 == "XY", "copying back out gave " & out1
+
+    # ensureSize grows without losing what is there.
+    data.ensureSize(16'u64, true)
+    doAssert data.getSize() == 16'u64,
+             "after ensureSize the block is " & $data.getSize() & " bytes"
+    doAssert bytesOf(data)[1] == 'X',
+             "growing the block lost the data"
+
+  block:
+    # Two blocks holding the same bytes match; different ones do not.
+    var first = makeMemoryBlock(0'u64, false)
+    first.append(cast[constPointer](cstring"same"), 4'u64)
+    var second = makeMemoryBlock(0'u64, false)
+    second.append(cast[constPointer](cstring"same"), 4'u64)
+    var different = makeMemoryBlock(0'u64, false)
+    different.append(cast[constPointer](cstring"other"), 5'u64)
+
+    doAssert first.matches(cast[constPointer](cstring"same"), 4'u64),
+             "a block does not match its own bytes"
+    doAssert not first.matches(cast[constPointer](cstring"othe"), 4'u64),
+             "a block matches bytes it does not hold"
+    doAssert first == second, "two identical blocks are not equal"
+    doAssert not (first == different), "two different blocks are equal"
+
+  block:
+    # A block round trips through base64 and through hex, and the two
+    # encodings are different text for the same bytes.
+    var data = makeMemoryBlock(0'u64, false)
+    data.append(cast[constPointer](cstring"round trip"), 10'u64)
+
+    let base64 = data.toBase64Encoding()
+    doAssert base64.isNotEmpty(), "the base64 encoding is empty"
+    var fromBase64 = makeMemoryBlock(0'u64, false)
+    doAssert fromBase64.fromBase64Encoding(base64),
+             "the base64 text did not decode"
+    doAssert fromBase64 == data,
+             "the base64 round trip gave " & bytesOf(fromBase64)
+
+    let hex = data.toString()
+    var fromHex = makeMemoryBlock(0'u64, false)
+    fromHex.loadFromHexString(makeString("61 62 63"))
+    doAssert bytesOf(fromHex) == "abc",
+             "the hex string decoded to " & bytesOf(fromHex)
+    doAssert $base64 != $hex,
+             "base64 and the block's own text are the same"
+
+  block:
+    # setBitRange writes a run of bits, and the neighbours are left alone.
+    var data = makeMemoryBlock(2'u64, true)
+    data.setBitRange(0'u64, 8'u64, 0xFF.cint)
+    doAssert bytesOf(data)[0] == '\xFF',
+             "setting the first eight bits gave " & $ord(bytesOf(data)[0])
+    doAssert bytesOf(data)[1] == '\0',
+             "setting the first eight bits changed the second byte"
+    doAssert data.getBitRange(0'u64, 8'u64) == 0xFF,
+             "the bits read back as " & $data.getBitRange(0'u64, 8'u64)
+
+testMemoryBlockEditing()
