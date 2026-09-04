@@ -31,7 +31,27 @@ nim_type_def = """type
 {classes}
 """
 
-nim_prolog_def = """import june_common
+# The project's own copyright and licence, which every file under sources/
+# carries. A GENERATED file is still a file in this repository, and the
+# regeneration used to drop this - so the five module files lost the notice
+# naming their authors while every hand-written file kept it. That is not a
+# formatting detail: it is the copyright line of the project this contributes
+# to. check_handwritten_covered.py fails if a generated module loses it again.
+nim_licence_header = (
+    # Byte for byte what every hand-written file under sources/ carries,
+    # including the NON-BREAKING SPACE after the first two hashes. A
+    # normal space there would leave the generated modules subtly
+    # different from every other file in the project.
+    "#\u00a0June - Copyright (c) 2022 Lucio Asnaghi, Gavin Ray\n"
+    "#\n"
+    "#\u00a0Licensed and distributed under the\n"
+    "#   MIT license (license terms in the root directory or at "
+    "http://opensource.org/licenses/MIT).\n"
+    "#\n"
+    "# This file may not be copied, modified, or distributed except according to those terms.\n")
+
+nim_prolog_def = """{licence}
+import june_common
 
 const {juce_module_name} = "{juce_module_prefix}{juce_module_path}"
 """
@@ -1635,6 +1655,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
             class_juce_map[c.spelling] = subclassed_by_lifting[c.spelling]
 
     print(nim_prolog_def.format(**{
+        "licence": nim_licence_header,
         "juce_module_name": juce_module_name,
         "juce_module_prefix": juce_module_prefix,
         "juce_module_path": juce_module_path }))

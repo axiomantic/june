@@ -23,6 +23,7 @@ Run from the repository root. Exits non-zero and names what is uncovered.
 import glob
 import os
 import re
+import pathlib
 import sys
 
 hand_written = [
@@ -703,6 +704,41 @@ def check_macos_only_calls():
     return True
 
 
+def check_licence_headers():
+    """Every file under sources/ carries the project's copyright notice.
+
+    The generator used to drop it. Five generated modules lost the line naming
+    the project's authors while every hand-written file kept it, and nothing
+    noticed for four hundred commits - a regenerated file is still a file in
+    this repository, and this one would have been submitted upstream with the
+    upstream author's own copyright removed from it.
+
+    Byte for byte against a hand-written file, because the notice contains a
+    NON-BREAKING SPACE after the first two hashes. A normal space there passes
+    a careless eye and leaves the generated modules subtly different from
+    everything around them.
+    """
+    reference = pathlib.Path("sources/june/juce_core_lifting.nim")
+    expected = "\n".join(reference.read_text(encoding="utf-8").split("\n")[:6])
+
+    missing = []
+    for path in sorted(pathlib.Path("sources").rglob("*.nim")):
+        head = "\n".join(path.read_text(encoding="utf-8").split("\n")[:6])
+        if head != expected:
+            missing.append(str(path))
+
+    if missing:
+        print("These files under sources/ do not carry the project's "
+              "copyright notice, byte for byte:", file=sys.stderr)
+        for path in missing:
+            print(f"  {path}", file=sys.stderr)
+        return False
+
+    total = len(list(pathlib.Path("sources").rglob("*.nim")))
+    print(f"all {total} files under sources/ carry the copyright notice")
+    return True
+
+
 def check_constants():
     """Every bound constant is read by a test.
 
@@ -927,12 +963,13 @@ def main():
     literals_ok = check_integer_literal_overloads()
     fields_ok = check_field_accessors()
     macos_ok = check_macos_only_calls()
+    licence_ok = check_licence_headers()
 
     if (uncovered or stale or not iterators_ok or not defaults_ok
             or not subclasses_ok or not handlers_ok or not constructors_ok
             or not constants_ok or not statics_ok or not classes_ok
             or not inherited_ok or not signatures_ok
-            or not literals_ok or not fields_ok or not macos_ok):
+            or not literals_ok or not fields_ok or not macos_ok or not licence_ok):
         sys.exit(1)
 
     print(f"all {len(declared)} hand-written binding names are called "
