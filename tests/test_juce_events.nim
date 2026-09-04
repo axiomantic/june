@@ -511,3 +511,77 @@ proc testNetworkServiceDiscoveryConstructs() =
   doAssert (addr discovery) != nil, "NetworkServiceDiscovery did not build"
 
 testNetworkServiceDiscoveryConstructs()
+
+# MessageManager's identity and its broadcast list. runDispatchLoop is left
+# alone deliberately: it does not return until something stops it, so calling
+# it would hang the suite rather than test anything.
+proc testMessageManagerIdentity() =
+  initialiseJuce_GUI()
+
+  block:
+    let manager = MessageManager.getInstance()
+    doAssert not manager.isNil, "there is no message manager"
+
+    # The test runs on the message thread, so all three ways of asking agree.
+    doAssert manager[].isThisTheMessageThread(),
+             "the test is not running on the message thread"
+    doAssert manager[].getCurrentMessageThread() != nil,
+             "there is no current message thread"
+    doAssert not manager[].hasStopMessageBeenSent(),
+             "a quit message was sent before anything asked for one"
+
+    # The MESSAGE THREAD counts as holding the lock without taking it: the
+    # check is "this thread is the message thread OR it took the lock"
+    # (juce_MessageManager.cpp:217). That is the point of the lock - code on
+    # the message thread never has to acquire it - and it means this is true
+    # here for the first reason rather than the second.
+    doAssert manager[].currentThreadHasLockedMessageManager(),
+             "the message thread does not count as holding the lock"
+
+    # setCurrentThreadAsMessageThread names the caller, which is already the
+    # message thread here - so it is a no-op that has to stay one.
+    manager[].setCurrentThreadAsMessageThread()
+    doAssert manager[].isThisTheMessageThread(),
+             "naming the current thread as the message thread unnamed it"
+
+  block:
+    # A broadcast listener is registered and deregistered by pointer.
+    # deliverBroadcastMessage posts rather than calling inline, like every
+    # other JUCE notification, so what is asserted is the registration.
+    let manager = MessageManager.getInstance()
+    let listener = newCustomActionListener()
+    var heard = 0
+    listener[].setActionListenerCallbackHandler(proc(message: ptr String) =
+      heard += 1)
+
+    manager[].registerBroadcastListener(cast[ptr ActionListener](listener))
+    manager[].deliverBroadcastMessage(makeString("hello"))
+    doAssert heard == 0,
+             "the broadcast was delivered inline, " & $heard & " times"
+
+    manager[].deregisterBroadcastListener(cast[ptr ActionListener](listener))
+    manager[].deliverBroadcastMessage(makeString("ignored"))
+    doAssert heard == 0,
+             "a deregistered listener heard " & $heard & " messages"
+
+    cdelete listener
+
+  block:
+    # stopDispatchLoop sets the flag runDispatchLoop watches, and
+    # hasStopMessageBeenSent reads it. This is LAST in the file, because the
+    # flag is process-wide and stays set - a test after it would be running
+    # against a message manager that has been told to quit.
+    #
+    # runDispatchLoop itself is never called: it does not return until this
+    # flag is set from another thread, so calling it would hang the suite
+    # rather than test anything. It is left to the compile harness.
+    let manager = MessageManager.getInstance()
+    doAssert not manager[].hasStopMessageBeenSent(),
+             "a quit message was already sent"
+    manager[].stopDispatchLoop()
+    doAssert manager[].hasStopMessageBeenSent(),
+             "stopDispatchLoop did not set the flag"
+
+  shutdownJuce_GUI()
+
+testMessageManagerIdentity()
