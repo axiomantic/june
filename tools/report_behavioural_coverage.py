@@ -59,6 +59,12 @@ UNREACHABLE = {
     "JUCEApplicationImpl": "the process's single application instance",
 }
 
+# The same, one method at a time, for a class whose OTHER methods a test can
+# reach. Keyed "Class.method".
+UNREACHABLE_METHODS = {
+    "File.addToDock": "writes the user's Dock preferences and restarts the Dock",
+}
+
 
 def called_names():
     names = set()
@@ -94,17 +100,33 @@ def main():
     per = methods_by_class()
 
     total = sum(len(names) for names in per.values())
-    uncalled = {cls: len(names - called) for cls, names in per.items()}
-    uncalled = {cls: count for cls, count in uncalled.items() if count}
+    missing = {cls: names - called for cls, names in per.items()}
+    uncalled = {cls: len(names) for cls, names in missing.items() if names}
 
     unreachable = sum(count for cls, count in uncalled.items()
                       if cls in UNREACHABLE)
-    remaining = sum(uncalled.values()) - unreachable
+    unreachable += sum(
+        1 for cls, names in missing.items() if cls not in UNREACHABLE
+        for name in names if f"{cls}.{name}" in UNREACHABLE_METHODS)
+    every_uncalled = sum(uncalled.values())
+    remaining = every_uncalled - unreachable
+
+    # A class listed method by method drops out of the gap table once every
+    # one of its remaining methods is listed.
+    for cls, names in missing.items():
+        if cls in UNREACHABLE:
+            continue
+        left = sum(1 for name in names
+                   if f"{cls}.{name}" not in UNREACHABLE_METHODS)
+        if left:
+            uncalled[cls] = left
+        else:
+            uncalled.pop(cls, None)
 
     # A fixed-column table, so a later run can be diffed against this one.
     print(f"{'methods':>8}  what")
     print(f"{total:>8}  bound methods with a receiver")
-    print(f"{total - sum(uncalled.values()):>8}  called by a behavioural test")
+    print(f"{total - every_uncalled:>8}  called by a behavioural test")
     print(f"{unreachable:>8}  uncalled, and unreachable without a window, "
           f"an input device or the app instance")
     print(f"{remaining:>8}  uncalled, and reachable")
