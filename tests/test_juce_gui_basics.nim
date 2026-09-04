@@ -13433,3 +13433,84 @@ proc testWidgetCallbackGettersAndCommands() =
     shutdownJuce_GUI()
 
 testWidgetCallbackGettersAndCommands()
+
+# FileBrowserComponent's own methods. testFileBrowser above covers the
+# selection; this covers the parts around it - the filter, the sub-components
+# and the notification hooks JUCE calls.
+proc testFileBrowserParts() =
+    initialiseJuce_GUI()
+
+    block:
+        let directory = File.getSpecialLocation(
+            FileSpecialLocationType_tempDirectory)
+            .getChildFile(makeString("june_browser_parts"))
+        discard directory.deleteRecursively()
+        doAssert directory.createDirectory().wasOk(),
+                 "the directory could not be created"
+        doAssert directory.getChildFile(makeString("kept.txt"))
+                          .replaceWithText(makeString("x")),
+                 "the .txt file could not be written"
+        doAssert directory.getChildFile(makeString("hidden.dat"))
+                          .replaceWithText(makeString("x")),
+                 "the .dat file could not be written"
+
+        var filter = makeWildcardFileFilter(makeString("*.txt"),
+                                            makeString("*"),
+                                            makeString("text files"))
+        var browser = makeFileBrowserComponent(
+            cint(FileBrowserComponentFileChooserFlags_openMode) or
+            cint(FileBrowserComponentFileChooserFlags_canSelectFiles),
+            directory, addr filter, nil)
+        browser.setBounds(makeRectangle(0.cint, 0.cint, 400.cint, 300.cint))
+
+        doAssert browser.getRoot() == directory,
+                 "the browser is rooted at " &
+                 $browser.getRoot().getFullPathName()
+
+        # The sub-components exist once the browser has been laid out.
+        doAssert not browser.getDisplayComponent().isNil,
+                 "the browser has no display component"
+        doAssert browser.getPreviewComponent().isNil,
+                 "a browser built with no preview has one"
+
+        # A different filter can be installed afterwards, and the browser
+        # keeps working.
+        var everything = makeWildcardFileFilter(makeString("*"),
+                                                makeString("*"),
+                                                makeString("everything"))
+        browser.setFileFilter(addr everything)
+        doAssert browser.getRoot() == directory,
+                 "changing the filter moved the root"
+
+        # The label on the filename box is text the caller supplies.
+        browser.setFilenameBoxLabel(makeString("Save as:"))
+
+        # The notification hooks are what JUCE calls; the base implementations
+        # keep the browser consistent, which is what is asserted.
+        let file = directory.getChildFile(makeString("kept.txt"))
+        let now = Time.getCurrentTime()
+        let click = makeMouseEvent(Desktop.getInstance().getMainMouseSource(),
+                                   makePoint(1.0'f32, 1.0'f32),
+                                   makeModifierKeys(),
+                                   1.0'f32, 0.0'f32, 0.0'f32, 0.0'f32, 0.0'f32,
+                                   nil, nil, now, makePoint(1.0'f32, 1.0'f32),
+                                   now, 1.cint, false)
+        browser.fileClicked(file, click)
+        browser.fileDoubleClicked(file)
+        browser.selectionChanged()
+        browser.browserRootChanged(directory)
+        doAssert browser.getRoot() == directory,
+                 "a notification moved the root to " &
+                 $browser.getRoot().getFullPathName()
+
+        # setFileFilter(nil) puts the browser back to showing everything.
+        browser.setFileFilter(nil)
+        doAssert not browser.getDisplayComponent().isNil,
+                 "clearing the filter removed the display component"
+
+        doAssert directory.deleteRecursively(),
+                 "the directory could not be removed"
+
+    shutdownJuce_GUI()
+
+testFileBrowserParts()
