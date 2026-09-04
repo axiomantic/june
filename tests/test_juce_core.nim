@@ -7603,13 +7603,17 @@ proc testFileOsIntegration() =
     defer: discard root.deleteRecursively(false)
 
     block:
-        # A bundle is a directory the platform treats as one file. A plain
-        # directory is not one anywhere.
-        doAssert not root.isBundle(), "a plain directory is a bundle"
-        let file = root.getChildFile(makeStringRef("plain.txt"))
-        doAssert file.replaceWithText(makeString("x")),
-                 "could not write the file"
-        doAssert not file.isBundle(), "a text file is a bundle"
+        # A bundle is a directory the platform treats as one file. macOS only:
+        # JUCE declares isBundle nowhere else, and the bindings are generated
+        # on macOS, so the proc exists here while the C++ method does not -
+        # which is why the compile harness lists it in MACOS_ONLY_METHODS and
+        # why this needs the same guard.
+        when defined(macosx):
+            doAssert not root.isBundle(), "a plain directory is a bundle"
+            let file = root.getChildFile(makeStringRef("plain.txt"))
+            doAssert file.replaceWithText(makeString("x")),
+                     "could not write the file"
+            doAssert not file.isBundle(), "a text file is a bundle"
 
     block:
         # The working directory is process-wide, so it is put back straight
