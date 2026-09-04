@@ -11510,3 +11510,125 @@ proc testToolbarRemovalAndGeometry() =
     shutdownJuce_GUI()
 
 testToolbarRemovalAndGeometry()
+
+# FilenameComponent is a text box with a browse button and a recently-used
+# list. Nothing here opens a file chooser: the list and the current file are
+# ordinary state.
+proc testFilenameComponent() =
+    initialiseJuce_GUI()
+
+    block:
+        let directory = File.getSpecialLocation(
+            FileSpecialLocationType_tempDirectory)
+        let first = directory.getChildFile(makeString("june_filename_one.txt"))
+        let second = directory.getChildFile(makeString("june_filename_two.txt"))
+        discard first.replaceWithText(makeString("x"))
+        discard second.replaceWithText(makeString("x"))
+
+        var chooser = makeFilenameComponent(
+            makeString("file"), first, true, false, false,
+            makeString("*.txt"), makeString(".txt"),
+            makeString("(none selected)"))
+        chooser.setBounds(makeRectangle(0.cint, 0.cint, 300.cint, 24.cint))
+
+        doAssert chooser.getCurrentFile() == first,
+                 "the component holds " &
+                 $chooser.getCurrentFile().getFullPathName()
+        doAssert ($chooser.getCurrentFileText()).contains("june_filename_one"),
+                 "the text reads " & $chooser.getCurrentFileText()
+
+        # Setting a file changes what it holds, and the flag decides whether it
+        # joins the recently-used list.
+        # The file the CONSTRUCTOR was given is already in the list, so the
+        # starting count is measured rather than assumed to be zero.
+        let initialCount = chooser.getRecentlyUsedFilenames().size()
+        doAssert initialCount == 1,
+                 "a component built with a file lists " & $initialCount &
+                 " recent files"
+
+        # The flag on setCurrentFile decides whether the new file joins.
+        chooser.setCurrentFile(second, false,
+                               NotificationType_dontSendNotification)
+        doAssert chooser.getCurrentFile() == second,
+                 "the component holds " &
+                 $chooser.getCurrentFile().getFullPathName()
+        doAssert chooser.getRecentlyUsedFilenames().size() == initialCount,
+                 "a file set without recording it joined the list, which now " &
+                 "holds " & $chooser.getRecentlyUsedFilenames().size()
+
+        # A THIRD file, because setCurrentFile returns early when the file is
+        # already the current one - so re-setting `second` here would record
+        # nothing and prove nothing.
+        let third = directory.getChildFile(makeString("june_filename_three.txt"))
+        discard third.replaceWithText(makeString("x"))
+        chooser.setCurrentFile(third, true,
+                               NotificationType_dontSendNotification)
+        doAssert chooser.getRecentlyUsedFilenames().size() == initialCount + 1,
+                 "a file set WITH recording gave " &
+                 $chooser.getRecentlyUsedFilenames().size() & " recent files"
+        # third is deleted at the end, with the others: getLocationToBrowse
+        # below reads the current file, and removing it early would make that
+        # assertion about a path that is no longer there.
+
+        # addRecentlyUsedFile adds without changing the current file.
+        let beforeAdd = chooser.getRecentlyUsedFilenames().size()
+        chooser.addRecentlyUsedFile(directory.getChildFile(
+            makeString("june_filename_other.txt")))
+        doAssert chooser.getRecentlyUsedFilenames().size() == beforeAdd + 1,
+                 "the list holds " & $chooser.getRecentlyUsedFilenames().size()
+        doAssert chooser.getCurrentFile() == third,
+                 "adding to the list changed the current file to " &
+                 $chooser.getCurrentFile().getFullPathName()
+
+        # The maximum trims the list.
+        chooser.setMaxNumberOfRecentFiles(1.cint)
+        chooser.addRecentlyUsedFile(directory.getChildFile(
+            makeString("june_filename_four.txt")))
+        doAssert chooser.getRecentlyUsedFilenames().size() == 1,
+                 "with a maximum of one the list holds " &
+                 $chooser.getRecentlyUsedFilenames().size()
+
+        # The list can be replaced whole.
+        var replacement = makeStringArray()
+        replacement.add(first.getFullPathName())
+        replacement.add(second.getFullPathName())
+        chooser.setMaxNumberOfRecentFiles(10.cint)
+        chooser.setRecentlyUsedFilenames(replacement)
+        doAssert chooser.getRecentlyUsedFilenames().size() == 2,
+                 "the replaced list holds " &
+                 $chooser.getRecentlyUsedFilenames().size()
+
+        # The browse target defaults to the current file's folder, and can be
+        # set to another.
+        # The browse location follows the CURRENT FILE, so it is that file
+        # rather than the default target while one is selected.
+        chooser.setDefaultBrowseTarget(directory)
+        doAssert chooser.getLocationToBrowse() == third,
+                 "the browse location is " &
+                 $chooser.getLocationToBrowse().getFullPathName() &
+                 " and the current file is " &
+                 $chooser.getCurrentFile().getFullPathName()
+
+        chooser.setFilenameIsEditable(false)
+        chooser.setBrowseButtonText(makeString("Pick..."))
+        chooser.setTooltip(makeString("choose a file"))
+        doAssert $chooser.getTooltip() == "choose a file",
+                 "the tooltip reads " & $chooser.getTooltip()
+
+        # A drop of a matching file is accepted; the component is told about it
+        # through the same call a real drag would use.
+        var dropped = makeStringArray()
+        dropped.add(second.getFullPathName())
+        doAssert chooser.isInterestedInFileDrag(dropped),
+                 "the component refused a file drag"
+        chooser.filesDropped(dropped, 0.cint, 0.cint)
+        doAssert chooser.getCurrentFile() == second,
+                 "the dropped file did not become the current one; it holds " &
+                 $chooser.getCurrentFile().getFullPathName()
+
+        doAssert first.deleteFile() and second.deleteFile() and third.deleteFile(),
+                 "the temporary files could not be removed"
+
+    shutdownJuce_GUI()
+
+testFilenameComponent()
