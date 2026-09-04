@@ -12257,3 +12257,80 @@ proc testTabBarButton() =
     shutdownJuce_GUI()
 
 testTabBarButton()
+
+# The rest of TreeView: finding an item by point or by identifier, moving the
+# selection, and deleting the root.
+proc testTreeViewNavigation() =
+    initialiseJuce_GUI()
+
+    block:
+        var tree = makeTreeView(makeString("tree"))
+        tree.setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 300.cint))
+        tree.setVisible(true)
+
+        let root = newCustomTreeViewItem()
+        root[].setMightContainSubItemsHandler(proc(): bool = true)
+        tree.setRootItem(cast[ptr TreeViewItem](root))
+        let first = newCustomTreeViewItem()
+        let second = newCustomTreeViewItem()
+        root[].addSubItem(cast[ptr TreeViewItem](first))
+        root[].addSubItem(cast[ptr TreeViewItem](second))
+        root[].setOpen(true)
+
+        # findItemFromIdentifierString walks the identifier path. Every item
+        # here has an empty getUniqueName, so the identifiers collide by depth
+        # and the search answers with the FIRST item at that depth rather than
+        # a particular one - which is what makes overriding getUniqueName
+        # necessary for this to be useful at all.
+        doAssert tree.findItemFromIdentifierString(makeString("/")) ==
+                 cast[ptr TreeViewItem](root),
+                 "the root's identifier did not find the root"
+        doAssert tree.findItemFromIdentifierString(makeString("//")) ==
+                 cast[ptr TreeViewItem](first),
+                 "a child identifier found something other than the first child"
+        doAssert tree.findItemFromIdentifierString(
+                     makeString("/nothing/here")).isNil,
+                 "an identifier naming nothing found an item"
+
+        # getItemAt names the item under a y coordinate, counting from the top
+        # of the tree - so a few pixels down is the root. It works without a
+        # paint pass, unlike getItemPosition's y, because it walks the item
+        # list rather than reading a cached position.
+        doAssert tree.getItemAt(5.cint) == cast[ptr TreeViewItem](root),
+                 "a few pixels down is not the root"
+        doAssert tree.getItemAt(10_000.cint).isNil,
+                 "a point far below the last row found an item"
+
+        # moveSelectedRow walks the selection when there is one.
+        first[].setSelected(true, true, NotificationType_dontSendNotification)
+        doAssert tree.getNumSelectedItems() == 1,
+                 "one item was selected and the tree counts " &
+                 $tree.getNumSelectedItems()
+        tree.moveSelectedRow(1.cint)
+        doAssert tree.getNumSelectedItems() == 1,
+                 "moving the selection left " & $tree.getNumSelectedItems() &
+                 " items selected"
+
+        # scrollToKeepItemVisible has no reader; what is asserted is that it
+        # runs and leaves the tree consistent.
+        tree.scrollToKeepItemVisible(cast[ptr TreeViewItem](second))
+        doAssert tree.getNumRowsInTree() == 3,
+                 "scrolling changed the row count to " & $tree.getNumRowsInTree()
+
+        # A TreeView ACCEPTS a file drag by default and asks its items about it
+        # only once one arrives, so the answer here is yes even though nothing
+        # was set up to handle a drop.
+        doAssert tree.isInterestedInFileDrag(makeStringArray()),
+                 "the tree refused a file drag outright"
+
+        # deleteRootItem destroys the root AND its children, and leaves the
+        # tree with nothing - so nothing here deletes them.
+        tree.deleteRootItem()
+        doAssert tree.getRootItem().isNil,
+                 "deleteRootItem left the root in place"
+        doAssert tree.getNumRowsInTree() == 0,
+                 "deleteRootItem left " & $tree.getNumRowsInTree() & " rows"
+
+    shutdownJuce_GUI()
+
+testTreeViewNavigation()
