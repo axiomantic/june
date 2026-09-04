@@ -6385,3 +6385,232 @@ proc testZipFileRoundTrip() =
              "the extracted directories could not be removed"
 
 testZipFileRoundTrip()
+
+# AndroidDocument on a desktop ================================================
+#
+# Nothing about AndroidDocument is Android-only. juce_core.cpp includes
+# juce_AndroidDocument_android.cpp on every platform, and AndroidDocument's
+# fromFile builds an AndroidDocumentPimplFile that wraps a plain File, so the
+# whole class works against ordinary files here.
+
+proc testAndroidDocumentOverAFile() =
+    let root = june.File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                   .getNonexistentChildFile(makeString("june-android-doc"),
+                                            makeString(""))
+    doAssert root.createDirectory().wasOk(), "could not make the temp directory"
+    defer: discard root.deleteRecursively(false)
+
+    block:
+        let file = root.getChildFile(makeStringRef("note.txt"))
+        doAssert file.replaceWithText(makeString("some text")),
+                 "could not write the file"
+
+        let document = june.AndroidDocument.fromFile(file)
+        doAssert document.hasValue(), "a document over a real file holds nothing"
+        doAssert document.toBool(),
+                 "the document's conversion to bool disagrees with hasValue"
+        doAssert document.getUrl().getLocalFile() == file,
+                 "the document's url points at " &
+                 $document.getUrl().getLocalFile().getFullPathName()
+
+        let info = document.getInfo()
+        doAssert info.exists(), "the document says its file does not exist"
+        doAssert info.isFile() and not info.isDirectory(),
+                 "the document does not call an ordinary file a file"
+        doAssert not info.isVirtual(), "an ordinary file is virtual"
+        doAssert $info.getName() == "note.txt",
+                 "the document is called " & $info.getName()
+        doAssert info.getType().isNotEmpty(),
+                 "the document has no MIME type at all"
+
+        doAssert info.canRead() and info.canWrite(),
+                 "a file this process just wrote is neither readable nor writable"
+        doAssert info.canDelete() and info.canRename() and
+                 info.canCopy() and info.canMove(),
+                 "a writable file cannot be deleted, renamed, copied or moved"
+
+        # canCreateChildren is the same underlying flag as write access, which
+        # the desktop implementation sets for any writable path rather than
+        # only for directories
+        # (juce_AndroidDocument_android.cpp:266 getFlagsForFile).
+        doAssert info.canCreateChildren(),
+                 "a writable file does not carry the create-children flag"
+
+        doAssert info.isSizeInBytesValid(), "the size is not valid"
+        doAssert info.getSizeInBytes() == file.getSize(),
+                 "the document is " & $info.getSizeInBytes() &
+                 " bytes and the file " & $file.getSize()
+        doAssert info.isLastModifiedValid(), "the modification time is not valid"
+        doAssert info.getLastModified() ==
+                 file.getLastModificationTime().toMilliseconds(),
+                 "the document was modified at " & $info.getLastModified()
+
+    block:
+        # An empty file has no size to report, so the size is withheld rather
+        # than given as zero (juce_AndroidDocument_android.cpp:678 passes an
+        # empty Opt when the size is 0).
+        let empty = root.getChildFile(makeStringRef("empty.txt"))
+        doAssert empty.create().wasOk(), "could not make the empty file"
+        let info = june.AndroidDocument.fromFile(empty).getInfo()
+        doAssert not info.isSizeInBytesValid(),
+                 "an empty file reports a valid size"
+        doAssert info.getSizeInBytes() == 0,
+                 "an empty file reports " & $info.getSizeInBytes() & " bytes"
+
+    block:
+        # A directory is a directory, and a directory's MIME type is withheld
+        # (juce_AndroidDocument.h: getType returns nothing for a directory).
+        let folder = root.getChildFile(makeStringRef("folder"))
+        doAssert folder.createDirectory().wasOk(), "could not make the folder"
+        let info = june.AndroidDocument.fromFile(folder).getInfo()
+        doAssert info.isDirectory() and not info.isFile(),
+                 "a directory is not reported as one"
+        doAssert info.getType().isEmpty(),
+                 "a directory has the MIME type " & $info.getType()
+
+    block:
+        # A document that holds nothing reports so, and every info field of a
+        # default-built one is empty.
+        let nothing = makeAndroidDocument()
+        doAssert not nothing.hasValue(), "an empty document holds something"
+        doAssert not nothing.toBool(),
+                 "an empty document converts to true"
+
+        let info = makeAndroidDocumentInfo()
+        doAssert not info.exists(), "a default info says its document exists"
+        doAssert not info.isFile() and not info.isDirectory(),
+                 "a default info is either a file or a directory"
+        doAssert not info.canRead() and not info.canWrite() and
+                 not info.canDelete() and not info.canRename() and
+                 not info.canCopy() and not info.canMove() and
+                 not info.canCreateChildren() and not info.isVirtual(),
+                 "a default info grants a permission"
+        doAssert info.getName().isEmpty() and info.getType().isEmpty(),
+                 "a default info is called " & $info.getName()
+        doAssert not info.isLastModifiedValid() and
+                 not info.isSizeInBytesValid(),
+                 "a default info has a valid time or size"
+        doAssert info.getLastModified() == 0 and info.getSizeInBytes() == 0,
+                 "a default info reports a time or a size"
+
+    block:
+        # The streams read and write the file behind the document.
+        let file = root.getChildFile(makeStringRef("stream.txt"))
+        doAssert file.replaceWithText(makeString("original")),
+                 "could not write the file"
+        let document = june.AndroidDocument.fromFile(file)
+
+        block:
+            var input = document.createInputStream()
+            doAssert not input.get().isNil, "the document opened no input stream"
+            doAssert $input.get()[].readEntireStreamAsString() == "original",
+                     "the input stream read something else"
+
+        block:
+            # createOutputStream truncates first
+            # (juce_AndroidDocument_android.cpp:608), so what is written
+            # replaces the old contents rather than appending to them.
+            var output = document.createOutputStream()
+            doAssert not output.get().isNil,
+                     "the document opened no output stream"
+            doAssert output.get()[].writeString(makeString("replaced")),
+                     "the output stream wrote nothing"
+
+        doAssert $file.loadFileAsString() == "replaced",
+                 "the file now holds " & $file.loadFileAsString()
+
+    block:
+        # Creating children, copying, moving, renaming and deleting all go
+        # through the same File operations underneath.
+        let source = root.getChildFile(makeStringRef("source"))
+        let target = root.getChildFile(makeStringRef("target"))
+        doAssert source.createDirectory().wasOk() and
+                 target.createDirectory().wasOk(),
+                 "could not make the two directories"
+
+        var sourceDocument = june.AndroidDocument.fromFile(source)
+        let targetDocument = june.AndroidDocument.fromFile(target)
+
+        let child = sourceDocument.createChildDocumentWithTypeAndName(
+            makeString("text/plain"), makeString("child"))
+        doAssert child.hasValue(), "no child document was created"
+        doAssert child.getUrl().getLocalFile().existsAsFile(),
+                 "the child document has no file"
+
+        let directory = sourceDocument.createChildDirectory(
+            makeString("subfolder"))
+        doAssert directory.hasValue(), "no child directory was created"
+        doAssert directory.getUrl().getLocalFile().isDirectory(),
+                 "the child directory is not a directory"
+
+        # A copy lands in the target directory under the same name.
+        let copied = child.copyDocumentToParentDocument(targetDocument)
+        doAssert copied.hasValue(), "the child was not copied"
+        doAssert copied.getUrl().getLocalFile().getParentDirectory() == target,
+                 "the copy landed in " &
+                 $copied.getUrl().getLocalFile().getParentDirectory()
+                     .getFullPathName()
+
+        # A rename moves the document to a sibling of the same name, and the
+        # document itself follows.
+        var toRename = june.AndroidDocument.fromFile(
+            source.getChildFile(makeStringRef("rename-me.txt")))
+        doAssert source.getChildFile(makeStringRef("rename-me.txt"))
+                     .replaceWithText(makeString("x")),
+                 "could not write the file to rename"
+        doAssert toRename.renameTo(makeString("renamed.txt")),
+                 "the document was not renamed"
+        doAssert source.getChildFile(makeStringRef("renamed.txt"))
+                     .existsAsFile(),
+                 "the renamed file is not there"
+
+        # A move needs the document's current parent named correctly; the
+        # implementation refuses when the document is not a child of it
+        # (juce_AndroidDocument_android.cpp:646).
+        var toMove = june.AndroidDocument.fromFile(
+            source.getChildFile(makeStringRef("renamed.txt")))
+        doAssert not toMove.moveDocumentFromParentToParent(targetDocument,
+                                                           targetDocument),
+                 "a document was moved out of a directory it is not in"
+        doAssert toMove.moveDocumentFromParentToParent(sourceDocument,
+                                                       targetDocument),
+                 "the document was not moved"
+        doAssert target.getChildFile(makeStringRef("renamed.txt"))
+                     .existsAsFile(),
+                 "the moved file is not in the target directory"
+
+        # And deleting removes the file for good.
+        let doomed = june.AndroidDocument.fromFile(
+            target.getChildFile(makeStringRef("renamed.txt")))
+        doAssert doomed.deleteDocument(), "the document was not deleted"
+        doAssert not target.getChildFile(makeStringRef("renamed.txt"))
+                     .existsAsFile(),
+                 "the deleted file is still there"
+
+    block:
+        # The iterator walks a real directory now that there is one to walk.
+        let folder = root.getChildFile(makeStringRef("walk"))
+        doAssert folder.createDirectory().wasOk(), "could not make the folder"
+        for name in ["one.txt", "two.txt"]:
+            doAssert folder.getChildFile(makeStringRef(name))
+                         .replaceWithText(makeString("x")),
+                     "could not write " & name
+
+        # The iterator works here too: makeNonRecursive falls through to a
+        # plain directory walk over the document's local file
+        # (juce_AndroidDocument_android.cpp:954).
+        let document = june.AndroidDocument.fromFile(folder)
+        var walker = AndroidDocumentIterator.makeNonRecursive(document)
+        let done = makeAndroidDocumentIterator()
+        var seen = 0
+        while not (walker == done):
+            let entry = `*`(walker)
+            doAssert entry.hasValue(), "the iterator produced an empty document"
+            doAssert entry.getUrl().getLocalFile().getParentDirectory() ==
+                     folder,
+                     "the iterator wandered out of the folder"
+            seen += 1
+            discard inc(walker)
+        doAssert seen == 2, "the iterator walked " & $seen & " documents"
+
+testAndroidDocumentOverAFile()
