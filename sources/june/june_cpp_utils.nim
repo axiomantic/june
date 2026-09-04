@@ -15,10 +15,172 @@ type
     isConst: bool
     isPointer: bool
     isReference: bool
+    passAsPointer: bool
+    # Set only by basescalar, where the std::function's return type and the
+    # override's differ. Empty means the two are the same.
+    valueCpp: string
+    castReturn: bool
 
 
-proc makeCppType(node: NimNode): CppType {.compiletime.} =
-  result = CppType(node: node, nim: newEmptyNode(), ident: "", cpp: "", isConst: false, isPointer: false, isReference: false)
+# The C++ side of a parameter is spelled with the Nim identifier, which is only
+# valid C++ by coincidence. It holds for `bool` and for the bound JUCE classes,
+# and breaks for the fixed-width aliases: `cint` is not a C++ type at all, while
+# plain `int` and `float` are 64-bit in Nim and 32-bit in C++, so the generated
+# std::function would disagree with the one the Nim type produces.
+const cppPrimitiveNames = {
+  "cint": "int",
+  "cuint": "unsigned int",
+  "cfloat": "float",
+  "cdouble": "double",
+  "cchar": "char",
+  "cschar": "signed char",
+  "cuchar": "unsigned char",
+  "cshort": "short",
+  "cushort": "unsigned short",
+  "clong": "long",
+  "culong": "unsigned long",
+  "clonglong": "long long",
+  "culonglong": "unsigned long long",
+  # Nim's untyped pointer. Spelled `pointer` in Nim and `void*` in C++, so the
+  # std::function would take a type C++ has never heard of without this.
+  "pointer": "void*",
+  # The fixed-width names. Nim spells these as its own aliases and C++ knows
+  # none of them, so a std::function declared with one does not compile.
+  "csize_t": "size_t",
+  "int8": "signed char",
+  "uint8": "unsigned char",
+  "int16": "short",
+  "uint16": "unsigned short",
+  "int32": "int",
+  "uint32": "unsigned int",
+  "int64": "long long",
+  "uint64": "unsigned long long",
+}
+
+
+proc cppPrimitiveName(name: string): string {.compiletime.} =
+  for (nimName, cppName) in cppPrimitiveNames:
+    if name == nimName: return cppName
+  result = name
+
+
+# The C++ spelling of a Nim type node. A class template has to be rendered
+# rather than stringified: `Rectangle[cint]` is `Rectangle<int>` in C++, and
+# $node would produce the Nim form, which does not compile. The generated
+# header opens `namespace june { using namespace juce; }`, so a bare JUCE name
+# resolves without qualifying it.
+# Class templates whose Nim name is not their C++ name. Everything else in the
+# bindings keeps the JUCE spelling, so only the std:: wrappers need naming here.
+const cppTemplateNames = {
+  "UniquePtr": "std::unique_ptr",
+  "SharedPtr": "std::shared_ptr",
+  "CppVector": "std::vector",
+  "CppOptional": "std::optional",
+}
+
+
+# The C++ spelling of a bound Nim type, where the two differ. A nested class is
+# named in Nim by its parts joined together - DragAndDropTargetSourceDetails -
+# while C++ still spells it DragAndDropTarget::SourceDetails, and writing the
+# Nim name into the generated header names a type that does not exist. A
+# `cppTypeName Nim, "Cpp::Name"` line in the class body supplies the pairing.
+proc cppAliasName(name: string, aliases: seq[(string, string)]): string {.compiletime.} =
+  for (nimName, cppName) in aliases:
+    if name == nimName: return cppName
+  result = ""
+
+
+proc cppTemplateName(name: string): string {.compiletime.} =
+  for (nimName, cppName) in cppTemplateNames:
+    if name == nimName: return cppName
+  result = cppPrimitiveName(name)
+
+
+# The CppFunctionObject family is the one place where a Nim bracket type and
+# its C++ spelling are different SHAPES rather than different names.
+# CppFunctionObjectN1[bool] is std::function<void (bool)>: the head carries the
+# return type and the arity, and the arguments move inside a second pair of
+# parentheses. Substituting the head, which is what every other bracket type
+# needs, would give CppFunctionObjectN1<bool>, a type that does not exist. So
+# the whole expression is rewritten here instead.
+#
+# The name encodes the shape: N means the function returns void and R means the
+# first type argument is the return type, the digit is the argument count, and a
+# Ref suffix makes the single argument a const reference. Anything outside that
+# pattern returns "" and falls through to the ordinary head substitution.
+proc cppFunctionObjectShape(head: string): tuple[ok: bool, returnsVoid: bool,
+                                                 arity: int, byConstRef: bool]
+    {.compiletime.} =
+  const prefix = "CppFunctionObject"
+  if head.len <= prefix.len or head[0 ..< prefix.len] != prefix:
+    return (false, false, 0, false)
+
+  var rest = head[prefix.len .. ^1]
+  var byConstRef = false
+  if rest.len > 3 and rest[^3 .. ^1] == "Ref":
+    byConstRef = true
+    rest = rest[0 ..< rest.len - 3]
+
+  # What is left is one letter and one digit: N0 through R9.
+  if rest.len != 2: return (false, false, 0, false)
+  if rest[0] notin {'N', 'R'}: return (false, false, 0, false)
+  if rest[1] notin {'0' .. '9'}: return (false, false, 0, false)
+
+  let arity = ord(rest[1]) - ord('0')
+  # A const reference needs something to refer to, so Ref is meaningless at
+  # arity zero and the parser should not accept a name that claims it.
+  if byConstRef and arity == 0: return (false, false, 0, false)
+
+  result = (true, rest[0] == 'N', arity, byConstRef)
+
+
+proc cppTypeSpelling(node: NimNode, aliases: seq[(string, string)]): string {.compiletime.} =
+  case node.kind:
+  of nnkBracketExpr:
+    let shape = cppFunctionObjectShape($node[0])
+    if shape.ok:
+      # std::function<Ret (Args...)>. With an R head the first type argument is
+      # the return type and the rest are the parameters; with an N head every
+      # one of them is a parameter and the return type is void.
+      let firstArgument = if shape.returnsVoid: 1 else: 2
+      let returnType =
+        if shape.returnsVoid: "void"
+        else: cppTypeSpelling(node[1], aliases)
+      result = "std::function<" & returnType & " ("
+      for index in firstArgument ..< node.len:
+        if index > firstArgument: result &= ", "
+        let argument = cppTypeSpelling(node[index], aliases)
+        result &= (if shape.byConstRef: "const " & argument & "&" else: argument)
+      result &= ")>"
+    else:
+      # The head goes through the same lookup as a plain name, so a nested class
+      # used as a template head is spelled the way C++ knows it rather than by
+      # its flattened Nim name.
+      result = cppAliasName($node[0], aliases)
+      if result.len == 0:
+        result = cppTemplateName($node[0])
+      result &= "<"
+      for index in 1 ..< node.len:
+        if index > 1: result &= ", "
+        result &= cppTypeSpelling(node[index], aliases)
+      result &= ">"
+  of nnkPtrTy:
+    result = cppTypeSpelling(node[0], aliases) & "*"
+  else:
+    # CppFunctionObjectN0 is the only member of the family that takes no type
+    # arguments, so it is the only one that arrives as a plain name. R0 still
+    # carries its return type in brackets.
+    let shape = cppFunctionObjectShape($node)
+    if shape.ok and shape.returnsVoid and shape.arity == 0:
+      result = "std::function<void ()>"
+    else:
+      result = cppAliasName($node, aliases)
+      if result.len == 0:
+        result = cppPrimitiveName($node)
+
+
+proc makeCppType(node: NimNode, aliases: seq[(string, string)] = @[]): CppType {.compiletime.} =
+  result = CppType(node: node, nim: newEmptyNode(), ident: "", cpp: "", isConst: false, isPointer: false, isReference: false, passAsPointer: false)
 
   var realNode = node
   if realNode.kind == nnkIdentDefs:
@@ -29,23 +191,99 @@ proc makeCppType(node: NimNode): CppType {.compiletime.} =
   of nnkBracketExpr:
     if ($realNode[0] == "constval"):
       result.nim = realNode[1]
-      result.cpp = $realNode[1]
+      result.cpp = cppTypeSpelling(realNode[1], aliases)
       result.isConst = true
     elif ($realNode[0] == "constref"):
+      # Only for a type Nim passes by value. Nim's calling convention hands an
+      # object to a C function by pointer, so the raw proc behind a closure
+      # taking one has signature void(T*, void*) and bind() deduces
+      # std::function<void(T*)> from it. That does not convert to the
+      # std::function<void(T)> declared here, and the error surfaces deep inside
+      # june_function_utils rather than at the declaration. constptr is the
+      # form that works for those, so refuse the combination outright.
+      let referencedName = $realNode[1]
+      if cppPrimitiveName(referencedName) == referencedName and referencedName != "bool":
+        error "constref[" & referencedName & "] cannot be bound: Nim passes " &
+              referencedName & " by pointer, so the callback signature would " &
+              "not match. Use constptr[" & referencedName & "] instead."
       result.nim = realNode[1]
-      result.cpp = $realNode[1]
+      result.cpp = cppTypeSpelling(realNode[1], aliases)
       result.isConst = true
       result.isReference = true
+    elif ($realNode[0] == "constptr"):
+      # A const reference whose callback receives a pointer. Needed where the
+      # referenced type cannot round-trip through a std::function that takes it
+      # by value: juce::MouseEvent cannot be assigned, so the conversion from
+      # std::function<void(MouseEvent)> has no viable operator=.
+      result.nim = realNode[1]
+      result.cpp = cppTypeSpelling(realNode[1], aliases)
+      result.isConst = true
+      result.isReference = true
+      result.passAsPointer = true
+    elif ($realNode[0] == "constrawptr"):
+      # A parameter that is already a const pointer in C++, rather than a const
+      # reference. The override has to keep the const to match the virtual it
+      # overrides, and Nim has no const pointer, so the callback receives a
+      # mutable one and the forwarder casts. `constrawptr[pointer]` is the
+      # const void* form.
+      if $realNode[1] == "pointer":
+        result.nim = newIdentNode("pointer")
+        result.cpp = "void"
+      else:
+        result.nim = nnkPtrTy.newTree(realNode[1])
+        result.cpp = cppTypeSpelling(realNode[1], aliases)
+      result.isConst = true
+      result.isPointer = true
+      result.passAsPointer = true
+
+    elif ($realNode[0] == "basescalar"):
+      # A return type Nim spells as a distinct scalar - every bound JUCE enum is
+      # a `distinct cint`. Nim renders one closure struct for `proc(): cint` and
+      # `proc(): SomeEnum` and types its function-pointer field from whichever
+      # it emits first, so a program that sets one handler of each kind assigns
+      # a pointer of the wrong type and C++ rejects it.
+      #
+      # So the callback returns the base scalar and never names the distinct:
+      # the std::function is over `int`, the override keeps the enum to match
+      # the virtual, and the forwarder casts the value it got back. The cast is
+      # on a value rather than on a function pointer, which is defined.
+      result.nim = newIdentNode("cint")
+      result.valueCpp = "int"
+      result.cpp = cppTypeSpelling(realNode[1], aliases)
+      result.castReturn = true
+
+    elif ($realNode[0] == "varref"):
+      # A mutable reference. Overriding a virtual whose parameter is not const
+      # needs one: Component::paint takes a Graphics&, and declaring the
+      # override with a const Graphics& does not match it, so the compiler
+      # reports a non-virtual member function marked override.
+      result.nim = realNode[1]
+      result.cpp = cppTypeSpelling(realNode[1], aliases)
+      result.isReference = true
+      result.passAsPointer = true
     else:
-      error "Invalid type definition"
+      # A class template used by value, such as Point[cint] or Range[cint].
+      # Nim spells the instantiation directly, so the node itself is the member
+      # type and only the C++ side needs rendering.
+      result.nim = realNode
+      result.cpp = cppTypeSpelling(realNode, aliases)
+
+  of nnkPtrTy:
+    # A pointer parameter, such as ChangeListener's ChangeBroadcaster*. Passed
+    # through as a pointer on both sides, so nothing needs taking an address of.
+    result.nim = realNode
+    result.cpp = cppTypeSpelling(realNode[0], aliases)
+    result.isPointer = true
 
   of nnkEmpty:
     result.nim = newIdentNode("void")
     result.cpp = "void"
 
   else:
+    # A plain name: a bound class, or a primitive. Either may be spelled
+    # differently in C++, so it goes through the same renderer as the rest.
     result.nim = node
-    result.cpp = $node
+    result.cpp = cppTypeSpelling(realNode, aliases)
 
 
 proc toCppString(cppType: CppType): string =
@@ -56,9 +294,16 @@ proc toCppString(cppType: CppType): string =
   if cppType.isReference: result &= "&"
 
 
-proc newEmitPragma(s: string): NimNode {.compileTime.} =
-  result = newNimNode(nnkPragma)
-  result.add(newColonExpr(newIdentNode("emit"), newStrLitNode(s)))
+# The spelling used for the stored std::function's own signature. Nim can spell
+# neither const nor a reference, so the member type it declares is always the
+# bare value (or pointer). The std::function has to be declared the same way or
+# the two disagree: the C++ field would be std::function<void(const String&)>
+# while Nim believes it is std::function<void(String)>, and every assignment to
+# it is rejected by one side or the other. The override itself keeps the const
+# reference, because that has to match the virtual it is overriding.
+proc toCppValueString(cppType: CppType): string =
+  result = (if cppType.valueCpp.len > 0: cppType.valueCpp else: cppType.cpp)
+  if cppType.isPointer: result &= "*"
 
 
 proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parentNamespace: string = ""): NimNode {.compileTime.} =
@@ -67,10 +312,37 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
   if class.kind != nnkInfix or not eqIdent(class[0], "of"):
     error "Invalid node: " & class.lispRepr
 
-  var appendType = if internalClass: "Impl" else: ""
-
   let className = $class[1]
   let parentClassName = $class[2]
+
+  # The generated Nim type inherits the binding of the C++ parent. Where the new
+  # class takes the parent's own name - JUCEApplication of JUCEApplication - the
+  # binding is renamed with an Impl suffix so the two can coexist. Where the
+  # names differ, no rename happened and the parent is named as written, which
+  # is what lets a class be subclassed without displacing it: CustomComponent
+  # derives from Component, and Button stays a Component rather than a sibling.
+  let appendType = if internalClass and className == parentClassName: "Impl" else: ""
+
+  # The C++ parent is normally the Nim parent's name under the namespace, which
+  # holds while a binding is named after the class it binds. It does not hold
+  # for a type bound through an alias: Slider::Listener is an alias for the
+  # class template SliderListener<Slider>, and only the alias can be named. A
+  # `cppParent "..."` line in the body gives the spelling to derive from.
+  var cppParentSpelling = ""
+  for node in body.children:
+    if node.kind in {nnkCall, nnkCommand} and node.len == 2 and
+       node[0].kind == nnkIdent and $node[0] == "cppParent" and
+       node[1].kind == nnkStrLit:
+      cppParentSpelling = $node[1]
+
+  # `cppTypeName Nim, "Cpp::Name"` pairs a flattened Nim name with the spelling
+  # C++ knows it by.
+  var typeAliases: seq[(string, string)] = @[]
+  for node in body.children:
+    if node.kind in {nnkCall, nnkCommand} and node.len == 3 and
+       node[0].kind == nnkIdent and $node[0] == "cppTypeName" and
+       node[2].kind == nnkStrLit:
+      typeAliases.add(($node[1], $node[2]))
 
   # Nim codegen list of functions
   var nimObjectBodyDecl = nnkRecList.newTree()
@@ -79,14 +351,23 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
   var cppIncludedHeader = "june_generated_" & parentClassName & ".h"
   var cppGeneratedHeader = "june_generated_" & className & ".h"
 
-  var cppIncludeDefinition = "#pragma once\n\n"
+  # june.h, because the forwarder falls back through june::fallback when no
+  # handler is set. The generated header includes only the JUCE module it needs
+  # otherwise, and that does not declare it.
+  var cppIncludeDefinition = "#pragma once\n\n#include <utility>\n\n#include <june.h>\n\n"
   if not internalClass:
       cppIncludeDefinition &= "#include \"" & cppIncludedHeader & "\"\n"
 
   var cppClassDefinition = ""
   cppClassDefinition &= "namespace june { using namespace juce;\n\n"
-  cppClassDefinition &= "struct " & className & " : " & parentNamespace & "::" & parentClassName & " {\n"
-  cppClassDefinition &= "    using " & parentNamespace & "::" & parentClassName & "::" & parentClassName & ";\n\n"
+  let cppParent = if cppParentSpelling.len > 0: cppParentSpelling
+                  else: parentNamespace & "::" & parentClassName
+  cppClassDefinition &= "struct " & className & " : " & cppParent & " {\n"
+  # A public forwarding constructor rather than `using Parent::Parent`. An
+  # inherited constructor keeps the base's access, and juce::Button's is
+  # protected, so the subclass could not be constructed from outside at all.
+  cppClassDefinition &= "    template <typename... Args>\n"
+  cppClassDefinition &= "    " & className & "(Args&&... args) : " & cppParent & "(std::forward<Args>(args)...) {}\n\n"
 
   for node in body.children:
     case node.kind:
@@ -95,7 +376,7 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
       var funcPointerName = "on" & capitalizeAscii($node.name)
       let formalParams = node[3]
 
-      var returnValue = makeCppType(formalParams[0])
+      var returnValue = makeCppType(formalParams[0], typeAliases)
       let hasReturnValue = returnValue.cpp != "void"
 
       # Nim codegen function parameters
@@ -111,7 +392,7 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
       # Cpp codegen function parameters
       var cppFuncSignature = ""
       var cppFuncPointerSignature = ""
-      cppFuncPointerSignature &= "    std::function<" & toCppString(returnValue) & "("
+      cppFuncPointerSignature &= "    std::function<" & toCppValueString(returnValue) & "("
       cppFuncSignature &= "    " & toCppString(returnValue) & " " & funcName & "("
 
       var index = 0
@@ -119,15 +400,36 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
       for param in formalParams:
         inc(index); if index == 1: continue
 
-        var argType = makeCppType(param[1])
+        var argType = makeCppType(param[1], typeAliases)
+
+        # A mutable reference is handed to the callback as a pointer. The
+        # std::function would otherwise have to take the reference by value,
+        # which does not compile for a non-copyable type such as Graphics, and
+        # Nim has no way to spell a reference as a generic argument.
+        let passAsPointer = argType.passAsPointer
 
         # Nim codegen arguments
-        nimFunctionMemberType.add argType.nim
+        if passAsPointer and argType.isPointer:
+          # constrawptr's nim node is already the pointer, or `pointer` itself.
+          nimFunctionMemberType.add argType.nim
+        elif passAsPointer:
+          nimFunctionMemberType.add nnkPtrTy.newTree(argType.nim)
+        else:
+          nimFunctionMemberType.add argType.nim
 
         # Cpp codegen arguments
-        cppFuncPointerSignature &= toCppString(argType)
+        # The std::function takes a non-const pointer even where the override's
+        # parameter is const: Nim has no const-pointer type, so `ptr T` is the
+        # only thing the callback can be declared with, and the two must match.
+        cppFuncPointerSignature &= (if passAsPointer: argType.cpp & "*" else: toCppValueString(argType))
         cppFuncSignature &= toCppString(argType) & " " & $param[0]
-        cppFuncPointerCallArgs &= $param[0]
+        cppFuncPointerCallArgs &= (
+          if passAsPointer and argType.isConst and argType.isPointer:
+            # Already a pointer, so it is cast rather than addressed.
+            "const_cast<" & argType.cpp & "*>(" & $param[0] & ")"
+          elif passAsPointer and argType.isConst: "const_cast<" & argType.cpp & "*>(&" & $param[0] & ")"
+          elif passAsPointer: "&" & $param[0]
+          else: $param[0])
 
         if index < len(formalParams):
           cppFuncPointerSignature &= ", "
@@ -147,10 +449,30 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
       # Cpp codegen function declaration
       cppFuncPointerSignature = cppFuncPointerSignature.strip(leading = false) & ")> " & funcPointerName & ";"
 
-      cppFuncSignature &= ") override { if (" & funcPointerName & ") "
-      if hasReturnValue: cppFuncSignature &= "return "
+      # `{.cppconst.}` marks an override of a const virtual. Without it the
+      # generated method is a different signature from the one it means to
+      # override, so C++ treats it as a new non-virtual member and rejects the
+      # override marker.
+      var isConstMethod = false
+      if node[4].kind == nnkPragma:
+        for pragma in node[4]:
+          if pragma.kind == nnkIdent and eqIdent(pragma, "cppconst"):
+            isConstMethod = true
+      if isConstMethod: cppFuncSignature &= ") const override { if ("
+      else: cppFuncSignature &= ") override { if ("
+      cppFuncSignature &= funcPointerName & ") "
+      if hasReturnValue:
+        cppFuncSignature &= "return "
+        if returnValue.castReturn:
+          cppFuncSignature &= "(" & returnValue.cpp & ") "
       cppFuncSignature &= funcPointerName & "(" & cppFuncPointerCallArgs & "); "
-      if hasReturnValue: cppFuncSignature &= " else return {}; "
+      # june::fallback rather than `return {}`: a type with no default
+      # constructor - juce::Justification, juce::Font - cannot be value
+      # initialised, and a look and feel method returning one could not be
+      # generated at all.
+      if hasReturnValue:
+        cppFuncSignature &= " else return june::fallback<" &
+                            toCppString(returnValue) & ">(); "
       cppFuncSignature &= "}"
 
       cppClassDefinition &= cppFuncPointerSignature & "\n"
@@ -217,6 +539,10 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
     of nnkDiscardStmt:
       continue
 
+    of nnkCommand:
+      # cppParent was read above; nothing else is a command here.
+      continue
+
     else:
       error "Invalid nodes: " & body.lispRepr
 
@@ -225,12 +551,8 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
 
   let finalCodeEmission = cppIncludeDefinition & cppClassDefinition
   # The macro runs before the Nim compiler creates the nimcache directory, so
-  # the generated header has nowhere to land unless we create it here. The VM
-  # only gained a working createDir in Nim 2.0; older versions must shell out.
-  when (NimMajor, NimMinor) >= (2, 0):
-    createDir(june_cache_dir)
-  else:
-    discard staticExec("mkdir -p " & quoteShell(june_cache_dir))
+  # the generated header has nowhere to land unless we create it here.
+  createDir(june_cache_dir)
   writeFile(june_cache_dir / cppGeneratedHeader, finalCodeEmission)
 
   result = newStmtList nnkTypeSection.newTree(

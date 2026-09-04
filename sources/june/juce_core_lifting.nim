@@ -6,7 +6,8 @@
 # This file may not be copied, modified, or distributed except according to those terms.
 
 # String
-proc makeString*(text: cstring, bufferSizeByts: int = -1): String {.header: juce_core, importcpp: "juce::String::fromUTF8(@)".}
+# fromUTF8 takes an explicit byte count, which the plain constructors do not.
+proc makeStringFromUTF8*(text: cstring, bufferSizeBytes: int = -1): String {.header: juce_core, importcpp: "juce::String::fromUTF8(@)".}
 
 proc toRawUTF8*(this: String): string =
     result = newString(this.length())
@@ -14,50 +15,24 @@ proc toRawUTF8*(this: String): string =
 
 proc `$`*(text: String): string = text.toRawUTF8
 
+# JUCE has no operator< or operator<= taking two Strings: StringRef declares one
+# taking a String, and there is a free one taking a String and a StringRef.
+# Comparing two Strings reaches both through the same converter, so Nim calls it
+# ambiguous. These are exact matches and outrank both. > and >= come from them,
+# so fixing these two fixes all four.
+proc `<`*(this: String, other: String): bool {.header: juce_core, importcpp: "# < #".}
+proc `<=`*(this: String, other: String): bool {.header: juce_core, importcpp: "# <= #".}
+
 converter toJuceString*(text: string): String = makeString(text)
-converter toNimString*(text: String): string = text.toRawUTF8
+# No implicit String -> string. With toJuceString going the other way, any
+# mixed comparison had two equally good paths and Nim 1.6 and 2.0 call it
+# ambiguous. Use $ to get a Nim string.
 
 # StringRef
-proc makeStringRef*(text: cstring): StringRef {.header: juce_core, importcpp: "juce::StringRef(@)", constructor.}
-proc makeStringRef*(text: String): StringRef {.header: juce_core, importcpp: "juce::StringRef(@)", constructor.}
-
 converter toStringRef*(text: String): StringRef = makeStringRef(text)
-converter toStringRef*(text: string): StringRef = makeStringRef(text.cstring)
-
-# Range
-type
-    Range*[T] {.header: juce_core, importcpp: "juce::Range".} = object
-
-proc makeRange*[T](): Range[T] {.header: juce_core, importcpp: "juce::Range<'*0>()", constructor.}
-proc makeRange*[T](startValue: T, endValue: T): Range[T] {.header: juce_core, importcpp: "juce::Range<'*0>(@)", constructor.}
-proc makeRange*[T](other: Range[T]): Range[T] {.header: juce_core, importcpp: "juce::Range<'*0>(@)", constructor.}
-
-proc between*[T](this: typedesc[Range[T]], position1: T, position2: T): Range[T] {.header: juce_core, importcpp: "juce::Range<'*0>::between(@)".}
-proc withStartAndLength*[T](this: typedesc[Range[T]], startValue: T, length: T): Range[T] {.header: juce_core, importcpp: "juce::Range<'*0>::withStartAndLength(@)".}
-proc emptyRange*[T](this: typedesc[Range[T]], start: T): Range[T] {.header: juce_core, importcpp: "juce::Range<'*0>::emptyRange(@)".}
-proc findMinAndMax*[T](this: typedesc[Range[T]], values: ptr T, numValues: cint): Range[T] {.header: juce_core, importcpp: "juce::Range<'*0>::findMinAndMax(@)".}
-
-proc getStart*[T](this: Range[T]): T {.header: juce_core, importcpp: "#.getStart(@)".}
-proc getLength*[T](this: Range[T]): T {.header: juce_core, importcpp: "#.getLength(@)".}
-proc getEnd*[T](this: Range[T]): T {.header: juce_core, importcpp: "#.getEnd(@)".}
-proc isEmpty*[T](this: Range[T]): bool {.header: juce_core, importcpp: "#.isEmpty()".}
-proc setStart*[T](this: Range[T], newStart: T) {.header: juce_core, importcpp: "#.setStart(@)".}
-proc withStart*[T](this: Range[T], newStart: T): Range[T] {.header: juce_core, importcpp: "#.withStart(@)".}
-proc movedToStartAt*[T](this: Range[T], newStart: T): Range[T] {.header: juce_core, importcpp: "#.movedToStartAt(@)".}
-proc setEnd*[T](this: Range[T], newEnd: T) {.header: juce_core, importcpp: "#.setEnd(@)".}
-proc withEnd*[T](this: Range[T], newEnd: T): Range[T] {.header: juce_core, importcpp: "#.withEnd(@)".}
-proc movedToEndAt*[T](this: Range[T], newEnd: T): Range[T] {.header: juce_core, importcpp: "#.movedToEndAt(@)".}
-proc setLength*[T](this: Range[T], newLength: T) {.header: juce_core, importcpp: "#.setLength(@)".}
-proc withLength*[T](this: Range[T], newLength: T): Range[T] {.header: juce_core, importcpp: "#.withLength(@)".}
-proc expanded*[T](this: Range[T], amount: T): Range[T] {.header: juce_core, importcpp: "#.expanded(@)".}
-proc contains*[T](this: Range[T], position: T): bool {.header: juce_core, importcpp: "#.contains(@)".}
-proc clipValue*[T](this: Range[T], value: T): T {.header: juce_core, importcpp: "#.clipValue(@)".}
-proc contains*[T](this: Range[T], other: Range[T]): bool {.header: juce_core, importcpp: "#.contains(@)".}
-proc intersects*[T](this: Range[T], other: Range[T]): bool {.header: juce_core, importcpp: "#.intersects(@)".}
-proc getIntersectionWith*[T](this: Range[T], other: Range[T]): Range[T] {.header: juce_core, importcpp: "#.getIntersectionWith(@)".}
-proc getUnionWith*[T](this: Range[T], other: Range[T]): Range[T] {.header: juce_core, importcpp: "#.getUnionWith(@)".}
-proc getUnionWith*[T](this: Range[T], valueToInclude: T): Range[T] {.header: juce_core, importcpp: "#.getUnionWith(@)".}
-proc constrainRange*[T](this: Range[T], rangeToConstrain: Range[T]): Range[T] {.header: juce_core, importcpp: "#.constrainRange(@)".}
+# StringRef does not own its characters, so this is only safe for the duration
+# of the call it is passed to - the same contract StringRef has in C++.
+converter toStringRef*(text: string): StringRef = makeStringRef(toConstChar(text))
 
 #[
     Range& operator= (const Range&) = default;
@@ -68,3 +43,110 @@ proc constrainRange*[T](this: Range[T], rangeToConstrain: Range[T]): Range[T] {.
     constexpr bool operator== (Range other) const noexcept
     constexpr bool operator!= (Range other) const noexcept
 ]#
+
+# The containers a caller loops over. JUCE exposes begin() and end() for some of
+# these, which have no Nim spelling; the indexed accessors express the same loop.
+iterator items*(this: StringArray): String =
+    for index in 0 ..< this.size():
+        yield this[index]
+
+iterator items*(this: XmlElement): ptr XmlElement =
+    for index in 0 ..< this.getNumChildElements():
+        yield this.getChildElement(index)
+
+# XmlElement's own attribute iterator is Iterator<AttributeIteratorTraits>, an
+# alias over a class template with no Nim spelling. The indexed accessors give
+# the same loop.
+iterator attributes*(this: XmlElement): tuple[name: String, value: String] =
+    for index in 0 ..< this.getNumAttributes():
+        yield (this.getAttributeName(index), this.getAttributeValue(index))
+
+iterator pairs*(this: NamedValueSet): tuple[name: Identifier, value: juce_var] =
+    for index in 0 ..< this.size():
+        yield (this.getName(index), this.getValueAt(index))
+
+
+# SystemStats::CrashHandlerFunction is a plain C++ function pointer, which the
+# generator cannot spell, so setApplicationCrashHandler is a comment there.
+type CrashHandlerFunction* = proc(platformSpecificData: pointer) {.cdecl.}
+
+proc setApplicationCrashHandler*(this: typedesc[SystemStats], handler: CrashHandlerFunction)
+    {.header: juce_core, importcpp: "juce::SystemStats::setApplicationCrashHandler(@)".}
+
+# Subclasses for the abstract classes of this module. Generated; see
+# tools/generate_subclasses.py.
+include juce_core_subclasses
+
+# String and MemoryBlock both expose a C++ iterator, which has no Nim spelling,
+# and neither had a Nim one to loop with instead.
+
+iterator items*(this: String): uint32 =
+    for index in 0 ..< this.length():
+        yield this[index]
+
+iterator items*(this: MemoryBlock): uint8 =
+    # getData is the only access to the bytes: MemoryBlock has no indexed
+    # accessor of its own.
+    let data = cast[ptr UncheckedArray[uint8]](this.getData())
+    for index in 0 ..< this.getSize().int:
+        yield data[index]
+
+
+# Nim's int into an overloaded JUCE call ======================================
+#
+# JUCE gives String six integer constructors, and a plain Nim integer literal
+# converts to cint, int16, int64, uint16, uint32 and uint64 at equal cost, so
+# `makeString(5)` is ambiguous and a caller has to write `makeString(5.cint)`.
+# A proc taking Nim's own `int` is an exact match for a literal, so it wins
+# outright and the ambiguity does not arise.
+#
+# Only where the overload set has an int64 form and every integer overload
+# returns the same type. Nim's int IS an int64 on the platforms this binding
+# supports, so the conversion is lossless and the meaning is not a choice.
+# ByteOrder.swap has an int64 form but each overload returns its own width,
+# countNumberOfBits, Grid::Px, Grid::Fr and InputStream.read have no int64 form
+# at all, and there is no lossless target for any of them - those still take
+# the width from the caller. check_handwritten_covered.py recomputes this set
+# and fails if it drifts either way.
+
+# Each takes the widened value through a local of declared type. `key.int64` on
+# its own is a no-op conversion Nim elides, and on Linux Nim's int is a C++
+# `long` while its int64 is a `long long`, so what reached the C++ overload set
+# was a `long` - ambiguous between the int64 and uint64 forms. A local forces
+# the declaration g++ needs to see. macOS spells both as `long long` and never
+# showed it.
+
+proc makeString*(largeIntegerValue: int): String =
+    let widened: int64 = largeIntegerValue
+    makeString(widened)
+
+proc makejuce_var*(value: int): juce_var =
+    let widened: int64 = value
+    makejuce_var(widened)
+
+proc `juce_var=`*(this: var juce_var, value: int): var juce_var =
+    let widened: int64 = value
+    `juce_var=`(this, widened)
+
+proc makeBigInteger*(value: int): BigInteger =
+    let widened: int64 = value
+    makeBigInteger(widened)
+
+proc generateHash*(this: typedesc[DefaultHashFunctions], key: int,
+                   upperLimit: cint): cint =
+    let widened: int64 = key
+    DefaultHashFunctions.generateHash(widened, upperLimit)
+
+proc milliseconds*(this: typedesc[RelativeTime], milliseconds: int): RelativeTime =
+    let widened: int64 = milliseconds
+    RelativeTime.milliseconds(widened)
+
+# XmlDocument::setInputSource takes ownership of a heap InputSource, so a
+# caller needs one built with `new`. cnew cannot: it splices the constructor's
+# arguments and drops the separator between them, and FileInputSource takes
+# two. This is the heap form written out.
+proc newFileInputSource*(file: File,
+                         useFileTimeInHashGeneration: bool = false):
+                         ptr FileInputSource
+    {.header: juce_core,
+      importcpp: "(new juce::FileInputSource(@))".}

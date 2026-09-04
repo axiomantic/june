@@ -13,9 +13,17 @@ __pycache__/
 *.dSYM
 
 
-# Compiled test executables
-tests/test_juce_core
-tests/test_juce_events
-tests/test_juce_data_structures
-tests/test_juce_graphics
-tests/test_juce_gui_basics
+# Compiled binaries. Nim writes one beside its source with no extension, so
+# these ignore anything here without a dot in its name rather than listing the
+# executables by hand: a list only covers the sources that exist today, and a
+# 38MB binary from a throwaway probe was committed past one.
+tests/*
+!tests/*.*
+examples/*
+!examples/*.*
+
+# Re-asserted after the negations above, which would otherwise bring back the
+# debug bundles the earlier *.dSYM rule excludes: a later rule wins.
+tests/*.dSYM/
+examples/*.dSYM/
+.venv/

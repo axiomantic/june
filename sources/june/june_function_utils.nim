@@ -14,6 +14,13 @@ type
     CppFunctionObjectR0*[R] {.importcpp: "std::function<'0()>", header: "<functional>".} = object
     CppFunctionObjectN1*[T] {.importcpp: "std::function<void('0)>", header: "<functional>".} = object
     CppFunctionObjectR1*[R, T] {.importcpp: "std::function<'0('1)>", header: "<functional>".} = object
+    # The const-reference form. JUCE asks for this where the argument holds a
+    # reference member and so cannot be passed by value at all.
+    CppFunctionObjectR1Ref*[R, T] {.importcpp: "std::function<'0(const '1&)>", header: "<functional>".} = object
+    # The same, returning nothing. FileChooser::launchAsync asks for one over a
+    # FileChooser, which cannot be copied, so the by-value form is not merely
+    # the wrong type - it is a type C++ cannot form at all.
+    CppFunctionObjectN1Ref*[T] {.importcpp: "std::function<void(const '0&)>", header: "<functional>".} = object
     CppFunctionObjectN2*[T1, T2] {.importcpp: "std::function<void('0, '1)>", header: "<functional>".} = object
     CppFunctionObjectR2*[R, T1, T2] {.importcpp: "std::function<'0('1, '2)>", header: "<functional>".} = object
     CppFunctionObjectN3*[T1, T2, T3] {.importcpp: "std::function<void('0, '1, '2)>", header: "<functional>".} = object
@@ -30,12 +37,15 @@ type
     CppFunctionObjectR8*[R, T1, T2, T3, T4, T5, T6, T7, T8] {.importcpp: "std::function<'0('1, '2, '3, '4, '5, '6, '7, '8)>", header: "<functional>".} = object
     CppFunctionObjectN9*[T1, T2, T3, T4, T5, T6, T7, T8, T9] {.importcpp: "std::function<void('0, '1, '2, '3, '4, '5, '6, '7, '8)>", header: "<functional>".} = object
     CppFunctionObjectR9*[R, T1, T2, T3, T4, T5, T6, T7, T8, T9] {.importcpp: "std::function<'0('1, '2, '3, '4, '5, '6, '7, '8, '9)>", header: "<functional>".} = object
+    CppFunctionObjectN10*[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10] {.importcpp: "std::function<void('0, '1, '2, '3, '4, '5, '6, '7, '8, '9)>", header: "<functional>".} = object
 
 type
     CppFunctionClosureN0 = proc (env: pointer) {.nimcall.}
     CppFunctionClosureR0[R] = proc (env: pointer): R {.nimcall.}
     CppFunctionClosureN1[T] = proc (a: T, env: pointer) {.nimcall.}
     CppFunctionClosureR1[R, T] = proc (a: T, env: pointer): R {.nimcall.}
+    CppFunctionClosureR1Ref[R, T] = proc (a: ptr T, env: pointer): R {.nimcall.}
+    CppFunctionClosureN1Ref[T] = proc (a: ptr T, env: pointer) {.nimcall.}
     CppFunctionClosureN2[T1, T2] = proc (a1: T1, a2: T2, env: pointer) {.nimcall.}
     CppFunctionClosureR2[R, T1, T2] = proc (a1: T1, a2: T2, env: pointer): R {.nimcall.}
     CppFunctionClosureN3[T1, T2, T3] = proc (a1: T1, a2: T2, a3: T3, env: pointer) {.nimcall.}
@@ -52,6 +62,7 @@ type
     CppFunctionClosureR8[R, T1, T2, T3, T4, T5, T6, T7, T8] = proc (a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, env: pointer): R {.nimcall.}
     CppFunctionClosureN9[T1, T2, T3, T4, T5, T6, T7, T8, T9] = proc (a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9, env: pointer) {.nimcall.}
     CppFunctionClosureR9[R, T1, T2, T3, T4, T5, T6, T7, T8, T9] = proc (a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9, env: pointer): R {.nimcall.}
+    CppFunctionClosureN10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10] = proc (a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9, a10: T10, env: pointer) {.nimcall.}
 
 macro CppFunctionObject*(types: varargs[untyped]): untyped =
     if len(types) > 0:
@@ -73,6 +84,10 @@ proc bindInternal(p: CppFunctionClosureN0, env: pointer): CppFunctionObjectN0 {.
 proc bindInternal[R](p: CppFunctionClosureR0[R], env: pointer): CppFunctionObjectR0[R] {.header: "<june.h>", importcpp: "june::bind(@)".}
 proc bindInternal[T](p: CppFunctionClosureN1[T], env: pointer): CppFunctionObjectN1[T] {.header: "<june.h>", importcpp: "june::bind(@)".}
 proc bindInternal[R, T](p: CppFunctionClosureR1[R, T], env: pointer): CppFunctionObjectR1[R, T] {.header: "<june.h>", importcpp: "june::bind(@)".}
+proc bindInternalConstRef[R, T](p: CppFunctionClosureR1Ref[R, T], env: pointer): CppFunctionObjectR1Ref[R, T] {.header: "<june.h>", importcpp: "june::bindConstRef(@)".}
+# The same june::bindConstRef: its R deduces to void from a void function
+# pointer, and `return f(...)` in a void-returning lambda is legal C++.
+proc bindInternalConstRef[T](p: CppFunctionClosureN1Ref[T], env: pointer): CppFunctionObjectN1Ref[T] {.header: "<june.h>", importcpp: "june::bindConstRef(@)".}
 proc bindInternal[T1, T2](p: CppFunctionClosureN2[T1, T2], env: pointer): CppFunctionObjectN2[T1, T2] {.header: "<june.h>", importcpp: "june::bind(@)".}
 proc bindInternal[R, T1, T2](p: CppFunctionClosureR2[R, T1, T2], env: pointer): CppFunctionObjectR2[R, T1, T2] {.header: "<june.h>", importcpp: "june::bind(@)".}
 proc bindInternal[T1, T2, T3](p: CppFunctionClosureN3[T1, T2, T3], env: pointer): CppFunctionObjectN3[T1, T2, T3] {.header: "<june.h>", importcpp: "june::bind(@)".}
@@ -89,52 +104,161 @@ proc bindInternal[T1, T2, T3, T4, T5, T6, T7, T8](p: CppFunctionClosureN8[T1, T2
 proc bindInternal[R, T1, T2, T3, T4, T5, T6, T7, T8](p: CppFunctionClosureR8[R, T1, T2, T3, T4, T5, T6, T7, T8], env: pointer): CppFunctionObjectR8[R, T1, T2, T3, T4, T5, T6, T7, T8] {.header: "<june.h>", importcpp: "june::bind(@)".}
 proc bindInternal[T1, T2, T3, T4, T5, T6, T7, T8, T9](p: CppFunctionClosureN9[T1, T2, T3, T4, T5, T6, T7, T8, T9], env: pointer): CppFunctionObjectN9[T1, T2, T3, T4, T5, T6, T7, T8, T9] {.header: "<june.h>", importcpp: "june::bind(@)".}
 proc bindInternal[R, T1, T2, T3, T4, T5, T6, T7, T8, T9](p: CppFunctionClosureR9[R, T1, T2, T3, T4, T5, T6, T7, T8, T9], env: pointer): CppFunctionObjectR9[R, T1, T2, T3, T4, T5, T6, T7, T8, T9] {.header: "<june.h>", importcpp: "june::bind(@)".}
+proc bindInternal[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10](p: CppFunctionClosureN10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10], env: pointer): CppFunctionObjectN10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10] {.header: "<june.h>", importcpp: "june::bind(@)".}
 
+
+# A bound closure's environment is retained for the life of the program.
+#
+# bindClosure hands C++ the raw environment pointer and takes no reference to
+# it, so once the Nim closure goes out of scope the environment is collected
+# while the std::function still points at it. The symptom is a corrupted capture
+# rather than a crash, so it survives casual testing.
+#
+# Retaining leaks one environment per bound closure. Callbacks are set up once,
+# and a bounded leak is the right trade against a use-after-free.
+#
+# Thread-local, so binding from two threads needs no lock and the accessor stays
+# GC-safe. A closure bound on one thread is retained by that thread, which is
+# what callback setup does.
+var retainedClosureEnvironments {.threadvar.}: seq[RootRef]
+
+proc retainEnv(env: pointer): pointer {.discardable.} =
+    if env != nil:
+        retainedClosureEnvironments.add(cast[RootRef](env))
+    env
+
+# Templates rather than procs, for every overload whose result type is generic.
+# Nim renders an instantiated importcpp type from a proc's signature before it
+# has created the typedef for it, and emits the importcpp pattern verbatim -
+# `std::function<'0()>` reaches the C++ compiler, whose stray apostrophe then
+# corrupts the preprocessor and is reported as a broken #line directive far from
+# the cause. A template has no signature of its own, so the type is first
+# rendered at the call site, where the typedef already exists.
+#
+# The typed local is required: rawProc cannot take the raw template argument.
+#
+# A caller-side temporary fixes any single call as well, but that is a rule
+# every future caller has to know and nothing enforces. This is the same fix
+# applied once, where it cannot be forgotten.
+#
+# CppFunctionObjectN0 is not generic, so it needs none of this.
 proc bindClosure*(f: proc() {.closure.}): CppFunctionObjectN0 =
-    bindInternal(cast[CppFunctionClosureN0](rawProc f), rawEnv f)
-proc bindClosure*[R](f: proc(): R {.closure.}): CppFunctionObjectR0[R] =
-    bindInternal(cast[CppFunctionClosureR0[R]](rawProc f), rawEnv f)
-proc bindClosure*[T](f: proc(a: T) {.closure.}): CppFunctionObjectN1[T] =
-    bindInternal(cast[CppFunctionClosureN1[T]](rawProc f), rawEnv f)
-proc bindClosure*[R, T](f: proc(a: T): R {.closure.}): CppFunctionObjectR1[R, T] =
-    bindInternal(cast[CppFunctionClosureR1[R, T]](rawProc f), rawEnv f)
-proc bindClosure*[T1, T2](f: proc(a1: T1, a2: T2) {.closure.}): CppFunctionObjectN2[T1, T2] =
-    bindInternal(cast[CppFunctionClosureN2[T1, T2]](rawProc f), rawEnv f)
-proc bindClosure*[R, T1, T2](f: proc(a1: T1, a2: T2): R {.closure.}): CppFunctionObjectR2[R, T1, T2] =
-    bindInternal(cast[CppFunctionClosureR2[R, T1, T2]](rawProc f), rawEnv f)
-proc bindClosure*[T1, T2, T3](f: proc(a1: T1, a2: T2, a3: T3) {.closure.}): CppFunctionObjectN3[T1, T2, T3] =
-    bindInternal(cast[CppFunctionClosureN3[T1, T2, T3]](rawProc f), rawEnv f)
-proc bindClosure*[R, T1, T2, T3](f: proc(a1: T1, a2: T2, a3: T3): R {.closure.}): CppFunctionObjectR3[R, T1, T2, T3] =
-    bindInternal(cast[CppFunctionClosureR3[R, T1, T2, T3]](rawProc f), rawEnv f)
-proc bindClosure*[T1, T2, T3, T4](f: proc(a1: T1, a2: T2, a3: T3, a4: T4) {.closure.}): CppFunctionObjectN4[T1, T2, T3, T4] =
-    bindInternal(cast[CppFunctionClosureN4[T1, T2, T3, T4]](rawProc f), rawEnv f)
-proc bindClosure*[R, T1, T2, T3, T4](f: proc(a1: T1, a2: T2, a3: T3, a4: T4): R {.closure.}): CppFunctionObjectR4[R, T1, T2, T3, T4] =
-    bindInternal(cast[CppFunctionClosureR4[R, T1, T2, T3, T4]](rawProc f), rawEnv f)
-proc bindClosure*[T1, T2, T3, T4, T5](f: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5) {.closure.}): CppFunctionObjectN5[T1, T2, T3, T4, T5] =
-    bindInternal(cast[CppFunctionClosureN5[T1, T2, T3, T4, T5]](rawProc f), rawEnv f)
-proc bindClosure*[R, T1, T2, T3, T4, T5](f: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5): R {.closure.}): CppFunctionObjectR5[R, T1, T2, T3, T4, T5] =
-    bindInternal(cast[CppFunctionClosureR5[R, T1, T2, T3, T4, T5]](rawProc f), rawEnv f)
-proc bindClosure*[T1, T2, T3, T4, T5, T6](f: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6) {.closure.}): CppFunctionObjectN6[T1, T2, T3, T4, T5, T6] =
-    bindInternal(cast[CppFunctionClosureN6[T1, T2, T3, T4, T5, T6]](rawProc f), rawEnv f)
-proc bindClosure*[R, T1, T2, T3, T4, T5, T6](f: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6): R {.closure.}): CppFunctionObjectR6[R, T1, T2, T3, T4, T5, T6] =
-    bindInternal(cast[CppFunctionClosureR6[R, T1, T2, T3, T4, T5, T6]](rawProc f), rawEnv f)
-proc bindClosure*[T1, T2, T3, T4, T5, T6, T7](f: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7) {.closure.}): CppFunctionObjectN7[T1, T2, T3, T4, T5, T6, T7] =
-    bindInternal(cast[CppFunctionClosureN7[T1, T2, T3, T4, T5, T6, T7]](rawProc f), rawEnv f)
-proc bindClosure*[R, T1, T2, T3, T4, T5, T6, T7](f: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7): R {.closure.}): CppFunctionObjectR7[R, T1, T2, T3, T4, T5, T6, T7] =
-    bindInternal(cast[CppFunctionClosureR7[R, T1, T2, T3, T4, T5, T6, T7]](rawProc f), rawEnv f)
-proc bindClosure*[T1, T2, T3, T4, T5, T6, T7, T8](f: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8) {.closure.}): CppFunctionObjectN8[T1, T2, T3, T4, T5, T6, T7, T8] =
-    bindInternal(cast[CppFunctionClosureN8[T1, T2, T3, T4, T5, T6, T7, T8]](rawProc f), rawEnv f)
-proc bindClosure*[R, T1, T2, T3, T4, T5, T6, T7, T8](f: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8): R {.closure.}): CppFunctionObjectR8[R, T1, T2, T3, T4, T5, T6, T7, T8] =
-    bindInternal(cast[CppFunctionClosureR8[R, T1, T2, T3, T4, T5, T6, T7, T8]](rawProc f), rawEnv f)
-proc bindClosure*[T1, T2, T3, T4, T5, T6, T7, T8, T9](f: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9) {.closure.}): CppFunctionObjectN9[T1, T2, T3, T4, T5, T6, T7, T8, T9] =
-    bindInternal(cast[CppFunctionClosureN9[T1, T2, T3, T4, T5, T6, T7, T8, T9]](rawProc f), rawEnv f)
-proc bindClosure*[R, T1, T2, T3, T4, T5, T6, T7, T8, T9](f: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9): R {.closure.}): CppFunctionObjectR9[R, T1, T2, T3, T4, T5, T6, T7, T8, T9] =
-    bindInternal(cast[CppFunctionClosureR9[R, T1, T2, T3, T4, T5, T6, T7, T8, T9]](rawProc f), rawEnv f)
+    bindInternal(cast[CppFunctionClosureN0](rawProc f), retainEnv(rawEnv f))
+template bindClosure*[R](f: proc(): R {.closure.}): CppFunctionObjectR0[R] =
+    block:
+        let boundClosure: proc(): R {.closure.} = f
+        bindInternal(cast[CppFunctionClosureR0[R]](rawProc boundClosure), retainEnv(rawEnv boundClosure))
+# The counterpart to the macro's basescalar marker, for a binding that takes a
+# std::function returning an enum. ThreadPool.addJob is the one JUCE has. The
+# Nim closure returns the base scalar so that it never names the distinct, and
+# june.h casts the value.
+proc bindCastingR0[E](p: pointer, env: pointer): CppFunctionObjectR0[E]
+    {.header: "<june.h>", importcpp: "june::bindCastingR0<'0>((int (*)(void*)) #, #)".}
+
+template bindEnumClosure*[E](f: proc(): cint {.closure.}): CppFunctionObjectR0[E] =
+    block:
+        let boundClosure: proc(): cint {.closure.} = f
+        bindCastingR0[E](cast[pointer](rawProc boundClosure), retainEnv(rawEnv boundClosure))
+
+template bindClosure*[T](f: proc(a: T) {.closure.}): CppFunctionObjectN1[T] =
+    block:
+        let boundClosure: proc(a: T) {.closure.} = f
+        bindInternal(cast[CppFunctionClosureN1[T]](rawProc boundClosure), retainEnv(rawEnv boundClosure))
+template bindClosure*[R, T](f: proc(a: T): R {.closure.}): CppFunctionObjectR1[R, T] =
+    block:
+        let boundClosure: proc(a: T): R {.closure.} = f
+        bindInternal(cast[CppFunctionClosureR1[R, T]](rawProc boundClosure), retainEnv(rawEnv boundClosure))
+
+# A separate name rather than another bindClosure overload: a
+# `proc(a: ptr T): R` also matches the one above with T bound to `ptr T`, and
+# the two would be ambiguous.
+template bindConstRefClosure*[R, T](f: proc(a: ptr T): R {.closure.}): CppFunctionObjectR1Ref[R, T] =
+    block:
+        let boundClosure: proc(a: ptr T): R {.closure.} = f
+        bindInternalConstRef(cast[CppFunctionClosureR1Ref[R, T]](rawProc boundClosure), retainEnv(rawEnv boundClosure))
+template bindConstRefClosure*[T](f: proc(a: ptr T) {.closure.}): CppFunctionObjectN1Ref[T] =
+    block:
+        let boundClosure: proc(a: ptr T) {.closure.} = f
+        bindInternalConstRef(cast[CppFunctionClosureN1Ref[T]](rawProc boundClosure), retainEnv(rawEnv boundClosure))
+template bindClosure*[T1, T2](f: proc(a1: T1, a2: T2) {.closure.}): CppFunctionObjectN2[T1, T2] =
+    block:
+        let boundClosure: proc(a1: T1, a2: T2) {.closure.} = f
+        bindInternal(cast[CppFunctionClosureN2[T1, T2]](rawProc boundClosure), retainEnv(rawEnv boundClosure))
+template bindClosure*[R, T1, T2](f: proc(a1: T1, a2: T2): R {.closure.}): CppFunctionObjectR2[R, T1, T2] =
+    block:
+        let boundClosure: proc(a1: T1, a2: T2): R {.closure.} = f
+        bindInternal(cast[CppFunctionClosureR2[R, T1, T2]](rawProc boundClosure), retainEnv(rawEnv boundClosure))
+template bindClosure*[T1, T2, T3](f: proc(a1: T1, a2: T2, a3: T3) {.closure.}): CppFunctionObjectN3[T1, T2, T3] =
+    block:
+        let boundClosure: proc(a1: T1, a2: T2, a3: T3) {.closure.} = f
+        bindInternal(cast[CppFunctionClosureN3[T1, T2, T3]](rawProc boundClosure), retainEnv(rawEnv boundClosure))
+template bindClosure*[R, T1, T2, T3](f: proc(a1: T1, a2: T2, a3: T3): R {.closure.}): CppFunctionObjectR3[R, T1, T2, T3] =
+    block:
+        let boundClosure: proc(a1: T1, a2: T2, a3: T3): R {.closure.} = f
+        bindInternal(cast[CppFunctionClosureR3[R, T1, T2, T3]](rawProc boundClosure), retainEnv(rawEnv boundClosure))
+template bindClosure*[T1, T2, T3, T4](f: proc(a1: T1, a2: T2, a3: T3, a4: T4) {.closure.}): CppFunctionObjectN4[T1, T2, T3, T4] =
+    block:
+        let boundClosure: proc(a1: T1, a2: T2, a3: T3, a4: T4) {.closure.} = f
+        bindInternal(cast[CppFunctionClosureN4[T1, T2, T3, T4]](rawProc boundClosure), retainEnv(rawEnv boundClosure))
+template bindClosure*[R, T1, T2, T3, T4](f: proc(a1: T1, a2: T2, a3: T3, a4: T4): R {.closure.}): CppFunctionObjectR4[R, T1, T2, T3, T4] =
+    block:
+        let boundClosure: proc(a1: T1, a2: T2, a3: T3, a4: T4): R {.closure.} = f
+        bindInternal(cast[CppFunctionClosureR4[R, T1, T2, T3, T4]](rawProc boundClosure), retainEnv(rawEnv boundClosure))
+template bindClosure*[T1, T2, T3, T4, T5](f: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5) {.closure.}): CppFunctionObjectN5[T1, T2, T3, T4, T5] =
+    block:
+        let boundClosure: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5) {.closure.} = f
+        bindInternal(cast[CppFunctionClosureN5[T1, T2, T3, T4, T5]](rawProc boundClosure), retainEnv(rawEnv boundClosure))
+template bindClosure*[R, T1, T2, T3, T4, T5](f: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5): R {.closure.}): CppFunctionObjectR5[R, T1, T2, T3, T4, T5] =
+    block:
+        let boundClosure: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5): R {.closure.} = f
+        bindInternal(cast[CppFunctionClosureR5[R, T1, T2, T3, T4, T5]](rawProc boundClosure), retainEnv(rawEnv boundClosure))
+template bindClosure*[T1, T2, T3, T4, T5, T6](f: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6) {.closure.}): CppFunctionObjectN6[T1, T2, T3, T4, T5, T6] =
+    block:
+        let boundClosure: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6) {.closure.} = f
+        bindInternal(cast[CppFunctionClosureN6[T1, T2, T3, T4, T5, T6]](rawProc boundClosure), retainEnv(rawEnv boundClosure))
+template bindClosure*[R, T1, T2, T3, T4, T5, T6](f: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6): R {.closure.}): CppFunctionObjectR6[R, T1, T2, T3, T4, T5, T6] =
+    block:
+        let boundClosure: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6): R {.closure.} = f
+        bindInternal(cast[CppFunctionClosureR6[R, T1, T2, T3, T4, T5, T6]](rawProc boundClosure), retainEnv(rawEnv boundClosure))
+template bindClosure*[T1, T2, T3, T4, T5, T6, T7](f: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7) {.closure.}): CppFunctionObjectN7[T1, T2, T3, T4, T5, T6, T7] =
+    block:
+        let boundClosure: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7) {.closure.} = f
+        bindInternal(cast[CppFunctionClosureN7[T1, T2, T3, T4, T5, T6, T7]](rawProc boundClosure), retainEnv(rawEnv boundClosure))
+template bindClosure*[R, T1, T2, T3, T4, T5, T6, T7](f: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7): R {.closure.}): CppFunctionObjectR7[R, T1, T2, T3, T4, T5, T6, T7] =
+    block:
+        let boundClosure: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7): R {.closure.} = f
+        bindInternal(cast[CppFunctionClosureR7[R, T1, T2, T3, T4, T5, T6, T7]](rawProc boundClosure), retainEnv(rawEnv boundClosure))
+template bindClosure*[T1, T2, T3, T4, T5, T6, T7, T8](f: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8) {.closure.}): CppFunctionObjectN8[T1, T2, T3, T4, T5, T6, T7, T8] =
+    block:
+        let boundClosure: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8) {.closure.} = f
+        bindInternal(cast[CppFunctionClosureN8[T1, T2, T3, T4, T5, T6, T7, T8]](rawProc boundClosure), retainEnv(rawEnv boundClosure))
+template bindClosure*[R, T1, T2, T3, T4, T5, T6, T7, T8](f: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8): R {.closure.}): CppFunctionObjectR8[R, T1, T2, T3, T4, T5, T6, T7, T8] =
+    block:
+        let boundClosure: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8): R {.closure.} = f
+        bindInternal(cast[CppFunctionClosureR8[R, T1, T2, T3, T4, T5, T6, T7, T8]](rawProc boundClosure), retainEnv(rawEnv boundClosure))
+template bindClosure*[T1, T2, T3, T4, T5, T6, T7, T8, T9](f: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9) {.closure.}): CppFunctionObjectN9[T1, T2, T3, T4, T5, T6, T7, T8, T9] =
+    block:
+        let boundClosure: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9) {.closure.} = f
+        bindInternal(cast[CppFunctionClosureN9[T1, T2, T3, T4, T5, T6, T7, T8, T9]](rawProc boundClosure), retainEnv(rawEnv boundClosure))
+template bindClosure*[R, T1, T2, T3, T4, T5, T6, T7, T8, T9](f: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9): R {.closure.}): CppFunctionObjectR9[R, T1, T2, T3, T4, T5, T6, T7, T8, T9] =
+    block:
+        let boundClosure: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9): R {.closure.} = f
+        bindInternal(cast[CppFunctionClosureR9[R, T1, T2, T3, T4, T5, T6, T7, T8, T9]](rawProc boundClosure), retainEnv(rawEnv boundClosure))
+template bindClosure*[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10](f: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9, a10: T10) {.closure.}): CppFunctionObjectN10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10] =
+    block:
+        let boundClosure: proc(a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9, a10: T10) {.closure.} = f
+        bindInternal(cast[CppFunctionClosureN10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]](rawProc boundClosure), retainEnv(rawEnv boundClosure))
 
 proc `()`*(f: var CppFunctionObjectN0) {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc `()`*[R](f: var CppFunctionObjectR0[R]): R {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc `()`*[T](f: var CppFunctionObjectN1[T], a: T) {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc `()`*[R, T](f: var CppFunctionObjectR1[R, T], a: T): R {.importcpp: "std::invoke(@)", header: "<functional>".}
+# The const-reference forms take the argument by pointer on the Nim side, the
+# way their handlers receive it, and C++ dereferences it into the reference the
+# std::function declares. Without these a caller could hold one of these
+# objects and had no way to call it.
+proc `()`*[R, T](f: var CppFunctionObjectR1Ref[R, T], a: ptr T): R {.importcpp: "std::invoke(#, *#)", header: "<functional>".}
+proc `()`*[T](f: var CppFunctionObjectN1Ref[T], a: ptr T) {.importcpp: "std::invoke(#, *#)", header: "<functional>".}
 proc `()`*[T1, T2](f: var CppFunctionObjectN2[T1, T2], a1: T1, a2: T2) {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc `()`*[R, T1, T2](f: var CppFunctionObjectR2[R, T1, T2], a1: T1, a2: T2): R {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc `()`*[T1, T2, T3](f: var CppFunctionObjectN3[T1, T2, T3], a1: T1, a2: T2, a3: T3) {.importcpp: "std::invoke(@)", header: "<functional>".}
@@ -151,6 +275,7 @@ proc `()`*[T1, T2, T3, T4, T5, T6, T7, T8](f: var CppFunctionObjectN8[T1, T2, T3
 proc `()`*[R, T1, T2, T3, T4, T5, T6, T7, T8](f: var CppFunctionObjectR8[R, T1, T2, T3, T4, T5, T6, T7, T8], a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8): R {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc `()`*[T1, T2, T3, T4, T5, T6, T7, T8, T9](f: var CppFunctionObjectN9[T1, T2, T3, T4, T5, T6, T7, T8, T9], a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9) {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc `()`*[R, T1, T2, T3, T4, T5, T6, T7, T8, T9](f: var CppFunctionObjectR9[R, T1, T2, T3, T4, T5, T6, T7, T8, T9], a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9): R {.importcpp: "std::invoke(@)", header: "<functional>".}
+proc `()`*[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10](f: var CppFunctionObjectN10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10], a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9, a10: T10) {.importcpp: "std::invoke(@)", header: "<functional>".}
 
 proc invoke*(f: var CppFunctionObjectN0) {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc invoke*[R](f: var CppFunctionObjectR0[R]): R {.importcpp: "std::invoke(@)", header: "<functional>".}
@@ -172,3 +297,4 @@ proc invoke*[T1, T2, T3, T4, T5, T6, T7, T8](f: var CppFunctionObjectN8[T1, T2, 
 proc invoke*[R, T1, T2, T3, T4, T5, T6, T7, T8](f: var CppFunctionObjectR8[R, T1, T2, T3, T4, T5, T6, T7, T8], a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8): R {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc invoke*[T1, T2, T3, T4, T5, T6, T7, T8, T9](f: var CppFunctionObjectN9[T1, T2, T3, T4, T5, T6, T7, T8, T9], a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9) {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc invoke*[R, T1, T2, T3, T4, T5, T6, T7, T8, T9](f: var CppFunctionObjectR9[R, T1, T2, T3, T4, T5, T6, T7, T8, T9], a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9): R {.importcpp: "std::invoke(@)", header: "<functional>".}
+proc invoke*[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10](f: var CppFunctionObjectN10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10], a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8, a9: T9, a10: T10) {.importcpp: "std::invoke(@)", header: "<functional>".}

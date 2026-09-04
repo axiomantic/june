@@ -1,2 +1,837 @@
 
 import june
+
+# Enums had no binding at all before, so any parameter typed by one had no
+# spelling and its proc was commented out.
+#
+# Each constant binds to its C++ enumerator by name rather than to a number, so
+# asserting the values checks that the name resolves to the right enumerator.
+proc testEnums() =
+  doAssert NotificationType_dontSendNotification.cint == 0
+  doAssert NotificationType_sendNotification.cint == 1
+  doAssert NotificationType_sendNotificationSync.cint == 2
+  doAssert NotificationType_sendNotificationAsync.cint == 3
+
+  # Distinct types, so two enums cannot be confused for one another even though
+  # both are integers underneath.
+  doAssert not compiles(NotificationType_sendNotification == ImagePixelFormat_ARGB)
+
+# MessageManager is deliberately not exercised here: getInstance creates a
+# singleton that nothing deletes, and JUCE's leak detector fires at exit.
+
+testEnums()
+
+# Timer's timerCallback is pure virtual, so a Timer could not be instantiated
+# without a subclass either.
+proc testCustomTimer() =
+  initialiseJuce_GUI()
+
+  block:
+    let timer = newCustomTimer()
+    doAssert CustomTimer is Timer
+
+    var ticks = 0
+    timer[].onTimerCallback = bindClosure(proc() = ticks += 1)
+
+    doAssert not timer[].isTimerRunning()
+    timer[].startTimer(10.cint)
+    doAssert timer[].isTimerRunning()
+    doAssert timer[].getTimerInterval() == 10
+    timer[].stopTimer()
+    doAssert not timer[].isTimerRunning()
+    cdelete timer
+
+  shutdownJuce_GUI()
+
+testCustomTimer()
+
+proc testCallAsync() =
+  # Posting work to the message thread. The callback is not run here: that needs
+  # the dispatch loop, which a test has no business starting. What is checked is
+  # that JUCE accepted the std::function the Nim closure was bound into.
+  initialiseJuce_GUI()
+  block:
+    let callback: CppFunctionObjectN0 = bindClosure(proc() = discard)
+    doAssert MessageManager.callAsync(callback)
+  shutdownJuce_GUI()
+
+testCallAsync()
+
+# AsyncUpdater, ActionListener and ChangeListener each have a pure virtual, so
+# none could be instantiated without a subclass, and no subclass was possible.
+proc testAsyncUpdater() =
+  initialiseJuce_GUI()
+
+  block:
+    let updater = newCustomAsyncUpdater()
+    doAssert CustomAsyncUpdater is AsyncUpdater
+
+    var updates = 0
+    updater[].onHandleAsyncUpdate = bindClosure(proc() = updates += 1)
+
+    doAssert not updater[].isUpdatePending()
+    updater[].triggerAsyncUpdate()
+    doAssert updater[].isUpdatePending()
+
+    # Runs it now rather than waiting for the message loop, so the test can see
+    # that JUCE called into Nim.
+    updater[].handleUpdateNowIfNeeded()
+    doAssert updates == 1
+    doAssert not updater[].isUpdatePending()
+    cdelete updater
+
+  block:
+    let listener = newCustomActionListener()
+    doAssert CustomActionListener is ActionListener
+    cdelete listener
+
+    let changeListener = newCustomChangeListener()
+    doAssert CustomChangeListener is ChangeListener
+    cdelete changeListener
+
+  shutdownJuce_GUI()
+
+testAsyncUpdater()
+
+
+# std::exception is bound so that unhandledException can be overridden, which
+# is how a JUCE application reports a crash. There is no way to raise a C++
+# exception from Nim to call it with, so this checks the signature is callable
+# rather than the handler running.
+proc testUnhandledExceptionBinding() =
+  doAssert compiles(
+    proc(app: var JUCEApplicationBase, e: ptr CppException) =
+      app.unhandledException(e, makeString("source.nim"), 42.cint))
+  doAssert compiles(proc(e: CppException): constChar = e.what())
+
+testUnhandledExceptionBinding()
+
+# The synchronous message-thread call. JUCE takes a plain function pointer here
+# rather than a std::function, so the binding is hand-written; this is what
+# checks the pointer round-trips and the callback actually runs.
+proc onMessageThread(userData: pointer): pointer {.cdecl.} =
+  cast[ptr cint](userData)[] = 7.cint
+  userData
+
+proc testCallFunctionOnMessageThread() =
+  initialiseJuce_GUI()
+
+  var value = 0.cint
+  let manager = MessageManager.getInstance()
+  let returned = manager[].callFunctionOnMessageThread(onMessageThread, addr value)
+
+  doAssert value == 7, "the callback did not run; value is " & $value
+  doAssert returned == addr value, "the callback's return value did not come back"
+
+  shutdownJuce_GUI()
+
+testCallFunctionOnMessageThread()
+
+# NetworkServiceDiscovery::Service ============================================
+#
+# A plain struct with no constructor of its own, so nothing could build one.
+
+proc testServiceAggregate() =
+    block:
+        var service = makeNetworkServiceDiscoveryService()
+        service.instanceID = makeString("june-test")
+        doAssert $service.instanceID() == "june-test",
+                 "the service holds " & $service.instanceID()
+
+testServiceAggregate()
+
+# The remaining generated subclasses ==========================================
+#
+# CustomJUCEApplicationBase is not here: building one trips JUCE's assertion
+# that the process has a single application instance, the same reason
+# newApplication is listed uncallable in check_handwritten_covered.py.
+
+proc testRemainingEventsSubclasses() =
+    block:
+        var connection = newCustomInterprocessConnection(true, 0xf2b49e2c'u32)
+        doAssert not connection.isNil(), "the connection was not built"
+        connection[].setConnectionMadeHandler(proc() = discard)
+        connection[].setConnectionLostHandler(proc() = discard)
+        connection[].setMessageReceivedHandler(proc(message: ptr MemoryBlock) = discard)
+        cdelete connection
+
+testRemainingEventsSubclasses()
+
+# The last of the events subclass handlers ====================================
+
+proc testRemainingEventsHandlers() =
+    initialiseJuce_GUI()
+
+    block:
+        var message = newCustomCallbackMessage()
+        message[].setMessageCallbackHandler(proc() = discard)
+        cdelete message
+
+        var server = newCustomInterprocessConnectionServer()
+        server[].setCreateConnectionObjectHandler(proc(): ptr InterprocessConnection = nil)
+        cdelete server
+
+        var listener = newCustomMessageListener()
+        listener[].setHandleMessageHandler(proc(message: ptr Message) = discard)
+        cdelete listener
+
+        var multi = newCustomMultiTimer()
+        multi[].setTimerCallbackHandler(proc(timerID: cint) = discard)
+        cdelete multi
+
+    shutdownJuce_GUI()
+
+testRemainingEventsHandlers()
+
+# The nested abstract classes =================================================
+#
+# The subclass generator keyed an abstract class on its own spelling, which
+# never matched a declared Nim name for a nested one, so every Listener,
+# LookAndFeelMethods and other nested interface was skipped with no withheld
+# entry. Building each compiles the C++ class, and setting each handler is what
+# type-checks and generates the setter.
+
+proc testNestedSubclassesEvents() =
+    initialiseJuce_GUI()
+    block:
+        var customMessageManagerMessageBase = newCustomMessageManagerMessageBase()
+        doAssert not customMessageManagerMessageBase.isNil(), "newCustomMessageManagerMessageBase built nothing"
+        customMessageManagerMessageBase[].setMessageCallbackHandler(proc() = discard)
+        cdelete customMessageManagerMessageBase
+    shutdownJuce_GUI()
+
+testNestedSubclassesEvents()
+
+# Every no-argument constructor ===============================================
+#
+# An importcpp string reaches the C++ compiler only at a call site, so a
+# constructor nothing calls is never compiled. These had no caller.
+
+proc testEveryNoArgConstructorEvents() =
+    initialiseJuce_GUI()
+    block:
+        discard makeMessage()
+        discard makeActionBroadcaster()
+        discard makeChangeBroadcaster()
+        discard makeChildProcessWorker()
+        discard makeChildProcessCoordinator()
+        discard makeScopedLowPowerModeDisabler()
+
+        # LAST, and nothing may follow it. ScopedJuceInitialiser_GUI keeps its
+        # OWN counter, separate from the initialiseJuce_GUI above
+        # (juce_MessageManager.cpp:476), so building one here and destroying
+        # it takes that counter 0 -> 1 -> 0 and calls shutdownJuce_GUI. It
+        # used to sit second in this list, and everything after it ran with no
+        # MessageManager at all - which is what JUCE was saying when
+        # ActionBroadcaster asserted at construction and again at destruction.
+        discard makeScopedJuceInitialiser_GUI()
+    shutdownJuce_GUI()
+
+testEveryNoArgConstructorEvents()
+
+# LockingAsyncUpdater =========================================================
+#
+# The same shape as AsyncUpdater, but the callback is a std::function rather
+# than a virtual, so it takes a Nim closure directly. handleUpdateNowIfNeeded
+# runs a pending update on this thread, which is what makes it checkable with
+# no message loop.
+
+proc testLockingAsyncUpdater() =
+    initialiseJuce_GUI()
+
+    block:
+        var updates = 0
+        var updater = makeLockingAsyncUpdater(
+            bindClosure(proc() = updates += 1))
+
+        # Nothing pending, so nothing runs.
+        updater.handleUpdateNowIfNeeded()
+        doAssert updates == 0, "an update ran before one was asked for"
+
+        updater.triggerAsyncUpdate()
+        updater.handleUpdateNowIfNeeded()
+        doAssert updates == 1, "the update ran " & $updates & " times"
+
+        # A cancelled update does not run, which is the whole point of
+        # cancelPendingUpdate.
+        updater.triggerAsyncUpdate()
+        updater.cancelPendingUpdate()
+        updater.handleUpdateNowIfNeeded()
+        doAssert updates == 1,
+                 "a cancelled update ran anyway, leaving " & $updates
+
+    shutdownJuce_GUI()
+
+testLockingAsyncUpdater()
+
+# MessageManagerLock ==========================================================
+#
+# Taking the message thread's lock. On the message thread itself - which is
+# where a test runs - it is granted at once, and lockWasGained says so.
+
+proc testMessageManagerLock() =
+    initialiseJuce_GUI()
+
+    block:
+        let lock = makeMessageManagerLock(cast[ptr june.Thread](nil))
+        doAssert lock.lockWasGained(),
+                 "the message manager lock was refused on the message thread"
+
+        # juce::MessageManager::Lock is a different class from
+        # juce::MessageManagerLock, and both used to flatten to the same Nim
+        # name: the type was declared as the nested one while every method
+        # bound onto it came from the top-level one, so this constructor could
+        # not be called at all.
+        let inner = makeMessageManagerInnerLock()
+        doAssert inner.tryEnter(),
+                 "a fresh MessageManager::Lock refused tryEnter"
+        inner.exit()
+
+    shutdownJuce_GUI()
+
+testMessageManagerLock()
+
+# Every bound constant ========================================================
+#
+# A `let` with an importcpp is not checked against C++ unless something reads
+# it: a constant naming juce::NoSuchClass::nope compiles clean while nothing
+# touches it. Reading each is what compiles the spelling.
+
+proc testEveryConstantEvents() =
+    block:
+        discard NotificationType_dontSendNotification
+        discard NotificationType_sendNotification
+        discard NotificationType_sendNotificationSync
+        discard NotificationType_sendNotificationAsync
+        discard InterprocessConnectionNotify_no
+        discard InterprocessConnectionNotify_yes
+
+testEveryConstantEvents()
+
+# TimedCallback ===============================================================
+#
+# A Timer whose callback is a std::function, so it takes a Nim closure without
+# a subclass. It is not started here: nothing would run it without a message
+# loop, and a started timer would outlive the test.
+
+proc testTimedCallback() =
+    initialiseJuce_GUI()
+
+    block:
+        var fired = 0
+        var callback = makeTimedCallback(bindClosure(proc() = fired += 1))
+        doAssert not callback.isTimerRunning(), "a fresh TimedCallback is running"
+        doAssert fired == 0, "the callback ran before the timer started"
+
+        # These five reach TimedCallback through a using-declaration, not
+        # through inheritance: it inherits Timer PRIVATELY, so it is not a
+        # Timer and only the members it re-exports are callable. The interval
+        # is read back rather than just set, so the call has to have landed.
+        callback.startTimer(40.cint)
+        doAssert callback.isTimerRunning(), "the timer did not start"
+        doAssert callback.getTimerInterval() == 40,
+                 "the interval is " & $callback.getTimerInterval() & ", not 40"
+        callback.startTimerHz(25.cint)   # 25 per second is one every 40ms
+        doAssert callback.getTimerInterval() == 40,
+                 "25Hz gave an interval of " & $callback.getTimerInterval() &
+                 "ms rather than 40ms"
+        callback.stopTimer()
+        doAssert not callback.isTimerRunning(), "the timer did not stop"
+        doAssert fired == 0, "the callback ran with no message loop"
+
+        # The private base itself is not a Nim parent, so nothing else Timer
+        # declares comes with it.
+        doAssert not compiles(callback.timerCallback()),
+                 "a member the class does not re-export was offered anyway"
+
+    shutdownJuce_GUI()
+
+testTimedCallback()
+
+# Private bases are not Nim parents ===========================================
+#
+# A privately inherited base is not a subtype outside the class, so binding it
+# as the Nim parent offered every method it declares while the C++ compiler
+# refused each one: triggerAsyncUpdate on an ApplicationCommandManager is "a
+# private member of juce::AsyncUpdater". Nothing called them, so nothing said
+# so. Fourteen classes inherited that way.
+
+proc testPrivateBasesAreNotParents() =
+    initialiseJuce_GUI()
+
+    block:
+        var manager = makeApplicationCommandManager()
+        doAssert not compiles(manager.triggerAsyncUpdate()),
+                 "AsyncUpdater's members are offered on ApplicationCommandManager"
+        doAssert not compiles(manager.isUpdatePending()),
+                 "isUpdatePending is offered on ApplicationCommandManager"
+
+        # What the class declares itself is unaffected.
+        doAssert manager.getNumCommands() == 0,
+                 "a fresh manager holds " & $manager.getNumCommands() & " commands"
+
+    block:
+        # Abstract, so it comes from the generated subclass. It inherits Thread
+        # privately, and the same rule applies through the subclass.
+        let server = newCustomInterprocessConnectionServer()
+        doAssert not compiles(server[].startThread()),
+                 "Thread's members are offered on InterprocessConnectionServer"
+        doAssert server[].getBoundPort() == -1,
+                 "an unbound server reports port " & $server[].getBoundPort() &
+                 " rather than -1"
+        cdelete server
+
+    shutdownJuce_GUI()
+
+testPrivateBasesAreNotParents()
+
+# Methods restated from a secondary base ======================================
+#
+# Message and CallbackMessage reach ReferenceCountedObject through a public
+# base that is not their Nim parent, so those five are not inherited: the
+# generator restates them, and a restatement nobody calls never reaches the C++
+# compiler.
+
+proc testReferenceCountingOnMessages() =
+    initialiseJuce_GUI()
+
+    block:
+        # Heap allocated, because the reference count owns it: the last
+        # decReferenceCount deletes the object.
+        let message = newCustomCallbackMessage()
+        doAssert message[].getReferenceCount() == 0,
+                 "a fresh message starts at " & $message[].getReferenceCount()
+
+        message[].incReferenceCount()
+        doAssert message[].getReferenceCount() == 1,
+                 "after one retain the count is " & $message[].getReferenceCount()
+        message[].incReferenceCount()
+        doAssert message[].getReferenceCount() == 2,
+                 "after two retains the count is " & $message[].getReferenceCount()
+
+        doAssert not message[].decReferenceCountWithoutDeleting(),
+                 "the count reached zero after one release of two"
+        doAssert message[].getReferenceCount() == 1,
+                 "after one release the count is " & $message[].getReferenceCount()
+
+        # decReferenceCount deletes the object when the count reaches zero, so
+        # this is the end of its life and it must not be cdeleted afterwards.
+        message[].decReferenceCount()
+
+    block:
+        var ran = 0
+        let message = newCustomCallbackMessage()
+        message[].setMessageCallbackHandler(proc() = ran += 1)
+
+        # post() hands the message to the queue, which owns it from here: it is
+        # deleted once delivered, so nothing may touch it afterwards and it
+        # must not be cdeleted. Delivery needs a running message loop, and
+        # JUCE only exposes one to run under JUCE_MODAL_LOOPS_PERMITTED, which
+        # this build does not set - so what is asserted is that the queue took
+        # it, not that it arrived.
+        doAssert message[].post(), "the message manager refused the message"
+        doAssert ran == 0, "the message ran with no loop to deliver it"
+
+    block:
+        # The action listener's handler setter, which had none until now: the
+        # class could be built and attached but never told what to do.
+        let listener = newCustomActionListener()
+        var seen = 0
+        listener[].setActionListenerCallbackHandler(
+            proc(message: ptr String) = seen += 1)
+
+        var broadcaster = makeActionBroadcaster()
+        broadcaster.addActionListener(cast[ptr ActionListener](listener))
+        broadcaster.sendActionMessage(makeString("hello"))
+        doAssert seen == 0, "the action arrived with no loop to deliver it"
+        broadcaster.removeActionListener(cast[ptr ActionListener](listener))
+        cdelete listener
+
+    shutdownJuce_GUI()
+
+testReferenceCountingOnMessages()
+
+# The child-process exit listener ==============================================
+#
+# The listener is a std::function<void(ChildProcess&)>, and the pointer inside
+# that template argument was dropped, so the binding named a function taking a
+# ChildProcess by value - a class that cannot be copied. Nothing called it.
+
+proc testChildProcessExitedListener() =
+    initialiseJuce_GUI()
+
+    block:
+        var manager = ChildProcessManager.getInstance()
+        var exited = 0
+        var guard = manager[].addChildProcessExitedListener(
+            bindClosure(proc(process: ptr ChildProcess) = exited += 1))
+
+        # No child process was started, so nothing has exited. The listener is
+        # detached by releasing the guard, which is the whole of its contract.
+        doAssert exited == 0, "the listener ran " & $exited & " times"
+        guard.reset()
+
+        ChildProcessManager.deleteInstance()
+
+    shutdownJuce_GUI()
+
+testChildProcessExitedListener()
+
+
+# Every public field round-trips ===============================================
+#
+# A field getter and setter are importcpp procs like any other: they reach the
+# C++ compiler only where something calls them, so a setter nothing assigns is
+# never compiled. Each is set to a distinctive value and read back; where the
+# field's type compares, the read is asserted against what went in.
+
+proc testFieldRoundTrips() =
+    block:
+        var value = makeNetworkServiceDiscoveryService()
+        value.address = makeIPAddress()
+        discard value.address()
+        value.description = makeString("a value")
+        discard value.description()
+        value.lastSeen = makeTime()
+        discard value.lastSeen()
+        value.port = 7.cint
+        doAssert value.port() == 7.cint,
+                 "NetworkServiceDiscoveryService.port came back as " & $value.port()
+
+testFieldRoundTrips()
+
+# NetworkServiceDiscovery is a namespace-shaped class: nothing but nested types
+# and static members. The binding still declares it, and a declared type whose
+# constructor is never called is a constructor the C++ compiler never sees.
+proc testNetworkServiceDiscoveryConstructs() =
+  var discovery = makeNetworkServiceDiscovery()
+  doAssert (addr discovery) != nil, "NetworkServiceDiscovery did not build"
+
+testNetworkServiceDiscoveryConstructs()
+
+# MessageManager's identity and its broadcast list. runDispatchLoop is left
+# alone deliberately: it does not return until something stops it, so calling
+# it would hang the suite rather than test anything.
+proc testMessageManagerIdentity() =
+  initialiseJuce_GUI()
+
+  block:
+    let manager = MessageManager.getInstance()
+    doAssert not manager.isNil, "there is no message manager"
+
+    # The test runs on the message thread, so all three ways of asking agree.
+    doAssert manager[].isThisTheMessageThread(),
+             "the test is not running on the message thread"
+    doAssert manager[].getCurrentMessageThread() != nil,
+             "there is no current message thread"
+    doAssert not manager[].hasStopMessageBeenSent(),
+             "a quit message was sent before anything asked for one"
+
+    # The MESSAGE THREAD counts as holding the lock without taking it: the
+    # check is "this thread is the message thread OR it took the lock"
+    # (juce_MessageManager.cpp:217). That is the point of the lock - code on
+    # the message thread never has to acquire it - and it means this is true
+    # here for the first reason rather than the second.
+    doAssert manager[].currentThreadHasLockedMessageManager(),
+             "the message thread does not count as holding the lock"
+
+    # setCurrentThreadAsMessageThread names the caller, which is already the
+    # message thread here - so it is a no-op that has to stay one.
+    manager[].setCurrentThreadAsMessageThread()
+    doAssert manager[].isThisTheMessageThread(),
+             "naming the current thread as the message thread unnamed it"
+
+  block:
+    # A broadcast listener is registered and deregistered by pointer.
+    # deliverBroadcastMessage posts rather than calling inline, like every
+    # other JUCE notification, so what is asserted is the registration.
+    let manager = MessageManager.getInstance()
+    let listener = newCustomActionListener()
+    var heard = 0
+    listener[].setActionListenerCallbackHandler(proc(message: ptr String) =
+      heard += 1)
+
+    manager[].registerBroadcastListener(cast[ptr ActionListener](listener))
+    manager[].deliverBroadcastMessage(makeString("hello"))
+    doAssert heard == 0,
+             "the broadcast was delivered inline, " & $heard & " times"
+
+    manager[].deregisterBroadcastListener(cast[ptr ActionListener](listener))
+    manager[].deliverBroadcastMessage(makeString("ignored"))
+    doAssert heard == 0,
+             "a deregistered listener heard " & $heard & " messages"
+
+    cdelete listener
+
+  block:
+    # stopDispatchLoop sets the flag runDispatchLoop watches, and
+    # hasStopMessageBeenSent reads it. This is LAST in the file, because the
+    # flag is process-wide and stays set - a test after it would be running
+    # against a message manager that has been told to quit.
+    #
+    # runDispatchLoop itself is never called: it does not return until this
+    # flag is set from another thread, so calling it would hang the suite
+    # rather than test anything. It is left to the compile harness.
+    let manager = MessageManager.getInstance()
+    doAssert not manager[].hasStopMessageBeenSent(),
+             "a quit message was already sent"
+    manager[].stopDispatchLoop()
+    doAssert manager[].hasStopMessageBeenSent(),
+             "stopDispatchLoop did not set the flag"
+
+  shutdownJuce_GUI()
+
+testMessageManagerIdentity()
+
+# A live InterprocessConnection ===============================================
+#
+# Both ends live in this one process, joined by a named pipe. The connection is
+# built with callbacksOnMessageThread false, so connectionMade, messageReceived
+# and connectionLost arrive on the connection's OWN thread rather than being
+# posted to a message queue the suite cannot drain
+# (juce_InterprocessConnection.cpp:connectionMadeInt).
+#
+# The handlers therefore run on a thread Nim did not start, so they only touch
+# these globals and never allocate.
+
+var connectionsMade = 0
+var connectionsLost = 0
+var messagesReceived = 0
+var lastMessage: array[64, char]
+var lastMessageSize = 0
+
+proc waitUntil(condition: proc(): bool, milliseconds: int): bool =
+    for i in 0 ..< milliseconds div 10:
+        if condition():
+            return true
+        Thread.sleep(10.cint)
+    condition()
+
+proc testInterprocessConnectionOverAPipe() =
+    initialiseJuce_GUI()
+
+    const magic = 0x6a756e65'u32
+    let pipeName = makeString("june-test-pipe")
+
+    block:
+        var server = newCustomInterprocessConnection(false, magic)
+        server[].setConnectionMadeHandler(proc() = connectionsMade += 1)
+        server[].setConnectionLostHandler(proc() = connectionsLost += 1)
+        server[].setMessageReceivedHandler(proc(message: ptr MemoryBlock) =
+            let size = int(message[].getSize())
+            lastMessageSize = size
+            if size <= lastMessage.len:
+                message[].copyTo(addr lastMessage[0], 0.cint, uint64(size))
+            messagesReceived += 1)
+
+        var client = newCustomInterprocessConnection(false, magic)
+        client[].setConnectionMadeHandler(proc() = connectionsMade += 1)
+        client[].setConnectionLostHandler(proc() = connectionsLost += 1)
+        client[].setMessageReceivedHandler(proc(message: ptr MemoryBlock) =
+            messagesReceived += 1)
+
+        var serverBase = cast[ptr InterprocessConnection](server)
+        var clientBase = cast[ptr InterprocessConnection](client)
+
+        doAssert not serverBase[].isConnected(),
+                 "a fresh connection reports itself connected"
+        doAssert serverBase[].getPipe().isNil, "a fresh connection has a pipe"
+        doAssert serverBase[].getSocket().isNil, "a fresh connection has a socket"
+        doAssert $serverBase[].getConnectedHostName() == "",
+                 "a fresh connection names the host " &
+                 $serverBase[].getConnectedHostName()
+
+        doAssert serverBase[].createPipe(pipeName, 2000.cint, false),
+                 "the pipe was not created"
+        doAssert clientBase[].connectToPipe(pipeName, 2000.cint),
+                 "nothing connected to the pipe"
+
+        doAssert waitUntil(proc(): bool = connectionsMade == 2, 5000),
+                 "only " & $connectionsMade & " of the two ends connected"
+        doAssert serverBase[].isConnected() and clientBase[].isConnected(),
+                 "one of the two ends is not connected"
+
+        # A pipe is a pipe: there is no socket, and the host is this machine.
+        doAssert not serverBase[].getPipe().isNil, "the server has no pipe"
+        doAssert serverBase[].getSocket().isNil, "the server grew a socket"
+        doAssert $serverBase[].getConnectedHostName() ==
+                 $IPAddress.local().toString(),
+                 "the connected host is " & $serverBase[].getConnectedHostName()
+
+        # A message crosses the pipe intact. sendMessage frames it with the
+        # magic header both ends were built with
+        # (juce_InterprocessConnection.cpp:sendMessage), so a mismatched magic
+        # number would drop it.
+        let payload = "hello over a pipe"
+        doAssert clientBase[].sendMessage(
+                     makeMemoryBlock(constPointer(payload[0].addr),
+                                     uint64(payload.len))),
+                 "the message was not written"
+        doAssert waitUntil(proc(): bool = messagesReceived == 1, 5000),
+                 "the server received " & $messagesReceived & " messages"
+        doAssert lastMessageSize == payload.len,
+                 "the message arrived with " & $lastMessageSize & " bytes"
+        var arrived = newString(lastMessageSize)
+        for i in 0 ..< lastMessageSize:
+            arrived[i] = lastMessage[i]
+        doAssert arrived == payload, "the message arrived as " & arrived
+
+        # Disconnecting with Notify::yes calls connectionLost on THIS end
+        # (juce_InterprocessConnection.cpp:disconnect). The other end learns of
+        # it when its own read fails, which is why only one count is asserted
+        # exactly and the other is bounded.
+        clientBase[].disconnect(2000.cint, InterprocessConnectionNotify_yes)
+        doAssert waitUntil(proc(): bool = connectionsLost >= 1, 5000),
+                 "neither end noticed the disconnection"
+        doAssert not clientBase[].isConnected(),
+                 "the client is still connected after disconnecting"
+
+        # And with Notify::no it does not, so a second disconnect on an
+        # already-closed connection is silent.
+        let lostSoFar = connectionsLost
+        clientBase[].disconnect(2000.cint, InterprocessConnectionNotify_no)
+        doAssert connectionsLost == lostSoFar,
+                 "a silent disconnect still reported a lost connection"
+
+        serverBase[].disconnect(2000.cint, InterprocessConnectionNotify_no)
+        cdelete client
+        cdelete server
+
+    block:
+        # connectionMade, connectionLost and messageReceived are the model's
+        # own virtuals, and calling them through the base class is what proves
+        # the Nim overrides reached C++.
+        var connection = newCustomInterprocessConnection(false, magic)
+        connection[].setConnectionMadeHandler(proc() = connectionsMade += 1)
+        connection[].setConnectionLostHandler(proc() = connectionsLost += 1)
+        connection[].setMessageReceivedHandler(proc(message: ptr MemoryBlock) =
+            messagesReceived += 1)
+        var base = cast[ptr InterprocessConnection](connection)
+
+        let madeBefore = connectionsMade
+        base[].connectionMade()
+        doAssert connectionsMade == madeBefore + 1,
+                 "connectionMade did not reach the override"
+
+        let lostBefore = connectionsLost
+        base[].connectionLost()
+        doAssert connectionsLost == lostBefore + 1,
+                 "connectionLost did not reach the override"
+
+        let receivedBefore = messagesReceived
+        base[].messageReceived(makeMemoryBlock(4'u64, true))
+        doAssert messagesReceived == receivedBefore + 1,
+                 "messageReceived did not reach the override"
+
+        # Connecting to a socket nothing is listening on fails rather than
+        # blocking for the whole timeout.
+        doAssert not base[].connectToSocket(makeString("127.0.0.1"),
+                                            1.cint, 200.cint),
+                 "a connection was made to a port nothing is listening on"
+
+        cdelete connection
+
+    shutdownJuce_GUI()
+
+testInterprocessConnectionOverAPipe()
+
+# ChildProcessCoordinator and ChildProcessWorker ==============================
+#
+# The pair is meant to be one process launching another copy of ITSELF, with
+# the child recognising a command line the parent generated. This suite cannot
+# do that - relaunching the test binary would rerun the whole suite as a child
+# - so what is exercised here is each side on its own: the coordinator with a
+# child that is not a worker, and the worker with a command line that is not
+# the parent's.
+
+proc testChildProcessPairWithoutAPair() =
+    initialiseJuce_GUI()
+
+    block:
+        var worker = makeChildProcessWorker()
+
+        # A command line that carries no coordinator handshake is refused, and
+        # refused quickly: there is nothing to wait for.
+        doAssert not worker.initialiseFromCommandLine(
+                     makeString("--some-other-flag"),
+                     makeString("june-test-worker"), 200.cint),
+                 "a worker attached itself to an unrelated command line"
+        doAssert not worker.initialiseFromCommandLine(
+                     makeString(""), makeString("june-test-worker"), 200.cint),
+                 "a worker attached itself to an empty command line"
+
+        # With no connection there is nothing to send to, and both spellings
+        # of the send report failure (juce_ConnectedChildProcess.cpp: the
+        # method returns false when the connection is null).
+        let message = makeMemoryBlock(4'u64, true)
+        doAssert not worker.sendMessageToCoordinator(message),
+                 "an unconnected worker sent a message"
+        doAssert not worker.sendMessageToMaster(message),
+                 "an unconnected worker sent a message to its master"
+
+        # The four callbacks have empty bodies in JUCE, so they are called and
+        # the worker is shown unchanged afterwards.
+        worker.handleConnectionMade()
+        worker.handleMessageFromCoordinator(message)
+        worker.handleMessageFromMaster(message)
+        worker.handleConnectionLost()
+        doAssert not worker.sendMessageToCoordinator(message),
+                 "the callbacks gave the worker a connection"
+
+    block:
+        var coordinator = makeChildProcessCoordinator()
+
+        let message = makeMemoryBlock(4'u64, true)
+        doAssert not coordinator.sendMessageToWorker(message),
+                 "a coordinator with no worker sent a message"
+        doAssert not coordinator.sendMessageToSlave(message),
+                 "a coordinator with no slave sent a message"
+
+        coordinator.handleMessageFromWorker(message)
+        coordinator.handleMessageFromSlave(message)
+        coordinator.handleConnectionLost()
+
+        # Killing a worker that was never launched is a no-op rather than an
+        # error (juce_ConnectedChildProcess.cpp: killWorkerProcess checks the
+        # connection first).
+        coordinator.killWorkerProcess()
+        coordinator.killSlaveProcess()
+        doAssert not coordinator.sendMessageToWorker(message),
+                 "killing nothing gave the coordinator a connection"
+
+    block:
+        # Launching something that is not a worker. The coordinator makes its
+        # end of the pipe and starts the executable; the executable never
+        # connects back, so the pair never becomes useful - but the launch
+        # itself is exercised, and killing tears it down again.
+        #
+        # macOS only. On Linux, launchWorkerProcess routes through
+        # ChildProcessManager, a singleton the suite has no way to shut down
+        # (juce_ChildProcessManager.h:60), and the leak gate that runs after
+        # every test would report it.
+        when defined(macosx):
+            let executable = makeFile(makeString("/bin/echo"))
+            doAssert executable.existsAsFile(),
+                     "/bin/echo is not where it was expected"
+
+            var coordinator = makeChildProcessCoordinator()
+            let launched = coordinator.launchWorkerProcess(
+                executable, makeString("june-test-worker"), 200.cint,
+                ChildProcessStreamFlags_wantStdOut.cint)
+            doAssert launched,
+                     "the coordinator did not launch /bin/echo"
+            coordinator.killWorkerProcess()
+            doAssert not coordinator.sendMessageToWorker(
+                         makeMemoryBlock(4'u64, true)),
+                     "the coordinator still has a connection after killing it"
+
+            var second = makeChildProcessCoordinator()
+            doAssert second.launchSlaveProcess(
+                         executable, makeString("june-test-worker"), 200.cint,
+                         ChildProcessStreamFlags_wantStdOut.cint),
+                     "the deprecated spelling did not launch /bin/echo"
+            second.killSlaveProcess()
+
+    shutdownJuce_GUI()
+
+testChildProcessPairWithoutAPair()

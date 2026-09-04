@@ -6,7 +6,72 @@ on:
   pull_request:
   workflow_dispatch:
 
+# One run per branch. Without this a branch pushed several times in a row
+# queues a run for every commit and they all wait on the same runners, so the
+# answer for the newest commit arrives last and slowest. Only the newest is
+# worth having: an older commit going green says nothing about what is now on
+# the branch.
+#
+# main is exempt. A run there is the record for a commit that has landed, and
+# cancelling it would leave that commit with no result at all.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
+  generated:
+    name: generated files are current
+    # macOS, because that is where the committed files were generated. The
+    # generators read the platform's headers, and JUCE hides some classes
+    # behind JUCE_MAC or JUCE_WINDOWS, so regenerating on Linux would differ
+    # for a reason that is not drift.
+    runs-on: macos-latest
+    timeout-minutes: 20
+
+    # The bindings and the subclasses are both generated and both committed. A
+    # change to either generator, or an edit to a generated file by hand, would
+    # otherwise leave the two disagreeing with nothing to notice. Neither
+    # generator needs JUCE built - they read the headers - so this is cheap.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install libclang
+        run: python3 -m pip install --break-system-packages libclang
+
+      - name: Everything bound is exercised
+        # Regenerating the modules proves they match their generator. It says
+        # nothing about whether any of it works, because an importcpp string
+        # reaches the C++ compiler only at a call site: a binding nothing calls
+        # is never compiled at all, and a constant nothing reads is never
+        # checked against C++ either.
+        #
+        # This script is the guard against that. It fails when a hand-written
+        # binding, a generated subclass, a handler setter, a no-argument
+        # constructor, a bound constant, a static variable or a constructible
+        # class is not exercised by a test. Every defect this branch fixed was
+        # found that way.
+        run: python3 tools/check_handwritten_covered.py
+
+      - name: Regenerate and compare
+        shell: bash
+        run: |
+          modules="juce_core juce_events juce_data_structures juce_graphics juce_gui_basics"
+          for module in $modules; do
+            PYTHONPATH=tools python3 tools/inspect_juce.py --module "$module" \
+              > "sources/june/$module.nim" || exit 1
+            PYTHONPATH=tools python3 tools/generate_subclasses.py --module "$module" \
+              > "sources/june/${module}_subclasses.nim" || exit 1
+          done
+          # The compile harness is generated from the emitted bindings, so a
+          # generator change that adds or withholds one has to change it too.
+          PYTHONPATH=tools python3 tools/generate_compile_harness.py || exit 1
+          # git diff exits 1 when anything differs, which fails the job and
+          # prints exactly what drifted.
+          git diff --exit-code -- sources/june/ tests/test_juce_compiles.nim
+
   test:
     name: nim ${{ matrix.nim-version }} / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -16,7 +81,16 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        nim-version: ['1.6.14', '2.0.14', '2.2.10']
+        nim-version: ['2.2.2', '2.2.10']
+        # nim-lang.org publishes no macOS build below 2.2.8 - 2.2.0 through
+        # 2.2.6 are linux_x64 only - so nimble cannot install the pinned
+        # version there. It answers "No nim version matching any version",
+        # downloads 2.2.10 instead and exits 0, which is why this job failed
+        # on every macOS run while ubuntu passed. The lower bound is checked
+        # on linux, where a build of it exists.
+        exclude:
+          - os: macos-latest
+            nim-version: '2.2.2'
 
     steps:
       - name: Checkout
@@ -65,8 +139,63 @@ jobs:
           rm -f june.nimble.bak
           grep '^requires "nim' june.nimble
 
+      # nimble builds Nim from source wherever no prebuilt binary exists, which
+      # on arm64 macOS is every version and costs most of the job's wall clock.
+      # The compiler depends only on its version, so it caches cleanly.
+      - name: Cache Nim ${{ matrix.nim-version }}
+        uses: actions/cache@v4
+        with:
+          path: ~/.nimble/pkgs2
+          key: nim-${{ matrix.os }}-${{ matrix.nim-version }}
+
+      # When nimble cannot match the pinned version it asks "No nim version
+      # matching any version. Download it now?", and -y answers yes: it installs
+      # whatever is newest and EXITS 0. So the exit code says nothing about
+      # which compiler is now on disk, and a retry keyed on it never fires.
+      #
+      # Key the retry on the artifact instead. The pinned compiler either is at
+      # its exact path or it is not, and a wrong version installed alongside is
+      # cleared before the second attempt so it cannot satisfy the check. The
+      # retry is for a transient list fetch; the one cause found so far - no
+      # published macOS build below 2.2.8 - is handled by the matrix exclude
+      # above, since no number of retries can download a file that is not there.
       - name: Install Nim ${{ matrix.nim-version }}
-        run: nimble install -y nim@${{ matrix.nim-version }}
+        run: |
+          pinned() { echo "$HOME"/.nimble/pkgs2/nim-${{ matrix.nim-version }}-*/bin/nim; }
+          install_nim() {
+            nimble refresh -y || true
+            nimble install -y nim@${{ matrix.nim-version }} || true
+            test -x "$(pinned)"
+          }
+          # `nimble install nim@X` prints "No nim version matching any
+          # version" and then "Downloading Nim <newest>" even when it goes on
+          # to put the PINNED compiler where the glob below finds it. That
+          # message is about nimble resolving this package's own requirement,
+          # not about the install, and reading it as a failure sends you
+          # hunting for one that is not there. What decides the matter is the
+          # `test -x` on the exact pinned path, and the `--version` line at
+          # the end: on a cold cache nimble really does fetch and build the
+          # pinned version, to the same path hash the cache carries.
+          #
+          # Three attempts with a widening gap. Two 15s apart both lost to one
+          # SSL failure fetching packages.json, which is the same outage twice
+          # rather than two tries.
+          # The clear runs only between attempts, never before the first: the
+          # cache step restores the pinned compiler into that directory, and
+          # wiping it up front would throw the cache away on every run.
+          for delay in 0 20 60; do
+            [ "$delay" = 0 ] || {
+              echo "attempt failed; waiting ${delay}s"
+              sleep "$delay"
+              rm -rf "$HOME"/.nimble/pkgs2/nim-*
+            }
+            install_nim && break
+          done
+          test -x "$(pinned)" || {
+            echo "::error::nimble could not install Nim ${{ matrix.nim-version }}"
+            exit 1
+          }
+          "$(pinned)" --version | sed -n '1p'
 
       # The JUCE static library is the slow part of the build and depends only
       # on the submodule revision, not on the Nim version under test. Key the
@@ -110,8 +239,77 @@ jobs:
           # bash carries: nothing in this file states that the step depends on
           # it, so a later edit to `shell:` or a pipe added to the command would
           # turn a red suite green with no other sign.
+          # JUCE's leak detector reports what a class with JUCE_LEAK_DETECTOR
+          # still has alive at exit, and it prints rather than failing, so a
+          # leak reaches the log and the job stays green. It is worth failing
+          # on: the two it caught were a DrawableButton test that believed
+          # setImages takes ownership when it stores a copy, and a closure
+          # capturing a ValueTree, whose environment Nim never destructs. Both
+          # were wrong beliefs about ownership rather than untidy tests.
+          # Linux runs the suite under a virtual X server. Without one the
+          # tests that construct a window crash rather than fail - an
+          # AlertWindow's CONSTRUCTOR reaches juce_XWindowSystem_linux.cpp and
+          # segfaults - so those would have to be gated off, and the classes
+          # behind a desktop peer would never be exercised at all. xvfb is
+          # already installed above; this is what uses it. On macOS the runner
+          # has a real window server, so `run` is empty there.
+          #
+          # -a picks a free display number rather than assuming :99 is unused,
+          # and --server-args gives a screen large enough that a window is not
+          # clamped by the display size.
+          # An ARRAY, not a string. --server-args carries a value with spaces
+          # in it, and an unquoted string expansion would split that into three
+          # words and hand two of them to nim.
+          run=()
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            command -v xvfb-run > /dev/null || {
+              echo "::error::xvfb-run is not installed, so the suite would run headless without saying so"
+              exit 1
+            }
+            run=(xvfb-run -a --server-args="-screen 0 1920x1080x24")
+          fi
+
+          leaked=0
+          rm -rf /tmp/test_logs && mkdir -p /tmp/test_logs
           for test_file in tests/test_juce_*.nim; do
             echo "::group::$test_file"
-            "$nim_bin" cpp -r --hints:off "$test_file" || exit 1
+            # Redirected rather than piped through tee: a pipe hands the
+            # step tee's exit status, so whether a failing test is noticed
+            # would depend on pipefail being set.
+            "${run[@]}" "$nim_bin" cpp -r --hints:off "$test_file" > /tmp/test_output 2>&1 \
+              || { cat /tmp/test_output; exit 1; }
+            cat /tmp/test_output
+            # Kept, because the assertion check below reads every one of them
+            # together: a site listed as deliberately provoked and no longer
+            # reached by ANY suite is stale, and that can only be seen across
+            # the whole set.
+            cp /tmp/test_output "/tmp/test_logs/$(basename "$test_file").log"
+            if grep -q "Leaked objects detected" /tmp/test_output; then
+              echo "::error::$test_file leaked:"
+              grep "Leaked objects detected" /tmp/test_output
+              leaked=1
+            fi
+            echo "::endgroup::"
+          done
+          [ "$leaked" = 0 ] || exit 1
+
+          # A jassert PRINTS and carries on, exactly as the leak detector does,
+          # so JUCE telling us something is wrong reached the log above and the
+          # job stayed green. That is how a MenuBarComponent outliving its
+          # model - a use-after-free JUCE names in so many words - survived
+          # until a Linux run happened to segfault on it. Every site the suite
+          # provokes on purpose is listed with its reason; anything else fails.
+          python3 tools/check_juce_assertions.py /tmp/test_logs/*.log || exit 1
+
+          # The examples are reproduced in the README, so an API change that
+          # breaks one breaks the documentation too. Built but not run: they
+          # open a window and wait for it to be closed, which never happens
+          # unattended - a display would not help.
+          #
+          # Not -c. That stops after emitting C++ and never invokes the C++
+          # compiler, so an example that generates invalid C++ passes it.
+          for example in examples/*.nim; do
+            echo "::group::$example"
+            "$nim_bin" cpp --hints:off "$example" || exit 1
             echo "::endgroup::"
           done
