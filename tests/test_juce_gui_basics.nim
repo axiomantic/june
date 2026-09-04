@@ -14401,6 +14401,88 @@ proc testTopLevelWindow() =
 
 testTopLevelWindow()
 
+# ResizableWindow's content component and its window state ===================
+proc testResizableWindowContent() =
+    initialiseJuce_GUI()
+
+    block:
+        var window = makeResizableWindow(makeString("window"), false)
+        window.setSize(200.cint, 120.cint)
+        doAssert window.getContentComponent().isNil,
+                 "a fresh window already has content"
+
+        # setContentOwned adopts the component: the window deletes it, which
+        # is why it is heap-allocated and never deleted here.
+        var owned = newCustomComponent()
+        owned[].setSize(80.cint, 40.cint)
+        window.setContentOwned(cast[ptr Component](owned), false)
+        doAssert window.getContentComponent() == cast[ptr Component](owned),
+                 "the window took different content"
+
+        # setContentComponent with deleteOldOne replaces it and deletes the
+        # one that was there (juce_ResizableWindow.cpp: setContentComponent).
+        var replacement = newCustomComponent()
+        window.setContentComponent(cast[ptr Component](replacement), true, false)
+        doAssert window.getContentComponent() ==
+                 cast[ptr Component](replacement),
+                 "the replacement did not take"
+
+        # And clearing it deletes the last one, so nothing is left over for
+        # the leak gate to find.
+        window.clearContentComponent()
+        doAssert window.getContentComponent().isNil,
+                 "clearing the content left something behind"
+
+    block:
+        # A constrainer bounds what a resize may do. The window keeps the one
+        # it is given, and a null one puts its own default back.
+        var window = makeResizableWindow(makeString("bounded"), false)
+        window.setSize(200.cint, 120.cint)
+
+        # A window that was never resizable has no constrainer of its own:
+        # JUCE builds the default one in setResizable, not in the constructor.
+        doAssert window.getConstrainer().isNil,
+                 "a window that was never made resizable has a constrainer"
+
+        var constrainer = makeComponentBoundsConstrainer()
+        constrainer.setSizeLimits(50.cint, 50.cint, 150.cint, 150.cint)
+        window.setConstrainer(addr constrainer)
+        doAssert window.getConstrainer() == addr constrainer,
+                 "the constrainer did not stick"
+
+        # setBoundsConstrained runs the bounds through it, so a size past the
+        # maximum is clipped to it.
+        window.setBoundsConstrained(makeRectangle(0.cint, 0.cint,
+                                                  400.cint, 400.cint))
+        doAssert window.getWidth() <= 150 and window.getHeight() <= 150,
+                 "the constrained window is " & $window.getWidth() & "x" &
+                 $window.getHeight()
+
+        window.setConstrainer(nil)
+        doAssert window.getConstrainer().isNil,
+                 "clearing the constrainer left one behind"
+
+    block:
+        # Off the desktop, minimising is inert and going full screen is not -
+        # the same split DocumentWindow's test records, reached here through
+        # the setters rather than through the title bar buttons.
+        var window = makeResizableWindow(makeString("state"), false)
+        window.setSize(200.cint, 120.cint)
+
+        window.setMinimised(true)
+        doAssert not window.isMinimised(),
+                 "a window off the desktop was minimised"
+
+        window.setFullScreen(true)
+        doAssert window.isFullScreen(), "the window did not go full screen"
+        window.setFullScreen(false)
+        doAssert not window.isFullScreen(),
+                 "the window did not leave full screen"
+
+    shutdownJuce_GUI()
+
+testResizableWindowContent()
+
 # ListBoxModel's default answers ==============================================
 #
 # Only getNumRows and paintListBoxItem are pure virtual, so CustomListBoxModel
