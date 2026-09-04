@@ -41,7 +41,7 @@ proc getSizeInUnits*(this: var UndoableAction): cint {.header: juce_data_structu
 proc createCoalescedAction*(this: var UndoableAction, nextAction: ptr UndoableAction): ptr UndoableAction {.header: juce_data_structures, importcpp: "#.createCoalescedAction(@)".}
 proc `==`*(this: UndoableAction, other: UndoableAction): bool {.error: "juce::UndoableAction defines no operator==; compare a property instead".}
 
-proc makeUndoManager*(maxNumberOfUnitsToKeep: cint, minimumTransactionsToKeep: cint): UndoManager {.header: juce_data_structures, importcpp: "juce::UndoManager(@)".}
+proc makeUndoManager*(maxNumberOfUnitsToKeep: cint = 30000, minimumTransactionsToKeep: cint = 30): UndoManager {.header: juce_data_structures, importcpp: "juce::UndoManager(@)".}
 proc clearUndoHistory*(this: var UndoManager) {.header: juce_data_structures, importcpp: "#.clearUndoHistory()".}
 proc getNumberOfUnitsTakenUpByStoredCommands*(this: UndoManager): cint {.header: juce_data_structures, importcpp: "#.getNumberOfUnitsTakenUpByStoredCommands()".}
 proc setMaxNumberOfStoredUnits*(this: var UndoManager, maxNumberOfUnitsToKeep: cint, minimumTransactionsToKeep: cint) {.header: juce_data_structures, importcpp: "#.setMaxNumberOfStoredUnits(@)".}

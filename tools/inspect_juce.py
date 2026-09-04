@@ -623,6 +623,56 @@ known_builtin_types.update(f"CppFunctionObjectR{n}" for n in range(10))
 # Not types: Nim type-construction keywords that appear in a rendered signature.
 type_syntax_words = {"var", "ptr", "lent", "typedesc", "proc", "of"}
 
+def default_value_for(arg, argument_type, known_builtin_types):
+    """The Nim ` = literal` for a C++ default argument, or "" for none.
+
+    Shared by methods and constructors. A constructor used to get none at all,
+    so `FileInputSource (const File&, bool = false)` bound as a two-argument
+    proc and every caller had to pass the second one.
+    """
+    if not any(t.spelling == "=" for t in arg.get_tokens()):
+        return ""
+
+    tokens = [t.spelling for t in arg.get_tokens()]
+    default_value = "".join(tokens[tokens.index("=") + 1:])
+    default_value = f" = {default_value.replace('nullptr', 'nil')}"
+
+    # `nil` is a value only for a nilable type. A std::function binds to an
+    # object, and the CppFunctionObject types are in the builtin set, so the
+    # check below would let `= nil` through on one - which is what a static
+    # method taking an optional callback turned up.
+    if default_value.strip() == "= nil" and not (
+            argument_type.startswith("ptr ")
+            or argument_type in ("pointer", "cstring")):
+        return ""
+
+    # A default is only kept where the literal is already a value of the
+    # parameter's type here. The converters that would make, say, "*" into a
+    # juce::String live in the _lifting file, which is included after this one,
+    # so such a default does not compile.
+    if argument_type not in known_builtin_types:
+        if not (argument_type.startswith("ptr ")
+                and default_value.strip() == "= nil"):
+            return ""
+
+    # And only when the default is a literal. C++ freely defaults a parameter
+    # to an enumerator or a constant that this binding never declares, which
+    # reads as an undeclared identifier.
+    literal = default_value.split("=", 1)[1].strip()
+    if not re.fullmatch(
+            r"(nil|true|false|-?[0-9][0-9a-fA-FxX.eE+_-]*[fFlLuU]?|'.'|\".*\")",
+            literal):
+        return ""
+
+    # A C++ character literal defaults an integer parameter freely; Nim will
+    # not convert one.
+    if literal.startswith("'") and argument_type not in ("char", "cchar"):
+        return ""
+
+    return default_value
+
+#==================================================================================================
+
 def is_c_array(rendered):
     """A C array spells as uint8[6] or char[]; Nim generic brackets never hold
     a number and are never empty, so the two cannot be confused."""
@@ -1964,7 +2014,11 @@ def run_main(juce_module_name, juce_class_name_to_export):
             ctor_cpp_types = []
             for count, arg in enumerate(ctor.get_arguments()):
                 argument_type = remap_type(arg.type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap, unambiguous_nested_remap)
-                ctor_args.append(f"{remap_argument_name(arg.spelling, count)}: {argument_type}")
+                default_value = default_value_for(
+                    arg, argument_type, known_builtin_types)
+                ctor_args.append(
+                    f"{remap_argument_name(arg.spelling, count)}: "
+                    f"{argument_type}{default_value}")
                 ctor_types.append(argument_type)
                 ctor_cpp_types.append(arg.type.get_canonical().spelling)
 
@@ -2253,47 +2307,10 @@ def run_main(juce_module_name, juce_class_name_to_export):
             argument_types = []
             cpp_argument_types = []
             for count, arg in enumerate(m.get_arguments()):
-                default_value = ""
-
-                contains_default = any(filter(lambda t: t == "=", [t.spelling for t in arg.get_tokens()]))
-                if contains_default:
-                    arg_children = [t.spelling for t in arg.get_tokens()]
-                    default_value = "".join(arg_children[arg_children.index("=") + 1:])
-                    default_value = default_value.replace("nullptr", "nil")
-                    default_value = f" = {default_value}"
-
                 spelling = remap_argument_name(arg.spelling, count)
                 argument_type = remap_type(arg.type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap, unambiguous_nested_remap)
-
-                # `nil` is a value only for a nilable type. A std::function
-                # binds to an object, and the CppFunctionObject types are in the
-                # builtin set, so the check below would let `= nil` through on
-                # one - which is what a static method taking an optional
-                # callback turned up.
-                if default_value.strip() == "= nil" and not (
-                        argument_type.startswith("ptr ")
-                        or argument_type in ("pointer", "cstring")):
-                    default_value = ""
-
-                # A default is only kept where the literal is already a value of
-                # the parameter's type here. The converters that would make, say,
-                # "*" into a juce::String live in the _lifting file, which is
-                # included after this one, so such a default does not compile.
-                if default_value and argument_type not in known_builtin_types:
-                    if not (argument_type.startswith("ptr ") and default_value.strip() == "= nil"):
-                        default_value = ""
-
-                # And only when the default is a literal. C++ freely defaults a
-                # parameter to an enumerator or a constant that this binding
-                # never declares, which reads as an undeclared identifier.
-                if default_value:
-                    literal = default_value.split("=", 1)[1].strip()
-                    if not re.fullmatch(r"(nil|true|false|-?[0-9][0-9a-fA-FxX.eE+_-]*[fFlLuU]?|'.'|\".*\")", literal):
-                        default_value = ""
-                    # A C++ character literal defaults an integer parameter
-                    # freely; Nim will not convert one.
-                    elif literal.startswith("'") and argument_type not in ("char", "cchar"):
-                        default_value = ""
+                default_value = default_value_for(
+                    arg, argument_type, known_builtin_types)
 
                 args.append(f"{spelling}: {argument_type}{default_value}")
                 argument_types.append(argument_type)
