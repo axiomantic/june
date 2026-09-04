@@ -14363,3 +14363,65 @@ proc testTopLevelWindow() =
     shutdownJuce_GUI()
 
 testTopLevelWindow()
+
+# ListBoxModel's default answers ==============================================
+#
+# Only getNumRows and paintListBoxItem are pure virtual, so CustomListBoxModel
+# overrides those two and nothing else. The remaining six have bodies in JUCE,
+# which is why no override is generated for them - and which is exactly what
+# makes their DEFAULTS worth pinning: a ListBox that is given a bare model
+# gets these answers.
+proc testListBoxModelDefaults() =
+    initialiseJuce_GUI()
+
+    block:
+        var model = newCustomListBoxModel()
+        model[].setNumRowsHandler(proc(): cint = 3.cint)
+        model[].setPaintListBoxItemHandler(
+            proc(rowNumber: cint, g: ptr Graphics, width, height: cint,
+                 rowIsSelected: bool) = discard)
+        var base = cast[ptr ListBoxModel](model)
+
+        # A row is named for its ONE-based position (juce_ListBox.cpp:1251).
+        doAssert $base[].getNameForRow(0.cint) == "Row 1",
+                 "row 0 is called " & $base[].getNameForRow(0.cint)
+        doAssert $base[].getNameForRow(9.cint) == "Row 10",
+                 "row 9 is called " & $base[].getNameForRow(9.cint)
+
+        # No tooltip and the ordinary cursor.
+        doAssert base[].getTooltipForRow(0.cint).isEmpty(),
+                 "a bare model offers the tooltip " &
+                 $base[].getTooltipForRow(0.cint)
+        doAssert base[].getMouseCursorForRow(0.cint) ==
+                 makeMouseCursor(MouseCursorStandardCursorType_NormalCursor),
+                 "a bare model asks for a cursor of its own"
+
+        # A model that makes no row components hands back nothing, and only
+        # ever expects to be asked with nothing to recycle
+        # (juce_ListBox.cpp:1247 asserts that).
+        doAssert base[].refreshComponentForRow(0.cint, false, nil).isNil,
+                 "a bare model made a row component"
+
+        # The two click callbacks do nothing, which is asserted by showing the
+        # model still answers the same afterwards.
+        let target = newCustomComponent()
+        let event = makeMouseEvent(Desktop.getInstance().getMainMouseSource(),
+                                   makePoint(1.0'f32, 1.0'f32),
+                                   makeModifierKeys(),
+                                   1.0'f32, 0.0'f32, 0.0'f32, 0.0'f32, 0.0'f32,
+                                   cast[ptr Component](target),
+                                   cast[ptr Component](target),
+                                   Time.getCurrentTime(),
+                                   makePoint(1.0'f32, 1.0'f32),
+                                   Time.getCurrentTime(), 1, false)
+        base[].listBoxItemClicked(0.cint, event)
+        base[].listBoxItemDoubleClicked(0.cint, event)
+        doAssert base[].getNumRows() == 3,
+                 "the model now reports " & $base[].getNumRows() & " rows"
+
+        cdelete target
+        cdelete model
+
+    shutdownJuce_GUI()
+
+testListBoxModelDefaults()
