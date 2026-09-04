@@ -11394,3 +11394,119 @@ proc testLookAndFeelServices() =
     shutdownJuce_GUI()
 
 testLookAndFeelServices()
+
+# Toolbar's item removal and geometry. testToolbar above covers adding and the
+# save/restore round trip; this covers taking items out and the two directions
+# a toolbar measures itself in.
+proc testToolbarRemovalAndGeometry() =
+    initialiseJuce_GUI()
+
+    const cutId = 1.cint
+    const copyId = 2.cint
+    const pasteId = 3.cint
+
+    block:
+        var factory = newCustomToolbarItemFactory()
+        factory[].setGetAllToolbarItemIdsHandler(proc(ids: ptr Array[cint]) =
+            ids[].add(cutId)
+            ids[].add(copyId)
+            ids[].add(pasteId))
+        factory[].setGetDefaultItemSetHandler(proc(ids: ptr Array[cint]) =
+            ids[].add(cutId)
+            ids[].add(copyId)
+            ids[].add(pasteId))
+        factory[].setCreateItemHandler(proc(itemId: cint): ptr ToolbarItemComponent =
+            var item = newCustomToolbarItemComponent(itemId, makeString("item"),
+                                                     true)
+            item[].setGetToolbarItemSizesHandler(proc(toolbarThickness: cint,
+                                                      isToolbarVertical: bool,
+                                                      preferredSize: ptr cint,
+                                                      minSize: ptr cint,
+                                                      maxSize: ptr cint): bool =
+                preferredSize[] = 40.cint
+                minSize[] = 20.cint
+                maxSize[] = 80.cint
+                true)
+            item[].setPaintButtonAreaHandler(proc(g: ptr Graphics, width: cint,
+                                                  height: cint, isMouseOver: bool,
+                                                  isMouseDown: bool) = discard)
+            cast[ptr ToolbarItemComponent](item))
+
+        var bar = makeToolbar()
+        bar.setBounds(makeRectangle(0.cint, 0.cint, 300.cint, 40.cint))
+        bar.addDefaultItems(cast[ptr CustomToolbarItemFactory](factory)[])
+        doAssert bar.getNumItems() == 3,
+                 "the toolbar holds " & $bar.getNumItems() & " items"
+
+        # A horizontal toolbar's thickness is its height and its length its
+        # width; going vertical swaps them.
+        doAssert not bar.isVertical(), "a new toolbar is vertical"
+        doAssert bar.getThickness() == bar.getHeight(),
+                 "a horizontal toolbar is " & $bar.getThickness() &
+                 " thick and " & $bar.getHeight() & " tall"
+        doAssert bar.getLength() == bar.getWidth(),
+                 "a horizontal toolbar is " & $bar.getLength() &
+                 " long and " & $bar.getWidth() & " wide"
+
+        bar.setVertical(true)
+        doAssert bar.getThickness() == bar.getWidth(),
+                 "a vertical toolbar is " & $bar.getThickness() &
+                 " thick and " & $bar.getWidth() & " wide"
+        doAssert bar.getLength() == bar.getHeight(),
+                 "a vertical toolbar is " & $bar.getLength() &
+                 " long and " & $bar.getHeight() & " tall"
+        bar.setVertical(false)
+
+        # removeToolbarItem destroys the item; removeAndReturnItem hands it
+        # over. Both shorten the toolbar by one.
+        bar.removeToolbarItem(1.cint)
+        doAssert bar.getNumItems() == 2,
+                 "after removing one there are " & $bar.getNumItems()
+        doAssert bar.getItemId(0.cint) == cutId,
+                 "removing the middle item moved the first one; it is now " &
+                 $bar.getItemId(0.cint)
+        doAssert bar.getItemId(1.cint) == pasteId,
+                 "the item after the removed one is " & $bar.getItemId(1.cint)
+
+        let taken = bar.removeAndReturnItem(0.cint)
+        doAssert not taken.isNil, "removeAndReturnItem handed back nothing"
+        doAssert bar.getNumItems() == 1,
+                 "after taking one there are " & $bar.getNumItems()
+        doAssert bar.getItemId(0.cint) == pasteId,
+                 "the survivor is " & $bar.getItemId(0.cint)
+        # The caller owns it now, which is the whole difference from
+        # removeToolbarItem.
+        cdelete taken
+
+        bar.clear()
+        doAssert bar.getNumItems() == 0,
+                 "clear left " & $bar.getNumItems() & " items"
+
+        # The style is a separate setting from the direction.
+        bar.setStyle(ToolbarToolbarItemStyle_iconsOnly)
+        doAssert bar.getStyle() == ToolbarToolbarItemStyle_iconsOnly,
+                 "the style did not read back"
+        bar.setStyle(ToolbarToolbarItemStyle_iconsWithText)
+        doAssert bar.getStyle() == ToolbarToolbarItemStyle_iconsWithText,
+                 "the second style did not read back"
+        doAssert not bar.isVertical(),
+                 "changing the style turned the toolbar vertical"
+
+        # Editing mode and the layout pass have no reader; what is asserted is
+        # that they run and leave the toolbar consistent.
+        bar.addDefaultItems(cast[ptr CustomToolbarItemFactory](factory)[])
+        bar.setEditingActive(true)
+        bar.updateAllItemPositions(false)
+        bar.setEditingActive(false)
+        doAssert bar.getNumItems() == 3,
+                 "editing mode changed the item count to " & $bar.getNumItems()
+
+        # Nothing is being dragged onto it in a test with no input.
+        doAssert bar.getCurrentDragDescription().isVoid(),
+                 "a drag is in progress on a toolbar nothing touched"
+
+        cdelete factory
+
+    shutdownJuce_GUI()
+
+testToolbarRemovalAndGeometry()
