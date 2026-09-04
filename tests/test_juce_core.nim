@@ -5658,3 +5658,106 @@ proc testXmlElementDocumentAndSearch() =
     doAssert file.deleteFile(), "the temporary file could not be removed"
 
 testXmlElementDocumentAndSearch()
+
+# The rest of URL. The readEntire* methods are given a file:// URL, so they
+# read a local file and touch no network. downloadToFile and
+# launchInDefaultBrowser are left to the compile harness: one reaches out over
+# the network and the other opens a browser, and neither belongs in a test run.
+proc testUrlUploadsAndReads() =
+  block:
+    # withParameters adds several at once, and the existing ones stay.
+    let base = makeURL(makeString("https://example.com/search?first=1"))
+    var extra = makeStringPairArray(true)
+    extra.set(makeString("second"), makeString("two"))
+    extra.set(makeString("third"), makeString("three"))
+
+    let combined = base.withParameters(extra)
+    doAssert combined.getParameterNames().size() == 3,
+             "the combined URL has " & $combined.getParameterNames().size() &
+             " parameters"
+    doAssert combined.getParameterNames().contains(makeString("first")),
+             "the original parameter was lost"
+    doAssert combined.getParameterNames().contains(makeString("third")),
+             "an added parameter is missing"
+    doAssert base.getParameterNames().size() == 1,
+             "withParameters changed the original, which now has " &
+             $base.getParameterNames().size() & " parameters"
+
+  block:
+    # An upload turns the URL into a POST with a multipart body, which is what
+    # isPost reports and what the plain query string does not carry.
+    let directory = File.getSpecialLocation(
+        FileSpecialLocationType_tempDirectory)
+    let payload = directory.getChildFile(makeString("june_url_upload.txt"))
+    doAssert payload.replaceWithText(makeString("file contents")),
+             "the payload file could not be written"
+
+    # An upload is not visible through anything the binding exposes: JUCE's
+    # isPost and its list of uploads are not bound, and an attachment does not
+    # appear in the URL's text or in its post data. So what is asserted is
+    # that the call produces a usable URL naming the same endpoint and leaves
+    # the receiver alone - which is the with- contract, and all that can be
+    # checked from here.
+    let base = makeURL(makeString("https://example.com/upload"))
+
+    let withFile = base.withFileToUpload(makeString("attachment"), payload,
+                                         makeString("text/plain"))
+    doAssert $withFile.toString(true) == $base.toString(true),
+             "the attachment changed the URL's text to " &
+             $withFile.toString(true)
+    doAssert not withFile.isEmpty(), "the URL with an attachment is empty"
+
+    var bytes = makeMemoryBlock(0'u64, false)
+    bytes.append(cast[constPointer](cstring"raw bytes"), 9'u64)
+    let withData = base.withDataToUpload(makeString("blob"),
+                                         makeString("blob.bin"), bytes,
+                                         makeString("application/octet-stream"))
+    doAssert $withData.getDomain() == "example.com",
+             "the uploaded data changed the domain to " & $withData.getDomain()
+    doAssert base.getPostData().isEmpty(),
+             "an upload put post data on the ORIGINAL, which now holds " &
+             $base.getPostData()
+
+    doAssert payload.deleteFile(), "the payload file could not be removed"
+
+  block:
+    # A file:// URL reads through the same three methods a network one would.
+    let directory = File.getSpecialLocation(
+        FileSpecialLocationType_tempDirectory)
+    let textFile = directory.getChildFile(makeString("june_url_read.txt"))
+    doAssert textFile.replaceWithText(makeString("the whole text")),
+             "the text file could not be written"
+
+    let textUrl = makeURL(textFile)
+    doAssert $textUrl.readEntireTextStream(false) == "the whole text",
+             "reading the file gave " & $textUrl.readEntireTextStream(false)
+
+    var binary = makeMemoryBlock(0'u64, false)
+    doAssert textUrl.readEntireBinaryStream(binary, false),
+             "reading the file as bytes failed"
+    doAssert binary.getSize() == 14'u64,
+             "the file read as " & $binary.getSize() & " bytes"
+
+    # And an XML file parses through readEntireXmlStream.
+    let xmlFile = directory.getChildFile(makeString("june_url_read.xml"))
+    doAssert xmlFile.replaceWithText(makeString("<root n=\"5\"/>")),
+             "the XML file could not be written"
+    let xmlUrl = makeURL(xmlFile)
+    var parsed = xmlUrl.readEntireXmlStream(false)
+    doAssert not parsed.isNil(), "the XML did not parse"
+    doAssert parsed.get()[].hasTagName("root"),
+             "the parsed root is " & $parsed.get()[].getTagName()
+    doAssert parsed.get()[].getIntAttribute("n", 0.cint) == 5,
+             "the parsed attribute is " &
+             $parsed.get()[].getIntAttribute("n", 0.cint)
+
+    # A URL naming a file that is not there reads as nothing rather than
+    # failing.
+    let missing = makeURL(directory.getChildFile(makeString("june_absent.txt")))
+    doAssert missing.readEntireTextStream(false).isEmpty(),
+             "a missing file read as " & $missing.readEntireTextStream(false)
+
+    doAssert textFile.deleteFile() and xmlFile.deleteFile(),
+             "the temporary files could not be removed"
+
+testUrlUploadsAndReads()
