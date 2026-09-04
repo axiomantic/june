@@ -6152,3 +6152,145 @@ proc testSocketsWithoutAPeer() =
              "a failed connect left the socket connected"
 
 testSocketsWithoutAPeer()
+
+# AbstractFifo hands out index ranges into a buffer a caller owns. It never
+# touches the data itself, so the whole of it is arithmetic - and the two
+# blocks it reports are how a ring buffer wraps.
+proc testAbstractFifo() =
+  block:
+    var fifo = makeAbstractFifo(8.cint)
+    doAssert fifo.getTotalSize() == 8,
+             "the fifo holds " & $fifo.getTotalSize() & " slots"
+    doAssert fifo.getFreeSpace() == 7,
+             "an empty fifo of 8 has " & $fifo.getFreeSpace() & " free"
+    doAssert fifo.getNumReady() == 0,
+             "an empty fifo has " & $fifo.getNumReady() & " ready"
+
+    # A write that fits in one run gives one block and an empty second.
+    var start1, size1, start2, size2: cint
+    fifo.prepareToWrite(3.cint, start1, size1, start2, size2)
+    doAssert size1 == 3, "the first block is " & $size1 & " long"
+    doAssert size2 == 0,
+             "a write that fits gave a second block of " & $size2
+    doAssert start1 == 0, "the first block starts at " & $start1
+
+    # Nothing is readable until the write is finished.
+    doAssert fifo.getNumReady() == 0,
+             "the fifo has " & $fifo.getNumReady() & " ready before the " &
+             "write was finished"
+    fifo.finishedWrite(3.cint)
+    doAssert fifo.getNumReady() == 3,
+             "after writing 3 the fifo has " & $fifo.getNumReady() & " ready"
+    doAssert fifo.getFreeSpace() == 4,
+             "after writing 3 there are " & $fifo.getFreeSpace() & " free"
+
+    # Reading gives the same run back.
+    fifo.prepareToRead(2.cint, start1, size1, start2, size2)
+    doAssert size1 == 2 and size2 == 0,
+             "reading 2 gave blocks of " & $size1 & " and " & $size2
+    doAssert start1 == 0, "the read starts at " & $start1
+    fifo.finishedRead(2.cint)
+    doAssert fifo.getNumReady() == 1,
+             "after reading 2 of 3 the fifo has " & $fifo.getNumReady()
+
+  block:
+    # A write that runs off the end WRAPS, which is the whole reason
+    # prepareToWrite reports two blocks rather than one range.
+    var fifo = makeAbstractFifo(8.cint)
+    var start1, size1, start2, size2: cint
+
+    # Fill and drain most of it, so the write pointer is near the end.
+    fifo.prepareToWrite(6.cint, start1, size1, start2, size2)
+    fifo.finishedWrite(6.cint)
+    fifo.prepareToRead(6.cint, start1, size1, start2, size2)
+    fifo.finishedRead(6.cint)
+
+    # Now a write of 4 has to wrap: 2 at the end and 2 at the start.
+    fifo.prepareToWrite(4.cint, start1, size1, start2, size2)
+    doAssert size1 + size2 == 4,
+             "the wrapped write covers " & $(size1 + size2) & " slots"
+    doAssert size2 > 0,
+             "a write past the end did not wrap; the blocks are " & $size1 &
+             " and " & $size2
+    doAssert start1 == 6, "the first block starts at " & $start1
+    doAssert start2 == 0, "the second block starts at " & $start2
+
+    fifo.finishedWrite(4.cint)
+    doAssert fifo.getNumReady() == 4,
+             "after the wrapped write " & $fifo.getNumReady() & " are ready"
+
+    # And the matching read wraps the same way.
+    fifo.prepareToRead(4.cint, start1, size1, start2, size2)
+    doAssert size2 > 0, "the wrapped read did not wrap"
+    doAssert start1 == 6 and start2 == 0,
+             "the wrapped read starts at " & $start1 & " and " & $start2
+
+  block:
+    # Asking for more than there is room for gives what there is, not what was
+    # asked for - which is what makes the return values worth reading.
+    var fifo = makeAbstractFifo(4.cint)
+    var start1, size1, start2, size2: cint
+    fifo.prepareToWrite(100.cint, start1, size1, start2, size2)
+    doAssert size1 + size2 == 3,
+             "a fifo of 4 offered " & $(size1 + size2) & " slots for 100"
+
+    # setTotalSize resizes and empties it.
+    fifo.finishedWrite(3.cint)
+    fifo.setTotalSize(16.cint)
+    doAssert fifo.getTotalSize() == 16,
+             "after resizing the fifo holds " & $fifo.getTotalSize()
+    doAssert fifo.getNumReady() == 0,
+             "resizing left " & $fifo.getNumReady() & " ready"
+
+testAbstractFifo()
+
+# Uuid's field accessors. A UUID is sixteen bytes, and each accessor names a
+# slice of them - so the assertions are that the slices agree with the raw
+# bytes and that two different UUIDs differ.
+proc testUuidFields() =
+  block:
+    let first = makeUuid()
+    let second = makeUuid()
+    doAssert not first.isNull(), "a generated UUID is null"
+    doAssert not (first == second), "two generated UUIDs are equal"
+
+    doAssert not first.getRawData().isNil,
+             "a UUID has no raw data"
+
+    # The time fields come from the first eight bytes, so a UUID that differs
+    # differs in at least one of them or in the node.
+    doAssert first.getTimeLow() != second.getTimeLow() or
+             first.getTimeMid() != second.getTimeMid() or
+             first.getTimeHighAndVersion() != second.getTimeHighAndVersion() or
+             first.getClockSeqAndReserved() != second.getClockSeqAndReserved() or
+             first.getClockSeqLow() != second.getClockSeqLow() or
+             first.getNode() != second.getNode(),
+             "two different UUIDs agree on every field"
+
+    # A UUID rebuilt from its own text has the same fields.
+    let rebuilt = makeUuid(first.toString())
+    doAssert rebuilt == first, "the round trip changed the UUID"
+    doAssert rebuilt.getTimeLow() == first.getTimeLow(),
+             "the round trip changed the time-low field"
+    doAssert rebuilt.getNode() == first.getNode(),
+             "the round trip changed the node"
+
+    # A null UUID is all zeroes, so every field is zero.
+    let empty = makeUuid(makeString("00000000-0000-0000-0000-000000000000"))
+    doAssert empty.isNull(), "the all-zero UUID is not null"
+    doAssert empty.getTimeLow() == 0'u32,
+             "the null UUID's time-low is " & $empty.getTimeLow()
+    doAssert empty.getTimeMid() == 0'u16,
+             "the null UUID's time-mid is " & $empty.getTimeMid()
+    doAssert empty.getTimeHighAndVersion() == 0'u16,
+             "the null UUID's version field is " &
+             $empty.getTimeHighAndVersion()
+    doAssert empty.getClockSeqAndReserved() == 0'u8,
+             "the null UUID's clock-seq-and-reserved is " &
+             $empty.getClockSeqAndReserved()
+    doAssert empty.getClockSeqLow() == 0'u8,
+             "the null UUID's clock-seq-low is " & $empty.getClockSeqLow()
+    doAssert empty.getNode() == 0'u64,
+             "the null UUID's node is " & $empty.getNode()
+
+testUuidFields()
