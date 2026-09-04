@@ -11296,12 +11296,18 @@ proc testLookAndFeelServices() =
     block:
         var feel = makeLookAndFeel_V4()
 
-        # The default typeface is named rather than supplied, and a Font asked
-        # for it comes back with a typeface behind it.
-        feel.setDefaultSansSerifTypefaceName(Font.getDefaultMonospacedFontName())
+        # A plain font resolves through JUCE's OWN default, which is the case
+        # worth asserting. The override below is exercised but not asserted:
+        # whether a NAME resolves is the host's business, and the name JUCE
+        # reports for a monospaced font on Linux is not always an installed
+        # family - which is what made an earlier version of this fail there
+        # and pass on macOS.
         var font = makeFont(makeFontOptions(16.0'f32))
         doAssert not feel.getTypefaceForFont(font).isNil(),
                  "the LookAndFeel supplied no typeface for a plain font"
+
+        feel.setDefaultSansSerifTypefaceName(Font.getDefaultMonospacedFontName())
+        discard feel.getTypefaceForFont(font)
 
         # Passing an empty typeface pointer clears the override rather than
         # crashing.
