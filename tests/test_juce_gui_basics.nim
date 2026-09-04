@@ -11286,3 +11286,111 @@ proc testTableListBoxModelDefaults() =
     shutdownJuce_GUI()
 
 testTableListBoxModelDefaults()
+
+# LookAndFeel's own methods, as opposed to the 130-odd drawing hooks a widget
+# calls. These are the ones a program calls directly: the default typeface, the
+# two stock shapes, and the per-component factories.
+proc testLookAndFeelServices() =
+    initialiseJuce_GUI()
+
+    block:
+        var feel = makeLookAndFeel_V4()
+
+        # The default typeface is named rather than supplied, and a Font asked
+        # for it comes back with a typeface behind it.
+        feel.setDefaultSansSerifTypefaceName(Font.getDefaultMonospacedFontName())
+        var font = makeFont(makeFontOptions(16.0'f32))
+        doAssert not feel.getTypefaceForFont(font).isNil(),
+                 "the LookAndFeel supplied no typeface for a plain font"
+
+        # Passing an empty typeface pointer clears the override rather than
+        # crashing.
+        feel.setDefaultSansSerifTypeface(
+            makeReferenceCountedObjectPtr[Typeface](nil))
+
+        # withDefaultMetrics stamps the LookAndFeel's metrics kind onto a
+        # FontOptions that has none of its own.
+        let stamped = feel.withDefaultMetrics(makeFontOptions(12.0'f32))
+        doAssert stamped.getMetricsKind() == feel.getDefaultMetricsKind(),
+                 "withDefaultMetrics did not stamp the LookAndFeel's kind"
+        doAssert stamped.getHeight() == 12.0'f32,
+                 "withDefaultMetrics changed the height to " &
+                 $stamped.getHeight()
+
+        doAssert not feel.isUsingNativeAlertWindows(),
+                 "a new LookAndFeel uses native alert windows"
+        feel.setUsingNativeAlertWindows(true)
+        doAssert feel.isUsingNativeAlertWindows(),
+                 "setUsingNativeAlertWindows did not take"
+        feel.setUsingNativeAlertWindows(false)
+
+    block:
+        # The two stock shapes are paths sized to the height they are asked
+        # for, and they are different shapes.
+        var feel = makeLookAndFeel_V4()
+        let tick = feel.getTickShape(20.0'f32)
+        let cross = feel.getCrossShape(20.0'f32)
+
+        doAssert not tick.isEmpty(), "the tick shape is empty"
+        doAssert not cross.isEmpty(), "the cross shape is empty"
+        doAssert abs(tick.getBounds().getHeight() - 20.0'f32) < 1.0'f32,
+                 "a tick asked for at 20 is " &
+                 $tick.getBounds().getHeight() & " tall"
+        doAssert abs(cross.getBounds().getHeight() - 20.0'f32) < 1.0'f32,
+                 "a cross asked for at 20 is " &
+                 $cross.getBounds().getHeight() & " tall"
+        doAssert $tick.toString() != $cross.toString(),
+                 "the tick and the cross are the same path"
+
+        # A larger height gives a larger shape.
+        doAssert feel.getTickShape(40.0'f32).getBounds().getHeight() >
+                 tick.getBounds().getHeight(),
+                 "a tick asked for at 40 is no taller than one at 20"
+
+    block:
+        # The per-component factories each make something for a component.
+        var feel = makeLookAndFeel_V4()
+        let component = newCustomComponent()
+        component[].setBounds(makeRectangle(0.cint, 0.cint, 100.cint, 40.cint))
+
+        var shadower = feel.createDropShadowerForComponent(component[])
+        doAssert not shadower.isNil(), "no drop shadower was made"
+        var outline = feel.createFocusOutlineForComponent(component[])
+        doAssert not outline.isNil(), "no focus outline was made"
+
+        # The cursor a LookAndFeel picks for a component is the component's own
+        # unless it overrides the choice.
+        component[].setMouseCursor(makeMouseCursor(
+            MouseCursorStandardCursorType_CrosshairCursor))
+        doAssert feel.getMouseCursorFor(component[]) ==
+                 makeMouseCursor(MouseCursorStandardCursorType_CrosshairCursor),
+                 "the LookAndFeel chose a different cursor than the component's"
+
+        cdelete component
+
+    block:
+        # A graphics context drawn through reaches the image, which is what
+        # makes it the same machinery a Graphics uses.
+        var feel = makeLookAndFeel_V4()
+        let image = makeImage(ImagePixelFormat_ARGB, 20.cint, 20.cint, true)
+        var clip = makeRectangleList[cint]()
+        clip.add(makeRectangle(0.cint, 0.cint, 20.cint, 20.cint))
+
+        var context = feel.createGraphicsContext(image, makePoint(0.cint, 0.cint),
+                                                 clip)
+        doAssert not context.isNil(), "no graphics context was made"
+
+        # And the spinning-wait animation puts pixels in the area it is given.
+        var g = makeGraphics(image)
+        feel.drawSpinningWaitAnimation(g, Colours_white, 0.cint, 0.cint,
+                                       20.cint, 20.cint)
+        var lit = 0
+        for x in 0.cint ..< 20.cint:
+            for y in 0.cint ..< 20.cint:
+                if image.getPixelAt(x, y).getAlpha() > 0'u8:
+                    lit += 1
+        doAssert lit > 0, "the spinning wait animation drew nothing"
+
+    shutdownJuce_GUI()
+
+testLookAndFeelServices()
