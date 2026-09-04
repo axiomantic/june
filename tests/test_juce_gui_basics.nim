@@ -15238,3 +15238,56 @@ proc testTableListBoxHeaderAndBuilder() =
     shutdownJuce_GUI()
 
 testTableListBoxHeaderAndBuilder()
+
+# TooltipWindow ==============================================================
+#
+# The window is given a PARENT, which keeps displayTip away from the desktop:
+# with no parent it calls addToDesktop and needs a real window server
+# (juce_TooltipWindow.cpp: displayTipInternal takes the parent branch first).
+proc testTooltipWindow() =
+    initialiseJuce_GUI()
+
+    block:
+        var parent = newCustomComponent()
+        parent[].setBounds(makeRectangle(0.cint, 0.cint, 400.cint, 300.cint))
+
+        var tooltip = makeTooltipWindow(cast[ptr Component](parent), 700.cint)
+        doAssert not tooltip.isVisible(),
+                 "a fresh tooltip window is already showing"
+
+        tooltip.setMillisecondsBeforeTipAppears(250.cint)
+
+        tooltip.displayTip(makePoint(100.cint, 100.cint),
+                           makeString("a tip"))
+        doAssert tooltip.isVisible(), "the tip was not shown"
+        doAssert tooltip.getWidth() > 0 and tooltip.getHeight() > 0,
+                 "the shown tip is " & $tooltip.getWidth() & "x" &
+                 $tooltip.getHeight()
+
+        tooltip.hideTip()
+        doAssert not tooltip.isVisible(), "the tip was not hidden"
+
+        # A component that is not a TooltipClient has no tip, whatever else is
+        # true of the process.
+        var plain = newCustomComponent()
+        doAssert tooltip.getTipFor(plain[]).isEmpty(),
+                 "a plain component offered the tip " &
+                 $tooltip.getTipFor(plain[])
+        cdelete plain
+
+        # A component that IS one may still answer nothing: getTipFor asks
+        # first whether this process is in the foreground
+        # (juce_TooltipWindow.cpp: getTipFor), which a test run is not
+        # reliably. So what is asserted is that the answer is either the
+        # tooltip that was set or nothing at all - never something else.
+        var button = makeTextButton(makeString("press"))
+        button.setTooltip(makeString("press me"))
+        let answer = $tooltip.getTipFor(button)
+        doAssert answer == "press me" or answer == "",
+                 "the button's tip came back as " & answer
+
+        cdelete parent
+
+    shutdownJuce_GUI()
+
+testTooltipWindow()

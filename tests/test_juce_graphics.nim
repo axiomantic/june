@@ -4718,3 +4718,93 @@ proc testAttributedStringSettings() =
     shutdownJuce_GUI()
 
 testAttributedStringSettings()
+
+# PathStrokeType's joints, caps and the two special strokes ==================
+proc testPathStrokeTypeStyles() =
+    initialiseJuce_GUI()
+
+    block:
+        var stroke = makePathStrokeType(4.0'f32)
+        doAssert stroke.getJointStyle() == PathStrokeTypeJointStyle_mitered,
+                 "a new stroke is not mitered"
+        doAssert stroke.getEndStyle() == PathStrokeTypeEndCapStyle_butt,
+                 "a new stroke is not butt-ended"
+
+        stroke.setJointStyle(PathStrokeTypeJointStyle_curved)
+        doAssert stroke.getJointStyle() == PathStrokeTypeJointStyle_curved,
+                 "the joint style did not stick"
+        stroke.setEndStyle(PathStrokeTypeEndCapStyle_rounded)
+        doAssert stroke.getEndStyle() == PathStrokeTypeEndCapStyle_rounded,
+                 "the end style did not stick"
+
+        # A rounded cap reaches past the line's ends, so the stroked path is
+        # longer than a butt-ended one.
+        var line = makePath()
+        line.startNewSubPath(0.0'f32, 0.0'f32)
+        line.lineTo(20.0'f32, 0.0'f32)
+
+        var rounded = makePath()
+        stroke.createStrokedPath(rounded, line, makeAffineTransform(), 1.0'f32)
+
+        stroke.setEndStyle(PathStrokeTypeEndCapStyle_butt)
+        var butted = makePath()
+        stroke.createStrokedPath(butted, line, makeAffineTransform(), 1.0'f32)
+
+        doAssert rounded.getBounds().getWidth() >
+                 butted.getBounds().getWidth(),
+                 "the rounded stroke is " & $rounded.getBounds().getWidth() &
+                 " wide against a butted " & $butted.getBounds().getWidth()
+
+    block:
+        # A dashed stroke breaks the line into pieces, so it holds more
+        # sub-paths than the solid one does.
+        let stroke = makePathStrokeType(2.0'f32)
+        var line = makePath()
+        line.startNewSubPath(0.0'f32, 0.0'f32)
+        line.lineTo(100.0'f32, 0.0'f32)
+
+        var solid = makePath()
+        stroke.createStrokedPath(solid, line, makeAffineTransform(), 1.0'f32)
+
+        var dashes = [8.0'f32, 4.0'f32]
+        var dashed = makePath()
+        stroke.createDashedStroke(dashed, line, addr dashes[0], 2.cint,
+                                  makeAffineTransform(), 1.0'f32)
+        doAssert not dashed.isEmpty(), "the dashed stroke is empty"
+
+        proc subPaths(path: Path): int =
+            var walker = makePathIterator(path)
+            while walker.next():
+                if walker.elementType() ==
+                   PathIteratorPathElementType_startNewSubPath:
+                    result += 1
+
+        doAssert subPaths(dashed) > subPaths(solid),
+                 "the dashed stroke holds " & $subPaths(dashed) &
+                 " sub-paths against a solid " & $subPaths(solid)
+
+    block:
+        # Arrowheads widen the ends, so the stroked path is taller than the
+        # line's own thickness.
+        let stroke = makePathStrokeType(2.0'f32)
+        var line = makePath()
+        line.startNewSubPath(0.0'f32, 20.0'f32)
+        line.lineTo(100.0'f32, 20.0'f32)
+
+        var plain = makePath()
+        stroke.createStrokedPath(plain, line, makeAffineTransform(), 1.0'f32)
+
+        var arrowed = makePath()
+        stroke.createStrokeWithArrowheads(arrowed, line, 10.0'f32, 12.0'f32,
+                                          10.0'f32, 12.0'f32,
+                                          makeAffineTransform(), 1.0'f32)
+        doAssert not arrowed.isEmpty(), "the arrowed stroke is empty"
+        doAssert arrowed.getBounds().getHeight() >
+                 plain.getBounds().getHeight(),
+                 "the arrowed stroke is " &
+                 $arrowed.getBounds().getHeight() &
+                 " tall against a plain " & $plain.getBounds().getHeight()
+
+    shutdownJuce_GUI()
+
+testPathStrokeTypeStyles()

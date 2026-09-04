@@ -7478,3 +7478,55 @@ proc testOutputStreamBigEndian() =
                  "the double read back as " & $input.readDoubleBigEndian()
 
 testOutputStreamBigEndian()
+
+# ThreadPoolJob's own methods ================================================
+#
+# The pool tests run jobs through a pool. These call the job's own methods
+# directly, with no pool and no worker thread, which is what makes the exit
+# flag readable at a known moment rather than raced against.
+
+proc testThreadPoolJobDirectly() =
+    block:
+        var ran = 0
+        var sawExitRequest = false
+
+        var job = newCustomThreadPoolJob(makeString("direct"))
+        var base = cast[ptr ThreadPoolJob](job)
+        # cint rather than the enum: the generator marks JobStatus basescalar
+        # so the closure never names the distinct, and the forwarder casts.
+        job[].setRunJobHandler(proc(): cint =
+            ran += 1
+            sawExitRequest = base[].shouldExit()
+            cint(ThreadPoolJobJobStatus_jobHasFinished))
+
+        doAssert $base[].getJobName() == "direct",
+                 "the job is called " & $base[].getJobName()
+        base[].setJobName(makeString("renamed"))
+        doAssert $base[].getJobName() == "renamed",
+                 "the job is called " & $base[].getJobName()
+
+        # A job that is not in a pool is not running and has not been asked to
+        # stop.
+        doAssert not base[].isRunning(), "a job outside a pool is running"
+        doAssert not base[].shouldExit(),
+                 "a job nobody asked to stop wants to exit"
+
+        # runJob is the virtual, so calling it through the base class is what
+        # shows the Nim override reached C++.
+        doAssert base[].runJob() == ThreadPoolJobJobStatus_jobHasFinished,
+                 "the job did not report finishing"
+        doAssert ran == 1, "the job ran " & $ran & " times"
+        doAssert not sawExitRequest,
+                 "the job was asked to exit before anything asked it"
+
+        # And after signalJobShouldExit it is, which is how a long job knows
+        # to stop part way through.
+        base[].signalJobShouldExit()
+        doAssert base[].shouldExit(), "the job did not notice the request"
+        discard base[].runJob()
+        doAssert sawExitRequest,
+                 "the running job did not see the exit request"
+
+        cdelete job
+
+testThreadPoolJobDirectly()
