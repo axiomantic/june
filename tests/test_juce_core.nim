@@ -5945,3 +5945,107 @@ proc testExpressionStructure() =
              $constant.evaluate()
 
 testExpressionStructure()
+
+# ConsoleApplication dispatches a command line to one of several commands. The
+# command bodies run here, so the assertions are on which one was chosen and
+# what it was given.
+proc testConsoleApplicationDispatch() =
+  block:
+    var app = makeConsoleApplication()
+    var buildRan = 0
+    var cleanRan = 0
+    var seenArguments = 0
+
+    var build = makeConsoleApplicationCommand()
+    build.commandOption = makeString("build|-b")
+    build.argumentDescription = makeString("build <target>")
+    build.shortDescription = makeString("Build a target")
+    build.longDescription = makeString("Builds the named target from source.")
+    build.command = bindConstRefClosure(proc(args: ptr ArgumentList) =
+      buildRan += 1
+      seenArguments = args[].size())
+    app.addCommand(build)
+
+    var clean = makeConsoleApplicationCommand()
+    clean.commandOption = makeString("clean")
+    clean.shortDescription = makeString("Remove the build output")
+    clean.command = bindConstRefClosure(proc(args: ptr ArgumentList) =
+      cleanRan += 1)
+    app.addCommand(clean)
+
+    doAssert app.getCommands().size() == 2'u64,
+             "the application holds " & $app.getCommands().size() & " commands"
+
+    # findCommand picks by the option, and either spelling finds the same one.
+    let buildArgs = makeArgumentList(makeString("june"),
+                                     makeString("build release"))
+    let found = app.findCommand(buildArgs, false)
+    doAssert not found.isNil, "the build command was not found"
+    let shortArgs = makeArgumentList(makeString("june"), makeString("-b debug"))
+    doAssert not app.findCommand(shortArgs, false).isNil,
+             "the short spelling did not find the command"
+
+    let unknown = makeArgumentList(makeString("june"), makeString("nonsense"))
+    doAssert app.findCommand(unknown, false).isNil,
+             "an unknown command was found"
+
+    # findAndRunCommand runs the one it picked, and hands it the arguments.
+    doAssert app.findAndRunCommand(buildArgs, false) == 0,
+             "the build command reported failure"
+    doAssert buildRan == 1, "the build command ran " & $buildRan & " times"
+    doAssert cleanRan == 0, "running build also ran clean"
+    doAssert seenArguments == 2,
+             "the command was given " & $seenArguments & " arguments"
+
+    doAssert app.findAndRunCommand(
+                 makeArgumentList(makeString("june"), makeString("clean")),
+                 false) == 0,
+             "the clean command reported failure"
+    doAssert cleanRan == 1, "the clean command ran " & $cleanRan & " times"
+    doAssert buildRan == 1, "running clean also ran build"
+
+  block:
+    # A DEFAULT command runs when nothing else matches, which is the whole
+    # difference from an ordinary one.
+    var app = makeConsoleApplication()
+    var defaultRan = 0
+
+    var fallback = makeConsoleApplicationCommand()
+    fallback.commandOption = makeString("")
+    fallback.shortDescription = makeString("The default")
+    fallback.command = bindConstRefClosure(proc(args: ptr ArgumentList) =
+      defaultRan += 1)
+    app.addDefaultCommand(fallback)
+
+    discard app.findAndRunCommand(
+        makeArgumentList(makeString("june"), makeString("anything at all")),
+        false)
+    doAssert defaultRan == 1,
+             "the default command ran " & $defaultRan & " times"
+
+  block:
+    # The built-in help and version commands are added by name, and appear in
+    # the command list like any other.
+    var app = makeConsoleApplication()
+    app.addHelpCommand(makeString("--help|-h"), makeString("Usage: june"), true)
+    app.addVersionCommand(makeString("--version"), makeString("june 1.0"))
+    doAssert app.getCommands().size() == 2'u64,
+             "the application holds " & $app.getCommands().size() &
+             " built-in commands"
+
+    doAssert not app.findCommand(
+                 makeArgumentList(makeString("june"), makeString("--version")),
+                 false).isNil,
+             "the version command was not found"
+
+    # printCommandList and printCommandDetails write to stdout, so what is
+    # asserted is that they run and leave the command list alone.
+    let arguments = makeArgumentList(makeString("june"), makeString("--help"))
+    app.printCommandList(arguments)
+    let helpCommand = app.findCommand(arguments, false)
+    doAssert not helpCommand.isNil, "the help command was not found"
+    app.printCommandDetails(arguments, helpCommand[])
+    doAssert app.getCommands().size() == 2'u64,
+             "printing changed the command count to " & $app.getCommands().size()
+
+testConsoleApplicationDispatch()
