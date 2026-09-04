@@ -4034,7 +4034,10 @@ proc testMultiChoicePropertyComponent() =
         for index in 0 ..< choices.size():
             values.add(makejuce_var(index))
 
-        var selection = makeValue(makejuce_var(makeString("")))
+        # The controlled Value must hold an ARRAY: that is what the component
+        # writes the ticked choices into, and JUCE asserts on anything else
+        # (juce_MultiChoicePropertyComponent.cpp:260).
+        var selection = makeValue(makejuce_var(makeArray[juce_var]()))
         var component = makeMultiChoicePropertyComponent(
             selection, makeString("Colours"), choices, values, -1.cint)
 
@@ -4053,6 +4056,21 @@ proc testMultiChoicePropertyComponent() =
         component.setExpanded(false)
         doAssert not component.isExpanded(), "the component did not collapse"
 
+        # The Value is the component's storage, so a choice written into it is
+        # what the component is showing as ticked. Now that it holds an array,
+        # that round-trip can be asserted at all.
+        var ticked = makeArray[juce_var]()
+        ticked.add(makejuce_var(2.cint))
+        selection.setValue(makejuce_var(ticked))
+        doAssert selection.getValue().isArray(),
+                 "the selection stopped being an array"
+        doAssert selection.getValue().size() == 1,
+                 "the selection holds " & $selection.getValue().size() &
+                 " choices"
+        doAssert selection.getValue()[0.cint].toInt() == 2,
+                 "the ticked choice is " &
+                 $selection.getValue()[0.cint].toInt()
+
         # Two choices fit, so that one is not expandable.
         var few = makeStringArray()
         few.add(makeString("on"))
@@ -4061,7 +4079,7 @@ proc testMultiChoicePropertyComponent() =
         fewValues.add(makejuce_var(0.cint))
         fewValues.add(makejuce_var(1.cint))
         var small = makeMultiChoicePropertyComponent(
-            makeValue(makejuce_var(makeString(""))), makeString("Switch"),
+            makeValue(makejuce_var(makeArray[juce_var]())), makeString("Switch"),
             few, fewValues, -1.cint)
         doAssert not small.isExpandable(),
                  "two choices made the component expandable"
@@ -7363,7 +7381,7 @@ proc testLastFields() =
         choices.add(makeString("one"))
         var values: Array[juce_var]
         values.add(makejuce_var(1.cint))
-        var control = makeValue(makejuce_var(1.cint))
+        var control = makeValue(makejuce_var(makeArray[juce_var]()))
         var component = makeMultiChoicePropertyComponent(
             control, makeString("choices"), choices, values, -1.cint)
 

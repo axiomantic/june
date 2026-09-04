@@ -117,10 +117,6 @@ EXPECTED = {
         ("any",
          "line feeds inserted into a single-line editor, which the"
          "TextEditor tests do to pin what it keeps"),
-    "juce_MultiChoicePropertyComponent.cpp:260":
-        ("any",
-         "the controlled Value must hold an array; the property tests"
-         "build one over a plain value to show what it does then"),
     "juce_SharedCode_posix.h:1062":
         ("macos",
          "thread affinity is not supported in this build, and the Thread"
