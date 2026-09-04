@@ -649,6 +649,14 @@ def check_macos_only_calls():
     indentation, is `when defined(macosx)`. That is what the suite's own
     guards look like, and a false ALARM here is cheap to fix while a false
     all-clear is what this exists to prevent.
+
+    What this does NOT catch: a macOS-only method that is not on that list.
+    The list was built by compiling the harness on Linux, one round per error
+    the compiler reported, so it holds the methods the harness had to call.
+    A method covered behaviourally from the start never entered the harness
+    and so never entered the list. Linux CI is still the backstop for those -
+    it is what found isBundle - and a name added to MACOS_ONLY_METHODS when
+    that happens brings the method under this check too.
     """
     harness = open("tools/generate_compile_harness.py").read()
     block = re.search(r"MACOS_ONLY_METHODS = \{(.*?)\n\}", harness, re.S)
