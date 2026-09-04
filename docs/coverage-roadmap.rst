@@ -98,8 +98,8 @@ with no columns to offer - and that path is worth taking. The rest belong in
 the unreachable lists below.
 
 
-Two rules that this branch learned the hard way
-===============================================
+Rules this branch learned the hard way
+======================================
 
 **Assert what JUCE does, not what the name suggests.** Roughly forty
 expectations on this branch were wrong while the binding was right.
