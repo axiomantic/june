@@ -99,7 +99,7 @@ proc exit*(this: MessageManagerInnerLock) {.header: juce_events, importcpp: "#.e
 proc abort*(this: MessageManagerInnerLock) {.header: juce_events, importcpp: "#.abort()".}
 proc `==`*(this: MessageManagerInnerLock, other: MessageManagerInnerLock): bool {.error: "juce::MessageManager::Lock defines no operator==; compare a property instead".}
 
-proc makeMessageManagerLock*(threadToCheckForExitSignal: ptr Thread): MessageManagerLock {.header: juce_events, importcpp: "juce::MessageManagerLock(@)".}
+proc makeMessageManagerLock*(threadToCheckForExitSignal: ptr Thread = nil): MessageManagerLock {.header: juce_events, importcpp: "juce::MessageManagerLock(@)".}
 proc makeMessageManagerLock*(jobToCheckForExitSignal: ptr ThreadPoolJob): MessageManagerLock {.header: juce_events, importcpp: "juce::MessageManagerLock(@)".}
 proc lockWasGained*(this: MessageManagerLock): bool {.header: juce_events, importcpp: "#.lockWasGained()".}
 proc `==`*(this: MessageManagerLock, other: MessageManagerLock): bool {.error: "juce::MessageManagerLock defines no operator==; compare a property instead".}
@@ -239,7 +239,7 @@ proc addChildProcessExitedListener*(this: var ChildProcessManager, listener: Cpp
 proc hasRunningProcess*(this: ChildProcessManager): bool {.header: juce_events, importcpp: "#.hasRunningProcess()".}
 proc `==`*(this: ChildProcessManager, other: ChildProcessManager): bool {.error: "juce::ChildProcessManager defines no operator==; compare a property instead".}
 
-# proc makeInterprocessConnection*(callbacksOnMessageThread: bool, magicMessageHeaderNumber: uint32): InterprocessConnection {.header: juce_events, importcpp: "juce::InterprocessConnection(@)".}  # InterprocessConnection is abstract; build a CustomInterprocessConnection instead
+# proc makeInterprocessConnection*(callbacksOnMessageThread: bool = true, magicMessageHeaderNumber: uint32 = 0xf2b49e2c): InterprocessConnection {.header: juce_events, importcpp: "juce::InterprocessConnection(@)".}  # InterprocessConnection is abstract; build a CustomInterprocessConnection instead
 proc connectToSocket*(this: var InterprocessConnection, hostName: String, portNumber: cint, timeOutMillisecs: cint): bool {.header: juce_events, importcpp: "#.connectToSocket(@)".}
 proc connectToPipe*(this: var InterprocessConnection, pipeName: String, pipeReceiveMessageTimeoutMs: cint): bool {.header: juce_events, importcpp: "#.connectToPipe(@)".}
 proc createPipe*(this: var InterprocessConnection, pipeName: String, pipeReceiveMessageTimeoutMs: cint, mustNotExist: bool = false): bool {.header: juce_events, importcpp: "#.createPipe(@)".}
