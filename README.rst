@@ -491,6 +491,14 @@ test calling either exercises the name. The match is by name rather than by
 receiver, which makes the uncalled figure a LOWER bound - it never claims
 coverage that is not there.
 
+The same tool lists what is left, so that the list is never a stale copy in a
+document::
+
+  python3 tools/report_behavioural_coverage.py --remaining
+
+``docs/coverage-roadmap.rst`` describes the shape of that remainder and how to
+choose the next class to cover.
+
 What the behavioural layer does NOT reach, and why:
 
 - Anything needing a real window server or real input. On Linux CI the suite
@@ -513,6 +521,12 @@ What the behavioural layer does NOT reach, and why:
   behaviourally on macOS only, and each skip prints a line saying so.
 - Platform-only methods. The harness marks these and calls them on macOS only;
   ``MACOS_ONLY_METHODS`` in the harness generator lists them.
+- A handful of individual methods whose only effect is outside the process:
+  ``File.addToDock`` rewrites the user's Dock preferences and restarts the
+  Dock, ``Toolbar.showCustomisationDialog`` opens a modal dialog, and
+  ``setCurrentDragImage`` dereferences a pointer that is null unless a drag is
+  already under way. ``UNREACHABLE_METHODS`` in the report tool lists them one
+  at a time, so the rest of each class still counts.
 - The examples. They are built by CI, not run: each opens a window and waits
   for it to be closed, which never happens unattended.
 
@@ -595,16 +609,17 @@ values of a class with no C++ ``operator==`` would use structural equality, and
 an ``importcpp`` object declares no fields, so it would compare nothing and
 call every two values equal. ``$`` on a class with no ``toString`` would print
 ``()`` for the same reason -- in exactly the place a person is trying to see
-what a value is. 444 classes carry the equality guard and 482 the ``$`` one,
+what a value is. 442 classes carry the equality guard and 480 the ``$`` one,
 and the suite checks that both fire and that a class with a real
 ``operator==`` or ``toString`` is left alone.
 
 A bound constant is not checked against C++ unless something reads it. A ``let``
 naming ``juce::NoSuchClass::nope`` compiles clean while nothing touches it,
-which was measured rather than assumed, so 591 of the 635 had never had their
-spelling checked. The suite reads every one and
-``check_handwritten_covered.py`` fails if one is not read. All 635 were
-correct, which is worth knowing rather than assuming.
+which was measured rather than assumed: when this was first checked, most of
+the bound constants had never had their spelling put to the compiler. The suite
+now reads every one and ``check_handwritten_covered.py`` fails if one is not
+read, printing how many it checked. Every one of them was correct, which is
+worth knowing rather than assuming.
 
 A nested class is named by its parts joined together, and one of those
 collided with a top-level class: ``juce::MessageManagerLock`` and
