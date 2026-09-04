@@ -10940,3 +10940,92 @@ proc testComponentListenersAndModality() =
     shutdownJuce_GUI()
 
 testComponentListenersAndModality()
+
+# A component on the desktop has a ComponentPeer, which is the native window.
+# Everything here goes through that peer, so the whole test is gated on a
+# display: creating one without a window server crashes rather than fails.
+proc testComponentPeer() =
+    initialiseJuce_GUI()
+
+    when defined(linux):
+        if getEnv("DISPLAY").len == 0:
+            echo "  skipped testComponentPeer: no X display (DISPLAY unset)"
+            shutdownJuce_GUI()
+            return
+
+    block:
+        let component = newCustomComponent()
+        component[].setBounds(makeRectangle(50.cint, 60.cint, 300.cint, 200.cint))
+        component[].setTitle(makeString("A window"))
+
+        doAssert not component[].isOnDesktop(), "a new component is on the desktop"
+        doAssert component[].getPeer().isNil, "a new component has a peer"
+
+        component[].addToDesktop(0.cint, nil)
+        doAssert component[].isOnDesktop(), "addToDesktop did not take"
+
+        let peer = component[].getPeer()
+        doAssert not peer.isNil, "a component on the desktop has no peer"
+        doAssert (addr peer[].getComponent()) == cast[ptr Component](component),
+                 "the peer belongs to a different component"
+
+        # The peer is registered with the process-wide list.
+        doAssert ComponentPeer.getNumPeers() > 0,
+                 "the desktop lists " & $ComponentPeer.getNumPeers() & " peers"
+        doAssert ComponentPeer.isValidPeer(peer),
+                 "the peer is not one the desktop knows about"
+        doAssert peer[].getUniqueID() != 0,
+                 "the peer's id is " & $peer[].getUniqueID()
+
+        # A native handle exists, and the scale factor is a real number.
+        doAssert not peer[].getNativeHandle().isNil,
+                 "the peer has no native handle"
+        doAssert peer[].getPlatformScaleFactor() > 0.0,
+                 "the platform scale factor is " &
+                 $peer[].getPlatformScaleFactor()
+        doAssert peer[].getNumFramesPainted() >= 0,
+                 "the peer has painted " & $peer[].getNumFramesPainted() &
+                 " frames"
+
+        # The frame is what the window manager draws around the content, and
+        # it is reported as an optional because not every platform knows it
+        # before the window is shown.
+        discard peer[].getFrameSizeIfPresent()
+        discard peer[].getFrameSize()
+
+        # globalToLocal is the inverse of the component's own conversion.
+        let origin = peer[].globalToLocal(makePoint(0.cint, 0.cint))
+        doAssert peer[].localToGlobal(origin) == makePoint(0.cint, 0.cint),
+                 "the peer's two conversions are not inverses; the origin " &
+                 "came back as " & $peer[].localToGlobal(origin)
+
+        # Nothing is focused, minimised or full screen in an unattended test.
+        doAssert not peer[].isMinimised(), "the peer is minimised"
+        # Putting a component on the desktop gives it the focus, so the peer's
+        # last-focused subcomponent is the component itself rather than
+        # nothing.
+        doAssert peer[].getLastFocusedSubcomponent() ==
+                 cast[ptr Component](component),
+                 "the peer's last focused subcomponent is not the window"
+        doAssert not peer[].isKioskMode(), "the peer is in kiosk mode"
+
+        # The rendering engines are a platform list, and the current one is in
+        # it.
+        let engines = peer[].getAvailableRenderingEngines()
+        doAssert engines.size() > 0,
+                 "the peer offers " & $engines.size() & " rendering engines"
+        doAssert peer[].getCurrentRenderingEngine() >= 0 and
+                 peer[].getCurrentRenderingEngine() < engines.size(),
+                 "the current engine is " & $peer[].getCurrentRenderingEngine() &
+                 " of " & $engines.size()
+
+        # Removing it from the desktop destroys the peer.
+        component[].removeFromDesktop()
+        doAssert not component[].isOnDesktop(), "removeFromDesktop did not take"
+        doAssert component[].getPeer().isNil, "the peer outlived removeFromDesktop"
+
+        cdelete component
+
+    shutdownJuce_GUI()
+
+testComponentPeer()
