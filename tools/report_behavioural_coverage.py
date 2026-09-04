@@ -9,15 +9,17 @@ is, one method on one class. A free function, an operator and a static are not
 counted, because the harness classifies those separately and they have no
 receiver to group them under.
 
-A method counts as CALLED when its name appears after a dot AND before an open
-parenthesis, anywhere in a behavioural test file. That is generous in one
-direction and strict in another, and both matter:
+A method counts as CALLED when its name appears after a dot and before an open
+parenthesis OR another dot, anywhere in a behavioural test file. The second case
+matters: `button[].onClick.invoke()` exercises the onClick getter, and matching
+only on a following parenthesis missed every getter chained into a further call.
+
+It is still generous in one direction and strict in another:
 
   - generous, because it matches by name rather than by receiver, so a method
     called on one class marks the same name on another;
-  - strict, because a getter read as a VALUE has no parenthesis after it.
-    `slider[].textFromValueFunction` exercises the binding and this script
-    cannot see it.
+  - strict, because a getter whose result is bound to a variable and used on the
+    next line - `var f = x.hook` - is not matched at all.
 
 So a name reported uncalled may still be exercised, and a name reported called
 may have been called on a different class. The figure is a rough measure meant
@@ -65,7 +67,8 @@ def called_names():
             continue
         text = path.read_text()
         names |= {m.group(1)
-                  for m in re.finditer(r"\.([A-Za-z_][A-Za-z0-9_]*)\s*\(", text)}
+                  for m in re.finditer(
+                      r"\.([A-Za-z_][A-Za-z0-9_]*)\s*[(.]", text)}
     return names
 
 
