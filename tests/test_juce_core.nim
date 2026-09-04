@@ -6616,3 +6616,222 @@ proc testAndroidDocumentOverAFile() =
         doAssert seen == 2, "the iterator walked " & $seen & " documents"
 
 testAndroidDocumentOverAFile()
+
+# The rest of PropertySet, RelativeTime and ArgumentList::Argument ============
+
+proc testPropertySetFallbackAndXml() =
+    block:
+        # A fallback set answers for keys the front one does not hold, and the
+        # front one still wins where both have a key.
+        var fallback = makePropertySet(false)
+        fallback.setValue("shared", makejuce_var(makeString("from fallback")))
+        fallback.setValue("only-in-fallback", makejuce_var(makeString("deep")))
+
+        var settings = makePropertySet(false)
+        settings.setValue("shared", makejuce_var(makeString("from front")))
+
+        doAssert settings.getFallbackPropertySet().isNil,
+                 "a fresh set already has a fallback"
+        settings.setFallbackPropertySet(addr fallback)
+        doAssert settings.getFallbackPropertySet() == addr fallback,
+                 "the fallback did not stick"
+
+        doAssert $settings.getValue("only-in-fallback", makeString("none")) ==
+                 "deep",
+                 "the fallback was not consulted: " &
+                 $settings.getValue("only-in-fallback", makeString("none"))
+        doAssert $settings.getValue("shared", makeString("none")) ==
+                 "from front",
+                 "the fallback overrode the front set"
+
+        # containsKey asks only the front set
+        # (juce_PropertySet.cpp: containsKey does not walk the fallback).
+        doAssert not settings.containsKey("only-in-fallback"),
+                 "containsKey walked into the fallback"
+
+        settings.setFallbackPropertySet(nil)
+        doAssert settings.getFallbackPropertySet().isNil,
+                 "clearing the fallback left one behind"
+
+    block:
+        # addAllPropertiesFrom copies every key across, overwriting what is
+        # already there.
+        var source = makePropertySet(false)
+        source.setValue("a", makejuce_var(makeString("one")))
+        source.setValue("b", makejuce_var(makeString("two")))
+
+        var target = makePropertySet(false)
+        target.setValue("b", makejuce_var(makeString("old")))
+        target.setValue("c", makejuce_var(makeString("three")))
+        target.addAllPropertiesFrom(source)
+
+        doAssert target.getAllProperties().size() == 3,
+                 "the target holds " & $target.getAllProperties().size() &
+                 " keys"
+        doAssert $target.getValue("b", makeString("none")) == "two",
+                 "the copied key did not overwrite the old one"
+        doAssert $target.getValue("c", makeString("none")) == "three",
+                 "a key the source did not have was lost"
+
+        # getAllProperties hands back the set's own storage, so writing
+        # through it is visible to the set.
+        target.getAllProperties().set(makeString("d"), makeString("four"))
+        doAssert target.containsKey("d"),
+                 "the property list is a copy rather than the set's own"
+
+        # The lock is the set's own. It comes back as a pointer rather than a
+        # value because a CriticalSection cannot be copied, so binding the
+        # C++ `const CriticalSection&` as a plain value made a proc nothing
+        # could call.
+        block:
+            let lock = target.getLock()
+            doAssert not lock.isNil, "the set has no lock"
+            lock[].enter()
+            lock[].exit()
+
+    block:
+        # An XML value round-trips through the set as text.
+        var settings = makePropertySet(false)
+        var element = makeXmlElement(makeString("SETTINGS"))
+        element.setAttribute(makeIdentifier(makeString("colour")),
+                             makeString("red"))
+        settings.setValue("xml", addr element)
+
+        var read = settings.getXmlValue("xml")
+        doAssert not read.get().isNil, "the XML value did not come back"
+        doAssert $read.get()[].getTagName() == "SETTINGS",
+                 "the XML came back as " & $read.get()[].getTagName()
+        doAssert $read.get()[].getStringAttribute(
+                     makeString("colour")) == "red",
+                 "the XML lost its attribute"
+
+        # A key that holds something other than XML gives nothing back.
+        settings.setValue("plain", makejuce_var(makeString("not xml")))
+        doAssert settings.getXmlValue("plain").get().isNil,
+                 "a plain string parsed as XML"
+
+proc testRelativeTimeUnits() =
+    block:
+        # One value expressed in every unit. The conversions are exact, so
+        # each is asserted against the whole number it must be.
+        let day = RelativeTime.days(1.0)
+        doAssert day.inMilliseconds() == 86_400_000'i64,
+                 "a day is " & $day.inMilliseconds() & " milliseconds"
+        doAssert day.inSeconds() == 86_400.0, "a day is " & $day.inSeconds() &
+                 " seconds"
+        doAssert day.inMinutes() == 1_440.0, "a day is " & $day.inMinutes() &
+                 " minutes"
+        doAssert day.inHours() == 24.0, "a day is " & $day.inHours() & " hours"
+        doAssert day.inDays() == 1.0, "a day is " & $day.inDays() & " days"
+        doAssert day.inWeeks() == 1.0 / 7.0, "a day is " & $day.inWeeks() &
+                 " weeks"
+
+        # And the factories agree with each other.
+        doAssert RelativeTime.weeks(1.0).inDays() == 7.0,
+                 "a week is " & $RelativeTime.weeks(1.0).inDays() & " days"
+        doAssert RelativeTime.hours(2.0).inMinutes() == 120.0,
+                 "two hours is " & $RelativeTime.hours(2.0).inMinutes() &
+                 " minutes"
+        doAssert RelativeTime.minutes(90.0).inHours() == 1.5,
+                 "ninety minutes is " & $RelativeTime.minutes(90.0).inHours() &
+                 " hours"
+
+    block:
+        # The approximate description rounds to the largest unit that fits,
+        # which is what makes it approximate.
+        doAssert $RelativeTime.days(400.0).getApproximateDescription() ==
+                 "1 year",
+                 "400 days is described as " &
+                 $RelativeTime.days(400.0).getApproximateDescription()
+        doAssert $RelativeTime.seconds(0.0).getApproximateDescription() ==
+                 "< 1 sec",
+                 "no time at all is described as " &
+                 $RelativeTime.seconds(0.0).getApproximateDescription()
+
+proc testArgumentListArgument() =
+    block:
+        # An ArgumentList is what a command line parses into, and each of its
+        # arguments answers about its own shape.
+        let arguments = makeArgumentList(
+            makeString("june"),
+            makeString("--input=file.txt -v plain"))
+
+        doAssert arguments.size() == 3,
+                 "the command line parsed into " & $arguments.size() &
+                 " arguments"
+
+        let long = arguments[0.cint]
+        doAssert long.isOption() and long.isLongOption() and
+                 not long.isShortOption(),
+                 "--input=file.txt is not a long option"
+        doAssert long.isLongOption(makeString("input")),
+                 "--input=file.txt does not answer to the name input"
+        doAssert not long.isLongOption(makeString("output")),
+                 "--input=file.txt answers to the name output"
+        doAssert $long.getLongOptionValue() == "file.txt",
+                 "the option's value is " & $long.getLongOptionValue()
+
+        let short = arguments[1.cint]
+        doAssert short.isOption() and short.isShortOption() and
+                 not short.isLongOption(),
+                 "-v is not a short option"
+        # isShortOption(char) does NOT ask whether the option carries that
+        # letter. JUCE writes `text.containsChar (String (option)[0])`
+        # (juce_ConsoleApplication.cpp), and juce_wchar is uint32 off Windows
+        # (juce_CharacterFunctions.h:58), so a char promotes to int and picks
+        # String(int) rather than String(juce_wchar): 'v' becomes the string
+        # "118" and the test is against its FIRST DIGIT.
+        #
+        # No binding can repair that - the conversion happens inside the
+        # function - so the test records what it really does. -v is checked
+        # against '1', the first digit of 118.
+        doAssert not short.isShortOption('v'),
+                 "-v answers to v; its text is " & $short.text()
+
+        let digit = makeArgumentList(makeString("june"), makeString("-9"))
+        doAssert digit[0.cint].isShortOption('a'),
+                 "-9 does not answer to 'a', whose decimal form starts with 9"
+        doAssert not digit[0.cint].isShortOption('9'),
+                 "-9 answers to '9', whose decimal form starts with 5"
+
+        let plain = arguments[2.cint]
+        doAssert not plain.isOption(), "a bare word is an option"
+        doAssert plain.getLongOptionValue().isEmpty(),
+                 "a bare word has the option value " &
+                 $plain.getLongOptionValue()
+
+    block:
+        # The three resolvers turn an argument into a File. resolveAsFile is
+        # the only one that does not care whether the path exists.
+        let root = june.File.getSpecialLocation(
+                       FileSpecialLocationType_tempDirectory)
+                       .getNonexistentChildFile(makeString("june-arguments"),
+                                                makeString(""))
+        doAssert root.createDirectory().wasOk(), "could not make the directory"
+        defer: discard root.deleteRecursively(false)
+
+        let file = root.getChildFile(makeStringRef("present.txt"))
+        doAssert file.replaceWithText(makeString("x")),
+                 "could not write the file"
+
+        let arguments = makeArgumentList(
+            makeString("june"), makeString(file.getFullPathName()))
+        let argument = arguments[0.cint]
+
+        doAssert argument.resolveAsFile() == file,
+                 "resolveAsFile gave " &
+                 $argument.resolveAsFile().getFullPathName()
+        doAssert argument.resolveAsExistingFile() == file,
+                 "resolveAsExistingFile gave " &
+                 $argument.resolveAsExistingFile().getFullPathName()
+
+        let folderArguments = makeArgumentList(
+            makeString("june"), makeString(root.getFullPathName()))
+        doAssert folderArguments[0.cint].resolveAsExistingFolder() == root,
+                 "resolveAsExistingFolder gave " &
+                 $folderArguments[0.cint].resolveAsExistingFolder()
+                     .getFullPathName()
+
+testPropertySetFallbackAndXml()
+testRelativeTimeUnits()
+testArgumentListArgument()
