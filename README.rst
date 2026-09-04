@@ -534,6 +534,20 @@ JUCE's leak detector reports what is still alive at exit, and it PRINTS rather
 than failing, so CI greps for it and fails the job. Two real defects were found
 that way, both wrong beliefs about ownership rather than untidy tests.
 
+A `jassert` behaves the same way: outside a debugger it writes one line to
+stderr and the process carries on at exit code 0. So JUCE telling the suite
+something is wrong reached the log and the job stayed green - which is how a
+``MenuBarComponent`` outliving the model it was built over, a use-after-free
+JUCE names in so many words, survived until a Linux run happened to segfault on
+it. ``tools/check_juce_assertions.py`` reads the test output and fails on any
+assertion site not listed as one the suite provokes on purpose::
+
+  python3 tools/check_juce_assertions.py /tmp/test_logs/*.log
+
+Each of the 27 entries carries what JUCE asserts there and which test reaches
+it. A site listed and no longer reached fails the check too, so an entry cannot
+outlive the test that needed it.
+
 --------------------------
 Regenerating The Bindings
 --------------------------
