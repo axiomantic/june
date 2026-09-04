@@ -13991,3 +13991,234 @@ proc testDisplaysLookups() =
     shutdownJuce_GUI()
 
 testDisplaysLookups()
+
+# ModifierKeys, the resizer zone, the stretchable layout and DrawableShape ====
+
+proc testModifierKeys() =
+    block:
+        # A ModifierKeys is a flag word, and the with- methods build one
+        # without touching the original.
+        let none = makeModifierKeys(0.cint)
+        doAssert none.getRawFlags() == 0,
+                 "an empty modifier set holds " & $none.getRawFlags()
+        doAssert not none.isAnyModifierKeyDown() and
+                 not none.isAnyMouseButtonDown(),
+                 "an empty modifier set has something down"
+
+        let command = none.withFlags(
+            ModifierKeysFlags_commandModifier.cint)
+        doAssert command.isCommandDown(), "the command flag did not stick"
+        doAssert none.getRawFlags() == 0, "withFlags changed the original"
+
+        # isPopupMenu is the platform's own right-click gesture: the right
+        # button everywhere, and on macOS ctrl with the left button as well
+        # (juce_ModifierKeys.h).
+        let right = none.withFlags(
+            ModifierKeysFlags_rightButtonModifier.cint)
+        doAssert right.isRightButtonDown(), "the right button flag did not stick"
+        doAssert right.isPopupMenu(), "a right click is not a popup menu"
+        doAssert right.getNumMouseButtonsDown() == 1,
+                 $right.getNumMouseButtonsDown() & " buttons are down"
+
+        for flag in [ModifierKeysFlags_middleButtonModifier]:
+            let held = none.withFlags(flag.cint)
+            doAssert held.isMiddleButtonDown(),
+                     "the middle button flag did not stick"
+
+        # The back and forward buttons are the two extra mouse buttons.
+        doAssert none.withFlags(0x8000.cint).getRawFlags() == 0x8000,
+                 "a raw flag did not survive withFlags"
+        let both = none.withFlags(
+            ModifierKeysFlags_leftButtonModifier.cint or
+            ModifierKeysFlags_rightButtonModifier.cint)
+        doAssert both.getNumMouseButtonsDown() == 2,
+                 $both.getNumMouseButtonsDown() & " of two buttons are down"
+        doAssert both.withoutMouseButtons().getNumMouseButtonsDown() == 0,
+                 "withoutMouseButtons left a button down"
+
+        # The two extra buttons have no named constant in the binding, so they
+        # are reached through the flag word ModifierKeys itself uses.
+        let backForward = ModifierKeys.currentModifiers()
+        discard backForward.isBackButtonDown()
+        discard backForward.isForwardButtonDown()
+
+proc testResizerZone() =
+    block:
+        # A zone is the flag word a resizable border hands to a drag. Each
+        # named edge answers only for itself, and the centre is the whole
+        # object rather than any edge (juce_ResizableBorderComponent.h).
+        let whole = makeResizableBorderComponentZone(
+            ResizableBorderComponentZoneZones_centre.cint)
+        doAssert whole.isDraggingWholeObject(),
+                 "the centre zone is not the whole object"
+        doAssert not whole.isDraggingLeftEdge() and
+                 not whole.isDraggingRightEdge() and
+                 not whole.isDraggingTopEdge() and
+                 not whole.isDraggingBottomEdge(),
+                 "the centre zone claims an edge"
+        doAssert whole.getZoneFlags() ==
+                 ResizableBorderComponentZoneZones_centre.cint,
+                 "the centre zone holds flags " & $whole.getZoneFlags()
+
+        let left = makeResizableBorderComponentZone(
+            ResizableBorderComponentZoneZones_left.cint)
+        doAssert left.isDraggingLeftEdge() and not left.isDraggingRightEdge(),
+                 "the left zone is not the left edge"
+        doAssert not left.isDraggingWholeObject(),
+                 "an edge zone is the whole object"
+
+        let corner = makeResizableBorderComponentZone(
+            ResizableBorderComponentZoneZones_top.cint or
+            ResizableBorderComponentZoneZones_right.cint)
+        doAssert corner.isDraggingTopEdge() and corner.isDraggingRightEdge(),
+                 "the corner zone is missing an edge"
+        doAssert not corner.isDraggingBottomEdge(),
+                 "the corner zone claims the bottom edge"
+
+        # And a position on the border resolves to the zone it is in.
+        let area = makeRectangle(0.cint, 0.cint, 100.cint, 100.cint)
+        let border = makeBorderSize(5.cint)
+        doAssert ResizableBorderComponentZone.fromPositionOnBorder(
+                     area, border, makePoint(1.cint, 50.cint))
+                     .isDraggingLeftEdge(),
+                 "a point on the left border is not the left edge"
+        doAssert ResizableBorderComponentZone.fromPositionOnBorder(
+                     area, border, makePoint(50.cint, 50.cint))
+                     .isDraggingWholeObject(),
+                 "a point in the middle is not the whole object"
+
+proc testStretchableLayoutManager() =
+    block:
+        var layout = makeStretchableLayoutManager()
+
+        # A layout item is a minimum, a maximum and a preferred size. A
+        # NEGATIVE size is a fraction of the total; a positive one is pixels
+        # (juce_StretchableLayoutManager.h).
+        layout.setItemLayout(0.cint, -0.2, -0.6, -0.5)
+        layout.setItemLayout(1.cint, 20.0, 20.0, 20.0)
+        layout.setItemLayout(2.cint, -0.2, -0.6, -0.5)
+
+        var minimum, maximum, preferred: float64
+        doAssert layout.getItemLayout(1.cint, minimum, maximum, preferred),
+                 "the layout does not know about item 1"
+        doAssert minimum == 20.0 and maximum == 20.0 and preferred == 20.0,
+                 "item 1 is " & $minimum & "/" & $maximum & "/" & $preferred
+        doAssert not layout.getItemLayout(9.cint, minimum, maximum, preferred),
+                 "the layout knows about an item nobody set"
+
+        # Laying out over 220 pixels gives the fixed item its 20 and splits
+        # the rest between the two stretchable ones.
+        var first = newCustomComponent()
+        var divider = newCustomComponent()
+        var second = newCustomComponent()
+        var components = [cast[ptr Component](first),
+                          cast[ptr Component](divider),
+                          cast[ptr Component](second)]
+        layout.layOutComponents(addr components[0], 3.cint,
+                                0.cint, 0.cint, 220.cint, 50.cint,
+                                false, true)
+
+        doAssert layout.getItemCurrentAbsoluteSize(1.cint) == 20,
+                 "the fixed item is " &
+                 $layout.getItemCurrentAbsoluteSize(1.cint) & " wide"
+        doAssert layout.getItemCurrentPosition(0.cint) == 0,
+                 "the first item starts at " &
+                 $layout.getItemCurrentPosition(0.cint)
+        doAssert layout.getItemCurrentPosition(1.cint) ==
+                 layout.getItemCurrentAbsoluteSize(0.cint),
+                 "the divider starts at " &
+                 $layout.getItemCurrentPosition(1.cint) & " after a first " &
+                 "item of " & $layout.getItemCurrentAbsoluteSize(0.cint)
+        doAssert layout.getItemCurrentAbsoluteSize(0.cint) +
+                 layout.getItemCurrentAbsoluteSize(1.cint) +
+                 layout.getItemCurrentAbsoluteSize(2.cint) == 220,
+                 "the three items cover " &
+                 $(layout.getItemCurrentAbsoluteSize(0.cint) +
+                   layout.getItemCurrentAbsoluteSize(1.cint) +
+                   layout.getItemCurrentAbsoluteSize(2.cint)) & " of 220"
+
+        # The relative size is that absolute size as a fraction of the total.
+        doAssert layout.getItemCurrentRelativeSize(1.cint) < 0.0,
+                 "the fixed item's relative size is " &
+                 $layout.getItemCurrentRelativeSize(1.cint)
+
+        # Dragging the divider moves it and takes the space from a neighbour.
+        let firstBefore = layout.getItemCurrentAbsoluteSize(0.cint)
+        layout.setItemPosition(1.cint, firstBefore + 20.cint)
+        doAssert layout.getItemCurrentAbsoluteSize(0.cint) > firstBefore,
+                 "dragging the divider right left the first item at " &
+                 $layout.getItemCurrentAbsoluteSize(0.cint)
+
+        layout.clearAllItems()
+        doAssert not layout.getItemLayout(1.cint, minimum, maximum, preferred),
+                 "clearAllItems left an item behind"
+
+        cdelete first
+        cdelete divider
+        cdelete second
+
+proc testDrawableShape() =
+    initialiseJuce_GUI()
+
+    block:
+        var shape = makeDrawablePath()
+        var path = makePath()
+        path.addRectangle(0.0'f32, 0.0'f32, 20.0'f32, 20.0'f32)
+        shape.setPath(path)
+
+        var base = cast[ptr DrawableShape](shape.addr)
+
+        # The interior fill and the outline fill are separate.
+        base[].setFill(makeFillType(Colours_red))
+        doAssert base[].getFill().colour().getRed() == 255'u8,
+                 "the fill did not stick"
+        base[].setStrokeFill(makeFillType(Colours_blue))
+        doAssert base[].getStrokeFill().colour().getBlue() == 255'u8,
+                 "the stroke fill did not stick"
+        doAssert base[].getFill().colour().getRed() == 255'u8,
+                 "setting the stroke fill changed the interior fill"
+
+        # The stroke type carries a thickness, and setStrokeThickness is the
+        # short way to change only that.
+        base[].setStrokeType(makePathStrokeType(4.0'f32))
+        doAssert base[].getStrokeType().getStrokeThickness() == 4.0'f32,
+                 "the stroke is " &
+                 $base[].getStrokeType().getStrokeThickness() & " thick"
+        base[].setStrokeThickness(8.0'f32)
+        doAssert base[].getStrokeType().getStrokeThickness() == 8.0'f32,
+                 "the stroke is " &
+                 $base[].getStrokeType().getStrokeThickness() & " thick"
+
+        # Dash lengths turn the outline into a dashed one, and an empty list
+        # turns it back into a solid one.
+        var dashes = makeArray[cfloat]()
+        dashes.add(4.0'f32)
+        dashes.add(2.0'f32)
+        base[].setDashLengths(dashes)
+        doAssert base[].getDashLengths().size() == 2,
+                 "the shape holds " & $base[].getDashLengths().size() &
+                 " dash lengths"
+        doAssert base[].getDashLengths()[0.cint] == 4.0'f32,
+                 "the first dash is " & $base[].getDashLengths()[0.cint]
+
+        base[].setDashLengths(makeArray[cfloat]())
+        doAssert base[].getDashLengths().size() == 0,
+                 "clearing the dashes left " &
+                 $base[].getDashLengths().size() & " behind"
+
+        # A stroked path is wider than the path it strokes.
+        doAssert not shape.getStrokePath().isEmpty(),
+                 "the stroke path is empty"
+        doAssert shape.getStrokePath().getBounds().getWidth() >
+                 shape.getPath().getBounds().getWidth(),
+                 "the stroke path is " &
+                 $shape.getStrokePath().getBounds().getWidth() &
+                 " wide against a path of " &
+                 $shape.getPath().getBounds().getWidth()
+
+    shutdownJuce_GUI()
+
+testModifierKeys()
+testResizerZone()
+testStretchableLayoutManager()
+testDrawableShape()
