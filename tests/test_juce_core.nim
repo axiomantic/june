@@ -7149,3 +7149,180 @@ proc testBigIntegerNumberTheory() =
                  "the montgomery product is " & $value.toInteger()
 
 testBigIntegerNumberTheory()
+
+# XmlDocument's parser state and ApplicationProperties =======================
+
+proc testXmlDocumentParserState() =
+    block:
+        # A document that parses gives its element back, and the error is
+        # empty.
+        var document = makeXmlDocument(makeString(
+            "<SETTINGS colour=\"red\"><ITEM/></SETTINGS>"))
+        var element = document.getDocumentElement()
+        doAssert not element.get().isNil, "the document did not parse"
+        doAssert document.getLastParseError().isEmpty(),
+                 "a document that parsed reports " &
+                 $document.getLastParseError()
+
+        # getDocumentElementIfTagMatches parses only far enough to check the
+        # outer tag, and hands back nothing when it does not match.
+        var matching = makeXmlDocument(makeString(
+            "<SETTINGS colour=\"red\"><ITEM/></SETTINGS>"))
+        doAssert not matching.getDocumentElementIfTagMatches("SETTINGS")
+                     .get().isNil,
+                 "the matching tag was refused"
+        var other = makeXmlDocument(makeString(
+            "<SETTINGS colour=\"red\"><ITEM/></SETTINGS>"))
+        doAssert other.getDocumentElementIfTagMatches("OTHER").get().isNil,
+                 "a document was returned for a tag it does not have"
+
+    block:
+        # A document that does not parse says why.
+        var broken = makeXmlDocument(makeString("<SETTINGS><ITEM/>"))
+        doAssert broken.getDocumentElement().get().isNil,
+                 "a truncated document parsed"
+        doAssert broken.getLastParseError().isNotEmpty(),
+                 "a document that failed to parse reports no error"
+
+    block:
+        # setEmptyTextElementsIgnored governs a NARROWER thing than plain
+        # whitespace between elements. The parser skips leading whitespace
+        # before it decides whether it is looking at a character block, so
+        # `<ROOT>  <A/>  </ROOT>` never produces one at all and the flag
+        # cannot change its child count either way
+        # (juce_XmlDocument.cpp: the else branch is reached only when the
+        # first non-whitespace character is not `<`).
+        #
+        # The block that IS empty and does reach the flag is one written as a
+        # whitespace ENTITY, which is read as content and then found to hold
+        # no non-whitespace (juce_XmlDocument.cpp:630).
+        proc childrenOf(text: string, ignoreEmpty: bool): cint =
+            var document = makeXmlDocument(makeString(text))
+            document.setEmptyTextElementsIgnored(ignoreEmpty)
+            var element = document.getDocumentElement()
+            doAssert not element.get().isNil, "the document did not parse"
+            element.get()[].getNumChildElements()
+
+        doAssert childrenOf("<ROOT>  <A/>  </ROOT>", false) ==
+                 childrenOf("<ROOT>  <A/>  </ROOT>", true),
+                 "plain whitespace between elements followed the flag"
+
+        doAssert childrenOf("<ROOT>&#32;<A/></ROOT>", false) == 2,
+                 "keeping the empty text left " &
+                 $childrenOf("<ROOT>&#32;<A/></ROOT>", false) & " children"
+        doAssert childrenOf("<ROOT>&#32;<A/></ROOT>", true) == 1,
+                 "ignoring the empty text left " &
+                 $childrenOf("<ROOT>&#32;<A/></ROOT>", true) & " children"
+
+        # Text that is not whitespace stays either way.
+        doAssert childrenOf("<ROOT>keep<A/></ROOT>", true) == 2,
+                 "ignoring the empty text dropped real text as well"
+
+    block:
+        # A document can read from an input source rather than from a string,
+        # which is how JUCE parses one that is too big to hold in memory.
+        let root = june.File.getSpecialLocation(
+                       FileSpecialLocationType_tempDirectory)
+                       .getNonexistentChildFile(makeString("june-xml"),
+                                                makeString(".xml"))
+        doAssert root.replaceWithText(makeString("<FROMFILE/>")),
+                 "could not write the XML file"
+        defer: discard root.deleteFile()
+
+        var document = makeXmlDocument(makeString(""))
+        document.setInputSource(cast[ptr InputSource](newFileInputSource(root)))
+        var element = document.getDocumentElement()
+        doAssert not element.get().isNil,
+                 "the document did not parse from its input source"
+        doAssert $element.get()[].getTagName() == "FROMFILE",
+                 "the parsed tag is " & $element.get()[].getTagName()
+
+proc testApplicationProperties() =
+    initialiseJuce_GUI()
+
+    let root = june.File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                   .getNonexistentChildFile(makeString("june-app-props"),
+                                            makeString(""))
+    doAssert root.createDirectory().wasOk(), "could not make the directory"
+    defer: discard root.deleteRecursively(false)
+
+    block:
+        var properties = makeApplicationProperties()
+
+        var options = makePropertiesFileOptions()
+        options.applicationName = makeString("june-test")
+        options.filenameSuffix = makeString("settings")
+        options.folderName = makeString(root.getFullPathName())
+        options.storageFormat = PropertiesFileStorageFormat_storeAsXML
+        # macOS refuses to place settings anywhere else. Leaving this unset
+        # trips JUCE's own assertion and lands the file somewhere the reopen
+        # does not find it (juce_PropertiesFile.cpp:69).
+        options.osxLibrarySubFolder = makeString("Application Support")
+        # No deferred save, so nothing is left holding a timer after the test.
+        options.millisecondsBeforeSaving = 0.cint
+        properties.setStorageParameters(options)
+
+        doAssert $properties.getStorageParameters().applicationName() ==
+                 "june-test",
+                 "the parameters came back as " &
+                 $properties.getStorageParameters().applicationName()
+
+        # The user settings file is made on first use and kept afterwards.
+        let user = properties.getUserSettings()
+        doAssert not user.isNil, "there are no user settings"
+        doAssert properties.getUserSettings() == user,
+                 "asking twice gave two different settings files"
+
+        user[].setValue("colour", makejuce_var(makeString("red")))
+        doAssert properties.saveIfNeeded(),
+                 "the properties were not saved"
+        doAssert user[].getFile().existsAsFile(),
+                 "saving wrote no file at " &
+                 $user[].getFile().getFullPathName()
+
+        # Closing releases both, so the next ask opens them again - and what
+        # comes back has been re-read from disk. The pointer is not compared:
+        # the allocator is free to hand back the same address.
+        properties.closeFiles()
+        let reopened = properties.getUserSettings()
+        doAssert not reopened.isNil, "closeFiles left no way to reopen"
+        doAssert $reopened[].getValue("colour", makeString("none")) == "red",
+                 "the reopened settings hold " &
+                 $reopened[].getValue("colour", makeString("none"))
+
+    block:
+        # getCommonSettings decides whether the common file is read-only by
+        # SAVING IT (juce_ApplicationProperties.cpp: getCommonSettings calls
+        # commonProps->save() and reads the result). That is a write, not a
+        # probe, and it is why this runs against its own directory: the
+        # folderName here is an absolute path, so the user file and the common
+        # file land in the same place and the common save would overwrite the
+        # user one.
+        let ownDirectory = root.getNonexistentChildFile(makeString("common"),
+                                                        makeString(""))
+        doAssert ownDirectory.createDirectory().wasOk(),
+                 "could not make the directory"
+
+        var properties = makeApplicationProperties()
+        var options = makePropertiesFileOptions()
+        options.applicationName = makeString("june-common")
+        options.filenameSuffix = makeString("settings")
+        options.folderName = makeString(ownDirectory.getFullPathName())
+        options.storageFormat = PropertiesFileStorageFormat_storeAsXML
+        options.osxLibrarySubFolder = makeString("Application Support")
+        options.millisecondsBeforeSaving = 0.cint
+        properties.setStorageParameters(options)
+
+        let common = properties.getCommonSettings(true)
+        doAssert not common.isNil, "there are no common settings"
+        doAssert common[].getFile().existsAsFile(),
+                 "asking for the common settings did not write the file"
+
+        # Asked without the fallback, the common file comes back either way.
+        doAssert not properties.getCommonSettings(false).isNil,
+                 "there are no common settings without the fallback"
+
+    shutdownJuce_GUI()
+
+testXmlDocumentParserState()
+testApplicationProperties()
