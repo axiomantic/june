@@ -4543,3 +4543,101 @@ proc testEdgeTable() =
     shutdownJuce_GUI()
 
 testEdgeTable()
+
+# ImageFileFormat =============================================================
+#
+# The three formats JUCE ships. Each one writes an image to a stream and reads
+# it back, which is the only way to show that the format really encoded it
+# rather than the static loadFrom helpers guessing.
+proc testImageFileFormats() =
+    initialiseJuce_GUI()
+
+    proc source(): Image =
+        result = makeImage(ImagePixelFormat_ARGB, 8.cint, 8.cint, true)
+        var g = makeGraphics(result)
+        g.setColour(Colours_red)
+        g.fillRect(makeRectangle(0.cint, 0.cint, 4.cint, 8.cint))
+        g.setColour(Colours_blue)
+        g.fillRect(makeRectangle(4.cint, 0.cint, 4.cint, 8.cint))
+
+    block:
+        var png = makePNGImageFormat()
+        var base = cast[ptr ImageFileFormat](png.addr)
+
+        doAssert $base[].getFormatName() == "PNG",
+                 "the format calls itself " & $base[].getFormatName()
+        doAssert base[].usesFileExtension(makeFile(makeString("/tmp/a.png"))),
+                 "the PNG format does not claim a .png file"
+        doAssert not base[].usesFileExtension(
+                     makeFile(makeString("/tmp/a.jpg"))),
+                 "the PNG format claims a .jpg file"
+
+        # Written out and read back, the two halves survive.
+        var written = makeMemoryOutputStream(0.uint64)
+        doAssert base[].writeImageToStream(source(), written),
+                 "the PNG was not written"
+        doAssert written.getDataSize() > 0'u64, "the PNG is empty"
+
+        var reading = makeMemoryInputStream(written.getData(),
+                                            written.getDataSize(), false)
+        doAssert base[].canUnderstand(reading),
+                 "the PNG format does not recognise its own output"
+
+        var decoding = makeMemoryInputStream(written.getData(),
+                                             written.getDataSize(), false)
+        let decoded = base[].decodeImage(decoding)
+        doAssert decoded.isValid(), "the PNG did not decode"
+        doAssert decoded.getWidth() == 8 and decoded.getHeight() == 8,
+                 "the decoded image is " & $decoded.getWidth() & "x" &
+                 $decoded.getHeight()
+        doAssert decoded.getPixelAt(1.cint, 1.cint).getRed() == 255'u8,
+                 "the left half decoded to red " &
+                 $decoded.getPixelAt(1.cint, 1.cint).getRed()
+        doAssert decoded.getPixelAt(6.cint, 1.cint).getBlue() == 255'u8,
+                 "the right half decoded to blue " &
+                 $decoded.getPixelAt(6.cint, 1.cint).getBlue()
+
+        # And a stream of something else is not a PNG.
+        var text = makeMemoryInputStream(
+            constPointer("not an image".cstring), 12.uint64, false)
+        doAssert not base[].canUnderstand(text),
+                 "the PNG format understood a line of text"
+
+    block:
+        # JPEG is lossy, so the halves are checked by which channel dominates
+        # rather than by an exact value.
+        var jpeg = makeJPEGImageFormat()
+        var base = cast[ptr ImageFileFormat](jpeg.addr)
+        doAssert $base[].getFormatName() == "JPEG",
+                 "the format calls itself " & $base[].getFormatName()
+
+        var written = makeMemoryOutputStream(0.uint64)
+        doAssert base[].writeImageToStream(source(), written),
+                 "the JPEG was not written"
+
+        var reading = makeMemoryInputStream(written.getData(),
+                                            written.getDataSize(), false)
+        let decoded = base[].decodeImage(reading)
+        doAssert decoded.isValid(), "the JPEG did not decode"
+        let left = decoded.getPixelAt(1.cint, 1.cint)
+        doAssert left.getRed() > left.getBlue(),
+                 "the left half decoded to " & $left.getRed() & " red and " &
+                 $left.getBlue() & " blue"
+
+    block:
+        # GIF is read-only in JUCE: writeImageToStream is a stub that reports
+        # failure (juce_GIFLoader.cpp).
+        var gif = makeGIFImageFormat()
+        var base = cast[ptr ImageFileFormat](gif.addr)
+        doAssert $base[].getFormatName() == "GIF",
+                 "the format calls itself " & $base[].getFormatName()
+        doAssert base[].usesFileExtension(makeFile(makeString("/tmp/a.gif"))),
+                 "the GIF format does not claim a .gif file"
+
+        var written = makeMemoryOutputStream(0.uint64)
+        doAssert not base[].writeImageToStream(source(), written),
+                 "the GIF format wrote an image"
+
+    shutdownJuce_GUI()
+
+testImageFileFormats()

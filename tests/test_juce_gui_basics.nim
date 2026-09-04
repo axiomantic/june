@@ -1138,6 +1138,43 @@ proc testPopupMenuItem() =
     item.text = makeString("Close")
     doAssert $item.text() == "Close", "the text did not change"
 
+    # The set- methods return the item itself, so they chain. Each is asserted
+    # through the field it writes rather than through the returned reference.
+    discard item.setID(9.cint).setTicked(true)
+    doAssert item.itemID() == 9, "setID left the id at " & $item.itemID()
+    doAssert item.isTicked(), "setTicked did not tick the item"
+    discard item.setTicked(false)
+    doAssert not item.isTicked(), "setTicked(false) left the item ticked"
+
+    var ran = 0
+    discard item.setAction(bindClosure(proc() = ran += 1))
+    item.action().invoke()
+    doAssert ran == 1, "the action ran " & $ran & " times"
+
+    # A custom component is reference counted, and the item holds a reference
+    # to it rather than a copy.
+    var custom = newCustomPopupMenuCustomComponent(true)
+    custom[].setGetIdealSizeHandler(proc(idealWidth: ptr cint,
+                                         idealHeight: ptr cint) =
+        idealWidth[] = 40.cint
+        idealHeight[] = 20.cint)
+    discard item.setCustomComponent(
+        makeReferenceCountedObjectPtr(
+            cast[ptr PopupMenuCustomComponent](custom)))
+    doAssert not item.customComponent().get().isNil,
+             "the custom component did not stick"
+
+    # A sub-menu is OWNED, so it is moved in and the item is asked what it
+    # now holds rather than compared against the pointer that was handed over.
+    # cnew takes a CALL rather than a variable, so the menu is built into the
+    # unique_ptr and its item added through the item afterwards.
+    item.subMenu = makeUniquePtr[PopupMenu](cnew(makePopupMenu()))
+    item.subMenu().get()[].addItem(1.cint, makeString("Inner"))
+    doAssert not item.subMenu().get().isNil, "the sub-menu did not stick"
+    doAssert item.subMenu().get()[].getNumItems() == 1,
+             "the sub-menu holds " & $item.subMenu().get()[].getNumItems() &
+             " items"
+
 testTableHeaderColumns()
 testGridItemProperties()
 testPopupMenuItem()
@@ -14513,3 +14550,49 @@ proc testApplicationCommandTargetChain() =
     shutdownJuce_GUI()
 
 testApplicationCommandTargetChain()
+
+# TextDragAndDropTarget ======================================================
+#
+# Only isInterestedInTextDrag and textDropped are pure virtual, so those two
+# have overrides and the three drag-tracking callbacks have JUCE's empty
+# bodies. All five are reachable through the base class.
+proc testTextDragAndDropTarget() =
+    initialiseJuce_GUI()
+
+    block:
+        var dropped: seq[tuple[text: string, x, y: cint]] = @[]
+        var asked: seq[string] = @[]
+
+        var target = newCustomTextDragAndDropTarget()
+        target[].setIsInterestedInTextDragHandler(proc(text: ptr String): bool =
+            asked.add($text[])
+            $text[] != "no")
+        target[].setTextDroppedHandler(
+            proc(text: ptr String, x: cint, y: cint) =
+                dropped.add(($text[], x, y)))
+
+        var base = cast[ptr TextDragAndDropTarget](target)
+
+        doAssert base[].isInterestedInTextDrag(makeString("yes")),
+                 "the target refused a drag it should want"
+        doAssert not base[].isInterestedInTextDrag(makeString("no")),
+                 "the target accepted a drag it should refuse"
+        doAssert asked == @["yes", "no"], "the target was asked about " & $asked
+
+        # The three tracking callbacks have empty bodies in JUCE and no
+        # override, so they are called and the target is shown unchanged.
+        base[].textDragEnter(makeString("yes"), 1.cint, 2.cint)
+        base[].textDragMove(makeString("yes"), 3.cint, 4.cint)
+        base[].textDragExit(makeString("yes"))
+        doAssert dropped.len == 0,
+                 "tracking a drag dropped " & $dropped.len & " times"
+
+        base[].textDropped(makeString("payload"), 5.cint, 6.cint)
+        doAssert dropped == @[("payload", 5.cint, 6.cint)],
+                 "the target received " & $dropped
+
+        cdelete target
+
+    shutdownJuce_GUI()
+
+testTextDragAndDropTarget()
