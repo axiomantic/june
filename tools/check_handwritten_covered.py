@@ -638,8 +638,9 @@ def check_constants():
 
     A `let` with an importcpp is not checked against C++ unless something
     reads it. A constant naming juce::NoSuchClass::nope compiles clean while
-    nothing touches it, which was measured rather than assumed, so 591 of the
-    635 had never had their spelling checked.
+    nothing touches it, which was measured rather than assumed: when this was
+    first checked, most of the bound constants had never had their spelling
+    put to the compiler. The count this prints is the live one.
     """
     emitted = set()
     for module in ("juce_core", "juce_events", "juce_data_structures",
