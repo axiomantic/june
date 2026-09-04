@@ -6,6 +6,18 @@ on:
   pull_request:
   workflow_dispatch:
 
+# One run per branch. Without this a branch pushed several times in a row
+# queues a run for every commit and they all wait on the same runners, so the
+# answer for the newest commit arrives last and slowest. Only the newest is
+# worth having: an older commit going green says nothing about what is now on
+# the branch.
+#
+# main is exempt. A run there is the record for a commit that has landed, and
+# cancelling it would leave that commit with no result at all.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   generated:
     name: generated files are current
