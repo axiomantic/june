@@ -11632,3 +11632,107 @@ proc testFilenameComponent() =
     shutdownJuce_GUI()
 
 testFilenameComponent()
+
+# ScrollBar's range arithmetic. The visible range is clamped inside the limit,
+# and the two step sizes decide how far a click on the arrows or the track
+# moves it - which is all pure arithmetic, no input needed.
+proc testScrollBarRange() =
+    initialiseJuce_GUI()
+
+    block:
+        var bar = makeScrollBar(true)
+        bar.setBounds(makeRectangle(0.cint, 0.cint, 16.cint, 200.cint))
+        bar.setRangeLimits(0.0, 1000.0, NotificationType_dontSendNotification)
+        bar.setCurrentRange(0.0, 100.0, NotificationType_dontSendNotification)
+
+        doAssert bar.getRangeLimit().getStart() == 0.0 and
+                 bar.getRangeLimit().getEnd() == 1000.0,
+                 "the limit runs from " & $bar.getRangeLimit().getStart() &
+                 " to " & $bar.getRangeLimit().getEnd()
+        doAssert bar.getCurrentRange().getLength() == 100.0,
+                 "the visible range is " & $bar.getCurrentRange().getLength() &
+                 " long"
+        doAssert bar.getCurrentRangeStart() == 0.0,
+                 "the range starts at " & $bar.getCurrentRangeStart()
+
+        # A start past the end of the limit is clamped so the whole visible
+        # range still fits inside it.
+        bar.setCurrentRange(10_000.0, 100.0, NotificationType_dontSendNotification)
+        doAssert bar.getCurrentRange().getEnd() <= 1000.0,
+                 "the range ran past the limit to " &
+                 $bar.getCurrentRange().getEnd()
+        doAssert bar.getCurrentRangeStart() == 900.0,
+                 "clamping put the start at " & $bar.getCurrentRangeStart()
+
+        discard bar.scrollToTop(NotificationType_dontSendNotification)
+        doAssert bar.getCurrentRangeStart() == 0.0,
+                 "scrollToTop left the start at " & $bar.getCurrentRangeStart()
+        discard bar.scrollToBottom(NotificationType_dontSendNotification)
+        doAssert bar.getCurrentRangeStart() == 900.0,
+                 "scrollToBottom left the start at " & $bar.getCurrentRangeStart()
+
+    block:
+        # The single step is what one arrow click moves; a page is the visible
+        # range. Both are asserted against the distance actually travelled.
+        var bar = makeScrollBar(true)
+        bar.setBounds(makeRectangle(0.cint, 0.cint, 16.cint, 200.cint))
+        bar.setRangeLimits(0.0, 1000.0, NotificationType_dontSendNotification)
+        bar.setCurrentRange(500.0, 100.0, NotificationType_dontSendNotification)
+
+        bar.setSingleStepSize(25.0)
+        doAssert bar.getSingleStepSize() == 25.0,
+                 "the step size is " & $bar.getSingleStepSize()
+
+        discard bar.moveScrollbarInSteps(1.cint,
+                                         NotificationType_dontSendNotification)
+        doAssert bar.getCurrentRangeStart() == 525.0,
+                 "one step forward from 500 gave " & $bar.getCurrentRangeStart()
+        discard bar.moveScrollbarInSteps(-2.cint,
+                                         NotificationType_dontSendNotification)
+        doAssert bar.getCurrentRangeStart() == 475.0,
+                 "two steps back from 525 gave " & $bar.getCurrentRangeStart()
+
+        # A page is the length of the visible range, which is 100 here.
+        discard bar.moveScrollbarInPages(1.cint,
+                                         NotificationType_dontSendNotification)
+        doAssert bar.getCurrentRangeStart() == 575.0,
+                 "one page forward from 475 gave " & $bar.getCurrentRangeStart()
+
+        # Moving past the end clamps rather than running off.
+        discard bar.moveScrollbarInPages(100.cint,
+                                         NotificationType_dontSendNotification)
+        doAssert bar.getCurrentRangeStart() == 900.0,
+                 "a hundred pages forward gave " & $bar.getCurrentRangeStart()
+
+    block:
+        # A scrollbar hides itself when the whole range is visible, unless it
+        # is told not to.
+        var bar = makeScrollBar(false)
+        bar.setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 16.cint))
+        # Shown first: a component starts invisible, so without this the
+        # "hidden" assertions below would hold for the wrong reason.
+        bar.setVisible(true)
+        doAssert bar.autoHides(), "a new scrollbar does not auto-hide"
+
+        bar.setRangeLimits(0.0, 100.0, NotificationType_dontSendNotification)
+        bar.setCurrentRange(0.0, 100.0, NotificationType_dontSendNotification)
+        doAssert not bar.isVisible(),
+                 "a scrollbar showing the whole range stayed visible"
+
+        bar.setCurrentRange(0.0, 50.0, NotificationType_dontSendNotification)
+        doAssert bar.isVisible(),
+                 "a scrollbar showing half the range is hidden"
+
+        bar.setAutoHide(false)
+        bar.setCurrentRange(0.0, 100.0, NotificationType_dontSendNotification)
+        doAssert bar.isVisible(),
+                 "a scrollbar told not to auto-hide hid itself anyway"
+        doAssert not bar.autoHides(), "setAutoHide did not take"
+
+        bar.setButtonRepeatSpeed(100.cint, 50.cint, 10.cint)
+        doAssert bar.isVisible(),
+                 "setting the repeat speed hid the scrollbar"
+
+    shutdownJuce_GUI()
+
+testScrollBarRange()
