@@ -7348,3 +7348,135 @@ proc testApplicationProperties() =
 
 testXmlDocumentParserState()
 testApplicationProperties()
+
+# The three small options builders ===========================================
+#
+# ToVarOptions, ThreadPool::Options and SocketOptions are all the same shape:
+# a value with with- methods that return a copy. What is asserted for each is
+# that the copy carries the change and the original does not.
+
+proc testSmallOptionsBuilders() =
+    block:
+        let plain = makeToVarOptions()
+        doAssert plain.getVersionIncluded(),
+                 "a fresh ToVarOptions leaves the version out"
+        doAssert not plain.getExplicitVersion().hasValue(),
+                 "a fresh ToVarOptions already names a version"
+
+        let without = plain.withVersionIncluded(false)
+        doAssert not without.getVersionIncluded(),
+                 "the version is still included"
+        doAssert plain.getVersionIncluded(),
+                 "withVersionIncluded changed the original"
+
+        # The explicit version is an optional inside an optional: the outer
+        # one says whether a version was named at all, and the inner one
+        # whether that name is a number or "no version".
+        let versioned = plain.withExplicitVersion(makeCppOptional(3.cint))
+        doAssert versioned.getExplicitVersion().hasValue(),
+                 "the explicit version did not stick"
+        doAssert versioned.getExplicitVersion().value().hasValue(),
+                 "the named version is empty"
+        doAssert versioned.getExplicitVersion().value().value() == 3,
+                 "the named version is " &
+                 $versioned.getExplicitVersion().value().value()
+
+    block:
+        let plain = makeThreadPoolOptions()
+        doAssert plain.threadName().isNotEmpty(),
+                 "a fresh ThreadPool::Options has no thread name"
+
+        let configured = plain.withThreadName(makeString("june-pool"))
+                              .withNumberOfThreads(3.cint)
+                              .withThreadStackSizeBytes(65536'u64)
+                              .withDesiredThreadPriority(
+                                  ThreadPriority_background)
+        doAssert $configured.threadName() == "june-pool",
+                 "the thread name is " & $configured.threadName()
+        doAssert configured.numberOfThreads() == 3,
+                 "the pool wants " & $configured.numberOfThreads() & " threads"
+        doAssert configured.threadStackSizeBytes() == 65536'u64,
+                 "the stack is " & $configured.threadStackSizeBytes() &
+                 " bytes"
+        doAssert configured.desiredThreadPriority() ==
+                 ThreadPriority_background,
+                 "the priority did not stick"
+        doAssert $plain.threadName() != "june-pool",
+                 "withThreadName changed the original"
+
+        # And a pool really built from them takes the thread count.
+        var pool = makeThreadPool(configured)
+        doAssert pool.getNumThreads() == 3,
+                 "the pool started " & $pool.getNumThreads() & " threads"
+
+    block:
+        let plain = makeSocketOptions()
+        doAssert not plain.getReceiveBufferSize().hasValue(),
+                 "a fresh SocketOptions already names a receive buffer"
+        doAssert not plain.getSendBufferSize().hasValue(),
+                 "a fresh SocketOptions already names a send buffer"
+
+        let sized = plain.withReceiveBufferSize(8192.cint)
+                         .withSendBufferSize(4096.cint)
+        doAssert sized.getReceiveBufferSize().value() == 8192,
+                 "the receive buffer is " &
+                 $sized.getReceiveBufferSize().value()
+        doAssert sized.getSendBufferSize().value() == 4096,
+                 "the send buffer is " & $sized.getSendBufferSize().value()
+        doAssert not plain.getReceiveBufferSize().hasValue(),
+                 "withReceiveBufferSize changed the original"
+
+testSmallOptionsBuilders()
+
+# OutputStream's big-endian writers ==========================================
+#
+# The little-endian writers are covered elsewhere. Each big-endian one is
+# checked by reading the bytes back in the other order, so a writer that
+# quietly wrote the host order fails.
+
+proc testOutputStreamBigEndian() =
+    block:
+        var stream = makeMemoryOutputStream(0.uint64)
+        doAssert stream.writeShortBigEndian(0x0102'i16),
+                 "the short was not written"
+        doAssert stream.getDataSize() == 2'u64,
+                 "the short took " & $stream.getDataSize() & " bytes"
+
+        var input = makeMemoryInputStream(stream.getData(),
+                                          stream.getDataSize(), false)
+        doAssert input.readShortBigEndian() == 0x0102'i16,
+                 "the short read back as " & $input.readShortBigEndian()
+
+        var reversed = makeMemoryInputStream(stream.getData(),
+                                             stream.getDataSize(), false)
+        doAssert reversed.readShort() == 0x0201'i16,
+                 "the bytes are not in big-endian order: " &
+                 $reversed.readShort()
+
+    block:
+        var stream = makeMemoryOutputStream(0.uint64)
+        doAssert stream.writeInt64BigEndian(0x0102030405060708'i64),
+                 "the 64-bit integer was not written"
+        var input = makeMemoryInputStream(stream.getData(),
+                                          stream.getDataSize(), false)
+        doAssert input.readInt64BigEndian() == 0x0102030405060708'i64,
+                 "the 64-bit integer read back as " &
+                 $input.readInt64BigEndian()
+
+    block:
+        var stream = makeMemoryOutputStream(0.uint64)
+        doAssert stream.writeFloatBigEndian(0.5'f32),
+                 "the float was not written"
+        doAssert stream.writeDoubleBigEndian(0.25'f64),
+                 "the double was not written"
+        doAssert stream.getDataSize() == 12'u64,
+                 "the pair took " & $stream.getDataSize() & " bytes"
+
+        var input = makeMemoryInputStream(stream.getData(),
+                                          stream.getDataSize(), false)
+        doAssert input.readFloatBigEndian() == 0.5'f32,
+                 "the float read back as " & $input.readFloatBigEndian()
+        doAssert input.readDoubleBigEndian() == 0.25'f64,
+                 "the double read back as " & $input.readDoubleBigEndian()
+
+testOutputStreamBigEndian()
