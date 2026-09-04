@@ -14425,3 +14425,91 @@ proc testListBoxModelDefaults() =
     shutdownJuce_GUI()
 
 testListBoxModelDefaults()
+
+# ApplicationCommandTarget's own chain ========================================
+#
+# The manager tests drive the target through a manager. These call the target's
+# own methods directly, which is how JUCE walks a chain of them.
+proc testApplicationCommandTargetChain() =
+    initialiseJuce_GUI()
+
+    const commandCut = 0x4001.cint
+    const commandUndo = 0x4002.cint
+
+    block:
+        # Two targets in a chain: the second answers for a command the first
+        # does not know.
+        var second = newCustomApplicationCommandTarget()
+        second[].setGetNextCommandTargetHandler(
+            proc(): ptr ApplicationCommandTarget = nil)
+        second[].setGetAllCommandsHandler(proc(commands: ptr Array[cint]) =
+            commands[].add(commandUndo))
+        second[].setGetCommandInfoHandler(
+            proc(commandID: cint, info: ptr ApplicationCommandInfo) =
+                info[].setInfo(makeString("Undo"), makeString("Undoes"),
+                               makeString("Editing"), 0.cint))
+        second[].setPerformHandler(
+            proc(info: ptr ApplicationCommandTargetInvocationInfo): bool = true)
+
+        var first = newCustomApplicationCommandTarget()
+        first[].setGetNextCommandTargetHandler(
+            proc(): ptr ApplicationCommandTarget =
+                cast[ptr ApplicationCommandTarget](second))
+        first[].setGetAllCommandsHandler(proc(commands: ptr Array[cint]) =
+            commands[].add(commandCut))
+        first[].setGetCommandInfoHandler(
+            proc(commandID: cint, info: ptr ApplicationCommandInfo) =
+                info[].setInfo(makeString("Cut"), makeString("Cuts"),
+                               makeString("Editing"),
+                               if commandID == commandCut: 0.cint
+                               else: ApplicationCommandInfoCommandFlags_isDisabled.cint))
+        first[].setPerformHandler(
+            proc(info: ptr ApplicationCommandTargetInvocationInfo): bool = true)
+
+        var firstBase = cast[ptr ApplicationCommandTarget](first)
+        var secondBase = cast[ptr ApplicationCommandTarget](second)
+
+        doAssert firstBase[].getNextCommandTarget() == secondBase,
+                 "the first target does not point at the second"
+        doAssert secondBase[].getNextCommandTarget().isNil,
+                 "the second target points somewhere"
+
+        # getAllCommands fills the caller's array.
+        var commands = makeArray[cint]()
+        firstBase[].getAllCommands(commands)
+        doAssert commands.size() == 1 and commands[0.cint] == commandCut,
+                 "the first target listed " & $commands.size() & " commands"
+
+        # getCommandInfo fills the caller's info.
+        var info = makeApplicationCommandInfo(commandCut)
+        firstBase[].getCommandInfo(commandCut, info)
+        doAssert $info.shortName() == "Cut",
+                 "the command is named " & $info.shortName()
+
+        # getTargetForCommand walks the chain until a target claims the
+        # command (juce_ApplicationCommandTarget.cpp: getTargetForCommand).
+        doAssert firstBase[].getTargetForCommand(commandCut) == firstBase,
+                 "the first target did not claim its own command"
+        doAssert firstBase[].getTargetForCommand(commandUndo) == secondBase,
+                 "the chain did not reach the second target"
+        doAssert firstBase[].getTargetForCommand(0x4099.cint).isNil,
+                 "a command nobody claims found a target"
+
+        # isCommandActive asks getCommandInfo and reads back the disabled bit,
+        # starting from disabled so a target that says nothing means disabled
+        # (juce_ApplicationCommandTarget.cpp: isCommandActive).
+        doAssert firstBase[].isCommandActive(commandCut),
+                 "the command the target enabled reads as disabled"
+        doAssert not firstBase[].isCommandActive(commandUndo),
+                 "the command the target disabled reads as active"
+
+        # A target that is not a Component has no parent target to find.
+        doAssert firstBase[].findFirstTargetParentComponent().isNil,
+                 "a target that is not a component found a parent"
+
+        cdelete first
+        cdelete second
+
+    shutdownJuce_GUI()
+
+testApplicationCommandTargetChain()
