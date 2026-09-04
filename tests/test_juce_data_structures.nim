@@ -907,3 +907,110 @@ proc testValueTreeNavigationAndCopies() =
              "the round trip left " & $rebuilt.getNumChildren() & " children"
 
 testValueTreeNavigationAndCopies()
+
+# PropertiesFile's saving and reloading =======================================
+
+proc testPropertiesFileSaving() =
+  initialiseJuce_GUI()
+
+  let root = june.File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                 .getNonexistentChildFile(makeString("june-props-save"),
+                                          makeString(""))
+  doAssert root.createDirectory().wasOk(), "could not make the temp directory"
+  defer: discard root.deleteRecursively(false)
+
+  block:
+    let settings = root.getChildFile(makeStringRef("settings.xml"))
+    var options = makePropertiesFileOptions()
+    options.storageFormat = PropertiesFileStorageFormat_storeAsXML
+    var file = makePropertiesFile(settings, options)
+
+    doAssert file.getFile() == settings,
+             "the properties file writes to " &
+             $file.getFile().getFullPathName()
+
+    # A file that does not exist yet still loaded fine: reload treats a
+    # missing file as an empty one (juce_PropertiesFile.cpp: reload).
+    doAssert file.isValidFile(), "a properties file over a new path is invalid"
+    doAssert not file.needsToBeSaved(),
+             "a fresh properties file already needs saving"
+
+    # Setting a value marks it dirty, and saving clears that and writes the
+    # file out.
+    file.setValue("colour", makejuce_var(makeString("red")))
+    doAssert file.needsToBeSaved(),
+             "setting a value did not mark the file dirty"
+    doAssert not settings.existsAsFile(),
+             "the file was written before anything asked it to be"
+
+    doAssert file.save(), "the properties file did not save"
+    doAssert settings.existsAsFile(), "saving wrote no file"
+    doAssert not file.needsToBeSaved(), "saving left the file dirty"
+    doAssert "colour" in $settings.loadFileAsString(),
+             "the saved file does not mention the key"
+
+    # saveIfNeeded is a no-op when nothing changed, and saves when something
+    # did (juce_PropertiesFile.cpp: saveIfNeeded).
+    let unchanged = settings.getLastModificationTime().toMilliseconds()
+    doAssert file.saveIfNeeded(), "saveIfNeeded reported failure"
+    file.setValue("size", makejuce_var(12.cint))
+    doAssert file.saveIfNeeded(), "saveIfNeeded did not save the change"
+    doAssert "size" in $settings.loadFileAsString(),
+             "the second key never reached the file"
+    discard unchanged
+
+    # setNeedsToBeSaved forces the flag either way, which is how a caller
+    # tells the file that something outside it changed.
+    file.setNeedsToBeSaved(true)
+    doAssert file.needsToBeSaved(), "setNeedsToBeSaved(true) did not stick"
+    file.setNeedsToBeSaved(false)
+    doAssert not file.needsToBeSaved(), "setNeedsToBeSaved(false) did not stick"
+
+    # And reload reads the file back, so a value removed in memory comes back.
+    file.removeValue("colour")
+    doAssert not file.containsKey("colour"), "removeValue left the key"
+    doAssert file.reload(), "the properties file did not reload"
+    doAssert file.containsKey("colour"),
+             "reloading did not bring the saved key back"
+    doAssert $file.getValue("colour", makeString("none")) == "red",
+             "the reloaded colour is " &
+             $file.getValue("colour", makeString("none"))
+
+  block:
+    # A file whose options say never to save reports failure from save
+    # (juce_PropertiesFile.cpp: save returns false on doNotSave), and so does
+    # one whose path is a directory.
+    let settings = root.getChildFile(makeStringRef("unsaved.xml"))
+    var options = makePropertiesFileOptions()
+    options.doNotSave = true
+    var file = makePropertiesFile(settings, options)
+    file.setValue("key", makejuce_var(1.cint))
+    doAssert not file.save(), "a file told not to save saved anyway"
+    doAssert not settings.existsAsFile(), "a file told not to save wrote one"
+
+    var directoryOptions = makePropertiesFileOptions()
+    var overADirectory = makePropertiesFile(root, directoryOptions)
+    doAssert not overADirectory.save(),
+             "a properties file over a directory saved"
+
+  block:
+    # The binary formats round-trip as well as the XML one does.
+    for format in [PropertiesFileStorageFormat_storeAsBinary,
+                   PropertiesFileStorageFormat_storeAsCompressedBinary]:
+      let settings = root.getNonexistentChildFile(makeString("binary"),
+                                                  makeString(".settings"))
+      var options = makePropertiesFileOptions()
+      options.storageFormat = format
+      var file = makePropertiesFile(settings, options)
+      file.setValue("name", makejuce_var(makeString("june")))
+      doAssert file.save(), "the binary properties file did not save"
+
+      var reopened = makePropertiesFile(settings, options)
+      doAssert reopened.isValidFile(), "the saved binary file is not valid"
+      doAssert $reopened.getValue("name", makeString("none")) == "june",
+               "the reopened file holds " &
+               $reopened.getValue("name", makeString("none"))
+
+  shutdownJuce_GUI()
+
+testPropertiesFileSaving()
