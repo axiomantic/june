@@ -12862,3 +12862,98 @@ proc testGridItemPlacement() =
     shutdownJuce_GUI()
 
 testGridItemPlacement()
+
+# ConcertinaPanel stacks components and lets one expand at a time. Adding takes
+# an insert index and an ownership flag, and both matter.
+proc testConcertinaPanel() =
+    initialiseJuce_GUI()
+
+    block:
+        var panel = makeConcertinaPanel()
+        panel.setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 400.cint))
+        panel.setVisible(true)
+
+        doAssert panel.getNumPanels() == 0,
+                 "a new concertina holds " & $panel.getNumPanels() & " panels"
+        doAssert panel.getPanel(0.cint).isNil,
+                 "an empty concertina returned a panel"
+
+        # takeOwnership false, so these are deleted here at the end.
+        let first = newCustomComponent()
+        let second = newCustomComponent()
+        panel.addPanel(-1.cint, cast[ptr Component](first), false)
+        panel.addPanel(-1.cint, cast[ptr Component](second), false)
+        doAssert panel.getNumPanels() == 2,
+                 "the concertina holds " & $panel.getNumPanels() & " panels"
+        doAssert panel.getPanel(0.cint) == cast[ptr Component](first),
+                 "panel 0 is not the one added first"
+
+        # An insert index puts a panel between the others.
+        let middle = newCustomComponent()
+        panel.addPanel(1.cint, cast[ptr Component](middle), false)
+        doAssert panel.getPanel(1.cint) == cast[ptr Component](middle),
+                 "the inserted panel is not at index 1"
+        doAssert panel.getPanel(2.cint) == cast[ptr Component](second),
+                 "the insert did not push the second panel along"
+        doAssert panel.getNumPanels() == 3,
+                 "after the insert there are " & $panel.getNumPanels()
+
+        # The header size and the maximum are per panel.
+        panel.setPanelHeaderSize(cast[ptr Component](first), 30.cint)
+        panel.setMaximumPanelSize(cast[ptr Component](first), 150.cint)
+
+        # The maximum CAPS a full expansion: expanding the first panel gives
+        # it 150 rather than the room the others are not using, and another
+        # panel with no maximum ends up taller. That is the whole purpose of
+        # setMaximumPanelSize, and it is easy to write a test that never
+        # notices it.
+        doAssert panel.expandPanelFully(cast[ptr Component](first), false),
+                 "expanding the first panel was refused"
+        doAssert first[].getHeight() == 150,
+                 "the capped panel expanded to " & $first[].getHeight() &
+                 " rather than its maximum of 150"
+        doAssert second[].getHeight() > first[].getHeight(),
+                 "the uncapped panel is " & $second[].getHeight() &
+                 " tall and the capped one " & $first[].getHeight()
+
+        # An uncapped panel expands past that, so the cap is what made the
+        # difference rather than the order they were expanded in.
+        doAssert panel.expandPanelFully(cast[ptr Component](second), false),
+                 "expanding the second panel was refused"
+        doAssert second[].getHeight() > 150,
+                 "the uncapped panel expanded to only " &
+                 $second[].getHeight()
+
+        # setPanelSize asks for a height and reports whether anything moved.
+        discard panel.setPanelSize(cast[ptr Component](first), 100.cint, false)
+        doAssert first[].getHeight() > 0,
+                 "the sized panel is " & $first[].getHeight() & " tall"
+
+        # A custom header replaces the drawn one. It is not owned here, so it
+        # has to outlive the panel and be deleted after it.
+        let header = newCustomComponent()
+        panel.setCustomPanelHeader(cast[ptr Component](first),
+                                   cast[ptr Component](header), false)
+
+        panel.removePanel(cast[ptr Component](middle))
+        doAssert panel.getNumPanels() == 2,
+                 "after removing one there are " & $panel.getNumPanels()
+        doAssert panel.getPanel(1.cint) == cast[ptr Component](second),
+                 "removing the middle panel left " &
+                 "the wrong component at index 1"
+
+        # Every panel is removed before its component goes, because the
+        # concertina was told not to take ownership and still holds pointers.
+        panel.removePanel(cast[ptr Component](first))
+        panel.removePanel(cast[ptr Component](second))
+        doAssert panel.getNumPanels() == 0,
+                 "removing them all left " & $panel.getNumPanels()
+
+        cdelete header
+        cdelete middle
+        cdelete second
+        cdelete first
+
+    shutdownJuce_GUI()
+
+testConcertinaPanel()
