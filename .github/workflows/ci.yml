@@ -270,6 +270,7 @@ jobs:
           fi
 
           leaked=0
+          rm -rf /tmp/test_logs && mkdir -p /tmp/test_logs
           for test_file in tests/test_juce_*.nim; do
             echo "::group::$test_file"
             # Redirected rather than piped through tee: a pipe hands the
@@ -278,6 +279,11 @@ jobs:
             "${run[@]}" "$nim_bin" cpp -r --hints:off "$test_file" > /tmp/test_output 2>&1 \
               || { cat /tmp/test_output; exit 1; }
             cat /tmp/test_output
+            # Kept, because the assertion check below reads every one of them
+            # together: a site listed as deliberately provoked and no longer
+            # reached by ANY suite is stale, and that can only be seen across
+            # the whole set.
+            cp /tmp/test_output "/tmp/test_logs/$(basename "$test_file").log"
             if grep -q "Leaked objects detected" /tmp/test_output; then
               echo "::error::$test_file leaked:"
               grep "Leaked objects detected" /tmp/test_output
@@ -286,6 +292,14 @@ jobs:
             echo "::endgroup::"
           done
           [ "$leaked" = 0 ] || exit 1
+
+          # A jassert PRINTS and carries on, exactly as the leak detector does,
+          # so JUCE telling us something is wrong reached the log above and the
+          # job stayed green. That is how a MenuBarComponent outliving its
+          # model - a use-after-free JUCE names in so many words - survived
+          # until a Linux run happened to segfault on it. Every site the suite
+          # provokes on purpose is listed with its reason; anything else fails.
+          python3 tools/check_juce_assertions.py /tmp/test_logs/*.log || exit 1
 
           # The examples are reproduced in the README, so an API change that
           # breaks one breaks the documentation too. Built but not run: they
