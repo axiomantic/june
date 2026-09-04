@@ -50,7 +50,7 @@ EXPECTED = {
         ("any",
          "the same call again for the unknown ValueTree type it was given"),
     "juce_DocumentWindow.cpp:182":
-        ("any",
+        ("macos",
          "the base closeButtonPressed is a jassertfalse telling a subclass"
          "to override it; the DocumentWindow test calls it to show it only"
          "logs"),
@@ -134,7 +134,7 @@ EXPECTED = {
         ("any",
          "the same object destroyed after shutdownJuce_GUI"),
     "juce_Timer.cpp:376":
-        ("any",
+        ("macos",
          "startTimer with no running MessageManager, which every headless"
          "timer test does"),
     "juce_Timer.cpp:99":
