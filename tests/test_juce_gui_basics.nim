@@ -2370,7 +2370,106 @@ proc testRemainingGuiSubclasses() =
     shutdownJuce_GUI()
 
 
+# MenuBarModel's listener side. The model tells its listeners about three
+# things, and each of the three has a public entry point that can be called
+# directly - which is how JUCE itself reaches them from a native menu bar and
+# from an ApplicationCommandManager.
+proc testMenuBarModelListeners() =
+    initialiseJuce_GUI()
+
+    block:
+        var itemsChanged = 0
+        var invoked: seq[cint] = @[]
+
+        var model = newCustomMenuBarModel()
+        model[].setGetMenuBarNamesHandler(proc(): StringArray =
+            makeStringArray())
+        model[].setGetMenuForIndexHandler(proc(topLevelMenuIndex: cint,
+                                               menuName: ptr String): PopupMenu =
+            makePopupMenu())
+        model[].setMenuItemSelectedHandler(proc(menuItemID: cint,
+                                                topLevelMenuIndex: cint) =
+            discard)
+        var base = cast[ptr MenuBarModel](model)
+
+        var listener = newCustomMenuBarModelListener()
+        listener[].setMenuBarItemsChangedHandler(proc(m: ptr MenuBarModel) =
+            doAssert m == base, "the listener was told about another model"
+            itemsChanged += 1)
+        listener[].setMenuCommandInvokedHandler(
+            proc(m: ptr MenuBarModel,
+                 info: ptr ApplicationCommandTargetInvocationInfo) =
+                invoked.add(info[].commandID()))
+        base[].addListener(listener)
+
+        # handleAsyncUpdate is the async update's body, so calling it reaches
+        # the listeners at once (juce_MenuBarModel.cpp:83).
+        base[].handleAsyncUpdate()
+        doAssert itemsChanged == 1,
+                 "the listener heard " & $itemsChanged & " changes"
+
+        # menuItemsChanged only TRIGGERS that update, and the suite cannot
+        # turn the message queue, so nothing reaches the listener inline
+        # (juce_MenuBarModel.cpp:49).
+        base[].menuItemsChanged()
+        doAssert itemsChanged == 1,
+                 "menuItemsChanged reached the listener inline"
+
+        # And applicationCommandListChanged is menuItemsChanged under another
+        # name (juce_MenuBarModel.cpp:90), so it posts as well.
+        base[].applicationCommandListChanged()
+        doAssert itemsChanged == 1,
+                 "applicationCommandListChanged reached the listener inline"
+
+        # An invoked command is passed straight through
+        # (juce_MenuBarModel.cpp:85).
+        base[].applicationCommandInvoked(
+            makeApplicationCommandTargetInvocationInfo(17.cint))
+        doAssert invoked == @[17.cint], "the listener heard about " & $invoked
+
+        # Activation goes to the model's own virtual first and then to the
+        # listeners (juce_MenuBarModel.cpp:95). Both bodies are empty in JUCE,
+        # so neither can be overridden from Nim and the test only calls them.
+        base[].handleMenuBarActivate(true)
+        base[].menuBarActivated(false)
+
+        base[].removeListener(listener)
+        base[].handleAsyncUpdate()
+        doAssert itemsChanged == 1,
+                 "a removed listener still heard " & $itemsChanged & " changes"
+
+        cdelete listener
+        cdelete model
+
+    block:
+        # Watching a command manager registers the model as one of its
+        # listeners, and the model unregisters itself when told to watch
+        # nothing (juce_MenuBarModel.cpp:54). Passing nil twice is safe
+        # because the setter returns early when the manager is unchanged.
+        var manager = makeApplicationCommandManager()
+        var model = newCustomMenuBarModel()
+        model[].setGetMenuBarNamesHandler(proc(): StringArray =
+            makeStringArray())
+        model[].setGetMenuForIndexHandler(proc(topLevelMenuIndex: cint,
+                                               menuName: ptr String): PopupMenu =
+            makePopupMenu())
+        model[].setMenuItemSelectedHandler(proc(menuItemID: cint,
+                                                topLevelMenuIndex: cint) =
+            discard)
+        var base = cast[ptr MenuBarModel](model)
+
+        base[].setApplicationCommandManagerToWatch(addr manager)
+        base[].setApplicationCommandManagerToWatch(nil)
+        base[].setApplicationCommandManagerToWatch(nil)
+
+        # The model must stop watching before the manager goes, which the
+        # destructor also does on its own.
+        cdelete model
+
+    shutdownJuce_GUI()
+
 testMenuBarModel()
+testMenuBarModelListeners()
 # The accessibility, traversal and text-input subclasses ======================
 #
 # All abstract, and none of their handlers had ever been set. A setter nothing
