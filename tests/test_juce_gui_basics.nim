@@ -12734,3 +12734,131 @@ proc testTreeViewItemHooks() =
     shutdownJuce_GUI()
 
 testTreeViewItemHooks()
+
+# GridItem's placement. A grid item names WHERE it goes with a set of
+# properties, and the with- methods build one item from another - so the
+# assertions are on which property each one moves, and on the receiver being
+# left alone.
+proc testGridItemPlacement() =
+    initialiseJuce_GUI()
+
+    block:
+        # The four predicates are NOT a partition, which is the thing to get
+        # right. hasAbsolute is defined as "neither a span nor auto"
+        # (juce_GridItem.h:95), so it is the complement of the other two - and
+        # hasName is orthogonal to all three, because a line can be numbered
+        # and named at once.
+        let absolute = makeGridItemProperty(3.cint)
+        doAssert absolute.hasAbsolute(), "a numbered property is not absolute"
+        doAssert absolute.getNumber() == 3,
+                 "the number is " & $absolute.getNumber()
+        doAssert not absolute.hasSpan(), "a numbered property is a span"
+        doAssert not absolute.hasAuto(), "a numbered property is auto"
+        doAssert not absolute.hasName(), "a numbered property has a name"
+
+        let named = makeGridItemProperty(makeString("sidebar"))
+        doAssert named.hasName(), "a named property has no name"
+        doAssert $named.getName() == "sidebar",
+                 "the name is " & $named.getName()
+        doAssert named.hasAbsolute(),
+                 "a named property is not absolute, so hasAbsolute is not the " &
+                 "complement of span and auto after all"
+
+        # Numbered AND named together, which is why hasName stands apart.
+        let both = makeGridItemProperty(5.cint, makeString("main"))
+        doAssert both.hasAbsolute() and both.hasName(),
+                 "a numbered, named property is not both"
+        doAssert both.getNumber() == 5 and $both.getName() == "main",
+                 "it holds " & $both.getNumber() & " and " & $both.getName()
+
+        let spanning = makeGridItemProperty(makeGridItemSpan(2.cint))
+        doAssert spanning.hasSpan(), "a span property is not a span"
+        doAssert not spanning.hasAbsolute(), "a span property is absolute"
+        doAssert not spanning.hasAuto(), "a span property is auto"
+
+        let automatic = makeGridItemProperty(GridItemKeyword_autoValue)
+        doAssert automatic.hasAuto(), "an auto property is not auto"
+        doAssert not automatic.hasAbsolute(), "an auto property is absolute"
+        doAssert not automatic.hasSpan(), "an auto property is a span"
+
+        # A span carries a number and optionally a name, and both read back.
+        let namedSpan = makeGridItemSpan(4.cint, makeString("wide"))
+        doAssert namedSpan.number() == 4,
+                 "the span covers " & $namedSpan.number() & " tracks"
+        doAssert $namedSpan.name() == "wide",
+                 "the span is called " & $namedSpan.name()
+
+    block:
+        # The with- methods each move one thing and leave the receiver alone.
+        let component = newCustomComponent()
+        var base = makeGridItem(cast[ptr Component](component))
+
+        doAssert base.order() == 0,
+                 "a new item has order " & $base.order()
+        doAssert base.width() != 0.0'f32 or base.width() == 0.0'f32,
+                 "the width did not read back at all"
+
+        let sized = base.withSize(120.0'f32, 40.0'f32)
+        doAssert sized.width() == 120.0'f32 and sized.height() == 40.0'f32,
+                 "withSize gave " & $sized.width() & "x" & $sized.height()
+        doAssert base.width() != 120.0'f32,
+                 "withSize changed the original"
+
+        let ordered = base.withOrder(5.cint)
+        doAssert ordered.order() == 5,
+                 "withOrder gave " & $ordered.order()
+        doAssert base.order() == 0, "withOrder changed the original"
+
+        let aligned = base.withAlignSelf(GridItemAlignSelf_center)
+        doAssert aligned.alignSelf() == GridItemAlignSelf_center,
+                 "withAlignSelf did not take"
+        let justified = base.withJustifySelf(GridItemJustifySelf_end)
+        doAssert justified.justifySelf() == GridItemJustifySelf_end,
+                 "withJustifySelf did not take"
+        doAssert aligned.justifySelf() != GridItemJustifySelf_end,
+                 "withAlignSelf moved justifySelf too"
+
+        let margined = base.withMargin(makeGridItemMargin(8.0'f32))
+        doAssert margined.margin().top() == 8.0'f32,
+                 "withMargin gave a top margin of " & $margined.margin().top()
+
+        # withArea places the item; setArea does the same to this one.
+        let placed = base.withArea(makeGridItemProperty(1.cint),
+                                   makeGridItemProperty(2.cint))
+        doAssert placed.row().start().getNumber() == 1,
+                 "the row starts at " & $placed.row().start().getNumber()
+        doAssert placed.column().start().getNumber() == 2,
+                 "the column starts at " & $placed.column().start().getNumber()
+
+        let spanned = base.withArea(makeGridItemProperty(1.cint),
+                                    makeGridItemProperty(2.cint),
+                                    makeGridItemProperty(3.cint),
+                                    makeGridItemProperty(4.cint))
+        doAssert spanned.row().`end`().getNumber() == 3,
+                 "the row ends at " & $spanned.row().`end`().getNumber()
+
+        let byName = base.withArea(makeString("header"))
+        doAssert byName.area().isNotEmpty(),
+                 "placing by area name left the area empty"
+
+        base.setArea(makeGridItemProperty(7.cint),
+                     makeGridItemProperty(8.cint))
+        doAssert base.row().start().getNumber() == 7,
+                 "setArea put the row at " & $base.row().start().getNumber()
+
+        # withRow and withColumn take a start-and-end pair.
+        var pair = makeGridItemStartAndEndProperty()
+        pair.start = makeGridItemProperty(2.cint)
+        let rowed = base.withRow(pair)
+        doAssert rowed.row().start().getNumber() == 2,
+                 "withRow put the row at " & $rowed.row().start().getNumber()
+        let columned = base.withColumn(pair)
+        doAssert columned.column().start().getNumber() == 2,
+                 "withColumn put the column at " &
+                 $columned.column().start().getNumber()
+
+        cdelete component
+
+    shutdownJuce_GUI()
+
+testGridItemPlacement()
