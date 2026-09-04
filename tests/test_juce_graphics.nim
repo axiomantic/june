@@ -3621,3 +3621,78 @@ proc testColourComponentReplacement() =
                  $faded.getPixelARGB().getRed() & ", which is not scaled down"
 
 testColourComponentReplacement()
+
+# Typeface is the loaded font behind a Font. Which glyphs a typeface has and
+# what shape they are belongs to the host, so the assertions are on the
+# RELATIONS between what it reports rather than on any particular number.
+proc testTypefaceGlyphs() =
+    initialiseJuce_GUI()
+
+    block:
+        let font = makeFont(makeFontOptions(24.0'f32))
+        var typeface = font.getTypefacePtr()
+        doAssert not typeface.isNil(), "the font has no typeface behind it"
+
+        # A codepoint maps to a glyph number, and the answer is an OPTIONAL:
+        # a typeface that has no glyph for a codepoint says so rather than
+        # returning a sentinel.
+        let found = typeface.get()[].getNominalGlyphForCodepoint(uint16(ord('A')))
+        doAssert found.hasValue(), "the typeface has no glyph for 'A'"
+        let letter = cint(found.value())
+
+        # The metrics describe the typeface as a whole. There is no descent
+        # field: JUCE stores the ascent and the factor that turns a height
+        # into points, and the descent follows from the two.
+        let metrics = typeface.get()[].getMetrics(TypefaceMetricsKind_portable)
+        doAssert metrics.ascent() > 0.0'f32,
+                 "the ascent fraction is " & $metrics.ascent()
+        doAssert metrics.ascent() < 1.0'f32,
+                 "the ascent fraction is " & $metrics.ascent() &
+                 ", which is the whole line"
+        doAssert metrics.heightToPoints() > 0.0'f32,
+                 "the height-to-points factor is " & $metrics.heightToPoints()
+
+        # The legacy metrics kind is a different convention for the same
+        # typeface, and it answers with numbers in the same ranges. They are
+        # not compared with == : JUCE gives TypefaceMetrics no operator==, and
+        # the binding refuses the comparison rather than letting Nim compare an
+        # importcpp object structurally.
+        let legacy = typeface.get()[].getMetrics(TypefaceMetricsKind_legacy)
+        doAssert legacy.ascent() > 0.0'f32 and legacy.ascent() < 1.0'f32,
+                 "the legacy ascent fraction is " & $legacy.ascent()
+
+        # A glyph has a bounding box, and the letter 'W' is wider than 'i' in
+        # any font a human would use.
+        let wide = cint(typeface.get()[]
+            .getNominalGlyphForCodepoint(uint16(ord('W'))).value())
+        let narrow = cint(typeface.get()[]
+            .getNominalGlyphForCodepoint(uint16(ord('i'))).value())
+        doAssert typeface.get()[].getGlyphBounds(wide).getWidth() >
+                 typeface.get()[].getGlyphBounds(narrow).getWidth(),
+                 "'W' measures " &
+                 $typeface.get()[].getGlyphBounds(wide).getWidth() &
+                 " and 'i' measures " &
+                 $typeface.get()[].getGlyphBounds(narrow).getWidth()
+
+        # An outline is a Path, and a letter's outline is not empty.
+        var outline = makePath()
+        typeface.get()[].getOutlineForGlyph(letter, outline)
+        doAssert not outline.isEmpty(), "the outline for 'A' is empty"
+
+        # The feature and colour lists are whatever the typeface supports;
+        # what is asserted is that they answer rather than what they hold.
+        discard typeface.get()[].getSupportedFeatures()
+        discard typeface.get()[].getColourGlyphFormats()
+        discard typeface.get()[].getLayersForGlyph(letter,
+                                                   AffineTransform.identity())
+
+        # createSystemFallback finds a typeface that can draw text this one
+        # cannot. For plain ASCII it may answer with anything, so what is
+        # asserted is that it answers at all.
+        doAssert not typeface.get()[].createSystemFallback(
+                     makeString("hello"), makeString("en")).isNil(),
+                 "no fallback typeface was found for English"
+
+    shutdownJuce_GUI()
+
+testTypefaceGlyphs()
