@@ -5430,3 +5430,106 @@ proc testCharPointerNavigation() =
              "the ASCII toChar gave a different pointer than the buffer's"
 
 testCharPointerNavigation()
+
+# ThreadPool's job list. Jobs are added, found and removed by pointer, and the
+# pool runs them on its own threads - so each job here signals when it has run
+# and the test waits for that rather than sleeping.
+proc testThreadPoolJobList() =
+  block:
+    var options = makeThreadPoolOptions()
+    options.numberOfThreads = 2.cint
+    var pool = makeThreadPool(options)
+
+    doAssert pool.getNumThreads() == 2,
+             "the pool has " & $pool.getNumThreads() & " threads"
+    doAssert pool.getNumJobs() == 0,
+             "a new pool holds " & $pool.getNumJobs() & " jobs"
+    doAssert pool.getJob(0.cint).isNil, "an empty pool returned a job"
+    doAssert pool.getNamesOfAllJobs(false).size() == 0,
+             "an empty pool names " & $pool.getNamesOfAllJobs(false).size() &
+             " jobs"
+
+    # A job that waits until it is released, so the pool's state can be read
+    # while it is genuinely running rather than after it has finished.
+    var release = makeWaitableEvent(false)
+    var blocking = newCustomThreadPoolJob(makeString("blocking"))
+    let gate = addr release
+    blocking[].setRunJobHandler(proc(): cint =
+      discard gate[].wait(5000.0)
+      cint(ThreadPoolJobJobStatus_jobHasFinished))
+
+    pool.addJob(cast[ptr ThreadPoolJob](blocking), false)
+    doAssert pool.getNumJobs() == 1,
+             "after adding one the pool holds " & $pool.getNumJobs()
+    doAssert pool.getJob(0.cint) == cast[ptr ThreadPoolJob](blocking),
+             "the job at index 0 is a different one"
+    doAssert pool.contains(cast[ptr ThreadPoolJob](blocking)),
+             "the pool does not contain the job it was given"
+    doAssert $pool.getNamesOfAllJobs(false)[0.cint] == "blocking",
+             "the pool names the job " & $pool.getNamesOfAllJobs(false)[0.cint]
+
+    # A second job queued behind it, so one is running and one is waiting.
+    var queued = newCustomThreadPoolJob(makeString("queued"))
+    queued[].setRunJobHandler(proc(): cint =
+      cint(ThreadPoolJobJobStatus_jobHasFinished))
+    pool.addJob(cast[ptr ThreadPoolJob](queued), false)
+    doAssert pool.getNumJobs() == 2,
+             "the pool holds " & $pool.getNumJobs() & " jobs"
+
+    # moveJobToFront only moves a job that has not started.
+    pool.moveJobToFront(cast[ptr ThreadPoolJob](queued))
+
+    # Releasing the gate lets both finish.
+    release.signal()
+    doAssert pool.waitForJobToFinish(cast[ptr ThreadPoolJob](blocking),
+                                     5000.cint),
+             "the blocking job did not finish in time"
+    doAssert not pool.isJobRunning(cast[ptr ThreadPoolJob](blocking)),
+             "the finished job still reports running"
+
+    doAssert pool.removeAllJobs(true, 5000.cint, nil),
+             "the pool did not empty"
+    doAssert pool.getNumJobs() == 0,
+             "after emptying, the pool holds " & $pool.getNumJobs()
+
+    # Both jobs were added with deleteJobWhenFinished false, so the pool
+    # removed them without deleting them and they are this test's to free.
+    # Leaving them out leaked two ThreadPoolJobs, which the leak gate caught.
+    cdelete queued
+    cdelete blocking
+
+  block:
+    # A pool asked for ZERO threads gets one: the constructor takes
+    # jmax(1, numberOfThreads) (juce_ThreadPool.cpp:114) after asserting that
+    # nobody meant it. So "a pool that never runs anything" is not a thing
+    # that can be built, and the job below does run.
+    var options = makeThreadPoolOptions()
+    options.numberOfThreads = 0.cint
+    var pool = makeThreadPool(options)
+    doAssert pool.getNumThreads() == 1,
+             "a pool asked for zero threads has " & $pool.getNumThreads()
+
+    # removeJob reports whether it found the job. It is asserted after the
+    # job has run, because with a thread available it will have.
+    var job = newCustomThreadPoolJob(makeString("runs anyway"))
+    var ran = 0
+    job[].setRunJobHandler(proc(): cint =
+      ran += 1
+      cint(ThreadPoolJobJobStatus_jobHasFinished))
+
+    pool.addJob(cast[ptr ThreadPoolJob](job), false)
+    doAssert pool.removeJob(cast[ptr ThreadPoolJob](job), false, 5000.cint),
+             "removeJob did not find the job"
+    doAssert pool.getNumJobs() == 0,
+             "after removing it the pool holds " & $pool.getNumJobs()
+
+    # Whether the job RAN first is a race between the pool's thread picking it
+    # up and removeJob taking it away, and both orders were observed while
+    # this was written. So only the count's bounds are asserted; pinning it to
+    # 0 or to 1 would make this test fail on a differently loaded machine.
+    doAssert ran == 0 or ran == 1,
+             "the job ran " & $ran & " times"
+
+    cdelete job
+
+testThreadPoolJobList()
