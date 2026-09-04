@@ -12062,3 +12062,109 @@ proc testComponentBoundsConstrainerLimits() =
     shutdownJuce_GUI()
 
 testComponentBoundsConstrainerLimits()
+
+# ModalComponentManager is the process-wide list of what is modal. A component
+# joins it through Component::enterModalState, which is how a program actually
+# reaches this class, so that is how the test drives it.
+proc testModalComponentManager() =
+    initialiseJuce_GUI()
+
+    block:
+        let manager = ModalComponentManager.getInstance()
+        doAssert not manager.isNil, "there is no modal component manager"
+        doAssert ModalComponentManager.getInstanceWithoutCreating() == manager,
+                 "the two accessors gave different instances"
+
+        # Nothing is modal to begin with, and the accessors say so without
+        # inventing anything.
+        doAssert manager[].getNumModalComponents() == 0,
+                 "the manager lists " & $manager[].getNumModalComponents() &
+                 " modal components"
+        doAssert manager[].getModalComponent(0.cint).isNil,
+                 "an empty manager returned a modal component"
+
+        let parent = newCustomComponent()
+        parent[].setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 200.cint))
+        parent[].setVisible(true)
+        let first = newCustomComponent()
+        let second = newCustomComponent()
+        parent[].addAndMakeVisible(cast[ptr Component](first))
+        parent[].addAndMakeVisible(cast[ptr Component](second))
+
+        doAssert not manager[].isModal(cast[ptr Component](first)),
+                 "a component is modal before it entered a modal state"
+
+        first[].enterModalState(false, nil, false)
+        doAssert manager[].getNumModalComponents() == 1,
+                 "after one enterModalState there are " &
+                 $manager[].getNumModalComponents()
+        doAssert manager[].getModalComponent(0.cint) ==
+                 cast[ptr Component](first),
+                 "the modal component is a different one"
+        doAssert manager[].isModal(cast[ptr Component](first)),
+                 "the component that entered is not modal"
+        doAssert manager[].isFrontModalComponent(cast[ptr Component](first)),
+                 "the only modal component is not the front one"
+
+        # A second one goes in FRONT of the first: the list is a stack.
+        second[].enterModalState(false, nil, false)
+        doAssert manager[].getNumModalComponents() == 2,
+                 "after two there are " & $manager[].getNumModalComponents()
+        doAssert manager[].isFrontModalComponent(cast[ptr Component](second)),
+                 "the newest modal component is not the front one"
+        doAssert not manager[].isFrontModalComponent(cast[ptr Component](first)),
+                 "the older modal component is still the front one"
+        doAssert manager[].isModal(cast[ptr Component](first)),
+                 "the older component stopped being modal"
+
+        manager[].bringModalComponentsToFront(false)
+        doAssert manager[].getNumModalComponents() == 2,
+                 "bringing them to the front changed the count to " &
+                 $manager[].getNumModalComponents()
+
+        # cancelAllModalComponents empties the list and reports that it did
+        # something; a second call reports that there was nothing to do.
+        doAssert manager[].cancelAllModalComponents(),
+                 "cancelling two modal components reported nothing to cancel"
+        doAssert manager[].getNumModalComponents() == 0,
+                 "cancelling left " & $manager[].getNumModalComponents()
+        doAssert not manager[].cancelAllModalComponents(),
+                 "cancelling an empty list reported that it cancelled something"
+        doAssert not first[].isCurrentlyModal(),
+                 "the cancelled component is still modal"
+
+        cdelete second
+        cdelete first
+        cdelete parent
+
+    block:
+        # A callback attached to a component is run when its modal state ends,
+        # with the value exitModalState was given.
+        let component = newCustomComponent()
+        component[].setBounds(makeRectangle(0.cint, 0.cint, 100.cint, 100.cint))
+        component[].setVisible(true)
+
+        var returned = -1
+        let callback = newCustomModalComponentManagerCallback()
+        callback[].setModalStateFinishedHandler(proc(returnValue: cint) =
+            returned = returnValue)
+
+        component[].enterModalState(false,
+            cast[ptr ModalComponentManagerCallback](callback), false)
+        doAssert component[].isCurrentlyModal(), "the component is not modal"
+
+        component[].exitModalState(42.cint)
+        doAssert not component[].isCurrentlyModal(),
+                 "exitModalState left the component modal"
+
+        # The callback is delivered through the message queue, like every
+        # other JUCE notification, so it has not run yet - and the manager
+        # owns it now, which is why nothing here deletes it.
+        doAssert returned == -1,
+                 "the modal callback ran inline, with " & $returned
+
+        cdelete component
+
+    shutdownJuce_GUI()
+
+testModalComponentManager()
