@@ -488,6 +488,18 @@ What the behavioural layer does NOT reach, and why:
   coverage.
 - Anything that enters a modal loop. ``AlertWindow.showAsync`` and its
   relatives would block a test run, so they are called by the harness only.
+- Anything delivered through the message QUEUE. ``TextEditor::textChanged``,
+  ``Button::triggerClick`` and JUCE's other asynchronous callbacks post a
+  message rather than calling back inline, and this suite cannot turn the
+  queue: ``MessageManager::runDispatchLoopUntil`` sits behind
+  ``JUCE_MODAL_LOOPS_PERMITTED``, which JUCE leaves off, so the generator never
+  sees it. The tests assert that these calls do NOT fire inline, and invoke the
+  stored ``std::function`` directly to show the Nim closure reached C++.
+- On Linux, a real native window. Under ``xvfb-run`` a peer can be created, but
+  X11 tears one down through the message queue rather than inside
+  ``removeFromDesktop``, so the process exits holding it and the leak gate
+  fails. ``AlertWindow`` and ``ComponentPeer`` are therefore covered
+  behaviourally on macOS only, and each skip prints a line saying so.
 - Platform-only methods. The harness marks these and calls them on macOS only;
   ``MACOS_ONLY_METHODS`` in the harness generator lists them.
 - The examples. They are built by CI, not run: each opens a window and waits
