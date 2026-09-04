@@ -1661,6 +1661,78 @@ proc testPropertyPanel() =
         panel.clear()
         doAssert panel.isEmpty(), "clear left something behind"
 
+        # The message an empty panel shows in place of its rows. JUCE starts
+        # it at "(nothing selected)" (juce_PropertyPanel.cpp), so a panel that
+        # should show nothing needs an empty message set explicitly.
+        doAssert $panel.getMessageWhenEmpty() == "(nothing selected)",
+                 "a fresh panel says " & $panel.getMessageWhenEmpty()
+        panel.setMessageWhenEmpty(makeString("Nothing to configure"))
+        doAssert $panel.getMessageWhenEmpty() == "Nothing to configure",
+                 "the message is " & $panel.getMessageWhenEmpty()
+
+    block:
+        # Sections. Each carries its own rows and its own open state, and
+        # addSection takes the components by pointer and adopts them.
+        var panel = makePropertyPanel(makeString("Options"))
+        panel.setBounds(makeRectangle(0.cint, 0.cint, 300.cint, 400.cint))
+
+        # addSection ADOPTS the components, so they are heap-allocated and
+        # never deleted here.
+        var refreshed = 0
+        proc rowsFor(label: string): Array[ptr PropertyComponent] =
+            result = makeArray[ptr PropertyComponent]()
+            var row = newCustomPropertyComponent(makeString(label), 24.cint)
+            row[].setRefreshHandler(proc() = refreshed += 1)
+            result.add(cast[ptr PropertyComponent](row))
+
+        panel.addSection(makeString("First"), rowsFor("one"), true)
+        panel.addSection(makeString("Second"), rowsFor("two"), false)
+
+        doAssert not panel.isEmpty(), "the panel with two sections is empty"
+        doAssert panel.getSectionNames().size() == 2,
+                 "the panel holds " & $panel.getSectionNames().size() &
+                 " sections"
+        doAssert $panel.getSectionNames()[0.cint] == "First",
+                 "the first section is called " &
+                 $panel.getSectionNames()[0.cint]
+
+        doAssert panel.isSectionOpen(0.cint),
+                 "the section asked to be open is closed"
+        doAssert not panel.isSectionOpen(1.cint),
+                 "the section asked to be closed is open"
+
+        panel.setSectionOpen(1.cint, true)
+        doAssert panel.isSectionOpen(1.cint),
+                 "setSectionOpen did not open the section"
+
+        # An open section adds its rows to the content height; a closed one
+        # contributes only its header.
+        let bothOpen = panel.getTotalContentHeight()
+        panel.setSectionOpen(0.cint, false)
+        doAssert panel.getTotalContentHeight() < bothOpen,
+                 "closing a section left the content at " &
+                 $panel.getTotalContentHeight() & " of " & $bothOpen
+
+        # Disabling a section is look-and-feel state with no getter, so what
+        # is asserted is that it leaves the layout alone.
+        let beforeDisable = panel.getTotalContentHeight()
+        panel.setSectionEnabled(0.cint, false)
+        doAssert panel.getTotalContentHeight() == beforeDisable,
+                 "disabling a section changed the content height to " &
+                 $panel.getTotalContentHeight()
+
+        # refreshAll asks every row to re-read its value, which reaches the
+        # Nim override on each of the two rows.
+        let before = refreshed
+        panel.refreshAll()
+        doAssert refreshed == before + 2,
+                 "refreshAll reached " & $(refreshed - before) & " of two rows"
+
+        panel.removeSection(1.cint)
+        doAssert panel.getSectionNames().size() == 1,
+                 "removeSection left " & $panel.getSectionNames().size() &
+                 " sections"
+
     shutdownJuce_GUI()
 
 testDialogWindowLaunchOptions()
@@ -14222,3 +14294,72 @@ testModifierKeys()
 testResizerZone()
 testStretchableLayoutManager()
 testDrawableShape()
+
+# TopLevelWindow through a ResizableWindow ====================================
+#
+# A ResizableWindow IS a TopLevelWindow, and the existing look-and-feel tests
+# already build one off the desktop on every platform, so these are reached
+# without the desktop peer a DocumentWindow needs.
+proc testTopLevelWindow() =
+    initialiseJuce_GUI()
+
+    block:
+        var window = makeResizableWindow(makeString("window"), false)
+        window.setSize(200.cint, 120.cint)
+        var base = cast[ptr TopLevelWindow](window.addr)
+
+        # A window off the desktop is never the active one: JUCE tracks the
+        # active window through the peer, and this window has none.
+        doAssert not base[].isActiveWindow(),
+                 "a window off the desktop calls itself active"
+
+        # The drop shadow and the native title bar are both requests that the
+        # window remembers whether or not it is on the desktop.
+        doAssert base[].isDropShadowEnabled(),
+                 "a new window has no drop shadow"
+        base[].setDropShadowEnabled(false)
+        doAssert not base[].isDropShadowEnabled(),
+                 "the drop shadow request did not stick"
+        base[].setDropShadowEnabled(true)
+        doAssert base[].isDropShadowEnabled(),
+                 "the drop shadow could not be turned back on"
+
+        doAssert not base[].isUsingNativeTitleBar(),
+                 "a new window already uses a native title bar"
+        base[].setUsingNativeTitleBar(true)
+        doAssert base[].isUsingNativeTitleBar(),
+                 "the native title bar request did not stick"
+        base[].setUsingNativeTitleBar(false)
+        doAssert not base[].isUsingNativeTitleBar(),
+                 "the native title bar could not be turned back off"
+
+    block:
+        # centreAroundComponent both resizes the window and puts it over the
+        # component it was given. With no component it centres on the screen
+        # (juce_TopLevelWindow.cpp: centreAroundComponent).
+        var target = newCustomComponent()
+        target[].setBounds(makeRectangle(40.cint, 60.cint, 100.cint, 80.cint))
+
+        var window = makeResizableWindow(makeString("centred"), false)
+        var base = cast[ptr TopLevelWindow](window.addr)
+        base[].centreAroundComponent(cast[ptr Component](target),
+                                     50.cint, 40.cint)
+        doAssert window.getWidth() == 50 and window.getHeight() == 40,
+                 "the window is " & $window.getWidth() & "x" &
+                 $window.getHeight()
+        doAssert window.getBounds().getCentre() ==
+                 target[].getScreenBounds().getCentre(),
+                 "the window is centred at " &
+                 $window.getBounds().getCentre() & " and the target at " &
+                 $target[].getScreenBounds().getCentre()
+
+        base[].centreAroundComponent(nil, 60.cint, 30.cint)
+        doAssert window.getWidth() == 60 and window.getHeight() == 30,
+                 "the window is " & $window.getWidth() & "x" &
+                 $window.getHeight()
+
+        cdelete target
+
+    shutdownJuce_GUI()
+
+testTopLevelWindow()
