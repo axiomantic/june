@@ -679,8 +679,8 @@ proc testRestoredBindings() =
   var opening = " ("
   var closing = ")"
   names.appendNumbersToDuplicates(false, false,
-                                  makeCharPointer_UTF8(cast[ptr char](opening[0].addr)),
-                                  makeCharPointer_UTF8(cast[ptr char](closing[0].addr)))
+                                  makeCharPointer_UTF8(cast[constChar](opening[0].addr)),
+                                  makeCharPointer_UTF8(cast[constChar](closing[0].addr)))
   doAssert names.size() == 2, "the array holds " & $names.size()
   doAssert $names[1.cint] != "dup", "the duplicate was not renumbered"
 
@@ -924,7 +924,7 @@ testMemoryOutputStream()
 
 proc testCharPointerUTF8() =
   var buffer = "abc"
-  let start = makeCharPointer_UTF8(cast[ptr char](buffer[0].addr))
+  let start = makeCharPointer_UTF8(cast[constChar](buffer[0].addr))
 
   doAssert not start.isEmpty(), "a non-empty buffer reported empty"
   doAssert start.isNotEmpty(), "isNotEmpty disagreed with isEmpty"
@@ -936,13 +936,13 @@ proc testCharPointerUTF8() =
   doAssert start.lengthUpTo(2'u64) == 2'u64, "lengthUpTo gave " & $start.lengthUpTo(2'u64)
 
   # getAndAdvance walks the buffer one character at a time.
-  var cursor = makeCharPointer_UTF8(cast[ptr char](buffer[0].addr))
+  var cursor = makeCharPointer_UTF8(cast[constChar](buffer[0].addr))
   doAssert cursor.getAndAdvance() == uint32('a'), "the first character"
   doAssert cursor.getAndAdvance() == uint32('b'), "the second character"
   doAssert cursor.length() == 1'u64, "after two steps the rest is " & $cursor.length()
 
   var empty = ""
-  doAssert makeCharPointer_UTF8(cast[ptr char](empty.cstring)).isEmpty(),
+  doAssert makeCharPointer_UTF8(cast[constChar](empty.cstring)).isEmpty(),
            "an empty buffer reported non-empty"
 
 testCharPointerUTF8()
@@ -1082,12 +1082,12 @@ testStringLikeOverloadSets()
 proc testCharPointerUTF32() =
   # GRINNING FACE, KISS MARK, and a plain letter, then the terminator.
   var codepoints: array[4, WChar] = [WChar(0x1F600), WChar(0x1F48B), WChar(uint32('a')), WChar(0)]
-  let start = makeCharPointer_UTF32(codepoints[0].addr)
+  let start = makeCharPointer_UTF32(cast[ConstPtr[WChar]](codepoints[0].addr))
 
   doAssert start.isNotEmpty(), "a filled buffer reported empty"
   doAssert start.length() == 3'u64, "length gave " & $start.length()
 
-  var cursor = makeCharPointer_UTF32(codepoints[0].addr)
+  var cursor = makeCharPointer_UTF32(cast[ConstPtr[WChar]](codepoints[0].addr))
   doAssert cursor.getAndAdvance() == 0x1F600'u32,
            "the first codepoint came back as " & $cursor.getAndAdvance()
   doAssert cursor.getAndAdvance() == 0x1F48B'u32, "the second codepoint"
@@ -1095,12 +1095,12 @@ proc testCharPointerUTF32() =
 
   # write puts a non-BMP codepoint back without narrowing it.
   var scratch: array[2, WChar] = [WChar(0), WChar(0)]
-  var writer = makeCharPointer_UTF32(scratch[0].addr)
+  var writer = makeCharPointer_UTF32(cast[ConstPtr[WChar]](scratch[0].addr))
   writer.write(0x1F600'u32)
   doAssert scratch[0] == 0x1F600'u32, "write stored " & $scratch[0]
 
   var empty: array[1, WChar] = [WChar(0)]
-  doAssert makeCharPointer_UTF32(empty[0].addr).isEmpty(),
+  doAssert makeCharPointer_UTF32(cast[ConstPtr[WChar]](empty[0].addr)).isEmpty(),
            "a terminator-only buffer reported non-empty"
 
 testCharPointerUTF32()
@@ -1117,11 +1117,11 @@ proc testUTF16Buffer() =
   let bytesWritten = makeString("hi").copyToUTF16(buffer[0].addr, 32'u64)
   doAssert bytesWritten > 0'u64, "copyToUTF16 wrote " & $bytesWritten
 
-  doAssert CharPointer_UTF16.isValidString(buffer[0].addr, 32.cint),
+  doAssert CharPointer_UTF16.isValidString(cast[ConstPtr[int16]](buffer[0].addr), 32.cint),
            "isValidString rejected what copyToUTF16 produced"
 
   # The cursor over that buffer reads the characters back.
-  var cursor = makeCharPointer_UTF16(buffer[0].addr)
+  var cursor = makeCharPointer_UTF16(cast[ConstPtr[int16]](buffer[0].addr))
   doAssert cursor.getAndAdvance() == uint32('h'), "the first character"
   doAssert cursor.getAndAdvance() == uint32('i'), "the second character"
 
@@ -1428,18 +1428,18 @@ testUncalledHandWritten()
 
 proc testCharPointerASCII() =
   var buffer = "hi!"
-  let start = makeCharPointer_ASCII(cast[ptr char](buffer[0].addr))
+  let start = makeCharPointer_ASCII(cast[constChar](buffer[0].addr))
 
   doAssert start.isNotEmpty(), "a filled buffer reported empty"
   doAssert start.length() == 3'u64, "length gave " & $start.length()
 
-  var cursor = makeCharPointer_ASCII(cast[ptr char](buffer[0].addr))
+  var cursor = makeCharPointer_ASCII(cast[constChar](buffer[0].addr))
   doAssert cursor.getAndAdvance() == 'h'.ord.uint32, "the first character"
   doAssert cursor.getAndAdvance() == 'i'.ord.uint32, "the second character"
   doAssert cursor.length() == 1'u64, "after two steps the rest is " & $cursor.length()
 
   var empty = ""
-  doAssert makeCharPointer_ASCII(cast[ptr char](empty.cstring)).isEmpty(),
+  doAssert makeCharPointer_ASCII(cast[constChar](empty.cstring)).isEmpty(),
            "an empty buffer reported non-empty"
 
 testCharPointerASCII()
@@ -5207,3 +5207,228 @@ proc testThreadLifecycle() =
     cdelete thread
 
 testThreadLifecycle()
+
+# The rest of the CharPointer cursors. Each of the four encodings has the same
+# surface, so the same assertions are made against all of them - which is what
+# catches one of the four being wired to a different C++ method.
+#
+# None of them owns its bytes, so every buffer below outlives the cursor over
+# it, exactly as testCharPointerUTF8 above requires.
+proc testCharPointerNavigation() =
+  block:
+    # UTF-8, the encoding a Nim string already is.
+    var buffer = "  42abc"
+    let start = makeCharPointer_UTF8(cast[constChar](buffer[0].addr))
+
+    doAssert start.getAddress() == cast[ptr char](buffer[0].addr),
+             "the cursor's address is not the buffer's"
+
+    # Whitespace is skipped by the two spellings, and both land on the '4'.
+    var afterSpaces = start.findEndOfWhitespace()
+    doAssert afterSpaces.getAndAdvance() == uint32('4'),
+             "findEndOfWhitespace did not stop at the first digit"
+    var walking = makeCharPointer_UTF8(cast[constChar](buffer[0].addr))
+    walking.incrementToEndOfWhitespace()
+    doAssert walking.getAndAdvance() == uint32('4'),
+             "incrementToEndOfWhitespace did not stop at the first digit"
+
+    # The integer readers parse from where the cursor is and stop at the
+    # first character that is not part of a number.
+    doAssert start.getIntValue32() == 42,
+             "getIntValue32 read " & $start.getIntValue32()
+    doAssert start.getIntValue64() == 42'i64,
+             "getIntValue64 read " & $start.getIntValue64()
+
+    # findTerminatingNull walks to the end, so the remaining length is zero.
+    doAssert start.findTerminatingNull().length() == 0'u64,
+             "the terminator is " &
+             $start.findTerminatingNull().length() & " characters from the end"
+
+  block:
+    # ASCII. Its compareUpTo is the one method the other three do not have in
+    # the same shape.
+    var text = "  7xyz"
+    var other = "  7xyzzy"
+    let start = makeCharPointer_ASCII(cast[constChar](text[0].addr))
+    let longer = makeCharPointer_ASCII(cast[constChar](other[0].addr))
+
+    doAssert start.getAddress() == cast[ptr char](text[0].addr),
+             "the ASCII cursor's address is not the buffer's"
+    var afterAsciiSpaces = start.findEndOfWhitespace()
+    doAssert afterAsciiSpaces.getAndAdvance() == uint32('7'),
+             "the ASCII cursor did not skip the leading spaces"
+    doAssert start.getIntValue32() == 7,
+             "the ASCII cursor read " & $start.getIntValue32()
+
+    # The two texts agree for their first six characters and differ after.
+    doAssert start.compareUpTo(longer, 6.cint) == 0,
+             "six characters compared as " & $start.compareUpTo(longer, 6.cint)
+    doAssert start.compareUpTo(longer, 8.cint) != 0,
+             "eight characters compared as " & $start.compareUpTo(longer, 8.cint)
+
+  block:
+    # UTF-16 and UTF-32 carry wider units, so their buffers are arrays of
+    # those rather than a Nim string.
+    var wide: array[8, int16]
+    for index, ch in "  91ab":
+      wide[index] = int16(ord(ch))
+    wide[6] = 0'i16
+    let utf16 = makeCharPointer_UTF16(cast[ConstPtr[int16]](wide[0].addr))
+    doAssert utf16.getAddress() == cast[ptr int16](wide[0].addr),
+             "the UTF-16 cursor's address is not the buffer's"
+    var afterUtf16Spaces = utf16.findEndOfWhitespace()
+    doAssert afterUtf16Spaces.getAndAdvance() == uint32('9'),
+             "the UTF-16 cursor did not skip the leading spaces"
+    doAssert utf16.getIntValue32() == 91,
+             "the UTF-16 cursor read " & $utf16.getIntValue32()
+    doAssert utf16.getIntValue64() == 91'i64,
+             "the UTF-16 cursor read " & $utf16.getIntValue64() & " as 64 bits"
+    doAssert utf16.findTerminatingNull().length() == 0'u64,
+             "the UTF-16 terminator is not at the end"
+
+    var wider: array[8, WChar]
+    for index, ch in "  91ab":
+      wider[index] = WChar(ord(ch))
+    wider[6] = WChar(0)
+    let utf32 = makeCharPointer_UTF32(cast[ConstPtr[WChar]](wider[0].addr))
+    doAssert utf32.getAddress() == cast[ptr WChar](wider[0].addr),
+             "the UTF-32 cursor's address is not the buffer's"
+    var afterUtf32Spaces = utf32.findEndOfWhitespace()
+    doAssert afterUtf32Spaces.getAndAdvance() == uint32('9'),
+             "the UTF-32 cursor did not skip the leading spaces"
+    doAssert utf32.getIntValue32() == 91,
+             "the UTF-32 cursor read " & $utf32.getIntValue32()
+    doAssert utf32.getIntValue64() == 91'i64,
+             "the UTF-32 cursor read " & $utf32.getIntValue64() & " as 64 bits"
+
+    var walking = makeCharPointer_UTF32(cast[ConstPtr[WChar]](wider[0].addr))
+    walking.incrementToEndOfWhitespace()
+    doAssert walking.getAndAdvance() == uint32('9'),
+             "the UTF-32 cursor did not walk past the spaces"
+
+  block:
+    # replaceChar writes through the cursor, so the buffer behind it changes.
+    # UTF-32 is the fixed-width encoding, so one character is one unit and the
+    # write cannot resize anything.
+    var buffer: array[4, WChar]
+    for index, ch in "abc":
+      buffer[index] = WChar(ord(ch))
+    buffer[3] = WChar(0)
+
+    var cursor = makeCharPointer_UTF32(cast[ConstPtr[WChar]](buffer[0].addr))
+    cursor.replaceChar(uint32('z'))
+    doAssert buffer[0] == WChar(ord('z')),
+             "replaceChar wrote " & $buffer[0] & " rather than 'z'"
+    doAssert buffer[1] == WChar(ord('b')),
+             "replaceChar changed the next character to " & $buffer[1]
+
+    # writeNull terminates where the cursor is, so the length drops to zero.
+    cursor.writeNull()
+    doAssert cursor.length() == 0'u64,
+             "after writeNull the cursor has " & $cursor.length() &
+             " characters"
+
+    # And the same on an ASCII buffer. The buffer is an ARRAY, not a Nim
+    # string: writing through a cursor into a string's bytes crashed this
+    # process at teardown, because a `var s = "abc"` need not be storage the
+    # program owns outright. Reading through a cursor over a Nim string is
+    # fine - testCharPointerUTF8 above does it - but WRITING is not.
+    var letters: array[4, char]
+    letters[0] = 'a'
+    letters[1] = 'b'
+    letters[2] = 'c'
+    letters[3] = '\0'
+    var asciiCursor = makeCharPointer_ASCII(cast[constChar](letters[0].addr))
+    asciiCursor.replaceChar(uint32('z'))
+    doAssert letters[0] == 'z',
+             "the ASCII replaceChar wrote " & letters[0]
+    doAssert letters[1] == 'b',
+             "the ASCII replaceChar changed the next character to " & letters[1]
+    asciiCursor.writeNull()
+    doAssert asciiCursor.length() == 0'u64,
+             "after writeNull the ASCII cursor has " & $asciiCursor.length()
+
+  block:
+    # writeAll copies one buffer into another through the cursors, and toChar
+    # gives the raw pointer back. Both write, so both use arrays.
+    var source: array[8, char]
+    for index, ch in "copied":
+      source[index] = ch
+    source[6] = '\0'
+    var destination: array[8, char]
+    destination[0] = '\0'
+
+    let from8 = makeCharPointer_UTF8(cast[constChar](source[0].addr))
+    var into8 = makeCharPointer_UTF8(cast[constChar](destination[0].addr))
+    into8.writeAll(from8)
+    doAssert destination[0] == 'c' and destination[5] == 'd',
+             "writeAll copied " & destination[0] & " and " & destination[5]
+    doAssert destination[6] == '\0',
+             "writeAll did not terminate the copy"
+
+    # Compared as raw addresses: toChar returns a POINTER TO CONST, which is
+    # what C++ gives and what the binding now says, so it has no == against a
+    # mutable pointer.
+    doAssert cast[pointer](from8.toChar()) == cast[pointer](source[0].addr),
+             "toChar gave a different pointer than the buffer's"
+
+    # atomicSwap puts a new value in and hands the old one back, which is the
+    # whole of what it does.
+    var swappable = makeCharPointer_UTF8(cast[constChar](source[0].addr))
+    let previous = swappable.atomicSwap(
+        makeCharPointer_UTF8(cast[constChar](destination[0].addr)))
+    doAssert previous.getAddress() == cast[ptr char](source[0].addr),
+             "atomicSwap handed back a different pointer than it held"
+    doAssert swappable.getAddress() == cast[ptr char](destination[0].addr),
+             "atomicSwap did not take the new value"
+
+  block:
+    # The same pair on the two wide encodings, whose raw accessors are named
+    # after the unit they point at rather than after char.
+    var source: array[8, int16]
+    for index, ch in "wide":
+      source[index] = int16(ord(ch))
+    source[4] = 0'i16
+    var destination: array[8, int16]
+    destination[0] = 0'i16
+
+    let from16 = makeCharPointer_UTF16(cast[ConstPtr[int16]](source[0].addr))
+    var into16 = makeCharPointer_UTF16(cast[ConstPtr[int16]](destination[0].addr))
+    into16.writeAll(from16)
+    doAssert destination[0] == int16(ord('w')),
+             "the UTF-16 writeAll copied " & $destination[0]
+    doAssert cast[pointer](from16.toInt16()) == cast[pointer](source[0].addr),
+             "toInt16 gave a different pointer than the buffer's"
+    var swappable16 = makeCharPointer_UTF16(cast[ConstPtr[int16]](source[0].addr))
+    doAssert swappable16.atomicSwap(from16).getAddress() ==
+             cast[ptr int16](source[0].addr),
+             "the UTF-16 atomicSwap handed back a different pointer"
+
+    var wideSource: array[8, WChar]
+    for index, ch in "wide":
+      wideSource[index] = WChar(ord(ch))
+    wideSource[4] = WChar(0)
+    var wideDestination: array[8, WChar]
+    wideDestination[0] = WChar(0)
+
+    let from32 = makeCharPointer_UTF32(cast[ConstPtr[WChar]](wideSource[0].addr))
+    var into32 = makeCharPointer_UTF32(cast[ConstPtr[WChar]](wideDestination[0].addr))
+    into32.writeAll(from32)
+    doAssert wideDestination[0] == WChar(ord('w')),
+             "the UTF-32 writeAll copied " & $wideDestination[0]
+    doAssert cast[pointer](from32.toWChar()) == cast[pointer](wideSource[0].addr),
+             "toWChar gave a different pointer than the buffer's"
+    var swappable32 = makeCharPointer_UTF32(cast[ConstPtr[WChar]](wideSource[0].addr))
+    doAssert swappable32.atomicSwap(from32).getAddress() ==
+             cast[ptr WChar](wideSource[0].addr),
+             "the UTF-32 atomicSwap handed back a different pointer"
+
+    # And ASCII's own raw accessor.
+    var text: array[4, char]
+    text[0] = 'a'
+    text[1] = '\0'
+    let asciiRaw = makeCharPointer_ASCII(cast[constChar](text[0].addr))
+    doAssert cast[pointer](asciiRaw.toChar()) == cast[pointer](text[0].addr),
+             "the ASCII toChar gave a different pointer than the buffer's"
+
+testCharPointerNavigation()
