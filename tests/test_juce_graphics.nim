@@ -3063,3 +3063,171 @@ proc testFontTypefaceAndOverrides() =
     shutdownJuce_GUI()
 
 testFontTypefaceAndOverrides()
+
+# Image's format conversions and its copy-on-write behaviour. The pixels are
+# what the assertions read, as everywhere else in this file.
+proc testImageFormatsAndCopies() =
+    initialiseJuce_GUI()
+
+    block:
+        # The format predicates each answer for their own format.
+        let argb = makeImage(ImagePixelFormat_ARGB, 10.cint, 10.cint, true)
+        doAssert argb.getFormat() == ImagePixelFormat_ARGB,
+                 "the format did not read back"
+        doAssert argb.isARGB(), "an ARGB image is not ARGB"
+        doAssert not argb.isRGB(), "an ARGB image is RGB"
+        doAssert not argb.isSingleChannel(), "an ARGB image is single channel"
+        doAssert argb.hasAlphaChannel(), "an ARGB image has no alpha channel"
+
+        let mask = makeImage(ImagePixelFormat_SingleChannel, 10.cint, 10.cint,
+                             true)
+        doAssert mask.isSingleChannel(), "a mask image is not single channel"
+        doAssert not mask.isARGB(), "a mask image is ARGB"
+
+        # A conversion keeps the pixels it can and drops what the new format
+        # has no room for.
+        var g = makeGraphics(argb)
+        g.setColour(Colours_red)
+        g.fillAll()
+        # The requested format is a REQUEST: convertedToFormat asks the image
+        # TYPE to create one (juce_Image.cpp:768), and a native type gives
+        # whatever the platform's own image format is - CoreGraphics has no
+        # 24-bit RGB, so a conversion to RGB comes back ARGB on macOS. What
+        # holds everywhere is that the size and the colour survive and the
+        # original is untouched.
+        let asRgb = argb.convertedToFormat(ImagePixelFormat_RGB)
+        doAssert asRgb.getPixelAt(5.cint, 5.cint).getRed() == 255'u8,
+                 "the conversion lost the red channel: " &
+                 $asRgb.getPixelAt(5.cint, 5.cint).getRed()
+        doAssert asRgb.getWidth() == 10 and asRgb.getHeight() == 10,
+                 "the conversion resized the image to " & $asRgb.getWidth() &
+                 "x" & $asRgb.getHeight()
+        doAssert argb.isARGB(), "the conversion changed the original's format"
+
+        # A conversion to SingleChannel does change the format, on every
+        # platform, because there is no native format that could stand in.
+        let asMask = argb.convertedToFormat(ImagePixelFormat_SingleChannel)
+        doAssert asMask.isSingleChannel(),
+                 "the conversion to a mask did not take"
+        doAssert not asMask.isARGB(), "the mask is still ARGB"
+
+        doAssert not argb.getPixelData().isNil,
+                 "the image has no pixel data behind it"
+
+    block:
+        # An Image is a handle onto shared pixels, so a plain assignment shares
+        # them and createCopy does not.
+        let original = makeImage(ImagePixelFormat_ARGB, 20.cint, 20.cint, true)
+        var g = makeGraphics(original)
+        g.setColour(Colours_white)
+        g.fillAll()
+
+        let shared = original
+        var sharedGraphics = makeGraphics(shared)
+        sharedGraphics.setColour(Colours_black)
+        sharedGraphics.fillAll()
+        doAssert original.getPixelAt(5.cint, 5.cint).getRed() == 0'u8,
+                 "writing through the shared handle did not reach the original"
+
+        let independent = original.createCopy()
+        var copyGraphics = makeGraphics(independent)
+        copyGraphics.setColour(Colours_white)
+        copyGraphics.fillAll()
+        doAssert original.getPixelAt(5.cint, 5.cint).getRed() == 0'u8,
+                 "writing through the copy reached the original"
+        doAssert independent.getPixelAt(5.cint, 5.cint).getRed() == 255'u8,
+                 "the copy did not take the write"
+
+        # duplicateIfShared gives a handle nothing else holds.
+        var toDuplicate = original
+        toDuplicate.duplicateIfShared()
+        var duplicateGraphics = makeGraphics(toDuplicate)
+        duplicateGraphics.setColour(Colours_white)
+        duplicateGraphics.fillAll()
+        doAssert original.getPixelAt(5.cint, 5.cint).getRed() == 0'u8,
+                 "the duplicated handle still shared the original's pixels"
+
+    block:
+        # A clipped image is a window onto the same pixels, sized to the clip.
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        g.setColour(Colours_white)
+        g.fillRect(makeRectangle(20.cint, 20.cint, 20.cint, 20.cint))
+
+        let clipped = image.getClippedImage(
+            makeRectangle(20.cint, 20.cint, 20.cint, 20.cint))
+        doAssert clipped.getWidth() == 20 and clipped.getHeight() == 20,
+                 "the clipped image measures " & $clipped.getWidth() & "x" &
+                 $clipped.getHeight()
+        doAssert clipped.getPixelAt(0.cint, 0.cint).getAlpha() > 0'u8,
+                 "the clipped image's origin is empty, so it clipped the " &
+                 "wrong corner"
+
+    block:
+        # The whole-image operations each change the pixels in their own way.
+        var image = makeImage(ImagePixelFormat_ARGB, 20.cint, 20.cint, true)
+        var g = makeGraphics(image)
+        g.setColour(Colour.fromRGB(255'u8, 0'u8, 0'u8))
+        g.fillAll()
+
+        image.multiplyAllAlphas(0.5'f32)
+        let alpha = image.getPixelAt(5.cint, 5.cint).getAlpha()
+        doAssert alpha > 100'u8 and alpha < 155'u8,
+                 "halving the alpha gave " & $alpha
+
+        image.multiplyAlphaAt(1.cint, 1.cint, 0.0'f32)
+        doAssert image.getPixelAt(1.cint, 1.cint).getAlpha() == 0'u8,
+                 "the single pixel's alpha is " &
+                 $image.getPixelAt(1.cint, 1.cint).getAlpha()
+        doAssert image.getPixelAt(5.cint, 5.cint).getAlpha() == alpha,
+                 "changing one pixel changed its neighbours"
+
+        # Desaturating makes the three channels equal.
+        image.desaturate()
+        let pixel = image.getPixelAt(5.cint, 5.cint)
+        doAssert pixel.getRed() == pixel.getGreen() and
+                 pixel.getGreen() == pixel.getBlue(),
+                 "the desaturated pixel is " & $pixel.toString()
+
+        # moveImageSection copies a block to another place in the same image.
+        var source = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var sourceGraphics = makeGraphics(source)
+        sourceGraphics.setColour(Colours_white)
+        sourceGraphics.fillRect(makeRectangle(0.cint, 0.cint, 10.cint, 10.cint))
+        doAssert source.getPixelAt(25.cint, 25.cint).getAlpha() == 0'u8,
+                 "the destination was not empty before the move"
+        source.moveImageSection(20.cint, 20.cint, 0.cint, 0.cint,
+                                10.cint, 10.cint)
+        doAssert source.getPixelAt(25.cint, 25.cint).getAlpha() > 0'u8,
+                 "the section did not arrive at its destination"
+
+    block:
+        # A solid-area mask is a single-channel image of where the alpha was.
+        var image = makeImage(ImagePixelFormat_ARGB, 20.cint, 20.cint, true)
+        var g = makeGraphics(image)
+        g.setColour(Colours_white)
+        g.fillRect(makeRectangle(0.cint, 0.cint, 10.cint, 20.cint))
+
+        # createSolidAreaMask writes a RECTANGLE LIST covering the pixels above
+        # the threshold, through an out parameter - it does not return an
+        # image. The left half was filled and the right half was not, so the
+        # rectangles cover the left half and no more.
+        var solid = makeRectangleList[cint]()
+        image.createSolidAreaMask(solid, 0.5'f32)
+        doAssert not solid.isEmpty(), "the solid area mask found nothing"
+        doAssert solid.getBounds().getWidth() <= 10,
+                 "the mask covers " & $solid.getBounds().getWidth() &
+                 " columns of a half-filled image"
+        doAssert solid.getBounds().getHeight() == 20,
+                 "the mask is " & $solid.getBounds().getHeight() & " tall"
+
+        # A low-level context draws into the image the same way a Graphics
+        # does, because a Graphics is a wrapper over one.
+        var context = image.createLowLevelContext()
+        doAssert not context.isNil(), "the image made no low level context"
+
+        discard image.setBackupEnabled(false)
+
+    shutdownJuce_GUI()
+
+testImageFormatsAndCopies()
