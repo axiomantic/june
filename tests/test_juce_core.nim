@@ -6294,3 +6294,96 @@ proc testUuidFields() =
              "the null UUID's node is " & $empty.getNode()
 
 testUuidFields()
+
+# ZipFile, built and then read back. The archive is made with JUCE's own
+# Builder, so the test does not depend on a fixture file being checked in and
+# the round trip is what is actually asserted.
+proc testZipFileRoundTrip() =
+  block:
+    let directory = File.getSpecialLocation(
+        FileSpecialLocationType_tempDirectory)
+    let alpha = directory.getChildFile(makeString("june_zip_alpha.txt"))
+    let beta = directory.getChildFile(makeString("june_zip_beta.txt"))
+    doAssert alpha.replaceWithText(makeString("first file")),
+             "the first file could not be written"
+    doAssert beta.replaceWithText(makeString("the second file's contents")),
+             "the second file could not be written"
+
+    # Added out of alphabetical order on purpose, so sortEntriesByFilename has
+    # something to do.
+    var builder = makeZipFileBuilder()
+    builder.addFile(beta, 9.cint, makeString("beta.txt"))
+    builder.addFile(alpha, 9.cint, makeString("alpha.txt"))
+
+    let archive = directory.getChildFile(makeString("june_zip_test.zip"))
+    discard archive.deleteFile()
+    block:
+      var output = makeFileOutputStream(archive, 0'u64)
+      doAssert builder.writeToStream(output, nil),
+               "the archive could not be written"
+      output.flush()
+    doAssert archive.existsAsFile(), "the archive was not created"
+
+    var zip = makeZipFile(archive)
+    doAssert zip.getNumEntries() == 2,
+             "the archive holds " & $zip.getNumEntries() & " entries"
+
+    # The entries are in the order they were added until they are sorted.
+    doAssert $zip.getEntry(0.cint)[].filename() == "beta.txt",
+             "entry 0 is " & $zip.getEntry(0.cint)[].filename()
+    zip.sortEntriesByFilename()
+    doAssert $zip.getEntry(0.cint)[].filename() == "alpha.txt",
+             "after sorting, entry 0 is " & $zip.getEntry(0.cint)[].filename()
+
+    # An entry is found by name, and a name that is not there is not.
+    doAssert zip.getIndexOfFileName(makeString("beta.txt"), false) == 1,
+             "beta.txt is at index " &
+             $zip.getIndexOfFileName(makeString("beta.txt"), false)
+    doAssert zip.getIndexOfFileName(makeString("absent.txt"), false) == -1,
+             "a name that is not in the archive is at index " &
+             $zip.getIndexOfFileName(makeString("absent.txt"), false)
+    doAssert not zip.getEntry(makeString("alpha.txt"), false).isNil,
+             "getEntry by name found nothing"
+
+    # The sizes are the originals, not the compressed ones.
+    doAssert zip.getEntry(makeString("alpha.txt"), false)[]
+                .uncompressedSize() == 10'i64,
+             "alpha.txt uncompresses to " &
+             $zip.getEntry(makeString("alpha.txt"), false)[].uncompressedSize() &
+             " bytes"
+
+    # A stream over an entry gives the original bytes back.
+    var stream = zip.createStreamForEntry(0.cint)
+    doAssert not stream.isNil, "no stream was made for entry 0"
+    doAssert $stream[].readEntireStreamAsString() == "first file",
+             "the entry read back as " & $stream[].readEntireStreamAsString()
+    cdelete stream
+
+    # And uncompressing writes the files out again.
+    let extracted = directory.getChildFile(makeString("june_zip_out"))
+    discard extracted.deleteRecursively()
+    doAssert zip.uncompressTo(extracted, true).wasOk(),
+             "uncompressing the whole archive failed"
+    doAssert extracted.getChildFile(makeString("alpha.txt")).existsAsFile(),
+             "alpha.txt was not extracted"
+    doAssert $extracted.getChildFile(makeString("alpha.txt"))
+                       .loadFileAsString() == "first file",
+             "the extracted file holds " &
+             $extracted.getChildFile(makeString("alpha.txt")).loadFileAsString()
+
+    # A single entry can be extracted on its own.
+    let single = directory.getChildFile(makeString("june_zip_single"))
+    discard single.deleteRecursively()
+    doAssert zip.uncompressEntry(1.cint, single, true).wasOk(),
+             "uncompressing one entry failed"
+    doAssert single.getChildFile(makeString("beta.txt")).existsAsFile(),
+             "beta.txt was not extracted on its own"
+    doAssert not single.getChildFile(makeString("alpha.txt")).existsAsFile(),
+             "extracting one entry brought the other out too"
+
+    doAssert alpha.deleteFile() and beta.deleteFile() and archive.deleteFile(),
+             "the temporary files could not be removed"
+    doAssert extracted.deleteRecursively() and single.deleteRecursively(),
+             "the extracted directories could not be removed"
+
+testZipFileRoundTrip()
