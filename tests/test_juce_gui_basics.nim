@@ -14596,3 +14596,96 @@ proc testTextDragAndDropTarget() =
     shutdownJuce_GUI()
 
 testTextDragAndDropTarget()
+
+# FlexItem's with- methods and GridTrackInfo's kinds ==========================
+
+proc testFlexItemWithMethods() =
+    initialiseJuce_GUI()
+
+    block:
+        # Each with- method returns a NEW item and leaves the receiver alone,
+        # which is what makes them chainable.
+        let base = makeFlexItem(30.0'f32, 20.0'f32)
+
+        let grown = base.withFlex(2.0'f32)
+        doAssert grown.flexGrow == 2.0'f32,
+                 "the grow factor is " & $grown.flexGrow
+        doAssert base.flexGrow == 0.0'f32,
+                 "withFlex changed the original to " & $base.flexGrow
+
+        let twoArgs = base.withFlex(2.0'f32, 3.0'f32)
+        doAssert twoArgs.flexGrow == 2.0'f32 and
+                 twoArgs.flexShrink == 3.0'f32,
+                 "the two-argument form gave " & $twoArgs.flexGrow & "/" &
+                 $twoArgs.flexShrink
+
+        let threeArgs = base.withFlex(2.0'f32, 3.0'f32, 40.0'f32)
+        doAssert threeArgs.flexBasis == 40.0'f32,
+                 "the basis is " & $threeArgs.flexBasis
+
+        # The four bounds. Each one moves only its own field.
+        let bounded = base.withMinWidth(10.0'f32).withMaxWidth(90.0'f32)
+                          .withMinHeight(5.0'f32).withMaxHeight(45.0'f32)
+        doAssert bounded.minWidth == 10.0'f32 and
+                 bounded.maxWidth == 90.0'f32 and
+                 bounded.minHeight == 5.0'f32 and
+                 bounded.maxHeight == 45.0'f32,
+                 "the bounds are " & $bounded.minWidth & "/" &
+                 $bounded.maxWidth & "/" & $bounded.minHeight & "/" &
+                 $bounded.maxHeight
+
+        # And a maximum really does cap the laid-out size.
+        var box = makeFlexBox()
+        var item = makeFlexItem(30.0'f32, 20.0'f32).withFlex(1.0'f32)
+                       .withMaxWidth(40.0'f32)
+        item.height = 20.0'f32
+        box.items.add(item)
+        box.performLayout(makeRectangle(0.0'f32, 0.0'f32,
+                                        200.0'f32, 20.0'f32))
+        doAssert box.items[0.cint].currentBounds.getWidth() == 40.0'f32,
+                 "the capped item grew to " &
+                 $box.items[0.cint].currentBounds.getWidth()
+
+    shutdownJuce_GUI()
+
+proc testGridTrackInfoKinds() =
+    block:
+        # The three questions are NOT three kinds. isAuto is its own flag,
+        # and isPixels is just !isFractional (juce_Grid.h:91), so an auto
+        # track answers yes to isPixels as well.
+        let auto = makeGridTrackInfo()
+        doAssert auto.isAuto(), "a default track is not auto"
+        doAssert not auto.isFractional(), "an auto track is fractional"
+        doAssert auto.isPixels(),
+                 "an auto track is not also in pixels, so isPixels is no " &
+                 "longer the negation of isFractional"
+
+        let pixels = makeGridTrackInfo(makeGridPx(40.0'f32))
+        doAssert pixels.isPixels(), "a pixel track is not in pixels"
+        doAssert not pixels.isAuto() and not pixels.isFractional(),
+                 "a pixel track claims another kind"
+        doAssert pixels.getSize() == 40.0'f32,
+                 "the pixel track is " & $pixels.getSize() & " across"
+
+        let fraction = makeGridTrackInfo(makeGridFr(2.cint))
+        doAssert fraction.isFractional(),
+                 "a fractional track is not fractional"
+        doAssert not fraction.isAuto() and not fraction.isPixels(),
+                 "a fractional track claims another kind"
+
+        # A track can be named at either end, and an unnamed end is empty.
+        doAssert pixels.getStartLineName().isEmpty() and
+                 pixels.getEndLineName().isEmpty(),
+                 "an unnamed track is called " & $pixels.getStartLineName() &
+                 " to " & $pixels.getEndLineName()
+
+        let named = makeGridTrackInfo(makeString("left"),
+                                      makeGridPx(40.0'f32),
+                                      makeString("right"))
+        doAssert $named.getStartLineName() == "left",
+                 "the start line is " & $named.getStartLineName()
+        doAssert $named.getEndLineName() == "right",
+                 "the end line is " & $named.getEndLineName()
+
+testFlexItemWithMethods()
+testGridTrackInfoKinds()
