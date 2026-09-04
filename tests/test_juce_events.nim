@@ -751,3 +751,104 @@ proc testInterprocessConnectionOverAPipe() =
     shutdownJuce_GUI()
 
 testInterprocessConnectionOverAPipe()
+
+# ChildProcessCoordinator and ChildProcessWorker ==============================
+#
+# The pair is meant to be one process launching another copy of ITSELF, with
+# the child recognising a command line the parent generated. This suite cannot
+# do that - relaunching the test binary would rerun the whole suite as a child
+# - so what is exercised here is each side on its own: the coordinator with a
+# child that is not a worker, and the worker with a command line that is not
+# the parent's.
+
+proc testChildProcessPairWithoutAPair() =
+    initialiseJuce_GUI()
+
+    block:
+        var worker = makeChildProcessWorker()
+
+        # A command line that carries no coordinator handshake is refused, and
+        # refused quickly: there is nothing to wait for.
+        doAssert not worker.initialiseFromCommandLine(
+                     makeString("--some-other-flag"),
+                     makeString("june-test-worker"), 200.cint),
+                 "a worker attached itself to an unrelated command line"
+        doAssert not worker.initialiseFromCommandLine(
+                     makeString(""), makeString("june-test-worker"), 200.cint),
+                 "a worker attached itself to an empty command line"
+
+        # With no connection there is nothing to send to, and both spellings
+        # of the send report failure (juce_ConnectedChildProcess.cpp: the
+        # method returns false when the connection is null).
+        let message = makeMemoryBlock(4'u64, true)
+        doAssert not worker.sendMessageToCoordinator(message),
+                 "an unconnected worker sent a message"
+        doAssert not worker.sendMessageToMaster(message),
+                 "an unconnected worker sent a message to its master"
+
+        # The four callbacks have empty bodies in JUCE, so they are called and
+        # the worker is shown unchanged afterwards.
+        worker.handleConnectionMade()
+        worker.handleMessageFromCoordinator(message)
+        worker.handleMessageFromMaster(message)
+        worker.handleConnectionLost()
+        doAssert not worker.sendMessageToCoordinator(message),
+                 "the callbacks gave the worker a connection"
+
+    block:
+        var coordinator = makeChildProcessCoordinator()
+
+        let message = makeMemoryBlock(4'u64, true)
+        doAssert not coordinator.sendMessageToWorker(message),
+                 "a coordinator with no worker sent a message"
+        doAssert not coordinator.sendMessageToSlave(message),
+                 "a coordinator with no slave sent a message"
+
+        coordinator.handleMessageFromWorker(message)
+        coordinator.handleMessageFromSlave(message)
+        coordinator.handleConnectionLost()
+
+        # Killing a worker that was never launched is a no-op rather than an
+        # error (juce_ConnectedChildProcess.cpp: killWorkerProcess checks the
+        # connection first).
+        coordinator.killWorkerProcess()
+        coordinator.killSlaveProcess()
+        doAssert not coordinator.sendMessageToWorker(message),
+                 "killing nothing gave the coordinator a connection"
+
+    block:
+        # Launching something that is not a worker. The coordinator makes its
+        # end of the pipe and starts the executable; the executable never
+        # connects back, so the pair never becomes useful - but the launch
+        # itself is exercised, and killing tears it down again.
+        #
+        # macOS only. On Linux, launchWorkerProcess routes through
+        # ChildProcessManager, a singleton the suite has no way to shut down
+        # (juce_ChildProcessManager.h:60), and the leak gate that runs after
+        # every test would report it.
+        when defined(macosx):
+            let executable = makeFile(makeString("/bin/echo"))
+            doAssert executable.existsAsFile(),
+                     "/bin/echo is not where it was expected"
+
+            var coordinator = makeChildProcessCoordinator()
+            let launched = coordinator.launchWorkerProcess(
+                executable, makeString("june-test-worker"), 200.cint,
+                ChildProcessStreamFlags_wantStdOut.cint)
+            doAssert launched,
+                     "the coordinator did not launch /bin/echo"
+            coordinator.killWorkerProcess()
+            doAssert not coordinator.sendMessageToWorker(
+                         makeMemoryBlock(4'u64, true)),
+                     "the coordinator still has a connection after killing it"
+
+            var second = makeChildProcessCoordinator()
+            doAssert second.launchSlaveProcess(
+                         executable, makeString("june-test-worker"), 200.cint,
+                         ChildProcessStreamFlags_wantStdOut.cint),
+                     "the deprecated spelling did not launch /bin/echo"
+            second.killSlaveProcess()
+
+    shutdownJuce_GUI()
+
+testChildProcessPairWithoutAPair()
