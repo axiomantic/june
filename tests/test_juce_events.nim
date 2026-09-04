@@ -222,12 +222,20 @@ proc testEveryNoArgConstructorEvents() =
     initialiseJuce_GUI()
     block:
         discard makeMessage()
-        discard makeScopedJuceInitialiser_GUI()
         discard makeActionBroadcaster()
         discard makeChangeBroadcaster()
         discard makeChildProcessWorker()
         discard makeChildProcessCoordinator()
         discard makeScopedLowPowerModeDisabler()
+
+        # LAST, and nothing may follow it. ScopedJuceInitialiser_GUI keeps its
+        # OWN counter, separate from the initialiseJuce_GUI above
+        # (juce_MessageManager.cpp:476), so building one here and destroying
+        # it takes that counter 0 -> 1 -> 0 and calls shutdownJuce_GUI. It
+        # used to sit second in this list, and everything after it ran with no
+        # MessageManager at all - which is what JUCE was saying when
+        # ActionBroadcaster asserted at construction and again at destruction.
+        discard makeScopedJuceInitialiser_GUI()
     shutdownJuce_GUI()
 
 testEveryNoArgConstructorEvents()
