@@ -4032,3 +4032,209 @@ proc testFontOptionsFeatures() =
     shutdownJuce_GUI()
 
 testFontOptionsFeatures()
+
+# The internal graphics context ===============================================
+#
+# Graphics is a thin front for a LowLevelGraphicsContext, and the clipping and
+# drawing calls it does not forward are only reachable through
+# getInternalContext. Every assertion below reads the pixels back out of the
+# image the context is drawing into, so a call that did nothing fails.
+proc testLowLevelGraphicsContext() =
+    initialiseJuce_GUI()
+
+    proc opaque(image: Image, x, y: int): bool =
+        image.getPixelAt(x.cint, y.cint).getAlpha() > 0'u8
+
+    block:
+        var image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        var context = g.getInternalContext().addr
+
+        # A software renderer is not a vector device and draws at the image's
+        # own scale.
+        doAssert not context[].isVectorDevice(),
+                 "an image context calls itself a vector device"
+        doAssert context[].getPhysicalPixelScaleFactor() > 0.0'f32,
+                 "the physical pixel scale is " &
+                 $context[].getPhysicalPixelScaleFactor()
+
+        # The frame id is only meaningful to a context that tracks frames, so
+        # what is asserted is that it is stable across a draw.
+        let frame = context[].getFrameId()
+        context[].setFill(makeFillType(Colours_red))
+        context[].fillAll()
+        doAssert context[].getFrameId() == frame,
+                 "the frame id moved from " & $frame & " to " &
+                 $context[].getFrameId()
+        doAssert opaque(image, 20, 20), "fillAll left the image empty"
+
+        # The preferred image type for a temporary image can build one.
+        let imageType = context[].getPreferredImageTypeForTemporaryImages()
+        doAssert not imageType.get().isNil,
+                 "the context prefers no image type at all"
+
+    block:
+        # clipToRectangle narrows the clip, and drawing outside it is dropped.
+        var image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        var context = g.getInternalContext().addr
+
+        context[].saveState()
+        doAssert context[].clipToRectangle(
+                     makeRectangle(0.cint, 0.cint, 20.cint, 20.cint)),
+                 "clipping to a rectangle inside the image emptied the clip"
+        doAssert context[].getClipBounds() ==
+                 makeRectangle(0.cint, 0.cint, 20.cint, 20.cint),
+                 "the clip bounds are " & $context[].getClipBounds()
+        context[].setFill(makeFillType(Colours_red))
+        context[].fillAll()
+        doAssert opaque(image, 5, 5), "nothing was drawn inside the clip"
+        doAssert not opaque(image, 30, 30), "the clip did not hold"
+        context[].restoreState()
+
+        # excludeClipRectangle punches a hole in it.
+        context[].saveState()
+        context[].excludeClipRectangle(
+            makeRectangle(0.cint, 0.cint, 40.cint, 20.cint))
+        context[].setFill(makeFillType(Colours_blue))
+        context[].fillAll()
+        doAssert image.getPixelAt(20.cint, 30.cint).getBlue() == 255'u8,
+                 "nothing was drawn below the excluded band"
+        doAssert image.getPixelAt(30.cint, 5.cint).getAlpha() == 0'u8,
+                 "the excluded band was drawn into"
+        context[].restoreState()
+
+    block:
+        # clipToRectangleList takes the union of its rectangles.
+        var image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        var context = g.getInternalContext().addr
+
+        var list = makeRectangleList[cint]()
+        list.add(makeRectangle(0.cint, 0.cint, 10.cint, 10.cint))
+        list.add(makeRectangle(30.cint, 30.cint, 10.cint, 10.cint))
+        doAssert context[].clipToRectangleList(list),
+                 "clipping to two rectangles emptied the clip"
+        context[].setFill(makeFillType(Colours_red))
+        context[].fillAll()
+        doAssert opaque(image, 5, 5) and opaque(image, 35, 35),
+                 "one of the two clipped rectangles was not drawn"
+        doAssert not opaque(image, 20, 20),
+                 "the gap between the two rectangles was drawn into"
+
+    block:
+        # clipToPath clips to an arbitrary shape.
+        var image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        var context = g.getInternalContext().addr
+
+        var path = makePath()
+        path.addEllipse(0.0'f32, 0.0'f32, 20.0'f32, 20.0'f32)
+        context[].clipToPath(path, makeAffineTransform())
+        context[].setFill(makeFillType(Colours_red))
+        context[].fillAll()
+        doAssert opaque(image, 10, 10), "the middle of the ellipse is empty"
+        doAssert not opaque(image, 35, 35),
+                 "a point well outside the ellipse was drawn"
+
+    block:
+        # clipToImageAlpha clips through another image's alpha channel, so the
+        # transparent half of the mask blocks the fill.
+        var mask = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        block:
+            var maskGraphics = makeGraphics(mask)
+            maskGraphics.setColour(Colours_white)
+            maskGraphics.fillRect(makeRectangle(0.cint, 0.cint, 20.cint, 40.cint))
+
+        var image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        var context = g.getInternalContext().addr
+        context[].clipToImageAlpha(mask, makeAffineTransform())
+        context[].setFill(makeFillType(Colours_red))
+        context[].fillAll()
+        doAssert opaque(image, 5, 20), "the opaque half of the mask blocked the fill"
+        doAssert not opaque(image, 35, 20),
+                 "the transparent half of the mask let the fill through"
+
+    block:
+        # A thick line covers pixels a hairline would not.
+        var image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        var context = g.getInternalContext().addr
+
+        context[].setFill(makeFillType(Colours_red))
+        context[].drawLineWithThickness(
+            makeLine(0.0'f32, 20.0'f32, 40.0'f32, 20.0'f32), 8.0'f32)
+        doAssert opaque(image, 20, 20), "the line's centre is empty"
+        doAssert opaque(image, 20, 23),
+                 "the line is not as thick as it was asked to be"
+        doAssert not opaque(image, 20, 35),
+                 "the line spread well past its thickness"
+
+    block:
+        # setInterpolationQuality picks how a scaled image is resampled. Both
+        # settings draw, which is all that can be asserted without pinning a
+        # resampler's exact output.
+        var source = makeImage(ImagePixelFormat_ARGB, 4.cint, 4.cint, true)
+        block:
+            var sourceGraphics = makeGraphics(source)
+            sourceGraphics.setColour(Colours_red)
+            sourceGraphics.fillAll()
+
+        for quality in [GraphicsResamplingQuality_lowResamplingQuality,
+                        GraphicsResamplingQuality_highResamplingQuality]:
+            var image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+            var g = makeGraphics(image)
+            var context = g.getInternalContext().addr
+            context[].setInterpolationQuality(quality)
+            context[].drawImage(source, makeAffineTransform().scaled(10.0'f32))
+            doAssert opaque(image, 20, 20),
+                     "the scaled image is empty at quality " & $quality
+
+    block:
+        # drawGlyphs takes parallel spans of glyph ids and positions, which is
+        # the layer GlyphArrangement itself draws through.
+        var image = makeImage(ImagePixelFormat_ARGB, 80.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        var context = g.getInternalContext().addr
+
+        let font = makeFont(makeFontOptions(24.0'f32))
+        context[].setFont(font)
+        doAssert context[].getFont().getHeight() == font.getHeight(),
+                 "the context's font is " & $context[].getFont().getHeight() &
+                 " tall"
+
+        var arrangement = makeGlyphArrangement()
+        arrangement.addLineOfText(font, makeString("Ag"), 4.0'f32, 30.0'f32)
+        doAssert arrangement.getNumGlyphs() >= 2,
+                 "the arrangement holds " & $arrangement.getNumGlyphs() &
+                 " glyphs"
+
+        # The spans are arrays rather than seqs: Nim's seq payload names an
+        # importcpp generic type without substituting its argument, so a
+        # seq[Point[cfloat]] does not reach the C++ compiler.
+        const room = 16
+        var ids: array[room, uint16]
+        var positions: array[room, Point[cfloat]]
+        var count = 0
+        for i in 0 ..< min(arrangement.getNumGlyphs(), room.cint):
+            let glyph = arrangement.getGlyph(i)
+            ids[count] = uint16(glyph.getGlyphIndex())
+            positions[count] = makePoint(glyph.getLeft(), glyph.getBaselineY())
+            count += 1
+
+        context[].setFill(makeFillType(Colours_red))
+        context[].drawGlyphs(makeSpan(addr ids[0], csize_t(count)),
+                             makeSpan(addr positions[0], csize_t(count)),
+                             makeAffineTransform())
+
+        var painted = 0
+        for x in 0 ..< 80:
+            for y in 0 ..< 40:
+                if opaque(image, x, y):
+                    painted += 1
+        doAssert painted > 0, "drawGlyphs painted nothing"
+
+    shutdownJuce_GUI()
+
+testLowLevelGraphicsContext()
