@@ -14689,3 +14689,120 @@ proc testGridTrackInfoKinds() =
 
 testFlexItemWithMethods()
 testGridTrackInfoKinds()
+
+# AccessibilityTextInterface =================================================
+#
+# Every method is pure virtual, so CustomAccessibilityTextInterface overrides
+# all of them and the test drives them through the base class - which is how a
+# screen reader reaches them.
+proc testAccessibilityTextInterface() =
+    initialiseJuce_GUI()
+
+    block:
+        var content = "hello there"
+        var selection = makeRange(0.cint, 0.cint)
+        var setTexts: seq[string] = @[]
+
+        var textInterface = newCustomAccessibilityTextInterface()
+        textInterface[].setIsDisplayingProtectedTextHandler(proc(): bool = false)
+        textInterface[].setIsReadOnlyHandler(proc(): bool = false)
+        textInterface[].setGetTotalNumCharactersHandler(proc(): cint =
+            cint(content.len))
+        textInterface[].setGetSelectionHandler(proc(): Range[cint] = selection)
+        textInterface[].setSetSelectionHandler(proc(newRange: Range[cint]) =
+            selection = newRange)
+        textInterface[].setGetTextInsertionOffsetHandler(proc(): cint =
+            selection.getStart())
+        textInterface[].setGetTextHandler(proc(range: Range[cint]): String =
+            makeString(content[range.getStart() ..< range.getEnd()]))
+        textInterface[].setSetTextHandler(proc(newText: ptr String) =
+            setTexts.add($newText[])
+            content = $newText[])
+        textInterface[].setGetTextBoundsHandler(
+            proc(textRange: Range[cint]): RectangleList[cint] =
+                result = makeRectangleList[cint]()
+                result.add(makeRectangle(textRange.getStart() * 8, 0.cint,
+                                         textRange.getLength() * 8, 16.cint)))
+        textInterface[].setGetOffsetAtPointHandler(proc(point: Point[cint]): cint =
+            min(point.getX() div 8, cint(content.len)))
+
+        var base = cast[ptr AccessibilityTextInterface](textInterface)
+
+        doAssert not base[].isDisplayingProtectedText(),
+                 "the textInterface hides its text"
+        doAssert base[].getTotalNumCharacters() == 11,
+                 "the textInterface holds " & $base[].getTotalNumCharacters() &
+                 " characters"
+
+        # getAllText is not virtual: JUCE writes it as getText over the whole
+        # range (juce_AccessibilityTextInterface.h:79), so it reaches the two
+        # overrides rather than one of its own.
+        doAssert $base[].getAllText() == "hello there",
+                 "the whole text reads " & $base[].getAllText()
+        doAssert $base[].getText(makeRange(0.cint, 5.cint)) == "hello",
+                 "the first five characters read " &
+                 $base[].getText(makeRange(0.cint, 5.cint))
+
+        # The selection round-trips, and the insertion offset follows it.
+        doAssert base[].getSelection().getLength() == 0,
+                 "the initial selection is " &
+                 $base[].getSelection().getLength() & " long"
+        base[].setSelection(makeRange(6.cint, 11.cint))
+        doAssert base[].getSelection() == makeRange(6.cint, 11.cint),
+                 "the selection is " & $base[].getSelection().getStart() &
+                 " to " & $base[].getSelection().getEnd()
+        doAssert base[].getTextInsertionOffset() == 6,
+                 "the insertion offset is " & $base[].getTextInsertionOffset()
+
+        # A point maps to a character offset, and the bounds of a range map
+        # back to a rectangle list.
+        doAssert base[].getOffsetAtPoint(makePoint(24.cint, 4.cint)) == 3,
+                 "the point maps to offset " &
+                 $base[].getOffsetAtPoint(makePoint(24.cint, 4.cint))
+        let bounds = base[].getTextBounds(makeRange(0.cint, 5.cint))
+        doAssert bounds.getNumRectangles() == 1,
+                 "the range covers " & $bounds.getNumRectangles() &
+                 " rectangles"
+        doAssert bounds.getBounds().getWidth() == 40,
+                 "the range is " & $bounds.getBounds().getWidth() & " wide"
+
+        # And writing goes through setText.
+        base[].setText(makeString("replaced"))
+        doAssert setTexts == @["replaced"],
+                 "the textInterface was told to write " & $setTexts
+        doAssert $base[].getAllText() == "replaced",
+                 "the text now reads " & $base[].getAllText()
+
+        cdelete textInterface
+
+    block:
+        # A protected field says so and is read-only.
+        var textInterface = newCustomAccessibilityTextInterface()
+        textInterface[].setIsDisplayingProtectedTextHandler(proc(): bool = true)
+        textInterface[].setIsReadOnlyHandler(proc(): bool = true)
+        textInterface[].setGetTotalNumCharactersHandler(proc(): cint = 0.cint)
+        textInterface[].setGetSelectionHandler(proc(): Range[cint] =
+            makeRange(0.cint, 0.cint))
+        textInterface[].setSetSelectionHandler(proc(newRange: Range[cint]) = discard)
+        textInterface[].setGetTextInsertionOffsetHandler(proc(): cint = 0.cint)
+        textInterface[].setGetTextHandler(proc(range: Range[cint]): String =
+            makeString(""))
+        textInterface[].setSetTextHandler(proc(newText: ptr String) = discard)
+        textInterface[].setGetTextBoundsHandler(
+            proc(textRange: Range[cint]): RectangleList[cint] =
+                makeRectangleList[cint]())
+        textInterface[].setGetOffsetAtPointHandler(proc(point: Point[cint]): cint =
+            0.cint)
+
+        var base = cast[ptr AccessibilityTextInterface](textInterface)
+        doAssert base[].isDisplayingProtectedText(),
+                 "the protected field does not say so"
+        doAssert base[].isReadOnly(), "the protected field is writable"
+        doAssert base[].getAllText().isEmpty(),
+                 "the empty field reads " & $base[].getAllText()
+
+        cdelete textInterface
+
+    shutdownJuce_GUI()
+
+testAccessibilityTextInterface()
