@@ -11029,3 +11029,172 @@ proc testComponentPeer() =
     shutdownJuce_GUI()
 
 testComponentPeer()
+
+# MouseEvent is a value carrying where the mouse is now and where it went down.
+# The drag distances are derived from those two points, so building an event
+# with a known pair pins every one of them without any real input.
+proc testMouseEventGeometry() =
+    initialiseJuce_GUI()
+
+    block:
+        let target = newCustomComponent()
+        target[].setBounds(makeRectangle(10.cint, 20.cint, 100.cint, 50.cint))
+        let downTime = Time.getCurrentTime()
+
+        # Down at (10, 20), now at (13, 24): three across and four down, which
+        # is a distance of five.
+        let event = makeMouseEvent(Desktop.getInstance().getMainMouseSource(),
+                                   makePoint(13.0'f32, 24.0'f32),
+                                   makeModifierKeys(),
+                                   1.0'f32, 0.0'f32, 0.0'f32, 0.0'f32, 0.0'f32,
+                                   cast[ptr Component](target),
+                                   cast[ptr Component](target),
+                                   downTime,
+                                   makePoint(10.0'f32, 20.0'f32),
+                                   downTime, 2.cint, true)
+
+        doAssert event.getMouseDownX() == 10 and event.getMouseDownY() == 20,
+                 "the mouse went down at " & $event.getMouseDownX() & "," &
+                 $event.getMouseDownY()
+        doAssert event.getMouseDownPosition() == makePoint(10.cint, 20.cint),
+                 "getMouseDownPosition disagrees with the x/y accessors"
+
+        doAssert event.getDistanceFromDragStartX() == 3,
+                 "the horizontal drag is " & $event.getDistanceFromDragStartX()
+        doAssert event.getDistanceFromDragStartY() == 4,
+                 "the vertical drag is " & $event.getDistanceFromDragStartY()
+        doAssert event.getDistanceFromDragStart() == 5,
+                 "a 3-4 drag measures " & $event.getDistanceFromDragStart() &
+                 " rather than 5"
+        doAssert event.getOffsetFromDragStart() == makePoint(3.cint, 4.cint),
+                 "the offset is " & $event.getOffsetFromDragStart()
+
+        doAssert event.getNumberOfClicks() == 2,
+                 "the event carries " & $event.getNumberOfClicks() & " clicks"
+        doAssert event.mouseWasDraggedSinceMouseDown(),
+                 "an event built as dragged reports it was not"
+        doAssert not event.mouseWasClicked(),
+                 "an event that was dragged also counts as clicked"
+
+        # The screen position is the local one offset by the component's
+        # position on screen.
+        doAssert event.getMouseDownScreenX() ==
+                 10 + target[].getScreenX(),
+                 "the screen x is " & $event.getMouseDownScreenX() &
+                 " and the component is at " & $target[].getScreenX()
+        doAssert event.getMouseDownScreenPosition().getY() ==
+                 event.getMouseDownScreenY(),
+                 "getMouseDownScreenPosition disagrees with getMouseDownScreenY"
+
+        # The press has a length, which is measured from the down time.
+        doAssert event.getLengthOfMousePress() >= 0,
+                 "the press lasted " & $event.getLengthOfMousePress() & "ms"
+
+        # The four "valid" predicates are RANGE checks, and the ranges are not
+        # the same shape (juce_MouseEvent.cpp:136). Pressure is STRICTLY
+        # between 0 and 1, so 1.0 - what a mouse reports - is not valid; it is
+        # the sentinel for "no pressure information". Orientation, rotation and
+        # tilt are inclusive, so the zeros this event carries are all valid.
+        doAssert not event.isPressureValid(),
+                 "a pressure of 1 counts as a real pressure reading"
+        doAssert event.isOrientationValid(),
+                 "an orientation of 0 is not within 0..2pi"
+        doAssert event.isRotationValid(),
+                 "a rotation of 0 is not within 0..2pi"
+        doAssert event.isTiltValid(true) and event.isTiltValid(false),
+                 "a tilt of 0 is not within -1..1"
+
+        # A pen-like pressure in the middle of the range is valid.
+        let pressed = makeMouseEvent(Desktop.getInstance().getMainMouseSource(),
+                                     makePoint(13.0'f32, 24.0'f32),
+                                     makeModifierKeys(),
+                                     0.5'f32, 0.0'f32, 0.0'f32, 0.0'f32, 0.0'f32,
+                                     cast[ptr Component](target),
+                                     cast[ptr Component](target),
+                                     downTime,
+                                     makePoint(10.0'f32, 20.0'f32),
+                                     downTime, 1.cint, false)
+        doAssert pressed.isPressureValid(),
+                 "a pressure of 0.5 is not a valid pressure"
+        doAssert pressed.mouseWasClicked(),
+                 "an event that was not dragged does not count as clicked"
+
+        # withNewPosition moves the event and leaves the down position where
+        # it was, so the drag distance changes and the origin does not.
+        let moved = event.withNewPosition(makePoint(20.0'f32, 20.0'f32))
+        doAssert moved.getDistanceFromDragStartX() == 10,
+                 "after moving, the horizontal drag is " &
+                 $moved.getDistanceFromDragStartX()
+        doAssert moved.getMouseDownX() == 10,
+                 "withNewPosition moved the down position to " &
+                 $moved.getMouseDownX()
+        doAssert event.getDistanceFromDragStartX() == 3,
+                 "withNewPosition changed the original"
+
+        # getEventRelativeTo re-expresses the event in another component's
+        # frame, so the same screen point reads differently.
+        let other = newCustomComponent()
+        other[].setBounds(makeRectangle(40.cint, 50.cint, 100.cint, 50.cint))
+        let relative = event.getEventRelativeTo(cast[ptr Component](other))
+        doAssert relative.eventComponent == cast[ptr Component](other),
+                 "the re-expressed event names a different component"
+        doAssert relative.getMouseDownScreenX() == event.getMouseDownScreenX(),
+                 "re-expressing the event moved it on screen, from " &
+                 $event.getMouseDownScreenX() & " to " &
+                 $relative.getMouseDownScreenX()
+
+        cdelete other
+        cdelete target
+
+    block:
+        # The main mouse source. Nothing is pressed or dragging with no input,
+        # and the kind predicates answer for a mouse rather than a pen.
+        let source = Desktop.getInstance().getMainMouseSource()
+        doAssert source.isMouse(), "the main source is not a mouse"
+        doAssert not source.isTouch(), "the main source is a touch"
+        doAssert not source.isPen(), "the main source is a pen"
+        doAssert source.canHover(), "a mouse cannot hover"
+        doAssert source.hasMouseWheel(), "a mouse has no wheel"
+        doAssert source.hasMouseCursor(), "a mouse has no cursor"
+
+        doAssert not source.isDragging(), "the mouse is dragging"
+        doAssert not source.isLongPressOrDrag(),
+                 "the mouse is in a long press"
+        doAssert not source.hasMovedSignificantlySincePressed(),
+                 "the mouse has moved since a press that never happened"
+        # The click count is PROCESS-WIDE state that earlier tests in this same
+        # binary have already moved, so only its sign is asserted. Pinning a
+        # literal here would make this test depend on what ran before it.
+        doAssert source.getNumberOfMultipleClicks() >= 0,
+                 "the click count is " & $source.getNumberOfMultipleClicks()
+
+        # The position is a real screen point, and the raw one agrees with it
+        # on an unscaled display.
+        discard source.getScreenPosition()
+        discard source.getRawScreenPosition()
+        discard source.getLastMouseDownPosition()
+        discard source.getLastMouseDownTime()
+        discard source.getCurrentModifiers()
+        discard source.getComponentUnderMouse()
+
+        # The pressure and tilt predicates report on the source's LAST POINTER
+        # STATE (juce_MouseInputSource.cpp:61), which is process-wide and has
+        # already been moved by earlier tests in this binary. So they are
+        # called rather than pinned - what they answer here is a property of
+        # what ran before, not of the binding.
+        discard source.isPressureValid()
+        discard source.isTiltValid(true)
+        discard source.isOrientationValid()
+        discard source.isRotationValid()
+        discard source.getCurrentPressure()
+        discard source.getCurrentRotation()
+        discard source.getCurrentTilt(true)
+
+        doAssert not source.isUnboundedMouseMovementEnabled(),
+                 "unbounded movement is on before anything asked for it"
+        doAssert source.canDoUnboundedMovement(),
+                 "a mouse cannot do unbounded movement"
+
+    shutdownJuce_GUI()
+
+testMouseEventGeometry()
