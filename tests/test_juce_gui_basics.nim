@@ -5966,6 +5966,15 @@ proc testLookAndFeelDrawingHooks() =
         laf.preparePopupMenuWindow(window[])
         discard laf.shouldPopupMenuScaleWithTargetComponent(options)
         cdelete window
+
+        # The bar has to let go of the model BEFORE the model is deleted.
+        # menuBar is a stack value, so its destructor runs at the end of this
+        # block - after cdelete - and it calls model->removeListener on
+        # memory that is already gone. JUCE's own assertion names this exactly
+        # (juce_MenuBarModel.cpp:78: "make sure you've not deleted this menu
+        # model while it's still being used by something (e.g. by a
+        # MenuBarComponent)"), and it segfaulted a Linux CI run.
+        menuBar.setModel(nil)
         cdelete model
 
     block:
