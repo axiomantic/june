@@ -7072,3 +7072,80 @@ proc testChildProcess() =
         doAssert "abcdef" in arrived, "the buffer holds " & arrived
 
 testChildProcess()
+
+# BigInteger's number theory =================================================
+
+proc testBigIntegerNumberTheory() =
+    block:
+        # shr is the non-mutating shift, and insertBit pushes the bits above
+        # the insertion point up by one.
+        let sixteen = makeBigInteger(16.cint)
+        doAssert (sixteen shr 2.cint).toInteger() == 4,
+                 "16 >> 2 is " & $(sixteen shr 2.cint).toInteger()
+        doAssert sixteen.shr(2.cint) == (sixteen shr 2.cint),
+                 "the two spellings of the shift disagree"
+        doAssert sixteen.toInteger() == 16,
+                 "shr changed the original to " & $sixteen.toInteger()
+
+        # 0b101 with a set bit inserted at 1 becomes 0b1011.
+        var bits = makeBigInteger(5.cint)
+        discard bits.insertBit(1.cint, true)
+        doAssert bits.toInteger() == 11,
+                 "inserting a bit gave " & $bits.toInteger()
+
+        # And inserting a clear bit at the bottom is a shift left.
+        var shifted = makeBigInteger(5.cint)
+        discard shifted.insertBit(0.cint, false)
+        doAssert shifted.toInteger() == 10,
+                 "inserting a clear bit at the bottom gave " &
+                 $shifted.toInteger()
+
+    block:
+        # The modular inverse of 3 mod 11 is 4, because 3 * 4 = 12 = 1 mod 11.
+        var value = makeBigInteger(3.cint)
+        value.inverseModulo(makeBigInteger(11.cint))
+        doAssert value.toInteger() == 4,
+                 "the inverse of 3 mod 11 is " & $value.toInteger()
+
+        # A modulus of one has no inverse to give, so the result is cleared
+        # (juce_BigInteger.cpp: inverseModulo).
+        var noInverse = makeBigInteger(3.cint)
+        noInverse.inverseModulo(makeBigInteger(1.cint))
+        doAssert noInverse.isZero(),
+                 "the inverse modulo one is " & $noInverse.toInteger()
+
+    block:
+        # extendedEuclidean leaves the GCD in the receiver and the Bezout
+        # coefficients in the two out parameters, so that gcd = y*b - x*a
+        # holds (juce_BigInteger.cpp: extendedEuclidean checks exactly that).
+        let a = makeBigInteger(240.cint)
+        let b = makeBigInteger(46.cint)
+        var x = makeBigInteger()
+        var y = makeBigInteger()
+        var gcd = makeBigInteger()
+        gcd.extendedEuclidean(a, b, x, y)
+        doAssert gcd.toInteger() == 2,
+                 "the gcd of 240 and 46 is " & $gcd.toInteger()
+
+        var identity = y * b - x * a
+        doAssert identity.compareAbsolute(gcd) == 0,
+                 "y*b - x*a is " & $identity.toInteger() &
+                 " against a gcd of " & $gcd.toInteger()
+        doAssert gcd == a.findGreatestCommonDivisor(b),
+                 "extendedEuclidean and findGreatestCommonDivisor disagree"
+
+    block:
+        # Montgomery multiplication computes a*b*R^-1 mod n for R = 2^k, given
+        # n' with n*n' = -1 mod R. For n = 11, k = 4, R = 16: n' = 13, because
+        # 11 * 13 = 143 = 9 * 16 - 1.
+        #
+        # 4 * 7 * 16^-1 mod 11. 16 mod 11 is 5 and the inverse of 5 mod 11 is
+        # 9, so the answer is 28 * 9 mod 11 = 252 mod 11 = 10.
+        var value = makeBigInteger(4.cint)
+        value.montgomeryMultiplication(makeBigInteger(7.cint),
+                                       makeBigInteger(11.cint),
+                                       makeBigInteger(13.cint), 4.cint)
+        doAssert value.toInteger() == 10,
+                 "the montgomery product is " & $value.toInteger()
+
+testBigIntegerNumberTheory()
