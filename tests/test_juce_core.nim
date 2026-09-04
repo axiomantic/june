@@ -5533,3 +5533,126 @@ proc testThreadPoolJobList() =
     cdelete job
 
 testThreadPoolJobList()
+
+# The rest of XmlElement: the boolean attribute, the document writers and the
+# two remaining navigation methods.
+proc testXmlElementDocumentAndSearch() =
+  block:
+    # A boolean attribute reads several spellings, and anything else is the
+    # default rather than false.
+    var element = makeXmlElement(makeString("flags"))
+    element.setAttribute(makeIdentifier("yes"), makeString("1"))
+    element.setAttribute(makeIdentifier("no"), makeString("0"))
+    element.setAttribute(makeIdentifier("spelled"), makeString("true"))
+    element.setAttribute(makeIdentifier("nonsense"), makeString("banana"))
+
+    doAssert element.getBoolAttribute("yes", false),
+             "the attribute 1 did not read as true"
+    doAssert not element.getBoolAttribute("no", true),
+             "the attribute 0 did not read as false"
+    doAssert element.getBoolAttribute("spelled", false),
+             "the attribute \"true\" did not read as true"
+    doAssert not element.getBoolAttribute("nonsense", false),
+             "an unrecognised value did not read as false"
+    doAssert element.getBoolAttribute("absent", true),
+             "a missing attribute did not give the default"
+
+  block:
+    # getNextElementWithTagName skips the siblings of other types.
+    var root = makeXmlElement(makeString("root"))
+    root.addChildElement(cnew makeXmlElement(makeString("wanted")))
+    root.addChildElement(cnew makeXmlElement(makeString("other")))
+    root.addChildElement(cnew makeXmlElement(makeString("wanted")))
+
+    let first = root.getChildByName("wanted")
+    doAssert first != nil, "the first wanted child is missing"
+    let second = first[].getNextElementWithTagName("wanted")
+    doAssert second != nil,
+             "the second wanted child was not found past the other one"
+    doAssert second != first, "the search found the same element again"
+    doAssert second[].getNextElementWithTagName("wanted").isNil,
+             "a third wanted child was found"
+
+    # replaceChildElement swaps one for another and reports whether it found
+    # the one to replace.
+    let replacement = cnew makeXmlElement(makeString("replaced"))
+    doAssert root.replaceChildElement(first, replacement),
+             "replaceChildElement did not find the child"
+    doAssert root.getNumChildElements() == 3,
+             "replacing changed the child count to " &
+             $root.getNumChildElements()
+    doAssert $root.getChildElement(0.cint)[].getTagName() == "replaced",
+             "the first child is now " &
+             $root.getChildElement(0.cint)[].getTagName()
+
+    # A FAILED replace does not take ownership of the new node: JUCE only
+    # adopts it once it has found the child to swap out
+    # (juce_XmlElement.cpp:758), and returns false without touching it
+    # otherwise. So the caller still owns it, and forgetting that leaks one
+    # XmlElement - which the leak gate caught here.
+    var stray = makeXmlElement(makeString("stray"))
+    let orphan = cnew makeXmlElement(makeString("x"))
+    doAssert not root.replaceChildElement(addr stray, orphan),
+             "replaceChildElement found a child that was never there"
+    cdelete orphan
+
+    # deleteAllChildElementsWithTagName removes only the named ones.
+    root.deleteAllChildElementsWithTagName("wanted")
+    doAssert root.getNumChildElements() == 2,
+             "after deleting the wanted children there are " &
+             $root.getNumChildElements()
+    doAssert root.getChildByName("wanted").isNil,
+             "a wanted child survived"
+    doAssert not root.getChildByName("other").isNil,
+             "a child of another type was deleted too"
+
+  block:
+    # createDocument wraps the element in a whole XML document, and its flags
+    # decide what goes around it.
+    var root = makeXmlElement(makeString("settings"))
+    root.setAttribute(makeIdentifier("version"), 2.cint)
+
+    let full = $root.createDocument(makeString(""), false, true,
+                                    makeString("UTF-8"), 60.cint)
+    doAssert full.contains("<?xml"),
+             "the document has no XML header: " & full
+    doAssert full.contains("<settings"), "the document has no root element"
+
+    let bare = $root.createDocument(makeString(""), true, false,
+                                    makeString("UTF-8"), 60.cint)
+    doAssert not bare.contains("<?xml"),
+             "the header was included when it was turned off: " & bare
+    doAssert not bare.contains("\n"),
+             "all-on-one-line still wrapped: " & bare
+
+  block:
+    # The two writers put the same document into a stream and into a file.
+    var root = makeXmlElement(makeString("written"))
+    root.setAttribute(makeIdentifier("n"), 7.cint)
+
+    var buffer = makeMemoryBlock(0'u64, false)
+    var stream = makeMemoryOutputStream(buffer, false)
+    root.writeTo(stream, makeXmlElementTextFormat())
+    stream.flush()
+    doAssert buffer.getSize() > 0'u64,
+             "writeTo wrote " & $buffer.getSize() & " bytes"
+    doAssert ($buffer.toString()).contains("written"),
+             "the stream does not name the element: " & $buffer.toString()
+
+    let file = File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                   .getChildFile(makeString("june_xml_write.xml"))
+    doAssert root.writeTo(file, makeXmlElementTextFormat()),
+             "writing the document to a file failed"
+    doAssert file.existsAsFile(), "the file was not created"
+    doAssert ($file.loadFileAsString()).contains("written"),
+             "the file does not name the element"
+
+    doAssert root.writeToFile(file, makeString(""), makeString("UTF-8"),
+                              60.cint),
+             "writeToFile failed"
+    doAssert ($file.loadFileAsString()).contains("<?xml"),
+             "writeToFile left out the XML header"
+
+    doAssert file.deleteFile(), "the temporary file could not be removed"
+
+testXmlElementDocumentAndSearch()
