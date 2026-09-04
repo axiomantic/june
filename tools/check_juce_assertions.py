@@ -113,10 +113,6 @@ EXPECTED = {
         ("any",
          "a FontOptions carrying both a typeface and a name; the Font"
          "tests build one to show the name is ignored"),
-    "juce_TextEditor.cpp:551":
-        ("any",
-         "line feeds inserted into a single-line editor, which the"
-         "TextEditor tests do to pin what it keeps"),
     "juce_SharedCode_posix.h:1062":
         ("macos",
          "thread affinity is not supported in this build, and the Thread"
