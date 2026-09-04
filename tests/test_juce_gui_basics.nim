@@ -13097,3 +13097,99 @@ proc testToolbarItemComponent() =
     shutdownJuce_GUI()
 
 testToolbarItemComponent()
+
+# PopupMenu's remaining item kinds. showMenuAsync is left to the compile
+# harness: it opens a menu and waits for a click, which no test run can supply.
+proc testPopupMenuItemKinds() =
+    initialiseJuce_GUI()
+
+    block:
+        var menu = makePopupMenu()
+        doAssert menu.getNumItems() == 0,
+                 "a new menu holds " & $menu.getNumItems() & " items"
+        doAssert not menu.containsAnyActiveItems(),
+                 "an empty menu has an active item"
+
+        # A column break is structure and stays inactive. A DISABLED item does
+        # too - and that is the whole of the test: containsAnyActiveItems asks
+        # only whether an item is enabled (juce_PopupMenu.cpp:2414), not
+        # whether it is something a user can choose.
+        menu.addColumnBreak()
+        menu.addItem(1.cint, makeString("Disabled"), false, false)
+        doAssert not menu.containsAnyActiveItems(),
+                 "a break and a disabled item made the menu active"
+
+        menu.addItem(2.cint, makeString("Enabled"), true, false)
+        doAssert menu.containsAnyActiveItems(),
+                 "an enabled item did not make the menu active"
+
+        # A SECTION HEADER counts as active too, which is easy to assume the
+        # other way: it is not selectable, but it is enabled, and that is the
+        # only thing the check looks at.
+        var headerOnly = makePopupMenu()
+        headerOnly.addSectionHeader(makeString("Section"))
+        doAssert headerOnly.containsAnyActiveItems(),
+                 "a section header does not count as an active item"
+
+        # A coloured item is an ordinary item with a colour, so it counts.
+        let before = menu.getNumItems()
+        menu.addColouredItem(3.cint, makeString("Coloured"), Colours_red,
+                             true, false, makeImage())
+        doAssert menu.getNumItems() == before + 1,
+                 "the coloured item did not join the menu"
+
+    block:
+        # A command item takes its text and its enabled state from the command
+        # manager, so it needs one that knows the command.
+        var manager = makeApplicationCommandManager()
+        var target = newCustomApplicationCommandTarget()
+
+        const commandId = 100.cint
+        target[].setGetAllCommandsHandler(proc(commands: ptr Array[cint]) =
+            commands[].add(commandId))
+        target[].setGetCommandInfoHandler(proc(id: cint,
+                                               info: ptr ApplicationCommandInfo) =
+            info[].setInfo(makeString("Do the thing"),
+                           makeString("Does the thing"),
+                           makeString("General"), 0.cint))
+        target[].setPerformHandler(proc(info: ptr ApplicationCommandTargetInvocationInfo): bool =
+            true)
+        target[].setGetNextCommandTargetHandler(proc(): ptr ApplicationCommandTarget =
+            nil)
+        manager.registerAllCommandsForTarget(
+            cast[ptr ApplicationCommandTarget](target))
+
+        var menu = makePopupMenu()
+        doAssert not menu.containsCommandItem(commandId),
+                 "an empty menu contains the command"
+
+        menu.addCommandItem(addr manager, commandId, makeString(""),
+                            makeUniquePtr[Drawable](nil))
+        doAssert menu.containsCommandItem(commandId),
+                 "the menu does not contain the command it was given"
+        doAssert not menu.containsCommandItem(commandId + 1),
+                 "the menu contains a command it was never given"
+        doAssert menu.getNumItems() == 1,
+                 "the menu holds " & $menu.getNumItems() & " items"
+
+        cdelete target
+
+    block:
+        # A custom item is a component the menu draws in place of a row. The
+        # component is handed over by pointer with its own size.
+        var menu = makePopupMenu()
+        let custom = newCustomComponent()
+        custom[].setBounds(makeRectangle(0.cint, 0.cint, 100.cint, 24.cint))
+
+        menu.addCustomItem(1.cint, custom[], 100.cint, 24.cint, true,
+                           makeUniquePtr[PopupMenu](nil), makeString("custom"))
+        doAssert menu.getNumItems() == 1,
+                 "the custom item did not join the menu"
+        doAssert menu.containsAnyActiveItems(),
+                 "a custom item that triggers on a click is not active"
+
+        cdelete custom
+
+    shutdownJuce_GUI()
+
+testPopupMenuItemKinds()
