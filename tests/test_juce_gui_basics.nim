@@ -12168,3 +12168,92 @@ proc testModalComponentManager() =
     shutdownJuce_GUI()
 
 testModalComponentManager()
+
+# TabBarButton is the button a TabbedButtonBar makes for each tab. It is
+# reached through the bar rather than built directly, because it needs the bar
+# to answer for its index and its front-ness.
+proc testTabBarButton() =
+    initialiseJuce_GUI()
+
+    block:
+        var bar = makeTabbedButtonBar(TabbedButtonBarOrientation_TabsAtTop)
+        bar.setBounds(makeRectangle(0.cint, 0.cint, 300.cint, 30.cint))
+        bar.addTab(makeString("First"), Colours_grey, 0.cint)
+        bar.addTab(makeString("Second"), Colours_grey, 1.cint)
+
+        let first = bar.getTabButton(0.cint)
+        let second = bar.getTabButton(1.cint)
+        doAssert not first.isNil and not second.isNil,
+                 "the bar made no buttons for its tabs"
+
+        # Each button knows the bar it belongs to and its own index.
+        doAssert (addr first[].getTabbedButtonBar()) == addr bar,
+                 "the button belongs to a different bar"
+        doAssert first[].getIndex() == 0,
+                 "the first button reports index " & $first[].getIndex()
+        doAssert second[].getIndex() == 1,
+                 "the second button reports index " & $second[].getIndex()
+
+        # The bar starts on the first tab, so that button is the front one.
+        doAssert bar.getCurrentTabIndex() == 0,
+                 "the bar starts on tab " & $bar.getCurrentTabIndex()
+        doAssert first[].isFrontTab(), "the current tab's button is not in front"
+        doAssert not second[].isFrontTab(),
+                 "a tab that is not current is in front"
+
+        bar.setCurrentTabIndex(1.cint, false)
+        doAssert second[].isFrontTab(),
+                 "after switching, the new current tab is not in front"
+        doAssert not first[].isFrontTab(),
+                 "after switching, the old tab is still in front"
+
+        # The active area is inside the button, and the text area is inside
+        # that - the two are not the same rectangle.
+        doAssert first[].getActiveArea().getWidth() > 0,
+                 "the active area is " & $first[].getActiveArea().getWidth() &
+                 " wide"
+        doAssert first[].getTextArea().getWidth() <=
+                 first[].getActiveArea().getWidth(),
+                 "the text area is " & $first[].getTextArea().getWidth() &
+                 " wide and the active area " &
+                 $first[].getActiveArea().getWidth()
+
+        # The best length is what the button would like along the bar, and a
+        # longer name asks for more.
+        bar.addTab(makeString("A much longer tab name"), Colours_grey, 2.cint)
+        let third = bar.getTabButton(2.cint)
+        doAssert third[].getBestTabLength(30.cint) >
+                 first[].getBestTabLength(30.cint),
+                 "the long name asked for " & $third[].getBestTabLength(30.cint) &
+                 " and the short one " & $first[].getBestTabLength(30.cint)
+
+        # An extra component is placed beside the text, and the button TAKES
+        # OWNERSHIP: it holds a unique_ptr, so setExtraComponent(nil) deletes
+        # whatever was there rather than handing it back. Deleting it here as
+        # well is a double free, which is what this test did at first.
+        doAssert first[].getExtraComponent().isNil,
+                 "a new tab button has an extra component"
+        let extra = newCustomComponent()
+        first[].setExtraComponent(cast[ptr Component](extra),
+                                  TabBarButtonExtraComponentPlacement_afterText)
+        doAssert first[].getExtraComponent() == cast[ptr Component](extra),
+                 "the extra component is a different one"
+        doAssert first[].getExtraComponentPlacement() ==
+                 TabBarButtonExtraComponentPlacement_afterText,
+                 "the placement did not read back"
+
+        first[].setExtraComponent(nil,
+                                  TabBarButtonExtraComponentPlacement_afterText)
+        doAssert first[].getExtraComponent().isNil,
+                 "the extra component was not cleared"
+
+        # clicked() switches to this tab, which is what a real click does.
+        bar.setCurrentTabIndex(0.cint, false)
+        second[].clicked(makeModifierKeys(0.cint))
+        doAssert bar.getCurrentTabIndex() == 1,
+                 "clicking the second tab left the bar on tab " &
+                 $bar.getCurrentTabIndex()
+
+    shutdownJuce_GUI()
+
+testTabBarButton()
