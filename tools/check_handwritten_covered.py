@@ -109,9 +109,6 @@ uncallable = {
         "process's one instance",
     "constructApplication":
         "builds a JUCEApplication, same as newApplication",
-    "release":
-        "OptionalScopedPointer::release hands back ownership, and a test that "
-        "called it would have to invent a leak or a double free to finish",
 }
 
 # `macro` belongs here with the rest. A macro is only checked where it is
@@ -1144,6 +1141,18 @@ def main():
 
     operator_problems = check_operators(declared, lines_by_name, used)
 
+    # An exemption that covers more than one declaration is excusing something
+    # its reason never mentioned.
+    ambiguous = sorted(name for name in uncallable
+                       if len(set(declared_in.get(name, []))) > 1)
+    if ambiguous:
+        print("These `uncallable` entries name more than one declaration, so "
+              "the reason recorded for one of them excuses the others too:",
+              file=sys.stderr)
+        for name in ambiguous:
+            where = ", ".join(sorted(set(declared_in[name])))
+            print(f"  {name}  (declared in {where})", file=sys.stderr)
+
     if stale:
         print("These are listed as uncallable but no longer exist:", file=sys.stderr)
         for name in stale:
@@ -1181,7 +1190,7 @@ def main():
             or not handlers_ok or not constructors_ok or not constants_ok
             or not statics_ok or not classes_ok or not inherited_ok
             or not signatures_ok or not literals_ok or not fields_ok
-            or not gitignore_ok or not macos_ok):
+            or not gitignore_ok or not macos_ok or ambiguous):
         sys.exit(1)
 
     shared = len(declarations) - len(declared)
