@@ -11,6 +11,8 @@ description   = "Juce Bindings For Nim"
 license       = "MIT"
 srcDir        = "sources"
 
+requires "nim >= 1.6.0"
+
 task test, "Runs the test suite":
   exec "nim cpp -r tests/test_juce_core.nim"
   exec "nim cpp -r tests/test_juce_events.nim"
@@ -19,10 +21,10 @@ task test, "Runs the test suite":
   exec "nim cpp -r tests/test_juce_gui_basics.nim"
 
 task juce_debug, "Build juce (debug)":
-  exec "mkdir -p build && cd build && cmake 'Ninja' -DCMAKE_BUILD_TYPE=Debug ../ && cmake --build ."
+  exec "cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_OSX_DEPLOYMENT_TARGET=11.6 && cmake --build build"
 
 task juce_release, "Build juce (release)":
-  exec "mkdir -p build && cd build && cmake 'Ninja' -DCMAKE_BUILD_TYPE=Release ../ && cmake --build ."
+  exec "cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_DEPLOYMENT_TARGET=11.6 && cmake --build build"
 
 task app_debug, "Compile and run june app (debug)":
   exec "nim cpp examples/test_app.nim"

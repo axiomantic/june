@@ -2,8 +2,26 @@
     :alt: june
     :target: https://github.com/kunitoki/june
 
+.. image:: https://github.com/kunitoki/june/actions/workflows/ci.yml/badge.svg
+    :alt: ci
+    :target: https://github.com/kunitoki/june/actions/workflows/ci.yml
+
 JUNE is a Nim binding of the JUCE framework, allowing fast prototyping JUCE applications in your favourite
 compiled programming language.
+
+------------
+Requirements
+------------
+
+- Nim 1.6 or newer.
+- CMake 3.22 or newer, Ninja, and a C++17 compiler.
+- JUCE 8.0.15, vendored as a git submodule. Clone with ``--recursive``, or run
+  ``git submodule update --init --recursive`` in an existing checkout.
+- On Linux, the JUCE development packages::
+
+    sudo apt-get install ninja-build pkg-config libfreetype-dev \
+      libfontconfig1-dev libx11-dev libxext-dev libxinerama-dev \
+      libxrandr-dev libxcursor-dev libxcomposite-dev libcurl4-openssl-dev
 
 -----------------
 Build From Source
@@ -17,7 +35,24 @@ Build the JUCE shared library.
   # nimble juce_release
 
 
-Then build the nim test (tweak nim.cfg if needed).
+Then run the test suite.
+
+.. code-block:: bash
+
+  nimble test
+
+``nimble`` 0.22 exits 0 whatever happens, including on a task whose ``exec``
+raised, so its exit code does not report a failure. Read the output, or run the
+commands directly, which report properly:
+
+.. code-block:: bash
+
+  (for t in tests/test_juce_*.nim; do nim cpp -r "$t" || exit 1; done)
+
+CI runs them directly for this reason.
+
+
+Or build the example application (tweak nim.cfg if needed).
 
 .. code-block:: bash
 
