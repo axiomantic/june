@@ -142,7 +142,13 @@ EXPECTED = {
          "way"),
 }
 
-PATTERN = re.compile(r"JUCE Assertion failure in ([A-Za-z_]+\.(?:cpp|h):\d+)")
+# .mm and .m as well as .cpp and .h: JUCE implements much of its macOS
+# layer in Objective-C++, and jassert is used in those files too. A
+# pattern that omits them cannot report an assertion it never matches,
+# so those sites would be silently exempt from this check - the same
+# shape of failure the check exists to catch.
+PATTERN = re.compile(
+    r"JUCE Assertion failure in ([A-Za-z_]+\.(?:cpp|h|mm|m):\d+)")
 
 
 def this_platform():
