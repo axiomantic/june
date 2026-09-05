@@ -604,6 +604,15 @@ testMessageManagerIdentity()
 #
 # The handlers therefore run on a thread Nim did not start, so they only touch
 # these globals and never allocate.
+#
+# They are plain ints, written on the connection's thread and polled from this
+# one with no synchronisation. That is a data race by the letter of the model,
+# and it is deliberate: an atomic or a lock is the correct answer in production
+# code, but the handler runs on a foreign thread where Nim's own primitives are
+# not safe to reach for. What makes it work here is that waitUntil calls
+# through a closure the compiler cannot hoist the load out of, and the values
+# are register-width. If this test ever hangs rather than failing, this is the
+# first thing to suspect.
 
 var connectionsMade = 0
 var connectionsLost = 0
