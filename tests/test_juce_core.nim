@@ -29,3 +29,38 @@ doAssert mb == mb2
 
 let data = cast[ptr UncheckedArray[uint8]](mb2.getData())
 doAssert data[0] == 1'u8
+
+# std::unique_ptr against a real JUCE API. File.createInputStream returns one,
+# so this is the binding a caller actually meets rather than a synthetic case.
+import std/[os, times]
+
+proc testUniquePtr() =
+  let path = getTempDir() / ("june_stream_" & $epochTime().int & ".txt")
+  writeFile(path, "hello from june")
+  defer: removeFile(path)
+
+  let file = makeFile(toJuceString(path))
+  doAssert file.existsAsFile()
+  doAssert file.getSize() == 15
+
+  let stream = file.createInputStream()
+  doAssert not stream.isNil()
+  doAssert stream.get()[].getTotalLength() == 15
+  doAssert $file.loadFileAsString() == "hello from june"
+
+  # Copying a UniquePtr is rejected by =copy, and moving it is allowed. That is
+  # not asserted here: inside `compiles` the compiler moves rather than copies,
+  # so the check would pass for the wrong reason.
+
+testUniquePtr()
+
+proc testNormalisableRange() =
+  # How a Slider describes its range: a value mapped onto 0..1.
+  let range = makeNormalisableRange(0.0, 100.0)
+  doAssert range.convertTo0to1(50.0) == 0.5
+  doAssert range.convertFrom0to1(0.25) == 25.0
+  doAssert range.getRange().getStart() == 0.0
+  doAssert range.getRange().getEnd() == 100.0
+
+testNormalisableRange()
+

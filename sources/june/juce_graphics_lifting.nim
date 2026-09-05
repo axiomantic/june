@@ -6,20 +6,17 @@
 # This file may not be copied, modified, or distributed except according to those terms.
 
 
-# Rectangle-taking overloads ==================================================
+# Everything the generator can express now lives in juce_graphics.nim, including
+# the Rectangle overloads and the constructors. What stays here is ergonomics it
+# has no way to infer.
+
+# Justification is a class wrapping a flag set, so drawText would otherwise need
+# makeJustification(JustificationFlags_centred.cint) at every call site.
 #
-# The generator emits these commented out, because it cannot spell a template.
+# noinit is required, not cosmetic: Nim value-initialises a proc's result, and
+# for an importcpp type that emits `juce::Justification result{}`. Justification
+# has no default constructor, so the C++ compiler rejects it. Any proc returning
+# a JUCE type that lacks a default constructor needs this.
+converter toJustification*(flags: JustificationFlags): Justification {.noinit.} =
+    makeJustification(flags.cint)
 
-# Not a {.constructor.}: that pragma makes Nim ignore the importcpp pattern and
-# emit Image(args) verbatim, losing the cast the PixelFormat parameter needs.
-proc makeImage*(format: cint, width: cint, height: cint, clearImage: bool): Image {.header: juce_graphics, importcpp: "juce::Image((juce::Image::PixelFormat)#, @)".}
-proc makeGraphics*(imageToDrawOnto: Image): Graphics {.header: juce_graphics, importcpp: "juce::Graphics(@)", constructor.}
-
-const
-    ImagePixelFormat_RGB* = 1.cint
-    ImagePixelFormat_ARGB* = 2.cint
-    ImagePixelFormat_SingleChannel* = 3.cint
-
-# Constructors are not generated at all, so the ones the tests and examples need
-# are declared here.
-proc makeColour*(r: uint8, g: uint8, b: uint8, a: uint8): Colour {.header: juce_graphics, importcpp: "juce::Colour(@)", constructor.}

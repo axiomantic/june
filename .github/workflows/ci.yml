@@ -65,6 +65,15 @@ jobs:
           rm -f june.nimble.bak
           grep '^requires "nim' june.nimble
 
+      # nimble builds Nim from source wherever no prebuilt binary exists, which
+      # on arm64 macOS is every version and costs most of the job's wall clock.
+      # The compiler depends only on its version, so it caches cleanly.
+      - name: Cache Nim ${{ matrix.nim-version }}
+        uses: actions/cache@v4
+        with:
+          path: ~/.nimble/pkgs2
+          key: nim-${{ matrix.os }}-${{ matrix.nim-version }}
+
       - name: Install Nim ${{ matrix.nim-version }}
         run: nimble install -y nim@${{ matrix.nim-version }}
 
@@ -105,5 +114,14 @@ jobs:
           for test_file in tests/test_juce_*.nim; do
             echo "::group::$test_file"
             "$nim_bin" cpp -r --hints:off "$test_file"
+            echo "::endgroup::"
+          done
+
+          # The examples are reproduced in the README, so an API change that
+          # breaks one breaks the documentation too. Compile only: they open a
+          # window, and a runner has no display.
+          for example in examples/*.nim; do
+            echo "::group::$example"
+            "$nim_bin" cpp -c --hints:off "$example"
             echo "::endgroup::"
           done

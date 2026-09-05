@@ -58,3 +58,22 @@ proc testDrawing() =
 
 testGeometry()
 testDrawing()
+
+proc testText() =
+  let img = makeImage(ImagePixelFormat_ARGB, 60.cint, 20.cint, true)
+  var g = makeGraphics(img)
+  g.setColour(makeColour(255'u8, 255'u8, 255'u8, 255'u8))
+
+  # Justification arrives by converter, so the flag constant can be passed
+  # directly rather than wrapped at every call site.
+  g.drawText("hi", img.getBounds(), JustificationFlags_centred, false)
+
+  var litPixels = 0
+  for x in 0.cint ..< 60.cint:
+    for y in 0.cint ..< 20.cint:
+      if img.getPixelAt(x, y).getRed() > 0:
+        litPixels += 1
+  doAssert litPixels > 0, "drawText produced no pixels"
+
+testText()
+

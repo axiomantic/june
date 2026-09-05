@@ -23,6 +23,97 @@ Requirements
       libfontconfig1-dev libx11-dev libxext-dev libxinerama-dev \
       libxrandr-dev libxcursor-dev libxcomposite-dev libcurl4-openssl-dev
 
+----------------
+What Is Bound
+----------------
+
+The bindings are generated from the JUCE headers by ``tools/inspect_juce.py``.
+Hand-written additions live in the ``*_lifting.nim`` files and in
+``june_juce_types.nim``.
+
+- Classes, with their inheritance, so a ``TextButton`` accepts every
+  ``Component`` method.
+- Constructors, as ``make<ClassName>`` procs.
+- Enums, as distinct integer types. Enumerators are prefixed with the type name:
+  ``JustificationFlags_centred``, ``NotificationType_sendNotification``.
+- Operators. ``==``, ``<``, ``<=``, ``+``, ``-``, ``*``, ``/`` and ``[]`` are
+  bound as Nim operators; ``!=``, ``>`` and ``>=`` follow from them.
+- The class templates: ``Rectangle``, ``Point``, ``Line``, ``BorderSize``,
+  ``Range``, ``Array``, ``OwnedArray``, ``Span``, ``RectangleList``,
+  ``SparseSet`` and ``ReferenceCountedObjectPtr``.
+- The standard library types JUCE exposes: ``std::unique_ptr``,
+  ``std::optional``, ``std::vector`` and ``std::function``.
+
+Instantiate a class template with ``cint`` or ``cfloat``, never Nim's ``int`` or
+``float``. Nim puts the parameter's C++ name into the template, and Nim's
+``int`` is 64-bit, so ``Rectangle[int]`` asks for a ``juce::Rectangle<long
+long>`` that JUCE never instantiates.
+
+A proc whose types cannot be spelled in Nim is emitted as a comment rather than
+omitted, so what is missing stays visible in the generated file.
+
+-----------------------
+Subclassing A Component
+-----------------------
+
+``CustomComponent`` is a ``Component`` whose virtual methods call into Nim.
+
+.. code-block:: nim
+
+  import june
+
+  let component = newCustomComponent()
+  component[].setBounds(makeRectangle(0.cint, 0.cint, 400.cint, 300.cint))
+
+  component[].setPaintHandler(proc(g: ptr Graphics) =
+    g[].setColour(makeColour(50'u8, 62'u8, 68'u8, 255'u8))
+    g[].fillRect(component[].getLocalBounds())
+  )
+
+  component[].setMouseDownHandler(proc(e: ptr MouseEvent) =
+    let p = e[].getPosition()
+    echo "clicked at ", p.getX(), ", ", p.getY()
+  )
+
+  component[].onResized = bindClosure(proc() = discard)
+
+A handler that takes an argument receives a pointer, because the C++ parameter
+is a reference and a ``std::function`` cannot take one by value -- ``Graphics``
+is not copyable and ``MouseEvent`` is not assignable.
+
+Set those through ``setPaintHandler`` and ``setMouseDownHandler`` and the rest,
+rather than assigning ``onPaint`` or ``onMouseDown``: Nim emits the importcpp
+pattern unsubstituted when a ``bindClosure`` call is assigned straight to one of
+those fields. The setters do the binding through a typed temporary, which does
+not hit it.
+
+The no-argument overrides -- ``onResized``, ``onMoved``, ``onVisibilityChanged``,
+``onParentHierarchyChanged``, ``onChildrenChanged`` -- are assigned directly with
+``bindClosure``.
+
+--------------------------
+Regenerating The Bindings
+--------------------------
+
+Needed after a JUCE upgrade, or after a change to ``tools/inspect_juce.py``.
+The generator reads the JUCE headers with libclang.
+
+.. code-block:: bash
+
+  python3 -m pip install --user libclang
+
+  for module in juce_core juce_events juce_data_structures juce_graphics juce_gui_basics; do
+    PYTHONPATH=tools python3 tools/inspect_juce.py --module "$module" > "sources/june/$module.nim"
+  done
+
+The generator aborts on a parse error rather than emitting a binding for a type
+it did not resolve. An unresolved type does not stop libclang, it degrades to
+``int``, so a run that printed nothing and emitted a full file used to look
+exactly like a correct one.
+
+Edit the ``*_lifting.nim`` files, never the generated ``juce_*.nim`` files: a
+regeneration overwrites them.
+
 -----------------
 Build From Source
 -----------------
@@ -42,14 +133,14 @@ Then run the test suite.
   nimble test
 
 ``nimble`` 0.22 exits 0 whatever happens, including on a task whose ``exec``
-raised, so its exit code does not report a failure. Read the output, or run the
-commands directly, which report properly:
+raised, so its exit code does not report a failing test. Read its output, or run
+the tests directly, which reports properly:
 
 .. code-block:: bash
 
   (for t in tests/test_juce_*.nim; do nim cpp -r "$t" || exit 1; done)
 
-CI runs them directly for this reason.
+CI does the latter for this reason.
 
 
 Or build the example application (tweak nim.cfg if needed).
