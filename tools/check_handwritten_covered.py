@@ -51,9 +51,6 @@ uncallable = {
         "process's one instance",
     "constructApplication":
         "builds a JUCEApplication, same as newApplication",
-    "release":
-        "OptionalScopedPointer::release hands back ownership, and a test that "
-        "called it would have to invent a leak or a double free to finish",
 }
 
 export = re.compile(r'(?:proc|iterator|template|converter) `?(\w+)`?\*')
@@ -943,6 +940,12 @@ def check_licence_headers():
 
 def main():
     declared = {}
+    # Every file a name is declared in, not just the first. The coverage check
+    # below is deliberately by NAME, but an `uncallable` entry keyed on a name
+    # exempts EVERY declaration of it, and its reason was written about one.
+    # juce::OptionalScopedPointer::release and std::unique_ptr::release are
+    # both spelled `release`, so excusing one silently excused the other.
+    declared_in = {}
     for name in hand_written:
         path = os.path.join("sources", "june", name)
         if not os.path.exists(path):
@@ -952,6 +955,7 @@ def main():
                 match = export.match(line)
                 if match:
                     declared.setdefault(match.group(1), name)
+                    declared_in.setdefault(match.group(1), []).append(name)
 
     used = ""
     for pattern in ("tests/test_juce_*.nim", "examples/*.nim"):
@@ -965,6 +969,18 @@ def main():
         and not re.search(r"\b" + re.escape(name) + r"\b", used))
 
     stale = sorted(name for name in uncallable if name not in declared)
+
+    # An exemption that covers more than one declaration is excusing something
+    # its reason never mentioned.
+    ambiguous = sorted(name for name in uncallable
+                       if len(set(declared_in.get(name, []))) > 1)
+    if ambiguous:
+        print("These `uncallable` entries name more than one declaration, so "
+              "the reason recorded for one of them excuses the others too:",
+              file=sys.stderr)
+        for name in ambiguous:
+            where = ", ".join(sorted(set(declared_in[name])))
+            print(f"  {name}  (declared in {where})", file=sys.stderr)
 
     if stale:
         print("These are listed as uncallable but no longer exist:", file=sys.stderr)
@@ -994,7 +1010,7 @@ def main():
     fields_ok = check_field_accessors()
     macos_ok = check_macos_only_calls()
 
-    if (uncovered or stale
+    if (ambiguous or uncovered or stale
             or not licences_ok
             or not iterators_ok
             or not defaults_ok
