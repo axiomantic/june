@@ -18,8 +18,8 @@ defineCppClassInternal JUCEApplication of JUCEApplication:
     proc getApplicationName(): constval[String] = discard
     proc getApplicationVersion(): constval[String] = discard
     proc moreThanOneInstanceAllowed(): bool = discard
-    proc anotherInstanceStarted(commandLine: constref[String]) = discard
-    proc initialise(commandLine: constref[String]) = discard
+    proc anotherInstanceStarted(commandLine: constptr[String]) = discard
+    proc initialise(commandLine: constptr[String]) = discard
     proc shutdown() = discard
     proc systemRequestedQuit() = discard
     proc suspended() = discard
@@ -43,8 +43,11 @@ proc newApplication*(): ptr JUCEApplication {.importcpp: "(new june::JUCEApplica
 proc constructApplication*(): JUCEApplication {.importcpp: "june::JUCEApplication()".}
 
 proc quit*(this: var JUCEApplicationBase) {.header: juce_gui_basics, importcpp: "juce::JUCEApplication::quit()".}
-proc getCommandLineParameterArray*(this: var JUCEApplicationBase): StringArray {.header: juce_gui_basics, importcpp: "juce::JUCEApplication::getCommandLineParameterArray()".}
-proc getCommandLineParameters*(this: var JUCEApplicationBase): String {.header: juce_gui_basics, importcpp: "juce::JUCEApplication::getCommandLineParameters()".}
+# Static in JUCE, and bound as static here. They took a receiver they never
+# used, which meant a caller needed an application instance to reach a function
+# that does not.
+proc getCommandLineParameterArray*(this: typedesc[JUCEApplication]): StringArray {.header: juce_gui_basics, importcpp: "juce::JUCEApplication::getCommandLineParameterArray()".}
+proc getCommandLineParameters*(this: typedesc[JUCEApplication]): String {.header: juce_gui_basics, importcpp: "juce::JUCEApplication::getCommandLineParameters()".}
 
 proc getInstance*(this: typedesc[JUCEApplication]): var JUCEApplication {.header: juce_gui_basics, importcpp: "(*dynamic_cast<june::JUCEApplication*>(juce::JUCEApplication::getInstance()))".}
 
@@ -65,10 +68,6 @@ defineCppClassInternal DocumentWindow of DocumentWindow:
 
 proc newDocumentWindow*(name: String, colour: Colour, requiredButtons: int, addToDesktop: bool = true): ptr DocumentWindow {.importcpp: "(new june::DocumentWindow(@))".}
 
-proc minimiseButton*(this: typedesc[DocumentWindow]): cint {.header: juce_gui_basics, importcpp: "juce::DocumentWindow::minimiseButton".}
-proc maximiseButton*(this: typedesc[DocumentWindow]): cint {.header: juce_gui_basics, importcpp: "juce::DocumentWindow::maximiseButton".}
-proc closeButton*(this: typedesc[DocumentWindow]): cint {.header: juce_gui_basics, importcpp: "juce::DocumentWindow::closeButton".}
-proc allButtons*(this: typedesc[DocumentWindow]): cint {.header: juce_gui_basics, importcpp: "juce::DocumentWindow::allButtons".}
 
 # Component ===================================================================
 #
@@ -101,16 +100,11 @@ proc newCustomComponent*(): ptr CustomComponent {.importcpp: "(new june::CustomC
 # paint receives a pointer because its C++ parameter is a mutable Graphics&,
 # which a std::function cannot take by value - Graphics is not copyable.
 #
-# The binding goes through a typed temporary. Assigning the bindClosure call
-# straight to the field makes Nim emit the importcpp pattern unsubstituted, as
-# `std::function<void('0)>`, which does not compile. Binding it to a variable of
-# the field's type first produces the right instantiation, so the wart lives
-# here once instead of at every call site.
-# Every handler is set through one of these rather than by assigning the field.
-# Assigning a bindClosure call straight to a callback field makes Nim emit the
-# importcpp pattern unsubstituted, as `std::function<void('0)>`, and emit broken
-# #line directives. Binding to a variable of the field's type first produces the
-# right instantiation, so the workaround lives here once.
+# The setters take a plain Nim closure and name the field's type themselves, so
+# a caller does not have to spell CppFunctionObjectN1[ptr Graphics]. Assigning
+# the field directly works too.
+# One setter per handler, so a caller passes a plain Nim closure and never has
+# to name the function-object type.
 template defineHandlerSetter(setterName, fieldName, ArgType: untyped) =
     proc setterName*(this: var CustomComponent, handler: proc(arg: ptr ArgType) {.closure.}) =
         let bound: CppFunctionObjectN1[ptr ArgType] = bindClosure(handler)
@@ -124,3 +118,151 @@ defineHandlerSetter(setMouseMoveHandler, onMouseMove, MouseEvent)
 defineHandlerSetter(setMouseEnterHandler, onMouseEnter, MouseEvent)
 defineHandlerSetter(setMouseExitHandler, onMouseExit, MouseEvent)
 
+# Button ======================================================================
+#
+# paintButton is pure virtual, so a Button cannot be instantiated without a
+# subclass either. Its constructor takes a name, which the generated subclass
+# inherits through the using-declaration the macro emits.
+
+defineCppClassInternal CustomButton of Button:
+    include "juce_gui_basics/juce_gui_basics.h"
+    proc paintButton(g: varref[Graphics], shouldDrawButtonAsHighlighted: bool, shouldDrawButtonAsDown: bool) = discard
+    proc clicked() = discard
+    proc buttonStateChanged() = discard
+
+proc newCustomButton*(name: String): ptr CustomButton {.importcpp: "(new june::CustomButton(@))".}
+
+proc setPaintButtonHandler*(this: var CustomButton,
+                           handler: proc(g: ptr Graphics, highlighted: bool, down: bool) {.closure.}) =
+    let bound: CppFunctionObjectN3[ptr Graphics, bool, bool] = bindClosure(handler)
+    this.onPaintButton = bound
+
+# Slider and Label ============================================================
+#
+# Neither has a pure virtual, so both can be used as they are. Subclassing is
+# how an application reacts to them without wiring up a listener.
+
+defineCppClassInternal CustomSlider of Slider:
+    include "juce_gui_basics/juce_gui_basics.h"
+    proc valueChanged() = discard
+    proc startedDragging() = discard
+    proc stoppedDragging() = discard
+
+proc newCustomSlider*(): ptr CustomSlider {.importcpp: "(new june::CustomSlider)".}
+
+defineCppClassInternal CustomLabel of Label:
+    include "juce_gui_basics/juce_gui_basics.h"
+    proc textWasEdited() = discard
+    proc textWasChanged() = discard
+
+proc newCustomLabel*(): ptr CustomLabel {.importcpp: "(new june::CustomLabel)".}
+
+
+# LookAndFeel =================================================================
+#
+# Subclassing a LookAndFeel is how a JUCE application is themed: every widget
+# asks its LookAndFeel to draw it, so overriding one method restyles every
+# button or slider at once without touching the widgets themselves.
+#
+# LookAndFeel_V4 is the base rather than LookAndFeel, because LookAndFeel is
+# abstract - the drawing methods are pure virtual on the per-widget
+# LookAndFeelMethods mixins - and V4 is the only version that supplies a colour
+# scheme. An override that is left unset falls through to the V4 drawing.
+
+defineCppClassInternal CustomLookAndFeel of LookAndFeel_V4:
+    include "juce_gui_basics/juce_gui_basics.h"
+    proc drawButtonBackground(g: varref[Graphics], button: varref[Button],
+                              backgroundColour: constptr[Colour],
+                              shouldDrawButtonAsHighlighted: bool,
+                              shouldDrawButtonAsDown: bool) = discard
+    proc drawLabel(g: varref[Graphics], label: varref[Label]) = discard
+    proc drawRotarySlider(g: varref[Graphics], x: cint, y: cint, width: cint, height: cint,
+                          sliderPosProportional: cfloat, rotaryStartAngle: cfloat,
+                          rotaryEndAngle: cfloat, slider: varref[Slider]) = discard
+
+proc newCustomLookAndFeel*(): ptr CustomLookAndFeel {.importcpp: "(new june::CustomLookAndFeel)".}
+
+proc setDrawButtonBackgroundHandler*(this: var CustomLookAndFeel,
+                                     handler: proc(g: ptr Graphics, button: ptr Button,
+                                                   backgroundColour: ptr Colour,
+                                                   highlighted: bool, down: bool) {.closure.}) =
+    let bound: CppFunctionObjectN5[ptr Graphics, ptr Button, ptr Colour, bool, bool] = bindClosure(handler)
+    this.onDrawButtonBackground = bound
+
+proc setDrawLabelHandler*(this: var CustomLookAndFeel,
+                          handler: proc(g: ptr Graphics, label: ptr Label) {.closure.}) =
+    let bound: CppFunctionObjectN2[ptr Graphics, ptr Label] = bindClosure(handler)
+    this.onDrawLabel = bound
+
+proc setDrawRotarySliderHandler*(this: var CustomLookAndFeel,
+                                 handler: proc(g: ptr Graphics, x, y, width, height: cint,
+                                               sliderPosProportional, rotaryStartAngle,
+                                               rotaryEndAngle: cfloat,
+                                               slider: ptr Slider) {.closure.}) =
+    let bound: CppFunctionObjectN9[ptr Graphics, cint, cint, cint, cint,
+                                   cfloat, cfloat, cfloat, ptr Slider] = bindClosure(handler)
+    this.onDrawRotarySlider = bound
+
+
+# Slider listeners ============================================================
+#
+# Slider::Listener is an alias for SliderListener<Slider>, a class template the
+# generator cannot spell, so addListener and removeListener were comments. The
+# alias itself is a name C++ accepts, which is enough to bind the type.
+#
+# CustomSlider already covers reacting to one slider. A listener is the other
+# shape: one object watching several sliders, told which one changed.
+
+type
+    SliderListener* {.header: juce_gui_basics, importcpp: "juce::Slider::Listener", inheritable, pure.} = object
+
+defineCppClassInternal CustomSliderListener of SliderListener:
+    cppParent "juce::Slider::Listener"
+    include "juce_gui_basics/juce_gui_basics.h"
+    proc sliderValueChanged(slider: ptr Slider) = discard
+    proc sliderDragStarted(slider: ptr Slider) = discard
+    proc sliderDragEnded(slider: ptr Slider) = discard
+
+proc newCustomSliderListener*(): ptr CustomSliderListener {.importcpp: "(new june::CustomSliderListener)".}
+
+# The same shape as the component handler setters: a caller passes a plain Nim
+# closure and does not name the function-object type.
+template defineSliderListenerSetter(setterName, fieldName: untyped) =
+    proc setterName*(this: var CustomSliderListener, handler: proc(slider: ptr Slider) {.closure.}) =
+        let bound: CppFunctionObjectN1[ptr Slider] = bindClosure(handler)
+        this.fieldName = bound
+
+defineSliderListenerSetter(setSliderValueChangedHandler, onSliderValueChanged)
+defineSliderListenerSetter(setSliderDragStartedHandler, onSliderDragStarted)
+defineSliderListenerSetter(setSliderDragEndedHandler, onSliderDragEnded)
+
+proc addListener*(this: var Slider, listener: ptr SliderListener) {.header: juce_gui_basics, importcpp: "#.addListener(@)".}
+proc removeListener*(this: var Slider, listener: ptr SliderListener) {.header: juce_gui_basics, importcpp: "#.removeListener(@)".}
+
+# ListBoxModel ================================================================
+#
+# getNumRows and paintListBoxItem are both pure virtual, so a ListBox had no
+# model it could be given. This is also the only override in the library whose
+# virtual returns a value rather than void: the generated forwarder returns the
+# callback's result, and a default-constructed one when no callback is set.
+
+defineCppClassInternal CustomListBoxModel of ListBoxModel:
+    include "juce_gui_basics/juce_gui_basics.h"
+    proc getNumRows(): cint = discard
+    proc paintListBoxItem(rowNumber: cint, g: varref[Graphics], width: cint,
+                          height: cint, rowIsSelected: bool) = discard
+
+proc newCustomListBoxModel*(): ptr CustomListBoxModel {.importcpp: "(new june::CustomListBoxModel)".}
+
+proc setNumRowsHandler*(this: var CustomListBoxModel, handler: proc(): cint {.closure.}) =
+    this.onGetNumRows = bindClosure(handler)
+
+proc setPaintListBoxItemHandler*(this: var CustomListBoxModel,
+                                 handler: proc(rowNumber: cint, g: ptr Graphics,
+                                               width, height: cint,
+                                               rowIsSelected: bool) {.closure.}) =
+    this.onPaintListBoxItem = bindClosure(handler)
+
+# Subclasses for the abstract classes of this module. Generated; see
+# tools/generate_subclasses.py.
+include juce_gui_basics_subclasses

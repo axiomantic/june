@@ -44,3 +44,104 @@ proc testChildren() =
 
 testValueTree()
 testChildren()
+
+# Looping over a ValueTree. JUCE's begin() and end() have no Nim spelling, so
+# without these iterators a caller has to write the index loop by hand.
+proc testValueTreeIteration() =
+  var tree = makeValueTree(makeIdentifier("root"))
+  for name in ["alpha", "beta", "gamma"]:
+    tree.appendChild(makeValueTree(makeIdentifier(name)), nil)
+
+  var seen: seq[string] = @[]
+  for child in tree:
+    seen.add($child.getType().toString())
+  doAssert seen == @["alpha", "beta", "gamma"], "iterated " & $seen
+
+  var indexed: seq[cint] = @[]
+  for index, child in tree:
+    indexed.add(index)
+  doAssert indexed == @[0.cint, 1.cint, 2.cint]
+
+  discard tree.setProperty(makeIdentifier("size"), makejuce_var(42.cint), nil)
+  var propertyNames: seq[string] = @[]
+  for name, value in tree.properties():
+    propertyNames.add($name.toString())
+  doAssert propertyNames == @["size"], "properties " & $propertyNames
+
+testValueTreeIteration()
+
+# A generated UndoableAction, performed =======================================
+#
+# perform and undo are both pure virtual, so an undoable action could not be
+# written in Nim. UndoManager owns the action once it is handed over, which is
+# why nothing deletes it here.
+
+proc testGeneratedUndoableAction() =
+  var performed = 0
+  var undone = 0
+
+  var action = newCustomUndoableAction()
+  action[].setPerformHandler(proc(): bool =
+    performed += 1
+    true)
+  action[].setUndoHandler(proc(): bool =
+    undone += 1
+    true)
+
+  var manager = makeUndoManager(30000.cint, 30.cint)
+  doAssert manager.perform(cast[ptr UndoableAction](action)), "perform reported failure"
+  doAssert performed == 1, "perform ran " & $performed & " times"
+  doAssert undone == 0, "undo ran before it was asked to"
+
+  doAssert manager.undo(), "undo reported failure"
+  doAssert undone == 1, "undo ran " & $undone & " times"
+
+testGeneratedUndoableAction()
+
+# Value =======================================================================
+#
+# A shared reference to a var. Two Values referring to the same source see each
+# other's writes, which is the whole point of the class and the only part worth
+# asserting.
+
+proc testValue() =
+  var first = makeValue(makejuce_var(makeString("start")))
+  doAssert $first.toString() == "start", "toString gave " & $first.toString()
+
+  var second = makeValue()
+  second.referTo(first)
+  doAssert second.refersToSameSourceAs(first), "referTo did not share the source"
+
+  first.setValue(makejuce_var(makeString("changed")))
+  doAssert $second.toString() == "changed",
+           "the other Value did not see the write: " & $second.toString()
+
+  # A Value made on its own does not share with it.
+  var separate = makeValue(makejuce_var(makeString("other")))
+  doAssert not separate.refersToSameSourceAs(first), "an unrelated Value shared the source"
+
+# ValueTreePropertyWithDefault ================================================
+#
+# A property that falls back to a default until something writes to it. The
+# isUsingDefault flag is what distinguishes the two states, and it is exactly
+# the sort of thing that reads true forever if bound wrong.
+
+proc testValueTreePropertyWithDefault() =
+  var tree = makeValueTree(makeIdentifier("settings"))
+  var property = makeValueTreePropertyWithDefault(tree, makeIdentifier("volume"), nil)
+
+  property.setDefault(makejuce_var(50.cint))
+  doAssert property.isUsingDefault(), "a fresh property was not using its default"
+  doAssert property.get().toString() == makejuce_var(50.cint).toString(),
+           "the default did not come back"
+
+  property.setValue(makejuce_var(80.cint), nil)
+  doAssert not property.isUsingDefault(), "after a write it still reported the default"
+  doAssert property.get().toString() == makejuce_var(80.cint).toString(),
+           "the written value did not come back"
+
+  property.resetToDefault()
+  doAssert property.isUsingDefault(), "resetToDefault did not restore the default"
+
+testValue()
+testValueTreePropertyWithDefault()
