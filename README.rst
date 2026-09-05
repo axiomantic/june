@@ -46,12 +46,14 @@ Then run the test suite.
   nimble test
 
 ``nimble`` 0.22 exits 0 whatever happens, including on a task whose ``exec``
-raised, so its exit code does not report a failing test. Read its output, or run
-the tests directly, which reports properly:
+raised, so its exit code does not report a failure. That is true of every task
+here -- ``test``, ``examples``, ``juce_debug`` -- not only of ``test``. Read the
+output, or run the commands directly, which report properly:
 
 .. code-block:: bash
 
   (for t in tests/test_juce_*.nim; do nim cpp -r "$t" || exit 1; done)
+  (for e in examples/*.nim; do nim cpp "$e" || exit 1; done)
 
 CI does the latter for this reason.
 
@@ -201,6 +203,28 @@ feel singleton, and both assert at exit if the GUI was never initialised.
 C++ holds only the raw environment pointer, so without that the environment is
 collected as soon as the Nim closure goes out of scope, and the callback then
 reads freed memory -- which shows up as a corrupted capture rather than a crash.
+
+Do not capture a JUCE object in a closure. Convert it first: ``let name =
+$someString`` captures a Nim string and is safe, and so is anything else Nim
+owns.
+
+A closure's environment is Nim's memory. Nim allocates it zeroed rather than
+constructing it and never destroys what is in it, so a C++ object placed there
+is neither constructed nor destructed. Both halves of that bite:
+
+- Nothing releases what the object owns. Capturing an ``Image`` or a
+  ``ValueTree`` leaks it, which JUCE's leak detector reports by name. A type
+  whose ownership the detector does not track leaks just as surely and says
+  nothing.
+- ``String::operator=`` releases whatever the target held before, and from
+  zeroed memory that is a null buffer it writes through. Capturing a
+  ``String`` crashes outright, as does anything holding one: ``Identifier``
+  and ``juce_var`` among them.
+
+This is Nim's closure code generation rather than anything ``bindClosure``
+does; a plain ``proc() = discard capturedString`` crashes the same way. A type
+that owns nothing -- ``Colour``, ``Point``, ``Rectangle`` -- survives being
+captured, but the rule is easier to hold than the exceptions.
 The cost is one retained environment per bound closure; callbacks are set up
 once, so that is bounded.
 
@@ -275,7 +299,21 @@ Hand-written additions live in the ``*_lifting.nim`` files and in
 ``june_juce_types.nim``.
 
 - Classes, with their inheritance, so a ``TextButton`` accepts every
-  ``Component`` method. Nested classes too, with their own methods and
+  ``Component`` method. Only PUBLIC bases: a private one is not a subtype
+  outside the class, and binding it as the parent offered every method it
+  declares while C++ refused each call. What a class re-exports from a private
+  base with a ``using`` declaration is bound on the class itself, which is how
+  ``TimedCallback`` gets its five ``Timer`` methods.
+
+  Nim carries ONE parent and C++ carries as many as it likes. The parent is the
+  public base reaching the most, so ``TextEditor`` is a ``Component`` rather
+  than the ``TextInputTarget`` it happens to list first. What the other public
+  bases bring is written onto the class directly -- ``setTooltip`` on eight
+  widgets, ``LookAndFeel``'s drawing hooks -- so the choice of parent does not
+  decide what is reachable. A name arriving down two different base branches is
+  left out, because calling it unqualified is ambiguous in C++ as well.
+
+  Nested classes too, with their own methods and
   constructors, under the name of the class that encloses them:
   ``LookAndFeel_V4::ColourScheme`` is ``LookAndFeel_V4ColourScheme`` and
   ``Image::BitmapData`` is ``ImageBitmapData``. At any depth:
@@ -320,6 +358,15 @@ Hand-written additions live in the ``*_lifting.nim`` files and in
   ``HeapBlock``, ``WeakReference``, ``OptionalScopedPointer`` and
   ``ReferenceCountedObjectPtr``. ``HeapBlock`` owns its buffer
   and cannot be copied, so Nim rejects a copy of one at compile time.
+
+  These seventeen are declared by hand in ``june_juce_types.nim``; the
+  generator binds no class template of its own. JUCE declares 66 public ones,
+  and the 49 that are left out cost nothing at the surface: no binding is
+  withheld because of them. They are either JUCE's own machinery -- ``ArrayBase``,
+  ``SingletonHolder``, ``LeakedObjectDetector`` -- or a container with a Nim
+  equivalent, such as ``HashMap`` and ``SortedSet``. ``GenericScopedLock`` is
+  the one whose absence shows: lock a ``CriticalSection`` with ``enter`` and
+  ``exit`` in a ``try``/``finally``, which is the Nim shape of the same thing.
 - Iterators over the containers a caller loops over: ``ValueTree`` children and
   properties, ``StringArray``, ``XmlElement`` children and attributes,
   ``NamedValueSet``,
@@ -333,7 +380,8 @@ Hand-written additions live in the ``*_lifting.nim`` files and in
 - Subclasses whose virtual methods call into Nim: ``CustomComponent``,
   ``CustomButton``, ``CustomTimer``, ``CustomAsyncUpdater``,
   ``CustomActionListener``, ``CustomChangeListener``, ``CustomSlider``,
-  ``CustomLabel``, ``CustomLookAndFeel`` and ``CustomSliderListener``, plus the
+  ``CustomLabel``, ``CustomLookAndFeel``, ``CustomSliderListener`` and
+  ``CustomListBoxModel``, plus the
   ``JUCEApplication`` and ``DocumentWindow`` that were already there. Most of those JUCE classes have a
   pure virtual, so they could not be instantiated without a subclass at all.
 
@@ -348,6 +396,17 @@ answer rather than a crash::
 Passing a Nim string straight to a ``StringRef`` parameter is safe: the
 converter's temporary lives for the duration of the call, which is the same
 contract C++ gives.
+
+An enum is a ``distinct cint``, which has none of ``cint``'s operators unless
+they are given to it. Each one carries a borrowed ``==`` and ``$``, and the
+flag sets -- the enums whose name ends in ``Flags``, which is how JUCE spells a
+nested ``Flags`` enum -- also carry ``or`` and ``and``::
+
+  let style = FontFontStyleFlags_bold or FontFontStyleFlags_italic
+  if (style and FontFontStyleFlags_bold) == FontFontStyleFlags_bold: discard
+
+``$`` prints the number rather than the name. The binding holds the C++
+enumerator and there is no table of names on this side to look one up in.
 
 Instantiate a class template with ``cint`` or ``cfloat``, never Nim's ``int`` or
 ``float``. Nim puts the parameter's C++ name into the template, and Nim's
@@ -407,12 +466,157 @@ subclass is unreachable from Nim however completely its methods are bound. That
 covers ``Thread``, ``InputStream``, ``OutputStream``, ``Logger``,
 ``UndoableAction``, ``KeyListener``, ``DragAndDropTarget``, ``TreeViewItem``,
 ``MenuBarModel`` and the rest of the abstract classes.
+``tools/inspect_juce.py`` therefore withholds ``make<Name>`` for an abstract
+class and names the ``Custom<Name>`` to build instead. Emitting one produced a
+binding that read as usable and was a compile error at every call site, which
+nothing caught because nothing called it.
 ``tools/generate_subclasses.py`` writes that subclass for every abstract class
-in a module, and is run the same way::
+in a module, nested ones included. It used to key a class on its own spelling,
+which never matched a declared Nim name for a nested one, so 58 were skipped
+with no withheld entry -- every ``Listener`` and ``LookAndFeelMethods``
+interface an application implements, ``ComponentBuilder::TypeHandler``,
+``TextEditor::InputFilter`` and the rest. A nested class carries a
+``cppParent`` directive giving its real qualified spelling.
+
+Four things a subclass cannot express are detected and withheld with the
+reason: a virtual with more arguments than a ``std::function`` Nim can spell
+(``importcpp`` substitutes a type by a single digit, so ten for a void
+override and nine for one with a result), a handler returning a type with no
+default constructor (Nim builds a temporary for a closure's result), a private
+pure virtual, and an overloaded one. A fifth is a measured list: Nim hands some
+objects to a C function by pointer and others by value, and which is which only
+shows when the generated ``std::function`` is assigned -- ``Point<int>`` by
+value works and ``Colour`` by value does not.
+
+The forwarder falls back through ``june::fallback<R>()`` rather than
+``return {}``, so a return type with no default constructor is a runtime
+failure rather than a class that cannot be generated at all.
+
+It is run the same way::
 
   for module in juce_core juce_events juce_data_structures juce_graphics juce_gui_basics; do
     PYTHONPATH=tools .venv/bin/python tools/generate_subclasses.py --module "$module" > "sources/june/${module}_subclasses.nim"
   done
+
+A struct JUCE declares with no constructor of its own still has C++'s implicit
+default one, and libclang reports no constructor at all. 21 aggregates were
+declared with readable and writable fields and no way to build one --
+``ZipFile::ZipEntry``, ``MouseWheelDetails``,
+``DirectoryContentsList::FileInfo``, ``ThreadPool::Options`` among them. The
+generator emits a default constructor for a non-abstract class that declares
+none and has a public field.
+
+libclang does not report that C++ *deleted* an implicit default because a
+member has none either, which is the case for ``ColourLayer`` (it holds an
+``EdgeTable``) and ``GlyphLayer`` (a variant over it). Only a call tells the
+two apart, so those two are named in the generator with the reason, and
+``check_handwritten_covered.py`` fails unless a test builds every one of the
+constructors that is emitted.
+
+Two operators are marked ``{.error.}`` where JUCE gives nothing to build them
+on, because Nim's fallback for each is a silent wrong answer. Comparing two
+values of a class with no C++ ``operator==`` would use structural equality, and
+an ``importcpp`` object declares no fields, so it would compare nothing and
+call every two values equal. ``$`` on a class with no ``toString`` would print
+``()`` for the same reason -- in exactly the place a person is trying to see
+what a value is. 444 classes carry the equality guard and 482 the ``$`` one,
+and the suite checks that both fire and that a class with a real
+``operator==`` or ``toString`` is left alone.
+
+A bound constant is not checked against C++ unless something reads it. A ``let``
+naming ``juce::NoSuchClass::nope`` compiles clean while nothing touches it,
+which was measured rather than assumed, so 591 of the 635 had never had their
+spelling checked. The suite reads every one and
+``check_handwritten_covered.py`` fails if one is not read. All 635 were
+correct, which is worth knowing rather than assuming.
+
+A nested class is named by its parts joined together, and one of those
+collided with a top-level class: ``juce::MessageManagerLock`` and
+``juce::MessageManager::Lock`` both flattened to ``MessageManagerLock``. The
+type was declared as the nested one while every method bound onto it came from
+the top-level one, so the constructor could not be called and the methods were
+attributed to a class that does not have them. The nested one is
+``MessageManagerInnerLock`` now, and the generator carries the rename with that
+reason.
+
+``cnew`` takes a constructor call, not a name. Its ``importcpp`` pattern
+expands to ``new T(args)``, so ``cnew(makeDrawableRectangle())`` works and
+``cnew(existingValue)`` is rejected with "call expression expected for C++
+pattern". Where the object needs configuring before it is handed over, build it
+with ``cnew`` first and configure it through the pointer.
+
+``Array[T]``'s ``[]`` returns by value, and Nim builds a temporary for that,
+which needs ``T`` to be default-constructible. ``juce::TextLayout::Glyph`` is
+not, so every element of a laid-out run was unreachable. ``getReference`` is
+bound alongside it and hands back JUCE's own reference, needing nothing of
+``T``.
+
+A non-copyable container returned by value has to be used inline. ``OwnedArray``
+is one, so ``line.runs().size()`` and ``line.runs()[i]`` are fine while
+``var runs = line.runs()`` asks C++ for a copy it will not make -- and so does
+``for run in line.runs()``, because the ``items`` iterator takes the array by
+value.
+
+A field whose type cannot be copy-assigned is set with ``std::move``. Nine
+setters assigned one by copy and every call was rejected --
+``PopupMenu::Item``'s ``subMenu`` and ``image``, ``FillType::gradient``,
+``DialogWindowLaunchOptions::content`` and the accessibility interfaces. The
+wrapper is empty afterwards, exactly as in C++, and the suite asserts that. The
+move-only wrappers are named in ``tools/inspect_juce.py``: for these the copy
+assignment is deleted implicitly, because of a member, and libclang does not
+report that as a deleted method.
+
+``Span``, ``WeakReference``, ``OptionalScopedPointer`` and ``Parallelogram``
+had no constructor, and each is taken as a parameter by a binding, so those
+bindings could not be called at all.
+
+Three methods are withheld because JUCE declares them and defines them nowhere:
+``RelativeCoordinate::references`` and ``createTree`` on ``RelativePointPath``'s
+``QuadraticTo`` and ``CubicTo``. Nothing in the headers says so -- the binding
+compiles, and the call fails at the link step -- so they are named in
+``tools/inspect_juce.py`` with that reason, each one found by linking a call to
+it.
+
+Every bound JUCE enum is a ``distinct cint``, and Nim renders **one** closure
+struct for ``proc(): cint`` and ``proc(): SomeEnum``, typing its function
+pointer from whichever it emits first::
+
+  typedef struct {
+    N_NIMCALL_PTR(juce::ThreadPoolJob::JobStatus, ClP_0) (void* ClE_0);
+    void* ClE_0;
+  } tyProc__bZhuB40paOmpcx9bHElqj9aQ;   // also used for proc(): cint
+
+A program holding both kinds then assigns a function pointer of the wrong type
+and the C++ compiler rejects it. So no Nim closure names a distinct enum. A
+subclass whose virtual returns one is marked ``basescalar`` by
+``tools/generate_subclasses.py``: the callback takes and returns ``cint``, the
+override keeps the enum to match the virtual, and the generated forwarder casts
+the value. For a binding that takes such a ``std::function`` -- JUCE has one,
+``ThreadPool.addJob`` -- ``bindEnumClosure`` does the same::
+
+  let job: CppFunctionObjectR0[ThreadPoolJobJobStatus] =
+    bindEnumClosure[ThreadPoolJobJobStatus](
+      proc(): cint = cint(ThreadPoolJobJobStatus_jobHasFinished))
+
+Both cast a value rather than a function pointer, which is defined. The suite
+sets a ``cint`` handler and an enum one in the same program, which is what makes
+the compiler check it.
+
+A method returning ``const T*`` is bound as ``ConstPtr[T]``, not ``ptr T``. Nim
+has no const pointer, and C++ does not convert ``const T*`` to ``T*``, so the
+plain ``ptr`` spelling produced 31 procs that could not be called at all --
+``ZipFile.getEntry``, ``ValueTree.getPropertyPointer``,
+``Displays.getPrimaryDisplay``, ``ApplicationCommandManager.getCommandForID``
+and the rest. ``ConstPtr`` has ``isNil`` and ``[]``, and ``[]`` yields the value
+for reading::
+
+  let info = manager.getCommandForID(commandID)
+  if not info.isNil():
+    echo info[].shortName()
+
+Passing ``info[]`` to anything taking a ``var`` is a compile error, which is what
+the C++ ``const`` means. A ``const T*`` *parameter* stays a plain ``ptr T``,
+because that is the conversion C++ does make.
 
 Both generators read the platform's headers, and JUCE hides some classes behind
 ``JUCE_MAC`` or ``JUCE_WINDOWS``, so the committed files are the macOS output
@@ -425,14 +629,26 @@ from the generator, and an ``importcpp`` string only reaches the C++ compiler
 at the call site. A binding nothing calls is never compiled at all, which is
 how a ``BorderSize`` constructor JUCE does not declare, four container types
 with no constructor, and three ``Range`` setters that mutated a ``let`` binding
-all sat in the tree. ``tools/check_handwritten_covered.py`` fails if an export
-is never named by a test or an example::
+all sat in the tree. ``tools/check_handwritten_covered.py`` is the guard
+against that whole shape, and it fails when any of these is not exercised::
 
   python3 tools/check_handwritten_covered.py
 
-A binding a test genuinely cannot call -- one that builds the process's single
-``JUCEApplication``, say -- goes in that script's ``uncallable`` table with the
-reason, and the script fails if a listed name stops existing.
+- a hand-written binding name that no test calls
+- a withheld ``begin()`` naming a Nim iterator that does not exist
+- an emitted implicit default constructor that no test builds
+- a generated subclass that no test builds
+- a handler setter that no test calls
+- a no-argument constructor that no test calls
+- a bound constant or static variable that no test reads
+- a class with a constructor that no test names
+
+It reports what it covered rather than only what failed, so the figures are
+read off the run rather than out of this file.
+
+Anything a test genuinely cannot reach goes in that script's tables with the
+reason -- why a test *cannot*, never that nobody has yet -- and the script
+fails the other way too, when a listed name stops existing.
 
 A class it cannot express is listed at the end of the file with the reason, in
 the same style as an unbound proc. Count what is left with::
@@ -447,14 +663,56 @@ closure::
     written += bytes.int
     true)
 
+A nested interface is named by its parts joined together, so ``ComboBox::
+Listener`` is ``CustomComboBoxListener`` and ``TextEditor::InputFilter`` is
+``CustomTextEditorInputFilter``. They are used the same way, and this is how an
+application listens to a widget from Nim::
+
+  var listener = newCustomComboBoxListener()
+  listener[].setComboBoxChangedHandler(proc(box: ptr ComboBox) =
+    echo "now ", box[].getText())
+
+  var box = makeComboBox(makeString("choices"))
+  box.addListener(cast[ptr ComboBoxListener](listener))
+
 JUCE calls the handler through the virtual, so ``stream.writeText(...)`` -
-which is JUCE's own code - reaches it. The suite asserts that.
+which is JUCE's own code - reaches it. The suite asserts that for this one and
+for every setter it can. Setting a handler is what type-checks and generates
+it, so a setter no test calls is never compiled at all, and
+``check_handwritten_covered.py`` fails when one is not called. The only ones
+left out are ``CustomJUCEApplicationBase``'s, named in that checker with the
+reason: building one trips JUCE's assertion that the process has a single
+application instance.
+
+Calling them is what found ``CustomImagePixelData::clone`` typed against the
+wrong class's ``Ptr``, and what showed that ``UniquePtr``,
+``ReferenceCountedObjectPtr``, ``CppVector`` and ``CppString`` had no
+constructor, so no override returning one could be written at all.
 
 The test suite constructs every generated subclass, which is the check that
-matters. The generated C++ has a template forwarding constructor, so a class
-whose base has no default constructor compiles cleanly until something calls
-it, and a subclass that leaves an inherited pure virtual unimplemented is still
-abstract - neither shows up at build time.
+matters, and ``check_handwritten_covered.py`` fails if one is not built. The
+generated C++ has a template forwarding constructor, so a class whose base has
+no default constructor compiles cleanly until something calls it, and a
+subclass that leaves an inherited pure virtual unimplemented is still abstract
+- neither shows up at build time.
+
+That claim used to be prose, and it was false: 13 of the subclasses were never
+built. Two were broken. ``CustomImagePixelData::clone`` was typed against
+``DynamicObject::Ptr`` rather than ``ImagePixelData::Ptr``, because the
+generator resolved a bare ``Ptr`` through a table keyed on the alias and JUCE
+names dozens of things ``Ptr``. ``CustomComponentMovementWatcher`` overrode one
+of three pure virtuals and was still abstract, because the walk that collects
+them keyed on the method name, and ``ComponentListener`` declares a non-pure
+``componentMovedOrResized`` with different parameters.
+
+Building a subclass means using what the constructor returns. Discarding the
+pointer does not compile the class: the C++ lives in a header the Nim type
+carries, and Nim includes it only where the type itself is used.
+
+``CustomJUCEApplicationBase`` and ``CustomThreadWithProgressWindow`` are named
+in the checker with the reason a test cannot build them - the first trips
+JUCE's single-application assertion, and the second is a top-level window that
+segfaults on a headless Linux container.
 
 The generator aborts on a parse error rather than emitting a binding for a type
 it did not resolve. An unresolved type does not stop libclang, it degrades to

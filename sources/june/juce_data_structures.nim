@@ -25,6 +25,13 @@ type
   ApplicationProperties* {.header: juce_data_structures, importcpp: "juce::ApplicationProperties", inheritable, pure.} = object
   PropertiesFileStorageFormat* {.header: juce_data_structures, importcpp: "juce::PropertiesFile::StorageFormat".} = distinct cint
 
+# Comparison for the enums above, taken from their base type,
+# and $ so a value can appear in a message. $ prints the number
+# rather than the name: the binding holds the C++ enumerator and
+# there is no table of names on this side to look one up in.
+proc `==`*(a: PropertiesFileStorageFormat, b: PropertiesFileStorageFormat): bool {.borrow.}
+proc `$`*(value: PropertiesFileStorageFormat): string {.borrow.}
+
 let PropertiesFileStorageFormat_storeAsBinary* {.header: juce_data_structures, importcpp: "juce::PropertiesFile::storeAsBinary".}: PropertiesFileStorageFormat
 let PropertiesFileStorageFormat_storeAsCompressedBinary* {.header: juce_data_structures, importcpp: "juce::PropertiesFile::storeAsCompressedBinary".}: PropertiesFileStorageFormat
 let PropertiesFileStorageFormat_storeAsXML* {.header: juce_data_structures, importcpp: "juce::PropertiesFile::storeAsXML".}: PropertiesFileStorageFormat
@@ -51,7 +58,7 @@ proc undoCurrentTransactionOnly*(this: var UndoManager): bool {.header: juce_dat
 proc getUndoDescription*(this: UndoManager): String {.header: juce_data_structures, importcpp: "#.getUndoDescription()".}
 proc getUndoDescriptions*(this: UndoManager): StringArray {.header: juce_data_structures, importcpp: "#.getUndoDescriptions()".}
 proc getTimeOfUndoTransaction*(this: UndoManager): Time {.header: juce_data_structures, importcpp: "#.getTimeOfUndoTransaction()".}
-proc getActionsInCurrentTransaction*(this: UndoManager, actionsFound: Array[UndoableAction]) {.header: juce_data_structures, importcpp: "#.getActionsInCurrentTransaction(@)".}
+proc getActionsInCurrentTransaction*(this: UndoManager, actionsFound: var Array[ConstPtr[UndoableAction]]) {.header: juce_data_structures, importcpp: "#.getActionsInCurrentTransaction(@)".}
 proc getNumActionsInCurrentTransaction*(this: UndoManager): cint {.header: juce_data_structures, importcpp: "#.getNumActionsInCurrentTransaction()".}
 proc canRedo*(this: UndoManager): bool {.header: juce_data_structures, importcpp: "#.canRedo()".}
 proc redo*(this: var UndoManager): bool {.header: juce_data_structures, importcpp: "#.redo()".}
@@ -69,7 +76,7 @@ proc getValue*(this: Value): juce_var {.header: juce_data_structures, importcpp:
 proc toString*(this: Value): String {.header: juce_data_structures, importcpp: "#.toString()".}
 proc setValue*(this: var Value, newValue: juce_var) {.header: juce_data_structures, importcpp: "#.setValue(@)".}
 proc `Value=`*(this: var Value, newValue: juce_var): var Value {.header: juce_data_structures, importcpp: "#.operator=(@)".}
-proc `Value=`*(this: var Value, arg1: Value): var Value {.header: juce_data_structures, importcpp: "#.operator=(@)".}
+proc `Value=`*(this: var Value, arg1: Value): var Value {.header: juce_data_structures, importcpp: "#.operator=(std::move(#))".}
 proc referTo*(this: var Value, valueToReferTo: Value) {.header: juce_data_structures, importcpp: "#.referTo(@)".}
 proc refersToSameSourceAs*(this: Value, other: Value): bool {.header: juce_data_structures, importcpp: "#.refersToSameSourceAs(@)".}
 proc `==`*(this: Value, other: Value): bool {.header: juce_data_structures, importcpp: "#.operator==(@)".}
@@ -78,11 +85,11 @@ proc addListener*(this: var Value, listener: ptr ValueListener) {.header: juce_d
 proc removeListener*(this: var Value, listener: ptr ValueListener) {.header: juce_data_structures, importcpp: "#.removeListener(@)".}
 proc getValueSource*(this: var Value): var ValueValueSource {.header: juce_data_structures, importcpp: "#.getValueSource()".}
 
-proc makeValueListener*(): ValueListener {.header: juce_data_structures, importcpp: "juce::Value::Listener(@)".}
+# proc makeValueListener*(): ValueListener {.header: juce_data_structures, importcpp: "juce::Value::Listener(@)".}  # ValueListener is abstract; build a CustomValueListener instead
 proc valueChanged*(this: var ValueListener, value: var Value) {.header: juce_data_structures, importcpp: "#.valueChanged(@)".}
 proc `==`*(this: ValueListener, other: ValueListener): bool {.error: "juce::Value::Listener defines no operator==; compare a property instead".}
 
-proc makeValueValueSource*(): ValueValueSource {.header: juce_data_structures, importcpp: "juce::Value::ValueSource(@)".}
+# proc makeValueValueSource*(): ValueValueSource {.header: juce_data_structures, importcpp: "juce::Value::ValueSource(@)".}  # ValueValueSource is abstract; build a CustomValueValueSource instead
 proc getValue*(this: ValueValueSource): juce_var {.header: juce_data_structures, importcpp: "#.getValue()".}
 proc setValue*(this: var ValueValueSource, newValue: juce_var) {.header: juce_data_structures, importcpp: "#.setValue(@)".}
 proc sendChangeMessage*(this: var ValueValueSource, dispatchSynchronously: bool) {.header: juce_data_structures, importcpp: "#.sendChangeMessage(@)".}
@@ -103,7 +110,7 @@ proc getType*(this: ValueTree): Identifier {.header: juce_data_structures, impor
 proc hasType*(this: ValueTree, typeName: Identifier): bool {.header: juce_data_structures, importcpp: "#.hasType(@)".}
 proc getProperty*(this: ValueTree, name: Identifier): juce_var {.header: juce_data_structures, importcpp: "#.getProperty(@)".}
 proc getProperty*(this: ValueTree, name: Identifier, defaultReturnValue: juce_var): juce_var {.header: juce_data_structures, importcpp: "#.getProperty(@)".}
-proc getPropertyPointer*(this: ValueTree, name: Identifier): ptr juce_var {.header: juce_data_structures, importcpp: "#.getPropertyPointer(@)".}
+proc getPropertyPointer*(this: ValueTree, name: Identifier): ConstPtr[juce_var] {.header: juce_data_structures, importcpp: "#.getPropertyPointer(@)".}
 proc `[]`*(this: ValueTree, name: Identifier): juce_var {.header: juce_data_structures, importcpp: "#.operator[](@)".}
 proc setProperty*(this: var ValueTree, name: Identifier, newValue: juce_var, undoManager: ptr UndoManager): var ValueTree {.header: juce_data_structures, importcpp: "#.setProperty(@)".}
 proc hasProperty*(this: ValueTree, name: Identifier): bool {.header: juce_data_structures, importcpp: "#.hasProperty(@)".}
@@ -158,7 +165,7 @@ proc valueTreeParentChanged*(this: var ValueTreeListener, treeWhoseParentHasChan
 proc valueTreeRedirected*(this: var ValueTreeListener, treeWhichHasBeenChanged: var ValueTree) {.header: juce_data_structures, importcpp: "#.valueTreeRedirected(@)".}
 proc `==`*(this: ValueTreeListener, other: ValueTreeListener): bool {.error: "juce::ValueTree::Listener defines no operator==; compare a property instead".}
 
-proc makeValueTreeSynchroniser*(tree: ValueTree): ValueTreeSynchroniser {.header: juce_data_structures, importcpp: "juce::ValueTreeSynchroniser(@)".}
+# proc makeValueTreeSynchroniser*(tree: ValueTree): ValueTreeSynchroniser {.header: juce_data_structures, importcpp: "juce::ValueTreeSynchroniser(@)".}  # ValueTreeSynchroniser is abstract; build a CustomValueTreeSynchroniser instead
 proc stateChanged*(this: var ValueTreeSynchroniser, encodedChange: constPointer, encodedChangeSize: uint64) {.header: juce_data_structures, importcpp: "#.stateChanged(@)".}
 proc sendFullSyncCallback*(this: var ValueTreeSynchroniser) {.header: juce_data_structures, importcpp: "#.sendFullSyncCallback()".}
 proc applyChange*(this: typedesc[ValueTreeSynchroniser], target: var ValueTree, encodedChangeData: constPointer, encodedChangeDataSize: uint64, undoManager: ptr UndoManager): bool {.header: juce_data_structures, importcpp: "juce::ValueTreeSynchroniser::applyChange(@)".}
@@ -199,6 +206,12 @@ proc needsToBeSaved*(this: PropertiesFile): bool {.header: juce_data_structures,
 proc setNeedsToBeSaved*(this: var PropertiesFile, needsToBeSaved: bool) {.header: juce_data_structures, importcpp: "#.setNeedsToBeSaved(@)".}
 proc reload*(this: var PropertiesFile): bool {.header: juce_data_structures, importcpp: "#.reload()".}
 proc getFile*(this: PropertiesFile): File {.header: juce_data_structures, importcpp: "#.getFile()".}
+proc addChangeListener*(this: var PropertiesFile, listener: ptr ChangeListener) {.header: juce_data_structures, importcpp: "#.addChangeListener(@)".}  # inherited from a secondary base
+proc dispatchPendingMessages*(this: var PropertiesFile) {.header: juce_data_structures, importcpp: "#.dispatchPendingMessages()".}  # inherited from a secondary base
+proc removeAllChangeListeners*(this: var PropertiesFile) {.header: juce_data_structures, importcpp: "#.removeAllChangeListeners()".}  # inherited from a secondary base
+proc removeChangeListener*(this: var PropertiesFile, listener: ptr ChangeListener) {.header: juce_data_structures, importcpp: "#.removeChangeListener(@)".}  # inherited from a secondary base
+proc sendChangeMessage*(this: var PropertiesFile) {.header: juce_data_structures, importcpp: "#.sendChangeMessage()".}  # inherited from a secondary base
+proc sendSynchronousChangeMessage*(this: var PropertiesFile) {.header: juce_data_structures, importcpp: "#.sendSynchronousChangeMessage()".}  # inherited from a secondary base
 proc `==`*(this: PropertiesFile, other: PropertiesFile): bool {.error: "juce::PropertiesFile defines no operator==; compare a property instead".}
 
 proc makePropertiesFileOptions*(): PropertiesFileOptions {.header: juce_data_structures, importcpp: "juce::PropertiesFile::Options(@)".}
@@ -244,11 +257,23 @@ proc saveIfNeeded*(this: var ApplicationProperties): bool {.header: juce_data_st
 proc closeFiles*(this: var ApplicationProperties) {.header: juce_data_structures, importcpp: "#.closeFiles()".}
 proc `==`*(this: ApplicationProperties, other: ApplicationProperties): bool {.error: "juce::ApplicationProperties defines no operator==; compare a property instead".}
 
-proc `shl`*(arg1: var OutputStream, arg2: Value): var OutputStream {.header: juce_data_structures, importcpp: "juce::operator<<(@)".}
+proc `shl`*(arg1: var OutputStream, arg2: Value): var OutputStream {.header: juce_data_structures, importcpp: "juce::operator<<((juce::OutputStream &) #, (const juce::Value &) #)".}
 
 
 
 
 include juce_data_structures_lifting
 
+proc `$`*(this: UndoableAction): string {.error: "juce::UndoableAction has no toString; print a property instead".}
+proc `$`*(this: UndoManager): string {.error: "juce::UndoManager has no toString; print a property instead".}
 proc `$`*(this: Value): string = $this.toString()
+proc `$`*(this: ValueListener): string {.error: "juce::Value::Listener has no toString; print a property instead".}
+proc `$`*(this: ValueValueSource): string {.error: "juce::Value::ValueSource has no toString; print a property instead".}
+proc `$`*(this: ValueTree): string {.error: "juce::ValueTree has no toString; print a property instead".}
+proc `$`*(this: ValueTreeIterator): string {.error: "juce::ValueTree::Iterator has no toString; print a property instead".}
+proc `$`*(this: ValueTreeListener): string {.error: "juce::ValueTree::Listener has no toString; print a property instead".}
+proc `$`*(this: ValueTreeSynchroniser): string {.error: "juce::ValueTreeSynchroniser has no toString; print a property instead".}
+proc `$`*(this: ValueTreePropertyWithDefault): string {.error: "juce::ValueTreePropertyWithDefault has no toString; print a property instead".}
+proc `$`*(this: PropertiesFile): string {.error: "juce::PropertiesFile has no toString; print a property instead".}
+proc `$`*(this: PropertiesFileOptions): string {.error: "juce::PropertiesFile::Options has no toString; print a property instead".}
+proc `$`*(this: ApplicationProperties): string {.error: "juce::ApplicationProperties has no toString; print a property instead".}

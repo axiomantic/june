@@ -11,6 +11,7 @@
 
 #include <exception>
 #include <functional>
+#include <stdexcept>
 #include <type_traits>
 
 #include <juce_gui_basics/juce_gui_basics.h>
@@ -138,10 +139,57 @@ struct function_traits_impl<R (C::*)(Args...) noexcept> : function_traits_base<R
 template <class F>
 struct function_traits : detail::function_traits_impl<F> {};
 
+/**
+ * What a generated override returns when no handler has been set.
+ *
+ * The forwarder used to `return {}`, which does not compile for a type with no
+ * default constructor - juce::Justification and juce::Font are both that - so a
+ * look and feel method returning one could not be generated at all. This gives
+ * every type an answer: the value-initialised one where that exists, and a loud
+ * failure otherwise, which is the only honest thing to return when nothing was
+ * ever set.
+ */
+template <class R>
+R fallback()
+{
+    if constexpr (std::is_default_constructible_v<R>)
+        return R{};
+    else
+        throw std::logic_error ("june: a virtual was called with no handler set, "
+                                "and its return type cannot be default constructed");
+}
+
 template <class F>
 auto bind(F func, void* env) noexcept(noexcept(function_traits<F>::map(std::declval<F>(), std::declval<void*>())))
 {
     return function_traits<F>::map(func, env);
+}
+
+/**
+ * Builds a std::function whose result is a scalar-backed enum, from a Nim
+ * closure that returns the base scalar.
+ *
+ * Every bound JUCE enum is a `distinct cint` on the Nim side, and Nim renders
+ * one closure struct for `proc(): cint` and `proc(): SomeEnum`, typing its
+ * function-pointer field from whichever it emits first. A program holding both
+ * kinds then assigns a function pointer of the wrong type. So the Nim closure
+ * returns the base scalar and never names the distinct, and the cast happens
+ * here, on the value rather than on the function pointer.
+ */
+template <class Fn>
+struct function_result;
+
+template <class R, class... Args>
+struct function_result<std::function<R(Args...)>>
+{
+    using type = R;
+};
+
+template <class Fn>
+Fn bindCastingR0(int (*func)(void*), void* env)
+{
+    using R = typename function_result<Fn>::type;
+    return [func, env]() -> R { return static_cast<R>(func(env)); };
 }
 
 /**

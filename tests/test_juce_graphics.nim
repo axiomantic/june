@@ -285,7 +285,8 @@ proc testFont() =
     doAssert font.isBold(), "setBold did not take"
 
     # And the style flags agree with the predicates.
-    doAssert (font.getStyleFlags() and FontFontStyleFlags_bold.cint) != 0,
+    doAssert (font.getStyleFlags().FontFontStyleFlags and FontFontStyleFlags_bold) ==
+             FontFontStyleFlags_bold,
              "style flags disagree with isBold"
 
     # A wider string measures wider. The absolute widths depend on the host
@@ -687,3 +688,1008 @@ proc testNormalisableRange() =
 testRemainingRangeHelpers()
 testRemainingRectangleHelpers()
 testNormalisableRange()
+
+# Flag enums combine ==========================================================
+#
+# JUCE spells a flag set as a nested enum called Flags. A distinct cint has no
+# bitwise operators, so combining two used to mean casting both sides to cint
+# and back; the flag enums carry borrowed or and and now.
+
+proc testFlagEnums() =
+    let combined = FontFontStyleFlags_bold or FontFontStyleFlags_italic
+    doAssert (combined and FontFontStyleFlags_bold) == FontFontStyleFlags_bold,
+             "the combination lost bold"
+    doAssert (combined and FontFontStyleFlags_italic) == FontFontStyleFlags_italic,
+             "the combination lost italic"
+
+    # A flag that was not combined in is absent, which is what says or is a
+    # bitwise or rather than something that returns everything.
+    doAssert (combined and FontFontStyleFlags_underlined) != FontFontStyleFlags_underlined,
+             "the combination contained a flag nobody set"
+
+testFlagEnums()
+
+# LowLevelGraphicsSoftwareRenderer ============================================
+#
+# The renderer Graphics uses when there is no hardware behind it. Constructing
+# one over an Image and asking about its clip is checkable without drawing, and
+# the clip is what everything else is measured against.
+
+proc testSoftwareRenderer() =
+    let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 30.cint, true)
+    var renderer = makeLowLevelGraphicsSoftwareRenderer(image)
+
+    doAssert not renderer.isVectorDevice(), "the software renderer called itself a vector device"
+    doAssert not renderer.isClipEmpty(), "a fresh renderer had an empty clip"
+
+    # The clip starts as the whole image.
+    doAssert renderer.getClipBounds().getWidth() == 40,
+             "the clip is " & $renderer.getClipBounds().getWidth() & " wide"
+    doAssert renderer.getClipBounds().getHeight() == 30,
+             "the clip is " & $renderer.getClipBounds().getHeight() & " tall"
+
+    doAssert renderer.clipRegionIntersects(makeRectangle(0.cint, 0.cint, 10.cint, 10.cint)),
+             "a rectangle inside the image did not intersect the clip"
+    doAssert not renderer.clipRegionIntersects(makeRectangle(100.cint, 100.cint, 10.cint, 10.cint)),
+             "a rectangle outside the image intersected the clip"
+
+    # Moving the origin shifts what the clip bounds report.
+    renderer.setOrigin(makePoint(5.cint, 5.cint))
+    doAssert renderer.getClipBounds().getX() == -5,
+             "after moving the origin the clip starts at " & $renderer.getClipBounds().getX()
+
+testSoftwareRenderer()
+
+# TextLayout ==================================================================
+#
+# The generator withholds TextLayout's begin() and end() with a reason naming a
+# Nim iterator, and juce_graphics_lifting writes that iterator. Nothing had ever
+# instantiated it, and a generic iterator is only type-checked where it is used.
+
+proc testTextLayout() =
+    block:
+        var text = makeAttributedString(makeString("one two three four five six"))
+        text.setJustification(makeJustification(cint(JustificationFlags_left)))
+
+        var layout = makeTextLayout()
+        # Narrow enough that the text cannot fit on a single line, so the
+        # layout has to break it and the line count is a real answer.
+        layout.createLayout(text, 40.0'f32)
+
+        doAssert layout.getNumLines() > 1,
+                 "the layout put the text on " & $layout.getNumLines() & " line(s)"
+        doAssert layout.getWidth() > 0.0'f32, "the layout has no width"
+        doAssert layout.getHeight() > 0.0'f32, "the layout has no height"
+
+        # The iterator and the indexed accessor have to agree, which is what
+        # says the iterator walks the lines rather than something else.
+        var walked = 0
+        var lastBaseline = -1.0'f32
+        for line in layout:
+            doAssert line.stringRange().getLength() >= 0, "a line has a negative range"
+            let baseline = line.lineOrigin().getY()
+            doAssert baseline > lastBaseline,
+                     "line " & $walked & " is not below the one before it"
+            lastBaseline = baseline
+            walked += 1
+
+        doAssert walked == layout.getNumLines().int,
+                 "the iterator yielded " & $walked & " of " &
+                 $layout.getNumLines() & " lines"
+
+        # Drawing it reaches JUCE's own renderer, which is the check that the
+        # layout is not merely well-formed but usable.
+        let image = makeImage(ImagePixelFormat_ARGB, 60.cint, 60.cint, true)
+        var context = makeGraphics(image)
+        context.setColour(makeColour(255'u8, 0'u8, 0'u8, 255'u8))
+        layout.draw(context, makeRectangle(0.0'f32, 0.0'f32, 60.0'f32, 60.0'f32))
+
+        var painted = 0
+        for x in 0 ..< 60:
+            for y in 0 ..< 60:
+                if image.getPixelAt(x.cint, y.cint).getAlpha() > 0:
+                    painted += 1
+        doAssert painted > 0, "drawing the layout left the image empty"
+
+testTextLayout()
+
+# Aggregates with an implicit default constructor =============================
+
+proc testGraphicsAggregates() =
+    block:
+        var metrics = makeTypefaceMetrics()
+        metrics.ascent = 0.75'f32
+        doAssert metrics.ascent() == 0.75'f32,
+                 "the metrics hold " & $metrics.ascent()
+
+        # ImageLayer carries only fields whose types are not simple enough to
+        # write here, so building it is the check. ColourLayer and GlyphLayer
+        # get no constructor at all: an EdgeTable member leaves the first with
+        # no default, and the variant in the second inherits that.
+        discard makeImageLayer()
+
+testGraphicsAggregates()
+
+# The remaining generated subclasses ==========================================
+
+proc testRemainingGraphicsSubclasses() =
+    block:
+        var pixels = newCustomImagePixelData(ImagePixelFormat_ARGB, 4.cint, 4.cint)
+        doAssert not pixels.isNil(), "the pixel data was not built"
+        # clone returns ImagePixelData::Ptr. The generator used to type this
+        # against DynamicObject::Ptr, which C++ rejects as an override.
+        pixels[].setCloneHandler(proc(): ReferenceCountedObjectPtr[ImagePixelData] =
+            makeReferenceCountedObjectPtr[ImagePixelData]())
+        pixels[].setCreateLowLevelContextHandler(
+            proc(): UniquePtr[LowLevelGraphicsContext] =
+                makeUniquePtr[LowLevelGraphicsContext]())
+        pixels[].setCreateTypeHandler(proc(): UniquePtr[ImageType] =
+            makeUniquePtr[ImageType]())
+        pixels[].setInitialiseBitmapDataHandler(proc(arg0: ptr ImageBitmapData,
+                                                     x: cint, y: cint,
+                                                     arg3: ImageBitmapDataReadWriteMode) = discard)
+        cdelete pixels
+
+        var typeface = newCustomTypeface(makeString("Name"), makeString("Style"))
+        doAssert not typeface.isNil(), "the typeface was not built"
+        typeface[].setCreateSystemFallbackHandler(
+            proc(text: ptr String, language: ptr String): ReferenceCountedObjectPtr[Typeface] =
+                makeReferenceCountedObjectPtr[Typeface]())
+        typeface[].setGetNativeDetailsHandler(proc(): ptr TypefaceNative = nil)
+        cdelete typeface
+
+testRemainingGraphicsSubclasses()
+
+# CustomDrawable and CustomImageFileFormat ====================================
+#
+# Both are abstract. Setting a handler is what type-checks and generates the
+# setter, and createCopy returns a std::unique_ptr, which had no constructor.
+
+proc testDrawableAndImageFileFormat() =
+    block:
+        var drawable = newCustomDrawable()
+        doAssert not drawable.isNil(), "the drawable was not built"
+        drawable[].setCreateCopyHandler(proc(): UniquePtr[Drawable] =
+            makeUniquePtr[Drawable]())
+        drawable[].setGetOutlineAsPathHandler(proc(): Path = makePath())
+        drawable[].setGetDrawableBoundsHandler(proc(): Rectangle[cfloat] =
+            makeRectangle(0.0'f32, 0.0'f32, 10.0'f32, 10.0'f32))
+        cdelete drawable
+
+        var format = newCustomImageFileFormat()
+        doAssert not format.isNil(), "the image format was not built"
+        format[].setGetFormatNameHandler(proc(): String = makeString("June Test"))
+        format[].setCanUnderstandHandler(proc(input: ptr InputStream): bool = false)
+        format[].setUsesFileExtensionHandler(proc(possibleFile: ptr june.File): bool = false)
+        format[].setDecodeImageHandler(proc(input: ptr InputStream): Image =
+            makeImage(ImagePixelFormat_ARGB, 1.cint, 1.cint, true))
+        format[].setWriteImageToStreamHandler(proc(sourceImage: ptr Image,
+                                                   destStream: ptr OutputStream): bool = false)
+        cdelete format
+
+testDrawableAndImageFileFormat()
+
+# The last of the graphics subclass handlers ==================================
+
+proc testRemainingGraphicsHandlers() =
+    block:
+        var effect = newCustomImageEffectFilter()
+        effect[].setApplyEffectHandler(proc(sourceImage: ptr Image,
+                                            destContext: ptr Graphics,
+                                            scaleFactor: cfloat,
+                                            alpha: cfloat) = discard)
+        cdelete effect
+
+        var backup = newCustomImagePixelDataBackupExtensions()
+        backup[].setSetBackupEnabledHandler(proc(arg0: bool) = discard)
+        backup[].setIsBackupEnabledHandler(proc(): bool = false)
+        backup[].setBackupNowHandler(proc(): bool = true)
+        backup[].setNeedsBackupHandler(proc(): bool = false)
+        backup[].setCanBackupHandler(proc(): bool = true)
+        cdelete backup
+
+        var imageType = newCustomImageType()
+        imageType[].setCreateHandler(proc(arg0: ImagePixelFormat, width: cint,
+                                          height: cint, shouldClearImage: bool):
+                                         ReferenceCountedObjectPtr[ImagePixelData] =
+            makeReferenceCountedObjectPtr[ImagePixelData]())
+        imageType[].setGetTypeIDHandler(proc(): cint = 0.cint)
+        cdelete imageType
+
+testRemainingGraphicsHandlers()
+
+# PixelAlpha, PathFlatteningIterator and PositionedGlyph =======================
+#
+# Three classes whose answers are arithmetic, so the assertions can be exact
+# rather than "something was drawn".
+
+proc testGraphicsValueClasses() =
+    block:
+        # PixelAlpha stores an alpha and nothing else. JUCE's own getRed,
+        # getGreen and getBlue return a literal 0 for it, and setARGB drops
+        # every argument but the first.
+        var pixel = makePixelAlpha()
+        pixel.setAlpha(200'u8)
+        doAssert pixel.getAlpha() == 200'u8, "the pixel holds " & $pixel.getAlpha()
+        doAssert pixel.getRed() == 0'u8, "red reads " & $pixel.getRed()
+        doAssert pixel.getGreen() == 0'u8, "green reads " & $pixel.getGreen()
+        doAssert pixel.getBlue() == 0'u8, "blue reads " & $pixel.getBlue()
+
+        pixel.multiplyAlpha(128.cint)
+        doAssert pixel.getAlpha() == 100'u8,
+                 "after halving, the alpha is " & $pixel.getAlpha()
+
+        pixel.setARGB(50'u8, 255'u8, 255'u8, 255'u8)
+        doAssert pixel.getAlpha() == 50'u8, "setARGB left " & $pixel.getAlpha()
+        doAssert pixel.getRed() == 0'u8,
+                 "setARGB kept a red of " & $pixel.getRed()
+
+    block:
+        # A rectangle flattens to four straight segments, and the iterator walks
+        # them. Every segment has to lie on the rectangle's own edges.
+        var path = makePath()
+        path.addRectangle(0.0'f32, 0.0'f32, 10.0'f32, 20.0'f32)
+
+        var walker = makePathFlatteningIterator(path, makeAffineTransform(), 1.0'f32)
+        var segments = 0
+        var closes = 0
+        var indices: seq[cint] = @[]
+        while walker.next():
+            segments += 1
+            for value in [walker.x1(), walker.x2()]:
+                doAssert value >= 0.0'f32 and value <= 10.0'f32,
+                         "a segment left the rectangle at x " & $value
+            for value in [walker.y1(), walker.y2()]:
+                doAssert value >= 0.0'f32 and value <= 20.0'f32,
+                         "a segment left the rectangle at y " & $value
+            if walker.closesSubPath(): closes += 1
+            indices.add walker.subPathIndex()
+
+        doAssert segments == 4,
+                 "the rectangle flattened to " & $segments & " segments"
+        doAssert closes == 1,
+                 $closes & " of the segments closed the sub path"
+        # JUCE documents subPathIndex as the index of the line within its own
+        # sub path, and says only that the first one is 0.
+        doAssert indices.len > 0 and indices[0] == 0,
+                 "the first segment reported sub path index " & $indices
+
+    block:
+        # A glyph placed at a known anchor reports that anchor back.
+        let font = makeFont(makeFontOptions())
+        var glyph = makePositionedGlyph(font, WChar(ord('A')), 0.cint,
+                                        5.0'f32, 30.0'f32, 12.0'f32, false)
+        doAssert glyph.getCharacter() == WChar(ord('A')),
+                 "the glyph holds codepoint " & $glyph.getCharacter().int
+        doAssert not glyph.isWhitespace(), "the glyph called itself whitespace"
+        doAssert glyph.getLeft() == 5.0'f32, "the glyph starts at " & $glyph.getLeft()
+        doAssert glyph.getRight() == 17.0'f32, "the glyph ends at " & $glyph.getRight()
+        doAssert glyph.getBaselineY() == 30.0'f32,
+                 "the baseline is at " & $glyph.getBaselineY()
+        doAssert glyph.getBounds().getWidth() == 12.0'f32,
+                 "the glyph is " & $glyph.getBounds().getWidth() & " wide"
+
+        glyph.moveBy(3.0'f32, -2.0'f32)
+        doAssert glyph.getLeft() == 8.0'f32, "after moving it starts at " & $glyph.getLeft()
+        doAssert glyph.getBaselineY() == 28.0'f32,
+                 "after moving the baseline is at " & $glyph.getBaselineY()
+
+testGraphicsValueClasses()
+
+# TextLayoutRun and TextLayoutGlyph ===========================================
+#
+# A laid-out line is a list of runs, and each run is a list of glyphs. Walking
+# down from the layout to the glyphs is what says the whole structure is
+# reachable from Nim rather than only its top.
+
+proc testTextLayoutRuns() =
+    block:
+        var text = makeAttributedString(makeString("Hello"))
+        text.setColour(makeColour(255'u8, 0'u8, 0'u8, 255'u8))
+
+        var layout = makeTextLayout()
+        layout.createLayout(text, 400.0'f32)
+        doAssert layout.getNumLines() == 1,
+                 "the text laid out on " & $layout.getNumLines() & " lines"
+
+        var glyphs = 0
+        var runs = 0
+        var lastAnchorX = -1.0'f32
+        for line in layout:
+            # Chained rather than bound to a local. OwnedArray and
+            # Array<Glyph> are both non-copyable - Glyph has no default
+            # constructor - so `var runs = line.runs()` asks C++ for a copy it
+            # will not make, and so does `for run in line.runs()`, because the
+            # items iterator takes the array by value. Used inline, no copy is
+            # needed and the accessor hands back the reference it holds.
+            for runIndex in 0 ..< line.runs().size():
+                runs += 1
+                doAssert line.runs()[runIndex][].stringRange().getLength() > 0,
+                         "a run covers no characters"
+                doAssert line.runs()[runIndex][].colour().getRed() == 255'u8,
+                         "the run lost the colour it was given"
+                for glyphIndex in 0 ..< line.runs()[runIndex][].glyphs().size():
+                    glyphs += 1
+                    # getReference, not []: `[]` returns by value and Nim
+                    # builds a temporary for that, which needs a default
+                    # constructor. TextLayout::Glyph has none.
+                    let width = line.runs()[runIndex][].glyphs()
+                                    .getReference(glyphIndex).width()
+                    doAssert width > 0.0'f32, "a glyph is " & $width & " wide"
+                    # Glyphs run left to right along the line.
+                    let anchorX = line.runs()[runIndex][].glyphs()
+                                      .getReference(glyphIndex).anchor().getX()
+                    doAssert anchorX > lastAnchorX,
+                             "glyph " & $glyphs & " is not right of the one before"
+                    lastAnchorX = anchorX
+
+        doAssert runs >= 1, "the line holds " & $runs & " runs"
+        doAssert glyphs == 5,
+                 "the five characters produced " & $glyphs & " glyphs"
+
+    block:
+        # Built by hand rather than laid out, so the fields are exactly what
+        # they were set to.
+        let glyph = makeTextLayoutGlyph(42.cint, makePoint(3.0'f32, 4.0'f32), 9.0'f32)
+        doAssert glyph.glyphCode() == 42, "the glyph code is " & $glyph.glyphCode()
+        doAssert glyph.anchor().getY() == 4.0'f32,
+                 "the anchor is at y " & $glyph.anchor().getY()
+        doAssert glyph.width() == 9.0'f32, "the glyph is " & $glyph.width() & " wide"
+
+        var run = makeTextLayoutRun(makeRange(0.cint, 5.cint), 4.cint)
+        doAssert run.stringRange().getLength() == 5,
+                 "the run covers " & $run.stringRange().getLength() & " characters"
+        run.colour = makeColour(0'u8, 0'u8, 255'u8, 255'u8)
+        doAssert run.colour().getBlue() == 255'u8, "the run is not blue"
+
+testTextLayoutRuns()
+
+# ImageConvolutionKernel ======================================================
+#
+# Arithmetic over pixels, so the results are exact. An identity kernel has to
+# leave an image alone, and a blur has to spread a single lit pixel into its
+# neighbours - two answers that a kernel doing nothing at all could not give.
+
+proc testImageConvolutionKernel() =
+    block:
+        var kernel = makeImageConvolutionKernel(3.cint)
+        doAssert kernel.getKernelSize() == 3,
+                 "the kernel is " & $kernel.getKernelSize() & " across"
+
+        kernel.clear()
+        doAssert kernel.getKernelValue(1.cint, 1.cint) == 0.0'f32,
+                 "a cleared kernel holds " & $kernel.getKernelValue(1.cint, 1.cint)
+
+        # Identity: the centre passes through and nothing else does.
+        kernel.setKernelValue(1.cint, 1.cint, 1.0'f32)
+        doAssert kernel.getKernelValue(1.cint, 1.cint) == 1.0'f32,
+                 "the centre holds " & $kernel.getKernelValue(1.cint, 1.cint)
+
+        kernel.rescaleAllValues(2.0'f32)
+        doAssert kernel.getKernelValue(1.cint, 1.cint) == 2.0'f32,
+                 "after rescaling the centre holds " &
+                 $kernel.getKernelValue(1.cint, 1.cint)
+
+        kernel.setOverallSum(1.0'f32)
+        doAssert kernel.getKernelValue(1.cint, 1.cint) == 1.0'f32,
+                 "after normalising the centre holds " &
+                 $kernel.getKernelValue(1.cint, 1.cint)
+
+        # A source with one lit pixel in the middle.
+        var source = makeImage(ImagePixelFormat_ARGB, 5.cint, 5.cint, true)
+        source.setPixelAt(2.cint, 2.cint, makeColour(255'u8, 255'u8, 255'u8, 255'u8))
+        doAssert source.getPixelAt(1.cint, 2.cint).getAlpha() == 0'u8,
+                 "the source is lit where it should be dark"
+
+        var identityResult = makeImage(ImagePixelFormat_ARGB, 5.cint, 5.cint, true)
+        kernel.applyToImage(identityResult, source,
+                            makeRectangle(0.cint, 0.cint, 5.cint, 5.cint))
+        doAssert identityResult.getPixelAt(2.cint, 2.cint).getAlpha() > 0'u8,
+                 "the identity kernel lost the lit pixel"
+        doAssert identityResult.getPixelAt(1.cint, 2.cint).getAlpha() == 0'u8,
+                 "the identity kernel spread the lit pixel"
+
+        # A blur spreads it, which is the answer the identity kernel did not
+        # give at the same coordinate.
+        var blur = makeImageConvolutionKernel(3.cint)
+        blur.createGaussianBlur(1.5'f32)
+        var blurred = makeImage(ImagePixelFormat_ARGB, 5.cint, 5.cint, true)
+        blur.applyToImage(blurred, source,
+                          makeRectangle(0.cint, 0.cint, 5.cint, 5.cint))
+        doAssert blurred.getPixelAt(1.cint, 2.cint).getAlpha() > 0'u8,
+                 "the blur did not reach the neighbouring pixel"
+
+testImageConvolutionKernel()
+
+# The nested abstract classes =================================================
+#
+# The subclass generator keyed an abstract class on its own spelling, which
+# never matched a declared Nim name for a nested one, so every Listener,
+# LookAndFeelMethods and other nested interface was skipped with no withheld
+# entry. Building each compiles the C++ class, and setting each handler is what
+# type-checks and generates the setter.
+
+proc testNestedSubclassesGraphics() =
+    initialiseJuce_GUI()
+    block:
+        var customImagePixelDataListener = newCustomImagePixelDataListener()
+        doAssert not customImagePixelDataListener.isNil(), "newCustomImagePixelDataListener built nothing"
+        customImagePixelDataListener[].setImageDataChangedHandler(proc(arg0: ptr ImagePixelData) = discard)
+        customImagePixelDataListener[].setImageDataBeingDeletedHandler(proc(arg0: ptr ImagePixelData) = discard)
+        cdelete customImagePixelDataListener
+    shutdownJuce_GUI()
+
+testNestedSubclassesGraphics()
+
+# Every no-argument constructor ===============================================
+#
+# An importcpp string reaches the C++ compiler only at a call site, so a
+# constructor nothing calls is never compiled. These had no caller.
+
+proc testEveryNoArgConstructorGraphics() =
+    initialiseJuce_GUI()
+    block:
+        discard makePixelARGB()
+        discard makeRectanglePlacement()
+        discard makePNGImageFormat()
+        discard makeJPEGImageFormat()
+        discard makeGIFImageFormat()
+        discard makeSoftwareImageType()
+        discard makeNativeImageType()
+        discard makeAttributedStringAttribute()
+        discard makeGlyphArrangement()
+        discard makeTextLayoutLine()
+        discard makeScaledImage()
+        discard makeDropShadow()
+        discard makeDropShadowEffect()
+        discard makeGlowEffect()
+    shutdownJuce_GUI()
+
+testEveryNoArgConstructorGraphics()
+
+# PathStrokeType ==============================================================
+#
+# Turns a line into the outline of a stroked line. A thicker stroke has to give
+# a taller outline, which a stroke that ignored its thickness could not.
+
+proc testPathStrokeType() =
+    block:
+        var line = makePath()
+        line.startNewSubPath(0.0'f32, 10.0'f32)
+        line.lineTo(100.0'f32, 10.0'f32)
+        doAssert line.getBounds().getHeight() == 0.0'f32,
+                 "a horizontal line is " & $line.getBounds().getHeight() & " high"
+
+        var thin = makePathStrokeType(2.0'f32)
+        doAssert thin.getStrokeThickness() == 2.0'f32,
+                 "the stroke is " & $thin.getStrokeThickness() & " thick"
+
+        var thinOutline = makePath()
+        thin.createStrokedPath(thinOutline, line, makeAffineTransform())
+        doAssert thinOutline.getBounds().getHeight() == 2.0'f32,
+                 "a 2px stroke gave an outline " &
+                 $thinOutline.getBounds().getHeight() & " high"
+
+        # A thicker stroke gives a taller outline: a different answer, not
+        # merely a non-empty one.
+        var thick = makePathStrokeType(8.0'f32, PathStrokeTypeJointStyle_curved,
+                                       PathStrokeTypeEndCapStyle_rounded)
+        doAssert thick.getJointStyle() == PathStrokeTypeJointStyle_curved,
+                 "the joint style did not stick"
+        doAssert thick.getEndStyle() == PathStrokeTypeEndCapStyle_rounded,
+                 "the end cap style did not stick"
+
+        var thickOutline = makePath()
+        thick.createStrokedPath(thickOutline, line, makeAffineTransform())
+        doAssert thickOutline.getBounds().getHeight() == 8.0'f32,
+                 "an 8px stroke gave an outline " &
+                 $thickOutline.getBounds().getHeight() & " high"
+
+        # Rounded caps stick out past the line's own ends; butt caps do not.
+        var butt = makePathStrokeType(8.0'f32, PathStrokeTypeJointStyle_mitered,
+                                      PathStrokeTypeEndCapStyle_butt)
+        var buttOutline = makePath()
+        butt.createStrokedPath(buttOutline, line, makeAffineTransform())
+        doAssert buttOutline.getBounds().getWidth() == 100.0'f32,
+                 "butt caps gave a width of " & $buttOutline.getBounds().getWidth()
+        doAssert thickOutline.getBounds().getWidth() > 100.0'f32,
+                 "rounded caps gave a width of " &
+                 $thickOutline.getBounds().getWidth()
+
+        thin.setStrokeThickness(5.0'f32)
+        doAssert thin.getStrokeThickness() == 5.0'f32,
+                 "the thickness reads " & $thin.getStrokeThickness()
+
+testPathStrokeType()
+
+# Font feature settings =======================================================
+#
+# OpenType feature tags, which are four characters packed into a uint32. The
+# round trip through toString is what says the packing is right, and the
+# settings reach a Font through its options.
+
+proc testFontFeatureSettings() =
+    block:
+        # 'liga', the standard ligature feature, big-endian in the tag word.
+        let liga = makeFontFeatureTag(0x6C696761'u32)
+        doAssert $liga.toString() == "liga",
+                 "the tag spells " & $liga.toString()
+        doAssert liga.getTag() == 0x6C696761'u32,
+                 "the tag reads back as " & $liga.getTag()
+
+        let kern = makeFontFeatureTag(0x6B65726E'u32)
+        doAssert $kern.toString() == "kern", "the tag spells " & $kern.toString()
+        doAssert kern < liga, "kern does not sort before liga"
+
+        var setting = makeFontFeatureSetting(liga, 1'u32)
+        doAssert $setting.tag().toString() == "liga",
+                 "the setting is for " & $setting.tag().toString()
+        doAssert setting.value() == 1'u32,
+                 "the setting holds " & $setting.value()
+
+        setting.value = 0'u32
+        doAssert setting.value() == 0'u32,
+                 "after turning it off the setting holds " & $setting.value()
+
+    block:
+        # A font carries the settings its options were given.
+        let plain = makeFontOptions()
+        doAssert plain.getFeatureSettings().size() == 0.csize_t,
+                 "fresh options carry " &
+                 $plain.getFeatureSettings().size().int & " settings"
+
+        let withLigatures = plain.withFeatureSetting(
+            makeFontFeatureSetting(makeFontFeatureTag(0x6C696761'u32), 1'u32))
+        doAssert withLigatures.getFeatureSettings().size() == 1.csize_t,
+                 "the options carry " &
+                 $withLigatures.getFeatureSettings().size().int & " settings"
+        doAssert $withLigatures.getFeatureSettings()[0.csize_t].tag().toString() == "liga",
+                 "the setting is for " &
+                 $withLigatures.getFeatureSettings()[0.csize_t].tag().toString()
+
+        # withFeatureSetting copies rather than mutating, like the other
+        # withX builders.
+        doAssert plain.getFeatureSettings().size() == 0.csize_t,
+                 "withFeatureSetting changed the options it was called on"
+
+        var font = makeFont(withLigatures)
+        doAssert font.getFeatureSettings().size() == 1.csize_t,
+                 "the font carries " & $font.getFeatureSettings().size().int & " settings"
+
+        font.removeFeatureSetting(makeFontFeatureTag(0x6C696761'u32))
+        doAssert font.getFeatureSettings().size() == 0.csize_t,
+                 "after removing it the font carries " &
+                 $font.getFeatureSettings().size().int & " settings"
+
+testFontFeatureSettings()
+
+# Every bound constant ========================================================
+#
+# A `let` with an importcpp is not checked against C++ unless something reads
+# it: a constant naming juce::NoSuchClass::nope compiles clean while nothing
+# touches it. Reading each is what compiles the spelling.
+
+proc testEveryConstantGraphics() =
+    block:
+        discard TypefaceMetricsKind_legacy
+        discard TypefaceMetricsKind_portable
+        discard JustificationFlags_left
+        discard JustificationFlags_right
+        discard JustificationFlags_horizontallyCentred
+        discard JustificationFlags_top
+        discard JustificationFlags_bottom
+        discard JustificationFlags_verticallyCentred
+        discard JustificationFlags_horizontallyJustified
+        discard JustificationFlags_centred
+        discard JustificationFlags_centredLeft
+        discard JustificationFlags_centredRight
+        discard JustificationFlags_centredTop
+        discard JustificationFlags_centredBottom
+        discard JustificationFlags_topLeft
+        discard JustificationFlags_topRight
+        discard JustificationFlags_bottomLeft
+        discard JustificationFlags_bottomRight
+        discard PathIteratorPathElementType_startNewSubPath
+        discard PathIteratorPathElementType_lineTo
+        discard PathIteratorPathElementType_quadraticTo
+        discard PathIteratorPathElementType_cubicTo
+        discard PathIteratorPathElementType_closePath
+        discard PathStrokeTypeJointStyle_mitered
+        discard PathStrokeTypeJointStyle_curved
+        discard PathStrokeTypeJointStyle_beveled
+        discard PathStrokeTypeEndCapStyle_butt
+        discard PathStrokeTypeEndCapStyle_square
+        discard PathStrokeTypeEndCapStyle_rounded
+        discard RectanglePlacementFlags_xLeft
+        discard RectanglePlacementFlags_xRight
+        discard RectanglePlacementFlags_xMid
+        discard RectanglePlacementFlags_yTop
+        discard RectanglePlacementFlags_yBottom
+        discard RectanglePlacementFlags_yMid
+        discard RectanglePlacementFlags_stretchToFit
+        discard RectanglePlacementFlags_fillDestination
+        discard RectanglePlacementFlags_onlyReduceInSize
+        discard RectanglePlacementFlags_onlyIncreaseInSize
+        discard RectanglePlacementFlags_doNotResize
+        discard RectanglePlacementFlags_centred
+        discard GraphicsResamplingQuality_lowResamplingQuality
+        discard GraphicsResamplingQuality_mediumResamplingQuality
+        discard GraphicsResamplingQuality_highResamplingQuality
+        discard ImagePixelFormat_UnknownFormat
+        discard ImagePixelFormat_RGB
+        discard ImagePixelFormat_ARGB
+        discard ImagePixelFormat_SingleChannel
+        discard ImageBitmapDataReadWriteMode_readOnly
+        discard ImageBitmapDataReadWriteMode_writeOnly
+        discard ImageBitmapDataReadWriteMode_readWrite
+        discard TypefaceColourGlyphFormat_colourGlyphFormatBitmap
+        discard TypefaceColourGlyphFormat_colourGlyphFormatSvg
+        discard TypefaceColourGlyphFormat_colourGlyphFormatCOLRv0
+        discard TypefaceColourGlyphFormat_colourGlyphFormatCOLRv1
+        discard FontFontStyleFlags_plain
+        discard FontFontStyleFlags_bold
+        discard FontFontStyleFlags_italic
+        discard FontFontStyleFlags_underlined
+        discard AttributedStringWordWrap_none
+        discard AttributedStringWordWrap_byWord
+        discard AttributedStringWordWrap_byChar
+        discard AttributedStringReadingDirection_natural
+        discard AttributedStringReadingDirection_leftToRight
+        discard AttributedStringReadingDirection_rightToLeft
+
+testEveryConstantGraphics()
+
+# Every static variable =======================================================
+#
+# Bound as a proc over the typedesc, so it is compiled only where it is called,
+# exactly like the constants. Reading each is what checks its C++ spelling.
+
+proc testEveryStaticVariableGraphics() =
+    block:
+        discard Path.`defaultToleranceForTesting`()
+        discard Path.`defaultToleranceForMeasurement`()
+        discard FontFeatureSetting.`featureEnabled`()
+        discard FontFeatureSetting.`featureDisabled`()
+
+testEveryStaticVariableGraphics()
+
+# Graphics::ScopedSaveState ===================================================
+#
+# Saves the graphics state on construction and restores it when the scope ends,
+# so a clip applied inside it does not survive.
+
+proc testScopedSaveState() =
+    block:
+        let surface = makeImage(ImagePixelFormat_ARGB, 20.cint, 20.cint, true)
+        var context = makeGraphics(surface)
+        context.setColour(makeColour(255'u8, 0'u8, 0'u8, 255'u8))
+
+        block:
+            let saved = makeGraphicsScopedSaveState(context)
+            discard context.reduceClipRegion(makeRectangle(0.cint, 0.cint, 5.cint, 5.cint))
+            context.fillAll()
+
+        # The clip went with the scope, so this fill reaches the whole surface.
+        context.fillAll()
+        doAssert surface.getPixelAt(15.cint, 15.cint).getRed() == 255'u8,
+                 "the clip outlived the scope that set it"
+
+testScopedSaveState()
+
+# The graphics iterators yield exactly what their containers hold ==============
+#
+# Each is a hand-written loop over the indexed accessors, so an off-by-one has
+# nothing to disagree with it. The count is checked against the container's own
+# answer, and the order against indexed access.
+
+proc testGraphicsIteratorsAreComplete() =
+    block:
+        var glyphs = makeGlyphArrangement()
+        glyphs.addLineOfText(makeFont(makeFontOptions()), makeString("abcdef"),
+                             0.0'f32, 10.0'f32)
+        doAssert glyphs.getNumGlyphs() > 0, "the arrangement laid out no glyphs"
+
+        var walked = 0
+        var lastX = -1.0'f32
+        for glyph in glyphs:
+            doAssert glyph.getLeft() >= lastX,
+                     "glyph " & $walked & " starts left of the one before it"
+            lastX = glyph.getLeft()
+            walked += 1
+        doAssert walked == glyphs.getNumGlyphs().int,
+                 "GlyphArrangement yielded " & $walked & " of " &
+                 $glyphs.getNumGlyphs()
+
+    block:
+        var region: RectangleList[cint]
+        for index in 0 ..< 4:
+            region.add(makeRectangle((index * 20).cint, 0.cint, 10.cint, 10.cint))
+
+        var seen: seq[cint] = @[]
+        for rectangle in region:
+            seen.add(rectangle.getX())
+        doAssert seen.len == region.getNumRectangles().int,
+                 "RectangleList yielded " & $seen.len & " of " &
+                 $region.getNumRectangles()
+        for index in 0 ..< seen.len:
+            doAssert seen[index] == region.getRectangle(index.cint).getX(),
+                     "RectangleList yielded x=" & $seen[index] & " at " & $index
+
+    block:
+        # An OwnedArray is only ever handed out by JUCE, and a laid-out line of
+        # text is where one with anything in it comes from.
+        var text = makeAttributedString(makeString("one two three"))
+        var layout = makeTextLayout()
+        layout.createLayout(text, 200.0'f32)
+        doAssert layout.getNumLines() > 0, "the layout produced no lines"
+
+        # The var getter, which hands back the field itself. There is no
+        # by-value one: OwnedArray deletes its copy constructor, so the
+        # generator withholds that getter with the reason on the line.
+        var line = layout.getLine(0.cint)
+        doAssert line.runs().size() > 0, "the line holds no runs"
+
+        var walked = 0
+        for run in line.runs():
+            doAssert not run.isNil, "a run came back nil"
+            walked += 1
+        doAssert walked == line.runs().size().int,
+                 "OwnedArray yielded " & $walked & " of " & $line.runs().size()
+
+# Bracketed, like the other tests that reach a Font: the shared typeface cache
+# is torn down by the GUI shutdown, and built outside one it is reported as a
+# leak at exit.
+initialiseJuce_GUI()
+testGraphicsIteratorsAreComplete()
+shutdownJuce_GUI()
+
+# What a generated constructor forwards ========================================
+#
+# The forwarding constructor with mixed argument types: an enum and two ints
+# for the pixel data, two Strings for the typeface. Building one proves the
+# arguments type-check, which is what the coverage check requires; reading them
+# back is what proves they arrive in the order they were given.
+
+proc testGeneratedConstructorsForwardGraphics() =
+    block:
+        let data = newCustomImagePixelData(ImagePixelFormat_ARGB, 13.cint, 29.cint)
+        doAssert data[].pixelFormat() == ImagePixelFormat_ARGB,
+                 "the pixel data has a different format from the one given"
+        doAssert data[].width() == 13,
+                 "the pixel data is " & $data[].width() & " wide, not 13"
+        doAssert data[].height() == 29,
+                 "the pixel data is " & $data[].height() & " tall, not 29"
+        cdelete data
+
+    block:
+        let typeface = newCustomTypeface(makeString("a name"), makeString("a style"))
+        doAssert $typeface[].getName() == "a name",
+                 "the typeface is called " & $typeface[].getName()
+        doAssert $typeface[].getStyle() == "a style",
+                 "the typeface style is " & $typeface[].getStyle()
+        cdelete typeface
+
+initialiseJuce_GUI()
+testGeneratedConstructorsForwardGraphics()
+shutdownJuce_GUI()
+
+
+# Every public field round-trips ===============================================
+#
+# A field getter and setter are importcpp procs like any other: they reach the
+# C++ compiler only where something calls them, so a setter nothing assigns is
+# never compiled. Each is set to a distinctive value and read back; where the
+# field's type compares, the read is asserted against what went in.
+
+proc testFieldRoundTrips() =
+    block:
+        var value = makeAffineTransform()
+        value.mat00 = 1.5'f32
+        doAssert value.mat00() == 1.5'f32,
+                 "AffineTransform.mat00 came back as " & $value.mat00()
+        value.mat01 = 1.5'f32
+        doAssert value.mat01() == 1.5'f32,
+                 "AffineTransform.mat01 came back as " & $value.mat01()
+        value.mat02 = 1.5'f32
+        doAssert value.mat02() == 1.5'f32,
+                 "AffineTransform.mat02 came back as " & $value.mat02()
+        value.mat10 = 1.5'f32
+        doAssert value.mat10() == 1.5'f32,
+                 "AffineTransform.mat10 came back as " & $value.mat10()
+        value.mat11 = 1.5'f32
+        doAssert value.mat11() == 1.5'f32,
+                 "AffineTransform.mat11 came back as " & $value.mat11()
+        value.mat12 = 1.5'f32
+        doAssert value.mat12() == 1.5'f32,
+                 "AffineTransform.mat12 came back as " & $value.mat12()
+    block:
+        var value = makeAttributedStringAttribute()
+        value.font = makeFont()
+        discard value.font()
+        value.range = makeRange(1.cint, 5.cint)
+        discard value.range()
+    block:
+        var value = makeColourGradient()
+        value.isRadial = true
+        doAssert value.isRadial() == true,
+                 "ColourGradient.isRadial came back as " & $value.isRadial()
+        value.point1 = makePoint(1.0'f32, 2.0'f32)
+        discard value.point1()
+        value.point2 = makePoint(1.0'f32, 2.0'f32)
+        discard value.point2()
+    block:
+        var value = makeDropShadow()
+        value.offset = makePoint(1.cint, 2.cint)
+        discard value.offset()
+        value.radius = 7.cint
+        doAssert value.radius() == 7.cint,
+                 "DropShadow.radius came back as " & $value.radius()
+    block:
+        var value = makeFillType()
+        value.image = makeImage()
+        discard value.image()
+        value.transform = makeAffineTransform()
+        discard value.transform()
+    block:
+        var value = makeImageLayer()
+        value.image = makeImage()
+        discard value.image()
+        value.transform = makeAffineTransform()
+        discard value.transform()
+    block:
+        var value = makeTextLayoutLine()
+        value.descent = 1.5'f32
+        doAssert value.descent() == 1.5'f32,
+                 "TextLayoutLine.descent came back as " & $value.descent()
+        value.leading = 1.5'f32
+        doAssert value.leading() == 1.5'f32,
+                 "TextLayoutLine.leading came back as " & $value.leading()
+        value.lineOrigin = makePoint(1.0'f32, 2.0'f32)
+        discard value.lineOrigin()
+        value.stringRange = makeRange(1.cint, 5.cint)
+        discard value.stringRange()
+    block:
+        var value = makeTextLayoutRun()
+        value.font = makeFont()
+        discard value.font()
+        value.stringRange = makeRange(1.cint, 5.cint)
+        discard value.stringRange()
+    block:
+        var value = makeTypefaceMetrics()
+        value.heightToPoints = 1.5'f32
+        doAssert value.heightToPoints() == 1.5'f32,
+                 "TypefaceMetrics.heightToPoints came back as " & $value.heightToPoints()
+
+testFieldRoundTrips()
+
+# The remaining graphics fields ================================================
+
+proc testRemainingGraphicsFields() =
+    block:
+        var fill = makeFillType()
+        fill.gradient = makeUniquePtr[ColourGradient]()
+        doAssert fill.gradient().isNil, "the gradient is not the empty one it was set to"
+
+    block:
+        var setting = makeFontFeatureSetting(makeFontFeatureTag(0x6C696761'u32),
+                                             1'u32)
+        setting.tag = makeFontFeatureTag(0x6B65726E'u32)
+        discard setting.tag()
+
+    block:
+        var iterator1 = makePathIterator(makePath())
+        iterator1.elementType = PathIteratorPathElementType_startNewSubPath
+        iterator1.x1 = 1.0'f32
+        iterator1.y1 = 2.0'f32
+        iterator1.x2 = 3.0'f32
+        iterator1.y2 = 4.0'f32
+        iterator1.x3 = 5.0'f32
+        iterator1.y3 = 6.0'f32
+        doAssert iterator1.elementType() == PathIteratorPathElementType_startNewSubPath,
+                 "the element type did not come back as it was set"
+        doAssert iterator1.x1() == 1.0'f32 and iterator1.y1() == 2.0'f32,
+                 "the first point is " & $iterator1.x1() & "," & $iterator1.y1()
+        doAssert iterator1.x2() == 3.0'f32 and iterator1.y2() == 4.0'f32,
+                 "the second point is " & $iterator1.x2() & "," & $iterator1.y2()
+        doAssert iterator1.x3() == 5.0'f32 and iterator1.y3() == 6.0'f32,
+                 "the third point is " & $iterator1.x3() & "," & $iterator1.y3()
+
+    block:
+        var flat = makePathFlatteningIterator(makePath(), makeAffineTransform(),
+                                              6.0'f32)
+        flat.x1 = 1.0'f32
+        flat.y1 = 2.0'f32
+        flat.x2 = 3.0'f32
+        flat.y2 = 4.0'f32
+        flat.closesSubPath = true
+        flat.subPathIndex = 2.cint
+        doAssert flat.x1() == 1.0'f32 and flat.y2() == 4.0'f32,
+                 "the flattened points did not come back as they were set"
+        doAssert flat.closesSubPath(), "closesSubPath came back false"
+        doAssert flat.subPathIndex() == 2,
+                 "the sub-path index is " & $flat.subPathIndex()
+
+    block:
+        var glyph = makeTextLayoutGlyph(7.cint, makePoint(1.0'f32, 2.0'f32), 3.0'f32)
+        glyph.glyphCode = 9.cint
+        glyph.anchor = makePoint(4.0'f32, 5.0'f32)
+        doAssert glyph.glyphCode() == 9, "the glyph code is " & $glyph.glyphCode()
+        doAssert glyph.anchor() == makePoint(4.0'f32, 5.0'f32),
+                 "the anchor did not come back as it was set"
+
+    block:
+        var run = makeTextLayoutRun()
+        discard run.glyphs()
+        var line = makeTextLayoutLine()
+        discard line.runs()
+
+    block:
+        var relative = makeRelativePointPath()
+        discard relative.elements()
+
+initialiseJuce_GUI()
+testRemainingGraphicsFields()
+shutdownJuce_GUI()
+
+# The image data fields ========================================================
+#
+# BitmapData is how a program reaches an Image's pixels, and its fields are the
+# whole description of the buffer: none had been written or read.
+
+proc testImageDataFields() =
+    block:
+        var image = makeImage(ImagePixelFormat_ARGB, 8.cint, 6.cint, true)
+        var data = makeImageBitmapData(image, 0.cint, 0.cint, 8.cint, 6.cint,
+                                       ImageBitmapDataReadWriteMode_readWrite)
+
+        doAssert data.width() == 8, "the data is " & $data.width() & " wide"
+        doAssert data.height() == 6, "the data is " & $data.height() & " tall"
+        doAssert data.pixelFormat() == ImagePixelFormat_ARGB,
+                 "the pixel format is not the image's"
+        doAssert data.pixelStride() == 4,
+                 "an ARGB pixel is " & $data.pixelStride() & " bytes"
+        doAssert data.lineStride() >= data.width() * data.pixelStride(),
+                 "the line stride is " & $data.lineStride() &
+                 ", less than a row of pixels"
+        doAssert data.size() > 0'u64, "the buffer reports no size"
+        doAssert data.data() != nil, "the buffer has no data pointer"
+
+        # Written as well as read, which is what puts the setters in front of
+        # the compiler. The values go back to what they were.
+        let stride = data.lineStride()
+        data.lineStride = 99.cint
+        doAssert data.lineStride() == 99,
+                 "the line stride is " & $data.lineStride() & " after being set"
+        data.lineStride = stride
+        data.pixelStride = data.pixelStride()
+        data.width = data.width()
+        data.height = data.height()
+        data.pixelFormat = data.pixelFormat()
+        data.size = data.size()
+        data.data = data.data()
+        data.dataReleaser = makeUniquePtr[ImageBitmapDataBitmapDataReleaser]()
+        doAssert data.dataReleaser().isNil,
+                 "the releaser is not the empty pointer it was set to"
+
+    block:
+        let pixels = newCustomImagePixelData(ImagePixelFormat_ARGB, 4.cint, 4.cint)
+        pixels[].userData = makeNamedValueSet()
+        doAssert pixels[].userData().size() == 0,
+                 "the user data holds " & $pixels[].userData().size() & " entries"
+        doAssert pixels[].pixelFormat() == ImagePixelFormat_ARGB,
+                 "the pixel data format is not the one it was built with"
+        cdelete pixels
+
+initialiseJuce_GUI()
+testImageDataFields()
+shutdownJuce_GUI()
+
+# TextLayoutRun's glyphs =======================================================
+
+proc testTextLayoutRunGlyphs() =
+    var run = makeTextLayoutRun()
+    run.glyphs = makeArray[TextLayoutGlyph]()
+    doAssert run.glyphs().size() == 0,
+             "the run holds " & $run.glyphs().size() & " glyphs"
+
+testTextLayoutRunGlyphs()

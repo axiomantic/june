@@ -29,12 +29,18 @@ jobs:
       - name: Install libclang
         run: python3 -m pip install --break-system-packages libclang
 
-      - name: Every hand-written binding is called
-        # The generated modules are checked by regenerating them. The
-        # hand-written layer has no such check, and an importcpp string only
-        # reaches the C++ compiler at the call site, so a binding nothing calls
-        # is never compiled. Seven defects were found in that layer by calling
-        # things for the first time.
+      - name: Everything bound is exercised
+        # Regenerating the modules proves they match their generator. It says
+        # nothing about whether any of it works, because an importcpp string
+        # reaches the C++ compiler only at a call site: a binding nothing calls
+        # is never compiled at all, and a constant nothing reads is never
+        # checked against C++ either.
+        #
+        # This script is the guard against that. It fails when a hand-written
+        # binding, a generated subclass, a handler setter, a no-argument
+        # constructor, a bound constant, a static variable or a constructible
+        # class is not exercised by a test. Every defect this branch fixed was
+        # found that way.
         run: python3 tools/check_handwritten_covered.py
 
       - name: Regenerate and compare
@@ -47,9 +53,12 @@ jobs:
             PYTHONPATH=tools python3 tools/generate_subclasses.py --module "$module" \
               > "sources/june/${module}_subclasses.nim" || exit 1
           done
+          # The compile harness is generated from the emitted bindings, so a
+          # generator change that adds or withholds one has to change it too.
+          PYTHONPATH=tools python3 tools/generate_compile_harness.py || exit 1
           # git diff exits 1 when anything differs, which fails the job and
           # prints exactly what drifted.
-          git diff --exit-code -- sources/june/
+          git diff --exit-code -- sources/june/ tests/test_juce_compiles.nim
 
   test:
     name: nim ${{ matrix.nim-version }} / ${{ matrix.os }}
@@ -61,6 +70,15 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
         nim-version: ['2.2.2', '2.2.10']
+        # nim-lang.org publishes no macOS build below 2.2.8 - 2.2.0 through
+        # 2.2.6 are linux_x64 only - so nimble cannot install the pinned
+        # version there. It answers "No nim version matching any version",
+        # downloads 2.2.10 instead and exits 0, which is why this job failed
+        # on every macOS run while ubuntu passed. The lower bound is checked
+        # on linux, where a build of it exists.
+        exclude:
+          - os: macos-latest
+            nim-version: '2.2.2'
 
     steps:
       - name: Checkout
@@ -118,8 +136,44 @@ jobs:
           path: ~/.nimble/pkgs2
           key: nim-${{ matrix.os }}-${{ matrix.nim-version }}
 
+      # When nimble cannot match the pinned version it asks "No nim version
+      # matching any version. Download it now?", and -y answers yes: it installs
+      # whatever is newest and EXITS 0. So the exit code says nothing about
+      # which compiler is now on disk, and a retry keyed on it never fires.
+      #
+      # Key the retry on the artifact instead. The pinned compiler either is at
+      # its exact path or it is not, and a wrong version installed alongside is
+      # cleared before the second attempt so it cannot satisfy the check. The
+      # retry is for a transient list fetch; the one cause found so far - no
+      # published macOS build below 2.2.8 - is handled by the matrix exclude
+      # above, since no number of retries can download a file that is not there.
       - name: Install Nim ${{ matrix.nim-version }}
-        run: nimble install -y nim@${{ matrix.nim-version }}
+        run: |
+          pinned() { echo "$HOME"/.nimble/pkgs2/nim-${{ matrix.nim-version }}-*/bin/nim; }
+          install_nim() {
+            nimble refresh -y || true
+            nimble install -y nim@${{ matrix.nim-version }} || true
+            test -x "$(pinned)"
+          }
+          # Three attempts with a widening gap. Two 15s apart both lost to one
+          # SSL failure fetching packages.json, which is the same outage twice
+          # rather than two tries.
+          # The clear runs only between attempts, never before the first: the
+          # cache step restores the pinned compiler into that directory, and
+          # wiping it up front would throw the cache away on every run.
+          for delay in 0 20 60; do
+            [ "$delay" = 0 ] || {
+              echo "attempt failed; waiting ${delay}s"
+              sleep "$delay"
+              rm -rf "$HOME"/.nimble/pkgs2/nim-*
+            }
+            install_nim && break
+          done
+          test -x "$(pinned)" || {
+            echo "::error::nimble could not install Nim ${{ matrix.nim-version }}"
+            exit 1
+          }
+          "$(pinned)" --version | sed -n '1p'
 
       # The JUCE static library is the slow part of the build and depends only
       # on the submodule revision, not on the Nim version under test. Key the
@@ -163,11 +217,30 @@ jobs:
           # bash carries: nothing in this file states that the step depends on
           # it, so a later edit to `shell:` or a pipe added to the command would
           # turn a red suite green with no other sign.
+          # JUCE's leak detector reports what a class with JUCE_LEAK_DETECTOR
+          # still has alive at exit, and it prints rather than failing, so a
+          # leak reaches the log and the job stays green. It is worth failing
+          # on: the two it caught were a DrawableButton test that believed
+          # setImages takes ownership when it stores a copy, and a closure
+          # capturing a ValueTree, whose environment Nim never destructs. Both
+          # were wrong beliefs about ownership rather than untidy tests.
+          leaked=0
           for test_file in tests/test_juce_*.nim; do
             echo "::group::$test_file"
-            "$nim_bin" cpp -r --hints:off "$test_file" || exit 1
+            # Redirected rather than piped through tee: a pipe hands the
+            # step tee's exit status, so whether a failing test is noticed
+            # would depend on pipefail being set.
+            "$nim_bin" cpp -r --hints:off "$test_file" > /tmp/test_output 2>&1 \
+              || { cat /tmp/test_output; exit 1; }
+            cat /tmp/test_output
+            if grep -q "Leaked objects detected" /tmp/test_output; then
+              echo "::error::$test_file leaked:"
+              grep "Leaked objects detected" /tmp/test_output
+              leaked=1
+            fi
             echo "::endgroup::"
           done
+          [ "$leaked" = 0 ] || exit 1
 
           # The examples are reproduced in the README, so an API change that
           # breaks one breaks the documentation too. Built but not run: they

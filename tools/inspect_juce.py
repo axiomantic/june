@@ -17,6 +17,12 @@ nim_enum_def = """  {enum_name}* {{.header: {juce_module_name}, importcpp: "{spe
 
 nim_dollar_def = """proc `$`*(this: {class_name}): string = $this.toString()"""
 
+# `$` on an importcpp object with no toString falls through to Nim's default,
+# which prints "()" because these declare no fields - a silent, useless answer
+# in exactly the place a person is trying to see what a value is. 610 of the
+# 630 bound types were in that state. Marked {.error.}, it says so instead.
+nim_no_dollar_def = """proc `$`*(this: {class_name}): string {{.error: "{spelling} has no toString; print a property instead".}}"""
+
 nim_no_equality_def = """proc `==`*(this: {class_name}, other: {class_name}): bool {{.error: "{spelling} defines no operator==; compare a property instead".}}"""
 
 nim_enum_constant_def = """let {constant_name}* {{.header: {juce_module_name}, importcpp: "{spelling}".}}: {enum_name}"""
@@ -44,7 +50,7 @@ include {juce_module_name}_lifting
 # inheritable lifts Nim's refusal to write `object of X`; pure stops it adding
 # an RTTI field to the layout. Without pure, Nim value-initialises these as
 # {(&NTIv2_...)}, and C++ rejects it: JUCE's classes have no such member.
-nim_class_def = """  {class_name}{export} {{.header: {juce_module_name}, importcpp: "{spelling}", inheritable, pure.}} = object{base}"""
+nim_class_def = """  {class_name}{export} {{.header: {juce_module_name}, importcpp: "{spelling}", inheritable, pure{by_copy}.}} = object{base}"""
 
 nim_template_def = """{comment}proc {function_name}*[{generics}]({function_args}){function_return} {{.header: {juce_module_name}, importcpp: "juce::{juce_spelling}(@)".}}{reason}"""
 
@@ -89,12 +95,29 @@ nim_field_getter_def = """{comment}proc {field_name}*(this: {class_name}): {fiel
 # a field called `end` is `end=`, not ``end`=`.
 nim_field_var_getter_def = """{comment}proc {field_name}*(this: var {class_name}): var {field_type} {{.header: {juce_module_name}, importcpp: "#.{juce_spelling}".}}{reason}"""
 
-nim_field_setter_def = """{comment}proc `{raw_name}=`*(this: var {class_name}, value: {field_type}) {{.header: {juce_module_name}, importcpp: "#.{juce_spelling} = #".}}{reason}"""
+nim_field_setter_def = """{comment}proc `{raw_name}=`*(this: var {class_name}, value: {field_type}) {{.header: {juce_module_name}, importcpp: "#.{juce_spelling} = {value_expression}".}}{reason}"""
+
+# Wrappers that cannot be copy-assigned, so a setter for a field of one has to
+# move. Nine field setters assigned one by copy and every call was rejected:
+# PopupMenu::Item::subMenu and image, FillType::gradient,
+# DialogWindowLaunchOptions::content and the accessibility interfaces.
+#
+# A named set rather than asking libclang whether the copy assignment is
+# deleted: for these it is deleted implicitly, because of a member, and that is
+# not reported as a deleted method.
+move_only_wrappers = ("UniquePtr[", "OptionalScopedPointer[")
 
 # A static method has no receiver, so it takes the class as a typedesc and is
 # called as Time.currentTimeMillis(). That is the spelling juce_events_lifting
 # already used for MessageManager.getInstance.
 nim_static_method_def = """{comment}proc {method_name}*(this: typedesc[{class_name}]{method_args}){method_return} {{.header: {juce_module_name}, importcpp: "{qualified_name}::{juce_spelling}({juce_args})".}}{reason}"""
+
+# The same call with each argument cast to the type its overload declares, for
+# a static method whose overloads differ only in a scalar. The leading `#` is
+# the typedesc, which is compile-time only and expands to nothing: giving it a
+# placeholder of its own inside the parentheses lets the ones after it line up
+# with the real arguments, which is what a bare `#` per parameter could not do.
+nim_static_method_cast_def = """{comment}proc {method_name}*(this: typedesc[{class_name}]{method_args}){method_return} {{.header: {juce_module_name}, importcpp: "(#{qualified_name}::{juce_spelling}({juce_args}))".}}{reason}"""
 
 nim_method_def = """{comment}proc {method_name}*({method_args}){method_return} {{.header: {juce_module_name}, importcpp: "#.{juce_spelling}({juce_args})".}}{reason}"""
 
@@ -161,7 +184,12 @@ def remap_type(t, *args):
         prefix = "ptr "
     elif t.kind in (TypeKind.LVALUEREFERENCE, TypeKind.RVALUEREFERENCE):
         target = t.get_pointee()
-        prefix = "" if target.is_const_qualified() else "var "
+        # Only an lvalue reference becomes var. An rvalue reference has no
+        # distinct Nim spelling and is bound as the plain type, for the reason
+        # the & handling further down states; giving it a var here would
+        # contradict that path for class templates alone.
+        prefix = ("var " if t.kind == TypeKind.LVALUEREFERENCE
+                  and not target.is_const_qualified() else "")
 
     declaration = target.get_declaration()
 
@@ -188,7 +216,6 @@ def remap_type(t, *args):
 
     parts = list(filter(lambda part: part, t.spelling.split(" ")))
 
-    is_pointer = "*" in parts
     is_const = "const" in parts
 
     result = t.spelling
@@ -197,6 +224,16 @@ def remap_type(t, *args):
     result = result.replace("void *", "pointer")
     result = result.replace("const char *", "kChar")
     result = result.replace("char *", "ptr char")
+    # Counted here, after the replacements above and before the stars are
+    # stripped, so an implicit pointer type does not get a second ptr - `char *`
+    # is already "ptr char" by this point and contributes no star - while a
+    # double pointer gets both. The test this replaces looked for a bare "*"
+    # token in the split spelling, which missed every spelling that glues the
+    # star to another word: `Component *const` and `Component **` each lost
+    # their pointer entirely and bound as the class BY VALUE. MouseEvent's
+    # eventComponent and originalComponent fields and StretchableLayoutManager's
+    # layOutComponents were the three in JUCE's public API.
+    pointer_depth = result.count("*")
     # Extract the type itself
     result = result.replace("const", "")
     result = result.replace("*", "")
@@ -207,21 +244,55 @@ def remap_type(t, *args):
     result = result.strip()
 
     if "<" in result:
-        mapped = remap_template(result, *args)
+        # From the pointee's spelling, not from `result`: the replacements above
+        # strip every star in the string, including the ones inside the angle
+        # brackets, so Array<TextButton *> reached remap_template as
+        # Array<TextButton> and bound an array of buttons where JUCE wants an
+        # array of pointers to them. Only the outer const needs removing here;
+        # the outer star and reference are already gone with the pointee.
+        template_spelling = target.spelling
+        if template_spelling.startswith("const "):
+            template_spelling = template_spelling[len("const "):]
+
+        # The canonical spelling as well as the written one. libclang reports a
+        # nested type as the header spells it - std::optional<Style> inside
+        # ProgressBar - and the table that renames an instantiation is keyed on
+        # the qualified form, which is the only one that identifies it.
+        canonical_spelling = target.get_canonical().spelling
+        if canonical_spelling.startswith("const "):
+            canonical_spelling = canonical_spelling[len("const "):]
+        renamed = template_instantiation_renames.get(canonical_spelling)
+        if renamed is not None:
+            return f"{prefix}{renamed[0]}"
+
+        mapped = remap_template(template_spelling, *args)
         # std::function over a const reference is a different C++ type from one
         # over a value, and where the argument holds a reference member - as
         # var::NativeFunctionArgs does - the by-value form does not compile at
         # all. The const and the & are stripped from the spelling above before
         # remap_template ever sees them, so the distinction is read here, off
         # the original.
-        if (mapped is not None and mapped.startswith("CppFunctionObjectR1[")
-                and re.search(r"std::function<[^<>]*\(\s*const\s[^()*]*&\s*\)>", t.spelling)):
+        const_reference_argument = re.search(
+            r"std::function<[^<>]*\(\s*const\s[^()*]*&\s*\)>", t.spelling)
+        if (mapped is not None and const_reference_argument
+                and mapped.startswith("CppFunctionObjectR1[")):
             mapped = "CppFunctionObjectR1Ref[" + mapped[len("CppFunctionObjectR1["):]
+        # The void-returning form of the same thing. FileChooser::launchAsync
+        # asks for a std::function over a FileChooser, which cannot be copied,
+        # so the by-value type it was bound as is one C++ cannot even form.
+        elif (mapped is not None and const_reference_argument
+                and mapped.startswith("CppFunctionObjectN1[")):
+            mapped = "CppFunctionObjectN1Ref[" + mapped[len("CppFunctionObjectN1["):]
         # Leave the C++ spelling in place when it cannot be mapped. It is not
         # valid Nim, which is exactly the signal the emit site checks in order
         # to comment the proc out.
         if mapped is not None:
-            return f"ptr {mapped}" if is_pointer else mapped
+            # prefix, not is_pointer alone. It carries the var for a non-const
+            # reference as well as the ptr, and returning only the ptr dropped
+            # the var from every reference to a class template: checkBounds
+            # took its out parameter as an immutable Rectangle[cint] while JUCE
+            # wrote through it.
+            return f"{prefix}{mapped}"
         return result
 
     result = remap_table.get(result, result)
@@ -238,9 +309,7 @@ def remap_type(t, *args):
         if "&" in parts:
             result = f"var {result}"
 
-    implicit_pointer_types = ["pointer", "ptr char", "constChar", "constPointer"]
-
-    return f"ptr {result}" if is_pointer and result not in implicit_pointer_types else result
+    return "ptr " * pointer_depth + result
 
 # C++ spellings that must not become Nim's int or float inside a template
 # argument. Nim substitutes the parameter's C++ name into the template, and
@@ -325,6 +394,26 @@ def split_template_args(text):
         args.append(current.strip())
     return args
 
+# Template instantiations that must not be spelled as a Nim generic, with the
+# Nim type each becomes and the module that declares it.
+#
+# Nim collapses a `distinct cint` onto its base when it instantiates a generic,
+# so CppOptional[cint] and CppOptional[ProgressBarStyle] render one C++ type -
+# whichever is emitted first - and a program using both gets std::optional<int>
+# where std::optional<juce::ProgressBar::Style> is wanted. That is the same
+# erasure that made one Nim closure struct serve `proc(): cint` and
+# `proc(): SomeEnum`, which bindEnumClosure works around for the function
+# objects; a container has no such hook, so it gets a type of its own.
+#
+# Found by compiling both instantiations in one program. Alone, either
+# compiles.
+template_instantiation_renames = {
+    "std::optional<juce::ProgressBar::Style>": (
+        "ProgressBarStyleOptional", "juce_gui_basics"),
+}
+
+#==================================================================================================
+
 def remap_template(spelling, *args):
     """Convert a C++ template spelling to Nim, or return None if it cannot be.
 
@@ -337,6 +426,10 @@ def remap_template(spelling, *args):
     # types JUCE uses it with, so unwrapping it resolves the type the way the
     # explicitly typed overload of the same method already resolves.
     spelling = re.sub(r"(?:std::)?decay_t\s*<\s*([^<>]*?)\s*>", r"\1", spelling)
+
+    renamed = template_instantiation_renames.get(spelling.strip())
+    if renamed is not None:
+        return renamed[0]
 
     match = re.match(r"^([A-Za-z_][A-Za-z0-9_:]*)\s*<(.*)>$", spelling.strip())
     if not match:
@@ -377,6 +470,14 @@ def remap_template(spelling, *args):
     return f"{nim_head}[{', '.join(mapped)}]"
 
 def remap_template_arg(spelling, *args):
+    # Read before the const is stripped: a pointer TO a const is a different
+    # C++ type from a pointer to a mutable one, and Array<const UndoableAction *>
+    # bound as Array[ptr UndoableAction] names a type C++ will not convert to.
+    # ConstPtr is what spells the difference in Nim.
+    without_reference = spelling.replace("&", "").strip()
+    points_to_const = (without_reference.endswith("*")
+                       and "const" in without_reference[:without_reference.rindex("*")])
+
     spelling = spelling.replace("const", "").replace("&", "").strip()
 
     is_pointer = spelling.endswith("*")
@@ -418,7 +519,9 @@ def remap_template_arg(spelling, *args):
     if result is None:
         return None
 
-    return f"ptr {result}" if is_pointer else result
+    if not is_pointer:
+        return result
+    return f"ConstPtr[{result}]" if points_to_const else f"ptr {result}"
 
 #==================================================================================================
 
@@ -452,6 +555,9 @@ wrapped_by_lifting = {
 # collide with the operator the _lifting file binds.
 equality_bound_by_lifting = {"String", "juce_var"}
 
+# Types whose `$` the hand-written layer provides.
+dollar_bound_by_lifting = {"String", "Rectangle", "Point", "CppString", "Toolbar"}
+
 def remap_wrapped_method_name(class_name, method_name):
     return wrapped_by_lifting.get((class_name, method_name), method_name)
 
@@ -473,8 +579,9 @@ known_builtin_types = {
     "float", "float32", "float64", "bool", "char", "string", "cstring",
     "pointer", "void", "csize_t", "cchar", "cuchar", "cshort", "cushort",
     "cint", "cuint", "clong", "culong", "clonglong", "culonglong",
-    "cfloat", "cdouble", "constChar", "constPointer", "WChar",
+    "cfloat", "cdouble", "constChar", "constPointer", "WChar", "ConstPtr",
     "UniquePtr", "CppOptional", "CppVector", "CppFunctionObjectR1Ref",
+    "CppFunctionObjectN1Ref",
     "CppString", "CppMap", "CppUnorderedMap", "CppArray", "CppException", "CppTypeIndex", "CppByte",
     "Rectangle", "Point", "Line", "BorderSize", "Range",
     "Array", "OwnedArray", "ReferenceCountedObjectPtr",
@@ -492,6 +599,17 @@ def is_c_array(rendered):
     """A C array spells as uint8[6] or char[]; Nim generic brackets never hold
     a number and are never empty, so the two cannot be confused."""
     return re.search(r"\[\s*\d*\s*\]", rendered) is not None
+
+# A class with no declared constructor still has no usable default one when a
+# member of its own has none: C++ deletes it, and libclang reports neither the
+# deletion nor the reason. The suite constructs every aggregate the generator
+# emits a default constructor for, so a class that belongs here and is missing
+# fails the build rather than sitting uncompiled.
+no_implicit_default = {
+    "ColourLayer": "holds an EdgeTable, which has no default constructor",
+    "GlyphLayer": ("holds a std::variant whose first alternative is "
+                   "ColourLayer, so its own default is deleted too"),
+}
 
 def unbound_type_reason(rendered, member=False):
     """Why a rendered signature could not be bound.
@@ -526,7 +644,41 @@ def unbound_type_reason(rendered, member=False):
         return ("takes a type from juce::detail, which is JUCE's own "
                 "implementation; the class is obtained from the API that "
                 "creates it")
+    # The shapes that turn up often enough to name. The bare fallback below
+    # says nothing a reader can act on, and 21 procs were sitting behind it.
+    if re.search(r"\bauto\b", rendered):
+        return ("a deduced return type, which cannot be spelled without "
+                "instantiating the template")
+    if "std::variant" in rendered:
+        return "a std::variant, which Nim cannot spell"
+    if "SingletonHolder" in rendered:
+        return "JUCE's SingletonHolder, which is reached through the singleton it holds"
+    if "ListenerList" in rendered:
+        return ("a ListenerList over a nested type, which has no name outside "
+                "the class; addListener and removeListener reach it")
+    if "__CFString" in rendered or "CFString" in rendered:
+        return "a Core Foundation type, which is not bound"
+    if "nullopt_t" in rendered:
+        return "std::nullopt_t, which is a tag rather than a value Nim can pass"
+    if "ScopedPointer" in rendered:
+        return "juce::ScopedPointer, which JUCE removed and does not define"
+    if re.search(r"\(\s*pointer[^)]*\)", rendered):
+        return "a C++ function pointer parameter, which the generator cannot spell"
+    if "::" in rendered:
+        return ("a nested or template name that survived remapping, so it is "
+                "not valid Nim")
     return "a type that cannot be spelled in Nim"
+
+# A nested class whose flattened name collides with a top-level one. Both
+# juce::MessageManagerLock and juce::MessageManager::Lock flatten to
+# MessageManagerLock, and the type declaration ended up naming the nested one
+# while every method bound onto it came from the top-level class - so the
+# constructor could not be called and the methods were attributed to a class
+# that does not have them.
+nested_class_renames = {
+    "juce::MessageManager::Lock": "MessageManagerInnerLock",
+}
+
 
 def nested_class_descendants(cursor, nim_prefix, cpp_prefix):
     """Every public class nested under a cursor, at any depth.
@@ -541,8 +693,9 @@ def nested_class_descendants(cursor, nim_prefix, cpp_prefix):
                 or child.access_specifier != AccessSpecifier.PUBLIC
                 or not child.spelling):
             continue
-        nim_name = f"{nim_prefix}{child.spelling}"
         cpp_name = f"{cpp_prefix}::{child.spelling}"
+        nim_name = nested_class_renames.get(
+            cpp_name, f"{nim_prefix}{child.spelling}")
         yield child, nim_name, cpp_name
         yield from nested_class_descendants(child, nim_name, cpp_name)
 
@@ -720,6 +873,55 @@ def scalar_overloaded_names(methods):
     return ambiguous
 
 
+# Declared in JUCE's headers and defined nowhere in JUCE 8.0.15. The binding
+# compiles and the call fails to link, which no amount of parsing the headers
+# can predict - each of these was found by linking one. One entry per class,
+# holding a set, for the reason skip_class_method's own comment gives.
+undefined_in_juce = {
+    # NativeInfo is `struct NativeInfo;` in the header and defined only in
+    # JUCE's Android sources, so it cannot be returned by value anywhere else.
+    # libclang offers no reliable test for this: get_size() is negative for
+    # every class template instantiation it has not laid out, which withheld
+    # forty perfectly good bindings when it was tried, and asking the return
+    # type's declaration whether it is a definition flags fourteen methods that
+    # work - getAllComponents and getChildren among them - while missing the
+    # two below entirely.
+    "AndroidDocument": {"getNativeInfo"},
+    # `class Native;` and `class ImagePixelDataNativeExtensions;` in their
+    # headers, defined in the per-platform sources. Both were found by
+    # compiling a call: "calling 'getNativeDetails' with incomplete return
+    # type".
+    "Font": {"getNativeDetails"},
+    "ImagePixelData": {"getNativeExtensions"},
+    "RelativeCoordinate": {"references"},
+    # JUCE keeps the removed shape of these as a [[deprecated]] declaration
+    # with no definition, so a call compiles and the link fails. An entry can
+    # name one overload rather than the method, because the replacement sits
+    # beside it: Slider::setValue(double, NotificationType) is the one to use
+    # and works.
+    #
+    # Measured by linking, not derived. 46 methods carry [[deprecated]] and 22
+    # of those have a non-deprecated sibling, but only these eleven are
+    # undefined - the rest are deprecated and still implemented, and
+    # withholding them on either rule would take working bindings with them.
+    "Slider": {
+        ("setValue", ("double", "bool")),
+        ("setValue", ("double", "bool", "bool")),
+        ("setMinValue", ("double", "bool")),
+        ("setMinValue", ("double", "bool", "bool")),
+        ("setMinValue", ("double", "bool", "bool", "bool")),
+        ("setMaxValue", ("double", "bool")),
+        ("setMaxValue", ("double", "bool", "bool")),
+        ("setMaxValue", ("double", "bool", "bool", "bool")),
+        ("setMinAndMaxValues", ("double", "double", "bool")),
+        ("setMinAndMaxValues", ("double", "double", "bool", "bool")),
+    },
+    "ListBox": {("setSelectedRows", ("const SparseSet<int> &", "bool"))},
+    "RelativePointPathQuadraticTo": {"createTree"},
+    "RelativePointPathCubicTo": {"createTree"},
+}
+
+
 def skip_class_method(class_name, method_name):
     # One entry per class, holding a set. A dict of class to a single method
     # name loses every entry but the last for a class named more than once, and
@@ -774,6 +976,333 @@ def use_system_libclang():
         if os.path.exists(candidate):
             clang.cindex.Config.set_library_file(candidate)
             return
+
+#==================================================================================================
+
+def is_template_specialization(cursor):
+    """Whether this class is an explicit specialization of a class template.
+
+    libclang reports one as an ordinary STRUCT_DECL carrying the template's
+    bare name, so the generator bound juce::VariantConverter<String> as a class
+    called VariantConverter and emitted its statics. C++ then refuses the call:
+    "use of class template 'juce::VariantConverter' requires template
+    arguments". get_num_template_arguments answers -1 for a class that is not
+    one and the count for a class that is, which separates them exactly.
+    """
+    try:
+        return cursor.get_num_template_arguments() >= 0
+    except Exception:
+        return False
+
+#==================================================================================================
+
+def public_bases(cursor):
+    """The public base classes of a class, as cursors.
+
+    Read off the cursor rather than looked up by name. JUCE gives many nested
+    classes the name LookAndFeelMethods and LookAndFeel inherits most of them,
+    so a table keyed on the bare spelling collapses them into one and loses
+    every drawing hook but the first.
+    """
+    if cursor is None:
+        return []
+    return [node.referenced for node in cursor.get_children()
+            if node.kind == CursorKind.CXX_BASE_SPECIFIER
+            and node.access_specifier == AccessSpecifier.PUBLIC
+            and node.referenced is not None]
+
+#==================================================================================================
+
+def reachable_public_methods(cursor, seen=None):
+    """Public methods of a class and of everything it publicly inherits.
+
+    Returns name -> list of (owner USR, cursor). A name reaching the class down
+    two different base branches has more than one owner and is ambiguous in C++
+    when called unqualified. A name the class redeclares shadows the base's, so
+    an override keeps a single owner and stays callable - which is why the test
+    is on owners rather than on how many declarations were seen.
+
+    Each branch recurses with its own visited set, so a name arriving twice
+    through a diamond is reported as the two arrivals it is rather than pruned
+    to one and wrongly emitted.
+    """
+    seen = set() if seen is None else seen
+    found = {}
+    if cursor is None:
+        return found
+    usr = cursor.get_usr()
+    if usr in seen:
+        return found
+    seen = seen | {usr}
+
+    for x in cursor.get_children():
+        if (x.kind == CursorKind.CXX_METHOD
+                and x.access_specifier == AccessSpecifier.PUBLIC
+                and x.spelling):
+            found.setdefault(x.spelling, []).append((usr, x))
+
+    declared_here = set(found)
+    for b in public_bases(cursor):
+        for name, entries in reachable_public_methods(b, seen).items():
+            if name in declared_here:
+                continue
+            found.setdefault(name, []).extend(entries)
+    return found
+
+#==================================================================================================
+
+def non_copyable_type_names(translation_unit):
+    """Names of types with no accessible copy constructor.
+
+    Read from the definitions, and from the CLASS_TEMPLATE among them: asking
+    an instantiation for its constructors gives nothing, because libclang has
+    not laid one out. OwnedArray<Run> answers "no constructors" and reads as
+    copyable, while the template it came from deletes the copy.
+    """
+    found = set()
+
+    def visit(cursor):
+        for child in cursor.get_children():
+            if (child.kind in (CursorKind.CLASS_DECL, CursorKind.STRUCT_DECL,
+                               CursorKind.CLASS_TEMPLATE)
+                    and child.is_definition() and child.spelling):
+                copies = [x for x in child.get_children()
+                          if x.kind == CursorKind.CONSTRUCTOR
+                          and x.is_copy_constructor()]
+                if copies and not any(
+                        x.access_specifier == AccessSpecifier.PUBLIC
+                        and not x.is_deleted_method() for x in copies):
+                    found.add(child.spelling)
+            visit(child)
+
+    visit(translation_unit.cursor)
+    return found
+
+#==================================================================================================
+
+def type_is_copyable(field_type, non_copyable):
+    """Whether a value of this type can be copied.
+
+    A field whose type cannot be copied has no by-value getter and no setter:
+    both compile until something calls them, and then neither does. OwnedArray
+    deletes its copy constructor, so TextLayoutLine's runs and
+    RelativePointPath's elements could only ever be reached through the var
+    getter that hands back the field itself.
+    """
+    declaration = field_type.get_declaration()
+    if declaration is None or not declaration.spelling:
+        return True
+    return declaration.spelling not in non_copyable
+
+#==================================================================================================
+
+def using_declaration_members(cursor):
+    """Members a class hands back out of a base with a using-declaration.
+
+    A class that inherits privately is not a subtype, so nothing of the base
+    comes with it - except what it re-exports this way, which IS callable.
+    TimedCallback re-exports five Timer methods and ResizableWindow re-exports
+    Component::addToDesktop.
+
+    The declaration carries the member's name and a TYPE_REF naming the class
+    it comes from, and is resolved by name against that class. Its
+    OVERLOADED_DECL_REF child would say the same thing, but reading one needs a
+    libclang method the pip package does not expose.
+    """
+    found = []
+    for using in cursor.get_children():
+        if (using.kind != CursorKind.USING_DECLARATION
+                or using.access_specifier != AccessSpecifier.PUBLIC):
+            continue
+        for reference in using.get_children():
+            if reference.kind != CursorKind.TYPE_REF:
+                continue
+            origin = reference.type.get_declaration()
+            if origin is None:
+                continue
+            found += [x for x in origin.get_children()
+                      if x.kind == CursorKind.CXX_METHOD
+                      and x.spelling == using.spelling
+                      and x.access_specifier == AccessSpecifier.PUBLIC]
+    return found
+
+#==================================================================================================
+
+def method_signature(cursor):
+    """A method's identity: name, arguments, constness and return type.
+
+    The return type is part of it because C++ allows a covariant override, and
+    dropping one as a duplicate would hand the caller the base's type instead:
+    TableListBox::getModel returns a TableListBoxModel where ListBox::getModel
+    returns a ListBoxModel, and the derived one is the whole point of calling
+    it on a TableListBox.
+    """
+    # Canonical spellings, because the same type is written differently
+    # depending on where it is declared: PopupMenu::LookAndFeelMethods spells
+    # its parameter "const Options &" and LookAndFeel_V2 spells the same one
+    # "const PopupMenu::Options &". Comparing the written form left that pair
+    # looking like two different methods and both were emitted.
+    return (cursor.spelling,
+            tuple(a.type.get_canonical().spelling for a in cursor.get_arguments()),
+            cursor.is_const_method(),
+            cursor.result_type.get_canonical().spelling)
+
+#==================================================================================================
+
+def restated_members(cursor, class_map):
+    """Methods this class needs restated because Nim cannot inherit them.
+
+    Nim carries one parent and C++ carries as many as it likes, so everything
+    reachable through a public base that is not the Nim parent is unreachable
+    unless it is written onto the class itself. The C++ call is identical - the
+    base is public either way - so restating changes only whether Nim can see
+    it.
+    """
+    chosen = primary_base(cursor, class_map)
+    already_reachable = (set(reachable_public_methods(chosen))
+                         if chosen is not None else set())
+    declared_here = {x.spelling for x in cursor.get_children()
+                     if x.kind == CursorKind.CXX_METHOD}
+    declared_here |= {x.spelling for x in using_declaration_members(cursor)}
+
+    found = []
+    for b in public_bases(cursor):
+        if chosen is not None and b.get_usr() == chosen.get_usr():
+            continue
+        for name, entries in sorted(reachable_public_methods(b).items()):
+            if name in already_reachable or name in declared_here:
+                continue
+            # Declared by two different classes among the bases, so an
+            # unqualified call is ambiguous in C++ as well. Leaving it out is
+            # what the C++ compiler would say about it.
+            if len({owner for owner, _ in entries}) > 1:
+                continue
+            found += [member for _, member in entries]
+    return found
+
+#==================================================================================================
+
+def declared_by_an_ancestor(cursor, member, class_map):
+    """Whether a Nim ancestor already declares this exact method.
+
+    An override has the same parameter types as the virtual it overrides, so
+    emitting both gives Nim two procs differing only in the receiver. Called on
+    the derived class itself the nearer one wins, but called on anything below
+    it neither is nearer and 2.2.2 calls it ambiguous: `paint` on a
+    TableListBox matched both ListBox's and Component's and could not be
+    called at all. 51 pairs were in that state.
+
+    Dropping the derived copy loses nothing. The base proc accepts the derived
+    receiver, and the C++ it emits is a call on the object, which dispatches
+    virtually to whichever override the object actually has.
+
+    Both what an ancestor declares itself and what it restates from a secondary
+    base count, since both are emitted as procs on the ancestor.
+    """
+    if member.is_static_method():
+        # A static's receiver is typedesc[X], which does not inherit.
+        return False
+
+    wanted = method_signature(member)
+    ancestor = primary_base(cursor, class_map)
+    seen = set()
+    while ancestor is not None and ancestor.get_usr() not in seen:
+        seen.add(ancestor.get_usr())
+        declared = [x for x in ancestor.get_children()
+                    if x.kind == CursorKind.CXX_METHOD
+                    and x.access_specifier == AccessSpecifier.PUBLIC]
+        declared += using_declaration_members(ancestor)
+        declared += restated_members(ancestor, class_map)
+        if any(method_signature(x) == wanted for x in declared):
+            return True
+        ancestor = primary_base(ancestor, class_map)
+    return False
+
+#==================================================================================================
+
+def primary_base(cursor, class_map):
+    """The public base that becomes the Nim parent: the one reaching the most.
+
+    Nim has one parent and C++ has as many as it likes, so this choice decides
+    which half of the API is inherited and which half has to be restated on the
+    class itself. Taking the first base declared bound TextEditor as a
+    TextInputTarget and put the whole of Component out of reach - no setBounds,
+    no repaint.
+    """
+    candidates = [b for b in public_bases(cursor)
+                  if b.spelling in class_map and b.spelling != cursor.spelling]
+    if not candidates:
+        return None
+    return max(candidates, key=lambda b: len(reachable_public_methods(b)))
+
+#==================================================================================================
+
+def passed_by_value_to_a_virtual(index, juce_args, base_path):
+    """Classes JUCE passes BY VALUE into a virtual, which must not be pointers.
+
+    `inheritable` makes Nim hand an object over as a pointer, which is right
+    for the classes a generated subclass overrides but wrong for a small value
+    a virtual takes by value: the closure's C signature then says Colour* where
+    the std::function says Colour, and the assignment does not compile.
+    TreeView::LookAndFeelMethods was withheld for exactly that. `bycopy` says
+    to pass the value, which is what C++ does with it anyway.
+
+    Computed rather than listed, so a JUCE upgrade that adds one is covered.
+    The generic types this also finds - Point and Rectangle - are declared by
+    hand in june_juce_types and are unaffected by what is returned here.
+
+    Read from juce_gui_basics whichever module is being generated, because it
+    includes the other four and the two ends of this relation are rarely in the
+    same one: Colour is declared in juce_graphics and passed by value to a
+    virtual in juce_gui_basics, so a per-module parse finds neither end.
+    """
+    found = set()
+    translation_unit = index.parse(
+        os.path.join(base_path, "JUCE/modules/juce_gui_basics/juce_gui_basics.h"),
+        args=juce_args)
+
+    def visit(cursor):
+        for child in cursor.get_children():
+            if (child.kind in (CursorKind.CLASS_DECL, CursorKind.STRUCT_DECL)
+                    and child.is_definition()):
+                for member in child.get_children():
+                    if (member.kind != CursorKind.CXX_METHOD
+                            or not member.is_pure_virtual_method()):
+                        continue
+                    for argument in member.get_arguments():
+                        declaration = argument.type.get_declaration()
+                        if (declaration is not None and declaration.spelling
+                                and declaration.kind in (CursorKind.CLASS_DECL,
+                                                         CursorKind.STRUCT_DECL)):
+                            found.add(declaration.spelling)
+            visit(child)
+
+    visit(translation_unit.cursor)
+    return found
+
+#==================================================================================================
+
+# Nested namespaces inside juce:: that JUCE keeps private. Everything else
+# nested there is either template machinery with nothing to bind or real API:
+# juce::Colours holds 286 named colours and juce::StandardApplicationCommandIDs
+# holds the ids ApplicationCommandManager expects.
+private_namespaces = {"detail", "internal"}
+
+
+def nested_namespaces(juce_namespace):
+    """The juce:: sub-namespaces whose public constants and functions bind."""
+    found = []
+    seen = set()
+    for entry in juce_namespace:
+        for node in entry.get_children():
+            if (node.kind == CursorKind.NAMESPACE and node.spelling
+                    and node.spelling not in private_namespaces
+                    and node.spelling not in seen):
+                seen.add(node.spelling)
+                found.append(node)
+            elif node.kind == CursorKind.NAMESPACE and node.spelling in seen:
+                found.append(node)
+    return found
 
 #==================================================================================================
 
@@ -865,6 +1394,14 @@ def run_main(juce_module_name, juce_class_name_to_export):
         all_functions += [node for node in filter(
             lambda x: x.kind == CursorKind.FUNCTION_DECL, entry.get_children())]
 
+    # And the ones a nested namespace holds. juce::Colours::findColourForName is
+    # the only one today. Its Nim name and its C++ spelling both carry the
+    # namespace, so the emit loop below reads the prefix off the cursor rather
+    # than assuming juce:: throughout.
+    for namespace in nested_namespaces(juce_namespace):
+        all_functions += [node for node in namespace.get_children()
+                          if node.kind == CursorKind.FUNCTION_DECL]
+
     # And the function templates. A C++ template parameter becomes a Nim
     # generic one and the C++ compiler deduces it from the call, which is what
     # makes jlimit and jmax reachable. nimterop leaves C++ templates to
@@ -886,14 +1423,28 @@ def run_main(juce_module_name, juce_class_name_to_export):
         arguments = list(function.get_arguments())
         if not arguments:
             continue
-        first = arguments[0].type.spelling.replace("const", "").replace("&", "").strip()
-        classes_with_free_equality.add(remap_class_name(first.split("::")[-1]))
+        # From the declaration rather than the written type. Stripping const and
+        # & off the spelling leaves the template arguments attached, so a free
+        # == on a class template was recorded under "RangedValuesIterator<T>"
+        # and matched nothing. No bound class is affected today; the spelling
+        # is simply not where a type's name lives.
+        first = arguments[0].type
+        if first.kind in (TypeKind.LVALUEREFERENCE, TypeKind.RVALUEREFERENCE):
+            first = first.get_pointee()
+        declaration = first.get_declaration()
+        if declaration is not None and declaration.spelling:
+            classes_with_free_equality.add(
+                remap_class_name(declaration.spelling))
 
     # Extract all juce classes
     all_classes = []
     for entry in juce_namespace:
         all_classes += [node for node in filter(
             lambda x: x.kind == CursorKind.CLASS_DECL or x.kind == CursorKind.STRUCT_DECL, entry.get_children())]
+
+    by_value_classes = passed_by_value_to_a_virtual(index, juce_args, base_path)
+    non_copyable = non_copyable_type_names(translation_unit)
+
 
     # A module header pulls in the modules it depends on, so the translation
     # unit holds their classes too. Bind only what this module declares, and
@@ -958,8 +1509,17 @@ def run_main(juce_module_name, juce_class_name_to_export):
 
     # Store internal mapping tables, build inheritance map
     for c in all_classes:
+        # PUBLIC bases only. A private base is not a subtype anywhere outside
+        # the class, so modelling one as the Nim parent offers every method it
+        # declares and the C++ compiler refuses each call: triggerAsyncUpdate
+        # on an ApplicationCommandManager is "a private member of AsyncUpdater".
+        # Nothing called them, so nothing said so. Fourteen classes inherited
+        # this way, thirteen of them having no public base at all - those now
+        # have no Nim parent, which is what they always were.
         bases = [node.referenced for node in filter(
-            lambda x: x.kind == CursorKind.CXX_BASE_SPECIFIER, c.get_children())]
+            lambda x: (x.kind == CursorKind.CXX_BASE_SPECIFIER
+                       and x.access_specifier == AccessSpecifier.PUBLIC),
+            c.get_children())]
 
         inner_classes = [node for node in filter(
             lambda x: x.access_specifier == AccessSpecifier.PUBLIC and
@@ -1000,25 +1560,36 @@ def run_main(juce_module_name, juce_class_name_to_export):
     # the header, and there is no ordering of separate type sections that
     # satisfies every such pair.
     all_class_decls = []
+    emitted_enum_names = []
     for c in module_classes:
         if juce_class_name_to_export is not None and c.spelling != juce_class_name_to_export:
+            continue
+        if is_template_specialization(c):
             continue
         if c.spelling.startswith("this_will_fail_to_link") or c.spelling in emitted_types:
             continue
         emitted_types.add(c.spelling)
 
         class_name = remap_exported_class_name(c.spelling)
-        base = None
-        for b in class_inheritance_map[c.spelling]:
-            if b is not None and b.spelling in class_map and b.spelling != c.spelling:
-                base = remap_exported_class_name(b.spelling)
-                break
+
+        # Nim has one parent and C++ has as many as it likes, so where a class
+        # has several public bases the choice decides what stays reachable.
+        # Taking the first one declared bound TextEditor as a TextInputTarget
+        # and put the whole of Component out of reach - no setBounds, no
+        # repaint, a text box that cannot be placed. Take the base that reaches
+        # the most instead, which loses the least in every case: TextEditor
+        # gives up TextInputTarget's 13 methods rather than Component's 203,
+        # and the other two classes this moves - KeyPressMappingSet and
+        # RelativeCoordinatePositionerBase - improve the same way.
+        chosen = primary_base(c, class_map)
+        base = remap_exported_class_name(chosen.spelling) if chosen else None
 
         all_class_decls.append(nim_class_def.format(**{
             "class_name": class_name,
             "spelling": f"juce::{c.spelling}",
             "juce_module_name": juce_module_name,
             "export": "*" if class_is_exported(c.spelling) else "",
+            "by_copy": ", bycopy" if c.spelling in by_value_classes else "",
             "base": f" of {base}" if base else "" }))
 
         for _, inner_name, inner_path in nested_class_descendants(
@@ -1031,10 +1602,23 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 "spelling": inner_path,
                 "juce_module_name": juce_module_name,
                 "export": "*",
+                "by_copy": "",
                 "base": "" }))
+
+    # The instantiations that get a type of their own rather than a Nim
+    # generic. Declared here so the module that uses them declares them.
+    for cpp_spelling, (nim_name, owning_module) in sorted(
+            template_instantiation_renames.items()):
+        if owning_module != juce_module_name:
+            continue
+        all_class_decls.append(
+            f'  {nim_name}* {{.header: "<optional>", '
+            f'importcpp: "{cpp_spelling}", bycopy.}} = object')
+        declared_type_names.add(nim_name)
 
     for enum_name, enum_cursor, owner in module_enums:
         qualified = f"juce::{owner}::{enum_cursor.spelling}" if owner else f"juce::{enum_cursor.spelling}"
+        emitted_enum_names.append(enum_name)
         all_class_decls.append(nim_enum_def.format(**{
             "enum_name": enum_name,
             "spelling": qualified,
@@ -1056,6 +1640,34 @@ def run_main(juce_module_name, juce_class_name_to_export):
 
     if all_class_decls:
         print(nim_type_def.format(**{ "classes": "\n".join(all_class_decls) }))
+
+    if emitted_enum_names:
+        # An enum is a distinct cint, so it has none of cint's operators unless
+        # they are given to it. Without this, comparing two enum values needs a
+        # cast on both sides, which is what every caller would end up writing.
+        # `borrow` takes the base type's == rather than binding a C++ one,
+        # because the values are already the C++ enumerators.
+        print("# Comparison for the enums above, taken from their base type,")
+        print("# and $ so a value can appear in a message. $ prints the number")
+        print("# rather than the name: the binding holds the C++ enumerator and")
+        print("# there is no table of names on this side to look one up in.")
+        for enum_name in emitted_enum_names:
+            print(f"proc `==`*(a: {enum_name}, b: {enum_name}): bool {{.borrow.}}")
+            print(f"proc `$`*(value: {enum_name}): string {{.borrow.}}")
+        print()
+
+        # JUCE spells a flag set as a nested enum called Flags, which this
+        # flattens to a name ending in Flags. Those are the ones meant to be
+        # combined, and a distinct cint has no bitwise operators either, so
+        # every caller would otherwise cast both sides to cint and back.
+        flag_enums = [name for name in emitted_enum_names if name.endswith("Flags")]
+        if flag_enums:
+            print("# Bitwise operators for the flag sets among them.")
+            for enum_name in flag_enums:
+                for operator in ("or", "and"):
+                    print(f"proc `{operator}`*(a: {enum_name}, b: {enum_name}): "
+                          f"{enum_name} {{.borrow.}}")
+            print()
 
     # Enumerators are prefixed with their type. C++ scopes them by enum or by
     # class; Nim would put every one of them in the same namespace, where names
@@ -1162,6 +1774,8 @@ def run_main(juce_module_name, juce_class_name_to_export):
         if juce_class_name_to_export is not None and c.spelling != juce_class_name_to_export:
             continue
 
+        if is_template_specialization(c):
+            continue
         if c.spelling.startswith("this_will_fail_to_link"):
             continue
 
@@ -1216,15 +1830,63 @@ def run_main(juce_module_name, juce_class_name_to_export):
         # Constructors. Nothing generated these before, so a type could be
         # named but never built: an Identifier had no way into existence, which
         # is most of why ValueTree was unusable.
+        # A deleted constructor is declared and cannot be called. JUCE deletes
+        # them on its static-only helpers - JSONUtils, OrderedContainerHelpers
+        # - and the generator emitted a makeX for each, which no call could
+        # compile.
+        def constructor_is_deleted(constructor):
+            try:
+                return constructor.is_deleted_method()
+            except AttributeError:
+                return False
+
         public_constructors = [x for x in c.get_children()
                                if x.kind == CursorKind.CONSTRUCTOR
-                               and x.access_specifier == AccessSpecifier.PUBLIC]
+                               and x.access_specifier == AccessSpecifier.PUBLIC
+                               and not constructor_is_deleted(x)]
 
         # juce::var declares one constructor per numeric type, and Nim's int64
         # is not long long on every platform, so g++ could not pick between
         # var(int), var(int64) and var(double) while clang could. The cast that
         # fixes an overloaded method fixes an overloaded constructor too.
         scalar_overloaded_ctors = scalar_overloaded_names(public_constructors)
+
+        # An abstract class cannot be allocated, so a constructor for one is a
+        # binding that looks usable and is a compile error at every call. The
+        # generated Custom<Name> subclass in the _subclasses file is what a
+        # caller wants instead.
+        try:
+            class_is_abstract = c.is_abstract_record()
+        except AttributeError:
+            class_is_abstract = False
+
+        # A class that declares no constructor at all still has C++'s implicit
+        # default one, and the generator emitted nothing for it: 16 types were
+        # declared with readable and writable fields and no way to build one -
+        # ZipFile::ZipEntry, MouseWheelDetails, DirectoryContentsList::FileInfo,
+        # ThreadPool::Options and the rest. A class with a private or protected
+        # constructor is a different case and stays out, because it names one.
+        all_constructors = [x for x in c.get_children()
+                            if x.kind == CursorKind.CONSTRUCTOR]
+        has_public_field = any(x.kind == CursorKind.FIELD_DECL
+                               and x.access_specifier == AccessSpecifier.PUBLIC
+                               for x in c.get_children())
+        if (not all_constructors and not class_is_abstract and has_public_field
+                and c.spelling not in no_implicit_default):
+            declaration = nim_constructor_def.format(**{
+                "comment": "", "class_name": class_name, "method_args": "",
+                "juce_module_name": juce_module_name,
+                "spelling": qualified_name, "juce_args": "@",
+                # Marked, so check_handwritten_covered.py can require a test to
+                # build each one. Two of these turned out to have a default
+                # constructor C++ deletes, which only a call reveals.
+                "reason": "  # implicit default constructor"})
+            signature = (f"make{class_name}", ())
+            if (declaration not in emitted_declarations
+                    and signature not in emitted_signatures):
+                emitted_declarations.add(declaration)
+                emitted_signatures.add(signature)
+                print(declaration)
 
         for ctor in public_constructors:
             ctor_args, ctor_types, ctor_comment = [], [], ""
@@ -1237,12 +1899,21 @@ def run_main(juce_module_name, juce_class_name_to_export):
 
             # A constructor has no receiver, so `@` is the whole argument list
             # and only a single-argument one can be cast as a unit.
-            if len(ctor_cpp_types) == 1 and ctor.spelling in scalar_overloaded_ctors:
-                ctor_juce_args = f"({ctor_cpp_types[0]}) @"
+            # One bare `#` per parameter, so each argument carries the type its
+            # overload declares. A constructor has no typedesc to swallow the
+            # first placeholder, which is what limited the static form, so
+            # arity makes no difference here.
+            if ctor_cpp_types and ctor.spelling in scalar_overloaded_ctors:
+                ctor_juce_args = ", ".join(f"({cpp_type}) #"
+                                           for cpp_type in ctor_cpp_types)
             else:
                 ctor_juce_args = "@"
 
             ctor_reason = ""
+            if class_is_abstract:
+                ctor_comment = "# "
+                ctor_reason = (f"{class_name} is abstract; build a "
+                               f"Custom{class_name} instead")
 
             # A copy or move constructor would just shadow the plain one.
             if len(ctor_types) == 1 and ctor_types[0].replace("var ", "").replace("lent ", "") == class_name:
@@ -1372,17 +2043,50 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 continue
             emitted_signatures.add(field_signature)
 
-            print(nim_field_getter_def.format(**{
-                "comment": field_comment, "field_name": field_name,
-                "class_name": class_name, "field_type": field_type.replace("var ", ""),
-                "juce_module_name": juce_module_name, "juce_spelling": field.spelling,
-                "reason": f"  # {field_reason}" if field_comment else "" }))
+            # A field that IS a non-const reference aliases something the
+            # owner does not own, so handing back a copy of the referent is
+            # wrong twice over: writes through it are lost, and the copy does
+            # not compile at all when the referent is non-copyable. Bind the
+            # reference itself instead. DirectoryContentsDisplayComponent's
+            # directoryContentsList is the one such field JUCE exports, and
+            # DirectoryContentsList is non-copyable.
+            binds_reference = (field.type.kind == TypeKind.LVALUEREFERENCE
+                               and not field.type.get_pointee().is_const_qualified())
+
+            # A field whose type has no accessible copy constructor cannot be
+            # handed back by value or assigned. Both stay as comments with the
+            # reason rather than being dropped, so what is missing is visible
+            # where the var getter that does work sits beside them.
+            field_copyable = type_is_copyable(field.type, non_copyable)
+            value_comment, value_reason = field_comment, field_reason
+            if not field_copyable:
+                value_comment = "# "
+                value_reason = value_reason or (
+                    f"{field_type.replace('var ', '')} has no accessible copy "
+                    f"constructor, so it can only be reached through the var "
+                    f"getter below")
+
+            if not binds_reference:
+                print(nim_field_getter_def.format(**{
+                    "comment": value_comment, "field_name": field_name,
+                    "class_name": class_name, "field_type": field_type.replace("var ", ""),
+                    "juce_module_name": juce_module_name, "juce_spelling": field.spelling,
+                    "reason": f"  # {value_reason}" if value_comment else "" }))
 
             # A second getter returning var, so a container field can be
             # mutated in place: box.items.add(x) works on the field itself,
             # where the by-value getter above hands back a copy. Same C++
-            # expression; Nim picks by whether the receiver is mutable.
-            if not (field.type.is_const_qualified() or "&" in field.type.spelling):
+            # expression; Nim picks by whether the receiver is mutable. For a
+            # reference field it is the only getter.
+            # is_reference, not an ampersand anywhere in the spelling: a field
+            # whose type is std::function<void (const ArgumentList &)> carries
+            # one inside the template argument, and reading it that way left
+            # ConsoleApplicationCommand::command with no setter - readable, and
+            # impossible to install.
+            is_reference = field.type.kind in (TypeKind.LVALUEREFERENCE,
+                                               TypeKind.RVALUEREFERENCE)
+            if binds_reference or not (field.type.is_const_qualified()
+                                       or is_reference):
                 print(nim_field_var_getter_def.format(**{
                     "comment": field_comment, "field_name": field_name,
                     "class_name": class_name, "field_type": field_type.replace("var ", ""),
@@ -1390,33 +2094,69 @@ def run_main(juce_module_name, juce_class_name_to_export):
                     "reason": f"  # {field_reason}" if field_comment else "" }))
 
             # No setter for a field C++ will not let anyone assign: a const one,
-            # or a reference, which binds once and cannot be repointed.
-            if not (field.type.is_const_qualified() or "&" in field.type.spelling):
+            # a reference, which binds once and cannot be repointed, or one
+            # whose type has no copy constructor to assign through.
+            if not (field.type.is_const_qualified() or is_reference):
                 print(nim_field_setter_def.format(**{
-                    "comment": field_comment, "raw_name": field.spelling,
+                    "value_expression": ("std::move(#)"
+                                         if field_type.startswith(move_only_wrappers)
+                                         else "#"),
+                    "comment": value_comment, "raw_name": field.spelling,
                     "class_name": class_name, "field_type": field_type.replace("var ", ""),
                     "juce_module_name": juce_module_name, "juce_spelling": field.spelling,
-                    "reason": f"  # {field_reason}" if field_comment else "" }))
+                    "reason": f"  # {value_reason}" if value_comment else "" }))
 
         class_bound_equality = False
         class_has_to_string = False
 
+        # A class that inherits privately can still hand individual members
+        # back out with a using-declaration, and those ARE callable even though
+        # the base is not a subtype: TimedCallback inherits Timer privately and
+        # re-exports five of its methods that way. The base is not modelled as
+        # the Nim parent - it is not one - so pick the re-exported members up
+        # here and emit them as methods of this class.
+        class_members = list(c.get_children())
+        class_members += using_declaration_members(c)
+
+        inherited_members = set()
+        for member in restated_members(c, class_map):
+            inherited_members.add(member.get_usr())
+            class_members.append(member)
+
         scalar_overloaded = scalar_overloaded_names(
-            [x for x in c.get_children()
+            [x for x in class_members
              if x.kind == CursorKind.CXX_METHOD
              and x.access_specifier == AccessSpecifier.PUBLIC])
 
-        for m in filter(lambda x: x.kind == CursorKind.CXX_METHOD, c.get_children()):
+        for m in filter(lambda x: x.kind == CursorKind.CXX_METHOD, class_members):
             if m.access_specifier != AccessSpecifier.PUBLIC:
                 continue
 
             if m.spelling in ["JUCE_DEPRECATED", "JUCE_DEPRECATED_STATIC"]:
                 continue
 
+            # An override of something a Nim ancestor already declares. Emitting
+            # it here would give Nim two procs with identical parameter types
+            # differing only in the receiver, which 2.2.2 rejects as ambiguous
+            # for any receiver below the derived class. The base proc accepts
+            # this receiver and C++ dispatches it virtually, so nothing is lost.
+            if (m.get_usr() not in inherited_members
+                    and declared_by_an_ancestor(c, m, class_map)):
+                continue
+
             is_static_method = m.is_static_method()
             is_const_method = m.is_const_method()
 
             comment = ""
+
+            # A method JUCE deletes. It is declared so that calling it is an
+            # error rather than silently reaching an overload that means
+            # something else: Component::contains(int, int) is deleted because
+            # the two-coordinate form was removed and the Point one is what to
+            # use. A binding for it compiles and fails at the call.
+            deleted_reason = "JUCE deletes it" if m.is_deleted_method() else ""
+            if deleted_reason:
+                comment = "# "
 
             # A static method's receiver is the class itself rather than a
             # value, so it carries no `this` argument into the C++ call.
@@ -1473,10 +2213,33 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 # where the generated call sits - juce_wchar does not.
                 cpp_argument_types.append(arg.type.get_canonical().spelling)
 
-            reason = ""
+            reason = deleted_reason
             return_type = ""
             if m.result_type.spelling != "void":
-                return_type = f": {remap_type(m.result_type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap, unambiguous_nested_remap)}"
+                rendered_return = remap_type(
+                    m.result_type, remap_inner_classes, enum_remap,
+                    class_juce_map, global_nested_remap,
+                    unambiguous_nested_remap)
+                # A pointer to const is not a ptr. C++ does not convert
+                # `const T*` to `T*`, so every one of these was a proc that
+                # could not be called - and nothing noticed, because an
+                # importcpp string only reaches the C++ compiler at a call
+                # site. ConstPtr, in june_common, is the spelling that both
+                # compiles and keeps the const.
+                #
+                # Only the return position. A `const T*` parameter takes a
+                # plain `ptr T` already, because that conversion is the one
+                # C++ does make.
+                # A return type that C++ only forward declares cannot be
+                # returned by value: AndroidDocument::NativeInfo is declared
+                # and defined nowhere in the header, and the binding for
+                # getNativeInfo is a compile error at every call site.
+                if (m.result_type.kind == TypeKind.POINTER
+                        and m.result_type.get_pointee().is_const_qualified()
+                        and rendered_return.startswith("ptr ")):
+                    rendered_return = (
+                        f"ConstPtr[{rendered_return[len('ptr '):]}]")
+                return_type = f": {rendered_return}"
 
             if m.result_type.spelling in ["CFStringRef", "OSType"]:
                 comment, reason = "# ", "a platform type with no Nim spelling"
@@ -1484,6 +2247,13 @@ def run_main(juce_module_name, juce_class_name_to_export):
             if (m.spelling in ["begin", "end", "cbegin", "cend"]
                     or m.spelling.endswith("Iterator")):
                 comment, reason = "# ", "a C++ iterator; loop with the Nim iterator instead"
+            elif (m.spelling in undefined_in_juce.get(class_name, ())
+                    or (m.spelling, tuple(a.type.spelling
+                                          for a in m.get_arguments()))
+                        in undefined_in_juce.get(class_name, ())):
+                comment = "# "
+                reason = ("declared in JUCE's header and defined nowhere in "
+                          "JUCE 8.0.15, so calling it fails to link")
             elif skip_class_method(class_name, m.spelling):
                 comment, reason = "# ", "excluded deliberately: see skip_class_method"
 
@@ -1523,29 +2293,62 @@ def run_main(juce_module_name, juce_class_name_to_export):
             # argument cast to the type this overload declares, or C++ cannot
             # tell which one the call means.
             has_arguments = len(args) > (0 if is_static_method else 1)
+            # Either reason to write one placeholder per parameter rather than
+            # `@`. A static method needs the parenthesised form when it does,
+            # because its typedesc consumes the first placeholder and expands
+            # to nothing.
+            # An rvalue reference will not bind to an lvalue, and Nim hands
+            # over an lvalue, so a parameter declared `T&&` needs the move as
+            # much as a move-only wrapper does. Three of the four JUCE methods
+            # with one also declare a const-reference overload, which the two
+            # collapse onto, so only ConsoleApplication::invokeCatchingFailures
+            # was uncallable.
+            def moves(nim_type, cpp_type):
+                return (nim_type.startswith(move_only_wrappers)
+                        or cpp_type.rstrip().endswith("&&"))
+
+            moves_an_argument = has_arguments and any(
+                moves(nim_type, cpp_type) for nim_type, cpp_type
+                in zip(argument_types, cpp_argument_types))
+            per_argument = (has_arguments
+                            and (m.spelling in scalar_overloaded
+                                 or moves_an_argument))
+
             if has_arguments and m.spelling in scalar_overloaded:
                 # `#` takes the next argument in order, and a digit after it is
                 # literal text rather than an index, so one bare `#` per
                 # parameter is the spelling that works. In the instance form the
                 # leading `#.` has already consumed the receiver.
                 #
-                # A static method cannot use `#` at all: its first parameter is
-                # the typedesc, which is compile-time only and expands to
-                # nothing, swallowing a placeholder. `@` skips it, so a
-                # single-argument static method casts the whole expansion. With
-                # more than one argument there is nothing to cast piecewise, and
-                # the call stays ambiguous - loudly, as a C++ error.
-                if is_static_method:
-                    emitted_args = (f"({cpp_argument_types[0]}) @"
-                                    if len(cpp_argument_types) == 1 else "@")
-                else:
-                    emitted_args = ", ".join(
-                        f"({cpp_type}) #" for cpp_type in cpp_argument_types)
+                # `#` takes the next argument in order and a digit after one is
+                # literal text, so one bare `#` per parameter is the spelling
+                # that works. A static method's first parameter is the typedesc,
+                # which is compile-time only and expands to nothing: it gets a
+                # placeholder of its own at the front, inside the parentheses
+                # the cast form adds, so the rest line up.
+                emitted_args = ", ".join(
+                    f"({cpp_type}) #" for cpp_type in cpp_argument_types)
+            elif moves_an_argument:
+                # A move-only wrapper cannot be passed by copy, and `@` copies:
+                # every method taking a std::unique_ptr was rejected at its
+                # call site, the same way nine field setters were before them.
+                # One placeholder per parameter, with the move where it is
+                # needed. A static method's typedesc expands to nothing and
+                # takes a placeholder of its own, which the cast form supplies
+                # by wrapping the call in parentheses - the move form has no
+                # such wrapper, so a static method with a move-only parameter
+                # would need one; none exists in JUCE.
+                emitted_args = ", ".join(
+                    "std::move(#)" if moves(nim_type, cpp_type) else "#"
+                    for nim_type, cpp_type
+                    in zip(argument_types, cpp_argument_types))
             else:
                 emitted_args = "@" if has_arguments else ""
 
             if is_static_method:
-                declaration = nim_static_method_def.format(**{
+                static_template = (nim_static_method_cast_def if per_argument
+                                   else nim_static_method_def)
+                declaration = static_template.format(**{
                     "comment": comment,
                     "method_name": method_name,
                     "class_name": class_name,
@@ -1569,6 +2372,14 @@ def run_main(juce_module_name, juce_class_name_to_export):
                     "reason": f"  # {reason}" if comment and reason else "",
                 })
 
+            # Marked so the coverage check can require a test for each. These
+            # reach the class through a public base that is not the Nim parent,
+            # which means nothing inherits them: they exist only because they
+            # are restated here, and a restatement nobody calls is never seen
+            # by the C++ compiler.
+            if not comment and m.get_usr() in inherited_members:
+                declaration += "  # inherited from a secondary base"
+
             # libclang can hand back the same method more than once for a single
             # class, and Nim rejects the repeat as a redefinition.
             # The receiver is part of the key, const-ness included:
@@ -1578,7 +2389,13 @@ def run_main(juce_module_name, juce_class_name_to_export):
             # const-ness, the const and non-const overloads of a getter do, and
             # dropping the const one makes it uncallable on a `let`.
             receiver = f"typedesc[{class_name}]" if is_static_method else args[0]
-            signature = (receiver, method_name, tuple(argument_types), return_type)
+            # The return type is normalised, because JUCE declares a pair of
+            # ref-qualified overloads for the same method - Item& setTicked(..)&
+            # and Item&& setTicked(..)&& - that differ by nothing else. Nim
+            # cannot pick between two procs that differ only in return type, so
+            # the pair has to collapse to one rather than both being emitted.
+            signature = (receiver, method_name, tuple(argument_types),
+                         return_type.replace(": var ", ": ", 1))
             if declaration in emitted_declarations or signature in emitted_signatures:
                 continue
             emitted_declarations.add(declaration)
@@ -1607,6 +2424,9 @@ def run_main(juce_module_name, juce_class_name_to_export):
             # before it, the call resolves to Nim's default $ for an object,
             # which prints "()" because these declare no fields.
             dollar_definitions.append(nim_dollar_def.format(**{"class_name": class_name}))
+        elif class_name not in dollar_bound_by_lifting:
+            dollar_definitions.append(nim_no_dollar_def.format(**{
+                "class_name": class_name, "spelling": qualified_name}))
 
         if (not class_bound_equality and class_name not in equality_bound_by_lifting
                 and class_name not in classes_with_free_equality):
@@ -1616,6 +2436,52 @@ def run_main(juce_module_name, juce_class_name_to_export):
 
         print()
 
+    # Constants a nested namespace holds. juce::Colours is 286 named Colour
+    # values and juce::StandardApplicationCommandIDs is the nine ids
+    # ApplicationCommandManager expects; neither was reachable, because the
+    # walk above only ever looked inside juce:: itself. Named
+    # <Namespace>_<name>, which is the shape the enum constants already use.
+    for namespace in nested_namespaces(juce_namespace):
+        constants = []
+        for node in namespace.get_children():
+            if not declared_in_this_module(node):
+                continue
+
+            if node.kind == CursorKind.VAR_DECL and node.spelling:
+                variable_type = remap_type(node.type, {}, enum_remap, class_juce_map,
+                                           global_nested_remap, unambiguous_nested_remap)
+                if not type_is_declared(variable_type, declared_type_names):
+                    continue
+                constants.append(nim_enum_constant_def.format(**{
+                    "constant_name": f"{namespace.spelling}_{remap_identifier(node.spelling)}",
+                    "enum_name": variable_type,
+                    "spelling": f"juce::{namespace.spelling}::{node.spelling}",
+                    "juce_module_name": juce_module_name }))
+
+            elif node.kind == CursorKind.ENUM_DECL:
+                # An enum in a namespace is bound as plain integers: unnamed it
+                # has no type to name, and named it would collide with the
+                # class-owned enums the table above already keys by bare name.
+                scope = (f"juce::{namespace.spelling}::{node.spelling}::"
+                         if node.is_scoped_enum()
+                         else f"juce::{namespace.spelling}::")
+                constants += [nim_enum_constant_def.format(**{
+                    "constant_name": f"{namespace.spelling}_{remap_identifier(e.spelling)}",
+                    "enum_name": "cint",
+                    "spelling": f"{scope}{e.spelling}",
+                    "juce_module_name": juce_module_name })
+                    for e in node.get_children()
+                    if e.kind == CursorKind.ENUM_CONSTANT_DECL]
+
+        if constants:
+            print("\n".join(constants) + "\n")
+
+    # A free function set that differs only in a scalar needs the same casts a
+    # method set does. countNumberOfBits takes uint32 and uint64, and on Linux
+    # Nim's uint64 is `unsigned long` while JUCE's is `unsigned long long` -
+    # the same width and a different type - so the call was ambiguous there.
+    scalar_overloaded_functions = scalar_overloaded_names(all_functions)
+
     # Free functions in the juce namespace. These were collected and then
     # discarded, so countNumberOfBits, findHighestSetBit and the rest had no
     # binding at all.
@@ -1623,7 +2489,16 @@ def run_main(juce_module_name, juce_class_name_to_export):
         if not declared_in_this_module(function) or not function.spelling:
             continue
 
-        function_name = remap_identifier(function.spelling)
+        # juce:: itself contributes no prefix; a nested namespace contributes
+        # its own name, so Colours::red is Colours_red - the same shape the
+        # enum constants already use.
+        owner = function.semantic_parent
+        namespace_prefix = ""
+        if (owner is not None and owner.kind == CursorKind.NAMESPACE
+                and owner.spelling and owner.spelling != "juce"):
+            namespace_prefix = f"{owner.spelling}_"
+
+        function_name = namespace_prefix + remap_identifier(function.spelling)
         comment, reason = "", ""
 
         # JUCE declares String's ==, < and + as free functions rather than
@@ -1641,7 +2516,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
         if function.spelling in free_functions_bound_by_lifting:
             comment, reason = "# ", "bound by hand in the _lifting file"
 
-        function_args, function_types = [], []
+        function_args, function_types, function_cpp_types = [], [], []
         for count, arg in enumerate(function.get_arguments()):
             # No per-class table here: the loop that built one has ended, so
             # it holds whichever class happened to be last.
@@ -1649,6 +2524,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
                                        global_nested_remap, unambiguous_nested_remap)
             function_args.append(f"{remap_argument_name(arg.spelling, count)}: {argument_type}")
             function_types.append(argument_type)
+            function_cpp_types.append(arg.type.get_canonical().spelling)
 
         function_return = ""
         if function.result_type.spelling != "void":
@@ -1672,8 +2548,12 @@ def run_main(juce_module_name, juce_class_name_to_export):
             "function_args": ", ".join(function_args),
             "function_return": function_return,
             "juce_module_name": juce_module_name,
-            "juce_spelling": function.spelling,
-            "juce_args": "@" if function_args else "",
+            "juce_spelling": namespace_prefix.replace("_", "::") + function.spelling,
+            "juce_args": (", ".join(f"({cpp_type}) #"
+                                    for cpp_type in function_cpp_types)
+                          if function_args
+                          and function.spelling in scalar_overloaded_functions
+                          else ("@" if function_args else "")),
             "reason": f"  # {reason}" if comment and reason else "" }))
 
     print()
