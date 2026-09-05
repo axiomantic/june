@@ -696,6 +696,25 @@ def check_macos_only_calls():
     methods = set(re.findall(r'\(\s*"[A-Za-z_]\w*"\s*,\s*"([A-Za-z_]\w*)"\s*\)',
                              block.group(1)))
 
+    # Every tuple in the block has to yield a name. Reading a list out of
+    # another file with a regex is fragile in one direction only: a pattern
+    # that stops matching an entry does not fail, it silently drops that
+    # method from the check, and the gate then reports every call guarded
+    # while no longer looking at one of them.
+    # Counted by a DIFFERENT shape on purpose. An "independent" count written
+    # with the same pattern as the extraction is not independent: a change that
+    # stops one matching stops the other too, both fall by one, and the
+    # comparison still passes. Non-comment lines holding a comma is a property
+    # of the block's layout rather than of the pattern above.
+    entries = [line for line in block.group(1).split("\n")
+               if line.strip() and not line.strip().startswith("#")
+               and "," in line]
+    if len(entries) != len(methods):
+        print(f"MACOS_ONLY_METHODS holds {len(entries)} entries but this "
+              f"extracted {len(methods)} names, so the ones it missed are "
+              f"exempt from this check without saying so", file=sys.stderr)
+        return False
+
     unguarded = []
     for path in sorted(glob.glob("tests/test_juce_*.nim")):
         if path.endswith("test_juce_compiles.nim"):
@@ -1015,6 +1034,12 @@ def main():
                     # read as a count of declarations when it is a count of
                     # names.
                     declarations.append((match.group(1), name))
+
+    # Which files each name is declared in, derived from the list above so
+    # there is one accumulation rather than two that can fall out of step.
+    declared_in = {}
+    for declared_name, declared_file in declarations:
+        declared_in.setdefault(declared_name, []).append(declared_file)
 
     used = ""
     for pattern in ("tests/test_juce_*.nim", "examples/*.nim"):
