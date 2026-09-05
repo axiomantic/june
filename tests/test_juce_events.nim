@@ -222,12 +222,20 @@ proc testEveryNoArgConstructorEvents() =
     initialiseJuce_GUI()
     block:
         discard makeMessage()
-        discard makeScopedJuceInitialiser_GUI()
         discard makeActionBroadcaster()
         discard makeChangeBroadcaster()
         discard makeChildProcessWorker()
         discard makeChildProcessCoordinator()
         discard makeScopedLowPowerModeDisabler()
+
+        # LAST, and nothing may follow it. ScopedJuceInitialiser_GUI keeps its
+        # OWN counter, separate from the initialiseJuce_GUI above
+        # (juce_MessageManager.cpp:476), so building one here and destroying
+        # it takes that counter 0 -> 1 -> 0 and calls shutdownJuce_GUI. It
+        # used to sit second in this list, and everything after it ran with no
+        # MessageManager at all - which is what JUCE was saying when
+        # ActionBroadcaster asserted at construction and again at destruction.
+        discard makeScopedJuceInitialiser_GUI()
     shutdownJuce_GUI()
 
 testEveryNoArgConstructorEvents()
@@ -502,3 +510,348 @@ proc testFieldRoundTrips() =
                  "NetworkServiceDiscoveryService.port came back as " & $value.port()
 
 testFieldRoundTrips()
+
+# NetworkServiceDiscovery is a namespace-shaped class: nothing but nested types
+# and static members. The binding still declares it, and a declared type whose
+# constructor is never called is a constructor the C++ compiler never sees.
+proc testNetworkServiceDiscoveryConstructs() =
+  var discovery = makeNetworkServiceDiscovery()
+  doAssert (addr discovery) != nil, "NetworkServiceDiscovery did not build"
+
+testNetworkServiceDiscoveryConstructs()
+
+# MessageManager's identity and its broadcast list. runDispatchLoop is left
+# alone deliberately: it does not return until something stops it, so calling
+# it would hang the suite rather than test anything.
+proc testMessageManagerIdentity() =
+  initialiseJuce_GUI()
+
+  block:
+    let manager = MessageManager.getInstance()
+    doAssert not manager.isNil, "there is no message manager"
+
+    # The test runs on the message thread, so all three ways of asking agree.
+    doAssert manager[].isThisTheMessageThread(),
+             "the test is not running on the message thread"
+    doAssert manager[].getCurrentMessageThread() != nil,
+             "there is no current message thread"
+    doAssert not manager[].hasStopMessageBeenSent(),
+             "a quit message was sent before anything asked for one"
+
+    # The MESSAGE THREAD counts as holding the lock without taking it: the
+    # check is "this thread is the message thread OR it took the lock"
+    # (juce_MessageManager.cpp:217). That is the point of the lock - code on
+    # the message thread never has to acquire it - and it means this is true
+    # here for the first reason rather than the second.
+    doAssert manager[].currentThreadHasLockedMessageManager(),
+             "the message thread does not count as holding the lock"
+
+    # setCurrentThreadAsMessageThread names the caller, which is already the
+    # message thread here - so it is a no-op that has to stay one.
+    manager[].setCurrentThreadAsMessageThread()
+    doAssert manager[].isThisTheMessageThread(),
+             "naming the current thread as the message thread unnamed it"
+
+  block:
+    # A broadcast listener is registered and deregistered by pointer.
+    # deliverBroadcastMessage posts rather than calling inline, like every
+    # other JUCE notification, so what is asserted is the registration.
+    let manager = MessageManager.getInstance()
+    let listener = newCustomActionListener()
+    var heard = 0
+    listener[].setActionListenerCallbackHandler(proc(message: ptr String) =
+      heard += 1)
+
+    manager[].registerBroadcastListener(cast[ptr ActionListener](listener))
+    manager[].deliverBroadcastMessage(makeString("hello"))
+    doAssert heard == 0,
+             "the broadcast was delivered inline, " & $heard & " times"
+
+    manager[].deregisterBroadcastListener(cast[ptr ActionListener](listener))
+    manager[].deliverBroadcastMessage(makeString("ignored"))
+    doAssert heard == 0,
+             "a deregistered listener heard " & $heard & " messages"
+
+    cdelete listener
+
+  block:
+    # stopDispatchLoop sets the flag runDispatchLoop watches, and
+    # hasStopMessageBeenSent reads it. This is LAST in the file, because the
+    # flag is process-wide and stays set - a test after it would be running
+    # against a message manager that has been told to quit.
+    #
+    # runDispatchLoop itself is never called: it does not return until this
+    # flag is set from another thread, so calling it would hang the suite
+    # rather than test anything. It is left to the compile harness.
+    let manager = MessageManager.getInstance()
+    doAssert not manager[].hasStopMessageBeenSent(),
+             "a quit message was already sent"
+    manager[].stopDispatchLoop()
+    doAssert manager[].hasStopMessageBeenSent(),
+             "stopDispatchLoop did not set the flag"
+
+  shutdownJuce_GUI()
+
+testMessageManagerIdentity()
+
+# A live InterprocessConnection ===============================================
+#
+# Both ends live in this one process, joined by a named pipe. The connection is
+# built with callbacksOnMessageThread false, so connectionMade, messageReceived
+# and connectionLost arrive on the connection's OWN thread rather than being
+# posted to a message queue the suite cannot drain
+# (juce_InterprocessConnection.cpp:connectionMadeInt).
+#
+# The handlers therefore run on a thread Nim did not start, so they only touch
+# these globals and never allocate.
+#
+# They are plain ints, written on the connection's thread and polled from this
+# one with no synchronisation. That is a data race by the letter of the model,
+# and it is deliberate: an atomic or a lock is the correct answer in production
+# code, but the handler runs on a foreign thread where Nim's own primitives are
+# not safe to reach for. What makes it work here is that waitUntil calls
+# through a closure the compiler cannot hoist the load out of, and the values
+# are register-width. If this test ever hangs rather than failing, this is the
+# first thing to suspect.
+
+var connectionsMade = 0
+var connectionsLost = 0
+var messagesReceived = 0
+var lastMessage: array[64, char]
+var lastMessageSize = 0
+
+proc waitUntil(condition: proc(): bool, milliseconds: int): bool =
+    for i in 0 ..< milliseconds div 10:
+        if condition():
+            return true
+        Thread.sleep(10.cint)
+    condition()
+
+proc testInterprocessConnectionOverAPipe() =
+    initialiseJuce_GUI()
+
+    const magic = 0x6a756e65'u32
+    let pipeName = makeString("june-test-pipe")
+
+    block:
+        var server = newCustomInterprocessConnection(false, magic)
+        server[].setConnectionMadeHandler(proc() = connectionsMade += 1)
+        server[].setConnectionLostHandler(proc() = connectionsLost += 1)
+        server[].setMessageReceivedHandler(proc(message: ptr MemoryBlock) =
+            let size = int(message[].getSize())
+            lastMessageSize = size
+            if size <= lastMessage.len:
+                message[].copyTo(addr lastMessage[0], 0.cint, uint64(size))
+            messagesReceived += 1)
+
+        var client = newCustomInterprocessConnection(false, magic)
+        client[].setConnectionMadeHandler(proc() = connectionsMade += 1)
+        client[].setConnectionLostHandler(proc() = connectionsLost += 1)
+        client[].setMessageReceivedHandler(proc(message: ptr MemoryBlock) =
+            messagesReceived += 1)
+
+        var serverBase = cast[ptr InterprocessConnection](server)
+        var clientBase = cast[ptr InterprocessConnection](client)
+
+        doAssert not serverBase[].isConnected(),
+                 "a fresh connection reports itself connected"
+        doAssert serverBase[].getPipe().isNil, "a fresh connection has a pipe"
+        doAssert serverBase[].getSocket().isNil, "a fresh connection has a socket"
+        doAssert $serverBase[].getConnectedHostName() == "",
+                 "a fresh connection names the host " &
+                 $serverBase[].getConnectedHostName()
+
+        doAssert serverBase[].createPipe(pipeName, 2000.cint, false),
+                 "the pipe was not created"
+        doAssert clientBase[].connectToPipe(pipeName, 2000.cint),
+                 "nothing connected to the pipe"
+
+        doAssert waitUntil(proc(): bool = connectionsMade == 2, 5000),
+                 "only " & $connectionsMade & " of the two ends connected"
+        doAssert serverBase[].isConnected() and clientBase[].isConnected(),
+                 "one of the two ends is not connected"
+
+        # A pipe is a pipe: there is no socket, and the host is this machine.
+        doAssert not serverBase[].getPipe().isNil, "the server has no pipe"
+        doAssert serverBase[].getSocket().isNil, "the server grew a socket"
+        doAssert $serverBase[].getConnectedHostName() ==
+                 $IPAddress.local().toString(),
+                 "the connected host is " & $serverBase[].getConnectedHostName()
+
+        # A message crosses the pipe intact. sendMessage frames it with the
+        # magic header both ends were built with
+        # (juce_InterprocessConnection.cpp:sendMessage), so a mismatched magic
+        # number would drop it.
+        let payload = "hello over a pipe"
+        doAssert clientBase[].sendMessage(
+                     makeMemoryBlock(constPointer(payload[0].addr),
+                                     uint64(payload.len))),
+                 "the message was not written"
+        doAssert waitUntil(proc(): bool = messagesReceived == 1, 5000),
+                 "the server received " & $messagesReceived & " messages"
+        doAssert lastMessageSize == payload.len,
+                 "the message arrived with " & $lastMessageSize & " bytes"
+        var arrived = newString(lastMessageSize)
+        for i in 0 ..< lastMessageSize:
+            arrived[i] = lastMessage[i]
+        doAssert arrived == payload, "the message arrived as " & arrived
+
+        # Disconnecting with Notify::yes calls connectionLost on THIS end
+        # (juce_InterprocessConnection.cpp:disconnect). The other end learns of
+        # it when its own read fails, which is why only one count is asserted
+        # exactly and the other is bounded.
+        clientBase[].disconnect(2000.cint, InterprocessConnectionNotify_yes)
+        doAssert waitUntil(proc(): bool = connectionsLost >= 1, 5000),
+                 "neither end noticed the disconnection"
+        doAssert not clientBase[].isConnected(),
+                 "the client is still connected after disconnecting"
+
+        # And with Notify::no it does not, so a second disconnect on an
+        # already-closed connection is silent.
+        let lostSoFar = connectionsLost
+        clientBase[].disconnect(2000.cint, InterprocessConnectionNotify_no)
+        doAssert connectionsLost == lostSoFar,
+                 "a silent disconnect still reported a lost connection"
+
+        serverBase[].disconnect(2000.cint, InterprocessConnectionNotify_no)
+        cdelete client
+        cdelete server
+
+    block:
+        # connectionMade, connectionLost and messageReceived are the model's
+        # own virtuals, and calling them through the base class is what proves
+        # the Nim overrides reached C++.
+        var connection = newCustomInterprocessConnection(false, magic)
+        connection[].setConnectionMadeHandler(proc() = connectionsMade += 1)
+        connection[].setConnectionLostHandler(proc() = connectionsLost += 1)
+        connection[].setMessageReceivedHandler(proc(message: ptr MemoryBlock) =
+            messagesReceived += 1)
+        var base = cast[ptr InterprocessConnection](connection)
+
+        let madeBefore = connectionsMade
+        base[].connectionMade()
+        doAssert connectionsMade == madeBefore + 1,
+                 "connectionMade did not reach the override"
+
+        let lostBefore = connectionsLost
+        base[].connectionLost()
+        doAssert connectionsLost == lostBefore + 1,
+                 "connectionLost did not reach the override"
+
+        let receivedBefore = messagesReceived
+        base[].messageReceived(makeMemoryBlock(4'u64, true))
+        doAssert messagesReceived == receivedBefore + 1,
+                 "messageReceived did not reach the override"
+
+        # Connecting to a socket nothing is listening on fails rather than
+        # blocking for the whole timeout.
+        doAssert not base[].connectToSocket(makeString("127.0.0.1"),
+                                            1.cint, 200.cint),
+                 "a connection was made to a port nothing is listening on"
+
+        cdelete connection
+
+    shutdownJuce_GUI()
+
+testInterprocessConnectionOverAPipe()
+
+# ChildProcessCoordinator and ChildProcessWorker ==============================
+#
+# The pair is meant to be one process launching another copy of ITSELF, with
+# the child recognising a command line the parent generated. This suite cannot
+# do that - relaunching the test binary would rerun the whole suite as a child
+# - so what is exercised here is each side on its own: the coordinator with a
+# child that is not a worker, and the worker with a command line that is not
+# the parent's.
+
+proc testChildProcessPairWithoutAPair() =
+    initialiseJuce_GUI()
+
+    block:
+        var worker = makeChildProcessWorker()
+
+        # A command line that carries no coordinator handshake is refused, and
+        # refused quickly: there is nothing to wait for.
+        doAssert not worker.initialiseFromCommandLine(
+                     makeString("--some-other-flag"),
+                     makeString("june-test-worker"), 200.cint),
+                 "a worker attached itself to an unrelated command line"
+        doAssert not worker.initialiseFromCommandLine(
+                     makeString(""), makeString("june-test-worker"), 200.cint),
+                 "a worker attached itself to an empty command line"
+
+        # With no connection there is nothing to send to, and both spellings
+        # of the send report failure (juce_ConnectedChildProcess.cpp: the
+        # method returns false when the connection is null).
+        let message = makeMemoryBlock(4'u64, true)
+        doAssert not worker.sendMessageToCoordinator(message),
+                 "an unconnected worker sent a message"
+        doAssert not worker.sendMessageToMaster(message),
+                 "an unconnected worker sent a message to its master"
+
+        # The four callbacks have empty bodies in JUCE, so they are called and
+        # the worker is shown unchanged afterwards.
+        worker.handleConnectionMade()
+        worker.handleMessageFromCoordinator(message)
+        worker.handleMessageFromMaster(message)
+        worker.handleConnectionLost()
+        doAssert not worker.sendMessageToCoordinator(message),
+                 "the callbacks gave the worker a connection"
+
+    block:
+        var coordinator = makeChildProcessCoordinator()
+
+        let message = makeMemoryBlock(4'u64, true)
+        doAssert not coordinator.sendMessageToWorker(message),
+                 "a coordinator with no worker sent a message"
+        doAssert not coordinator.sendMessageToSlave(message),
+                 "a coordinator with no slave sent a message"
+
+        coordinator.handleMessageFromWorker(message)
+        coordinator.handleMessageFromSlave(message)
+        coordinator.handleConnectionLost()
+
+        # Killing a worker that was never launched is a no-op rather than an
+        # error (juce_ConnectedChildProcess.cpp: killWorkerProcess checks the
+        # connection first).
+        coordinator.killWorkerProcess()
+        coordinator.killSlaveProcess()
+        doAssert not coordinator.sendMessageToWorker(message),
+                 "killing nothing gave the coordinator a connection"
+
+    block:
+        # Launching something that is not a worker. The coordinator makes its
+        # end of the pipe and starts the executable; the executable never
+        # connects back, so the pair never becomes useful - but the launch
+        # itself is exercised, and killing tears it down again.
+        #
+        # macOS only. On Linux, launchWorkerProcess routes through
+        # ChildProcessManager, a singleton the suite has no way to shut down
+        # (juce_ChildProcessManager.h:60), and the leak gate that runs after
+        # every test would report it.
+        when defined(macosx):
+            let executable = makeFile(makeString("/bin/echo"))
+            doAssert executable.existsAsFile(),
+                     "/bin/echo is not where it was expected"
+
+            var coordinator = makeChildProcessCoordinator()
+            let launched = coordinator.launchWorkerProcess(
+                executable, makeString("june-test-worker"), 200.cint,
+                ChildProcessStreamFlags_wantStdOut.cint)
+            doAssert launched,
+                     "the coordinator did not launch /bin/echo"
+            coordinator.killWorkerProcess()
+            doAssert not coordinator.sendMessageToWorker(
+                         makeMemoryBlock(4'u64, true)),
+                     "the coordinator still has a connection after killing it"
+
+            var second = makeChildProcessCoordinator()
+            doAssert second.launchSlaveProcess(
+                         executable, makeString("june-test-worker"), 200.cint,
+                         ChildProcessStreamFlags_wantStdOut.cint),
+                     "the deprecated spelling did not launch /bin/echo"
+            second.killSlaveProcess()
+
+    shutdownJuce_GUI()
+
+testChildProcessPairWithoutAPair()

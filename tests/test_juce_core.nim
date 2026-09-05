@@ -677,8 +677,8 @@ proc testRestoredBindings() =
   var opening = " ("
   var closing = ")"
   names.appendNumbersToDuplicates(false, false,
-                                  makeCharPointer_UTF8(cast[ptr char](opening[0].addr)),
-                                  makeCharPointer_UTF8(cast[ptr char](closing[0].addr)))
+                                  makeCharPointer_UTF8(cast[constChar](opening[0].addr)),
+                                  makeCharPointer_UTF8(cast[constChar](closing[0].addr)))
   doAssert names.size() == 2, "the array holds " & $names.size()
   doAssert $names[1.cint] != "dup", "the duplicate was not renumbered"
 
@@ -922,7 +922,7 @@ testMemoryOutputStream()
 
 proc testCharPointerUTF8() =
   var buffer = "abc"
-  let start = makeCharPointer_UTF8(cast[ptr char](buffer[0].addr))
+  let start = makeCharPointer_UTF8(cast[constChar](buffer[0].addr))
 
   doAssert not start.isEmpty(), "a non-empty buffer reported empty"
   doAssert start.isNotEmpty(), "isNotEmpty disagreed with isEmpty"
@@ -934,13 +934,13 @@ proc testCharPointerUTF8() =
   doAssert start.lengthUpTo(2'u64) == 2'u64, "lengthUpTo gave " & $start.lengthUpTo(2'u64)
 
   # getAndAdvance walks the buffer one character at a time.
-  var cursor = makeCharPointer_UTF8(cast[ptr char](buffer[0].addr))
+  var cursor = makeCharPointer_UTF8(cast[constChar](buffer[0].addr))
   doAssert cursor.getAndAdvance() == uint32('a'), "the first character"
   doAssert cursor.getAndAdvance() == uint32('b'), "the second character"
   doAssert cursor.length() == 1'u64, "after two steps the rest is " & $cursor.length()
 
   var empty = ""
-  doAssert makeCharPointer_UTF8(cast[ptr char](empty.cstring)).isEmpty(),
+  doAssert makeCharPointer_UTF8(cast[constChar](empty.cstring)).isEmpty(),
            "an empty buffer reported non-empty"
 
 testCharPointerUTF8()
@@ -1080,12 +1080,12 @@ testStringLikeOverloadSets()
 proc testCharPointerUTF32() =
   # GRINNING FACE, KISS MARK, and a plain letter, then the terminator.
   var codepoints: array[4, WChar] = [WChar(0x1F600), WChar(0x1F48B), WChar(uint32('a')), WChar(0)]
-  let start = makeCharPointer_UTF32(codepoints[0].addr)
+  let start = makeCharPointer_UTF32(cast[ConstPtr[WChar]](codepoints[0].addr))
 
   doAssert start.isNotEmpty(), "a filled buffer reported empty"
   doAssert start.length() == 3'u64, "length gave " & $start.length()
 
-  var cursor = makeCharPointer_UTF32(codepoints[0].addr)
+  var cursor = makeCharPointer_UTF32(cast[ConstPtr[WChar]](codepoints[0].addr))
   doAssert cursor.getAndAdvance() == 0x1F600'u32,
            "the first codepoint came back as " & $cursor.getAndAdvance()
   doAssert cursor.getAndAdvance() == 0x1F48B'u32, "the second codepoint"
@@ -1093,12 +1093,12 @@ proc testCharPointerUTF32() =
 
   # write puts a non-BMP codepoint back without narrowing it.
   var scratch: array[2, WChar] = [WChar(0), WChar(0)]
-  var writer = makeCharPointer_UTF32(scratch[0].addr)
+  var writer = makeCharPointer_UTF32(cast[ConstPtr[WChar]](scratch[0].addr))
   writer.write(0x1F600'u32)
   doAssert scratch[0] == 0x1F600'u32, "write stored " & $scratch[0]
 
   var empty: array[1, WChar] = [WChar(0)]
-  doAssert makeCharPointer_UTF32(empty[0].addr).isEmpty(),
+  doAssert makeCharPointer_UTF32(cast[ConstPtr[WChar]](empty[0].addr)).isEmpty(),
            "a terminator-only buffer reported non-empty"
 
 testCharPointerUTF32()
@@ -1115,11 +1115,11 @@ proc testUTF16Buffer() =
   let bytesWritten = makeString("hi").copyToUTF16(buffer[0].addr, 32'u64)
   doAssert bytesWritten > 0'u64, "copyToUTF16 wrote " & $bytesWritten
 
-  doAssert CharPointer_UTF16.isValidString(buffer[0].addr, 32.cint),
+  doAssert CharPointer_UTF16.isValidString(cast[ConstPtr[int16]](buffer[0].addr), 32.cint),
            "isValidString rejected what copyToUTF16 produced"
 
   # The cursor over that buffer reads the characters back.
-  var cursor = makeCharPointer_UTF16(buffer[0].addr)
+  var cursor = makeCharPointer_UTF16(cast[ConstPtr[int16]](buffer[0].addr))
   doAssert cursor.getAndAdvance() == uint32('h'), "the first character"
   doAssert cursor.getAndAdvance() == uint32('i'), "the second character"
 
@@ -1426,18 +1426,18 @@ testUncalledHandWritten()
 
 proc testCharPointerASCII() =
   var buffer = "hi!"
-  let start = makeCharPointer_ASCII(cast[ptr char](buffer[0].addr))
+  let start = makeCharPointer_ASCII(cast[constChar](buffer[0].addr))
 
   doAssert start.isNotEmpty(), "a filled buffer reported empty"
   doAssert start.length() == 3'u64, "length gave " & $start.length()
 
-  var cursor = makeCharPointer_ASCII(cast[ptr char](buffer[0].addr))
+  var cursor = makeCharPointer_ASCII(cast[constChar](buffer[0].addr))
   doAssert cursor.getAndAdvance() == 'h'.ord.uint32, "the first character"
   doAssert cursor.getAndAdvance() == 'i'.ord.uint32, "the second character"
   doAssert cursor.length() == 1'u64, "after two steps the rest is " & $cursor.length()
 
   var empty = ""
-  doAssert makeCharPointer_ASCII(cast[ptr char](empty.cstring)).isEmpty(),
+  doAssert makeCharPointer_ASCII(cast[constChar](empty.cstring)).isEmpty(),
            "an empty buffer reported non-empty"
 
 testCharPointerASCII()
@@ -1731,6 +1731,26 @@ proc testUrlInputStreamOptions() =
         # The builder copies rather than mutating, so the original is untouched.
         doAssert $plain.getExtraHeaders() == "",
                  "withExtraHeaders changed the object it was called on"
+
+        # The response headers and the status code are OUT PARAMETERS: the
+        # options carry a pointer to storage the caller owns, which is where
+        # a request would write them. Nothing here makes a request, so what is
+        # asserted is that the pointer is the caller's own.
+        doAssert plain.getResponseHeaders().isNil,
+                 "a fresh options object already points at response headers"
+        doAssert plain.getStatusCode().isNil,
+                 "a fresh options object already points at a status code"
+
+        var headers = makeStringPairArray()
+        var status: cint = 0
+        let reporting = plain.withResponseHeaders(addr headers)
+                             .withStatusCode(addr status)
+        doAssert reporting.getResponseHeaders() == addr headers,
+                 "the options point at other response headers"
+        doAssert reporting.getStatusCode() == addr status,
+                 "the options point at another status code"
+        doAssert plain.getResponseHeaders().isNil,
+                 "withResponseHeaders changed the object it was called on"
 
         # A two-argument closure, reached back through the options and called.
         var seen: seq[(cint, cint)] = @[]
@@ -3349,3 +3369,4314 @@ proc testNativeFunctionArgsFields() =
              "thisObject holds " & $args.thisObject().toString()
 
 testNativeFunctionArgsFields()
+
+# String, in behaviour ========================================================
+#
+# The compile harness proves every one of these compiles and links. That says
+# nothing about what any of them returns, and String is the type every JUCE
+# program touches first, so each is asserted against a value worked out by
+# hand rather than read back from the call.
+
+proc testStringSearching() =
+    let text = makeString("The quick brown fox")
+
+    doAssert text.startsWith(makeString("The")), "it does not start with The"
+    doAssert not text.startsWith(makeString("the")), "startsWith ignored case"
+    doAssert text.startsWithIgnoreCase(makeString("the")),
+             "startsWithIgnoreCase did not ignore case"
+    doAssert text.startsWithChar(WChar(ord('T'))), "it does not start with T"
+    doAssert text.endsWith(makeString("fox")), "it does not end with fox"
+    doAssert text.endsWithIgnoreCase(makeString("FOX")),
+             "endsWithIgnoreCase did not ignore case"
+    doAssert text.endsWithChar(WChar(ord('x'))), "it does not end with x"
+
+    doAssert text.containsChar(WChar(ord('q'))), "it does not contain q"
+    doAssert text.containsIgnoreCase(makeString("QUICK")),
+             "containsIgnoreCase did not ignore case"
+    doAssert text.containsWholeWord(makeString("brown")),
+             "brown is not found as a whole word"
+    doAssert not text.containsWholeWord(makeString("brow")),
+             "brow was found as a whole word"
+    doAssert text.containsWholeWordIgnoreCase(makeString("BROWN")),
+             "BROWN is not found as a whole word ignoring case"
+    doAssert text.containsAnyOf(makeString("xyz")),
+             "none of xyz was found, though x is there"
+    doAssert not text.containsOnly(makeString("abc")),
+             "the text is made only of abc"
+    doAssert text.containsNonWhitespaceChars(),
+             "the text is reported as only whitespace"
+
+    doAssert text.indexOfChar(WChar(ord('q'))) == 4,
+             "q is at " & $text.indexOfChar(WChar(ord('q')))
+    doAssert text.indexOfIgnoreCase(makeString("QUICK")) == 4,
+             "QUICK is at " & $text.indexOfIgnoreCase(makeString("QUICK"))
+    doAssert text.indexOfWholeWord(makeString("brown")) == 10,
+             "brown is at " & $text.indexOfWholeWord(makeString("brown"))
+    doAssert text.indexOfWholeWordIgnoreCase(makeString("BROWN")) == 10,
+             "BROWN is at " & $text.indexOfWholeWordIgnoreCase(makeString("BROWN"))
+    doAssert text.indexOfAnyOf(makeString("zq")) == 4,
+             "the first of z or q is at " & $text.indexOfAnyOf(makeString("zq"))
+    doAssert text.lastIndexOfChar(WChar(ord('o'))) == 17,
+             "the last o is at " & $text.lastIndexOfChar(WChar(ord('o')))
+    doAssert text.lastIndexOf(makeString("o")) == 17,
+             "the last o is at " & $text.lastIndexOf(makeString("o"))
+    doAssert text.lastIndexOfIgnoreCase(makeString("O")) == 17,
+             "the last O is at " & $text.lastIndexOfIgnoreCase(makeString("O"))
+    doAssert text.lastIndexOfAnyOf(makeString("Tq")) == 4,
+             "the last of T or q is at " & $text.lastIndexOfAnyOf(makeString("Tq"))
+
+    doAssert text.compareIgnoreCase(makeString("THE QUICK BROWN FOX")) == 0,
+             "compareIgnoreCase did not call them equal"
+    doAssert makeString("file2").compareNatural(makeString("file10")) < 0,
+             "compareNatural put file10 before file2"
+    doAssert text.matchesWildcard(makeString("The*fox"), false),
+             "the wildcard The*fox did not match"
+
+testStringSearching()
+
+proc testStringTransforming() =
+    let text = makeString("The quick brown fox")
+
+    doAssert $text.substring(4.cint, 9.cint) == "quick",
+             "the substring is " & $text.substring(4.cint, 9.cint)
+    doAssert $text.substring(16.cint) == "fox",
+             "the tail is " & $text.substring(16.cint)
+    doAssert $text.dropLastCharacters(4.cint) == "The quick brown",
+             "dropping four left " & $text.dropLastCharacters(4.cint)
+    doAssert $text.getLastCharacters(3.cint) == "fox",
+             "the last three are " & $text.getLastCharacters(3.cint)
+    doAssert text.getLastCharacter() == WChar(ord('x')),
+             "the last character is not x"
+
+    doAssert $text.fromFirstOccurrenceOf(makeString("quick"), false, false) == " brown fox",
+             "from after quick is " &
+             $text.fromFirstOccurrenceOf(makeString("quick"), false, false)
+    doAssert $text.fromLastOccurrenceOf(makeString("o"), true, false) == "ox",
+             "from the last o is " &
+             $text.fromLastOccurrenceOf(makeString("o"), true, false)
+    doAssert $text.upToLastOccurrenceOf(makeString(" "), false, false) == "The quick brown",
+             "up to the last space is " &
+             $text.upToLastOccurrenceOf(makeString(" "), false, false)
+
+    doAssert $text.replaceFirstOccurrenceOf(makeString("o"), makeString("0")) ==
+             "The quick br0wn fox",
+             "the first o was not replaced"
+    doAssert $text.replaceCharacter(WChar(ord('o')), WChar(ord('0'))) ==
+             "The quick br0wn f0x", "not every o was replaced"
+    doAssert $text.replaceSection(0.cint, 3.cint, makeString("One")) ==
+             "One quick brown fox", "the section was not replaced"
+    doAssert $text.retainCharacters(makeString("aeiou ")) == "e ui o o",
+             "retaining the vowels left " & $text.retainCharacters(makeString("aeiou "))
+    doAssert $text.removeCharacters(makeString("aeiou ")) == "Thqckbrwnfx",
+             "removing the vowels left " & $text.removeCharacters(makeString("aeiou "))
+    # The set is case sensitive, so it has to carry the lowercase e.
+    doAssert $text.initialSectionContainingOnly(makeString("The ")) == "The ",
+             "the initial section is " &
+             $text.initialSectionContainingOnly(makeString("The "))
+    doAssert $text.initialSectionNotContaining(makeString(" ")) == "The",
+             "the initial section is " &
+             $text.initialSectionNotContaining(makeString(" "))
+
+    let padded = makeString("7")
+    doAssert $padded.paddedLeft(WChar(ord('0')), 3.cint) == "007",
+             "padding left gave " & $padded.paddedLeft(WChar(ord('0')), 3.cint)
+    doAssert $padded.paddedRight(WChar(ord('0')), 3.cint) == "700",
+             "padding right gave " & $padded.paddedRight(WChar(ord('0')), 3.cint)
+
+    let spaced = makeString("  hello  ")
+    doAssert $spaced.trim() == "hello", "trim gave " & $spaced.trim()
+    doAssert $spaced.trimStart() == "hello  ", "trimStart gave " & $spaced.trimStart()
+    doAssert $spaced.trimEnd() == "  hello", "trimEnd gave " & $spaced.trimEnd()
+    doAssert $makeString("xxhixx").trimCharactersAtStart(makeString("x")) == "hixx",
+             "trimming x at the start failed"
+    doAssert $makeString("xxhixx").trimCharactersAtEnd(makeString("x")) == "xxhi",
+             "trimming x at the end failed"
+
+    let quoted = makeString("\"quoted\"")
+    doAssert quoted.isQuotedString(), "the quoted string is not seen as quoted"
+    doAssert $quoted.unquoted() == "quoted", "unquoted gave " & $quoted.unquoted()
+
+testStringTransforming()
+
+proc testStringNumbersAndEncodings() =
+    doAssert makeString("3.5").getFloatValue() == 3.5'f32,
+             "3.5 parsed as " & $makeString("3.5").getFloatValue()
+    doAssert makeString("ff").getHexValue32() == 255,
+             "ff parsed as " & $makeString("ff").getHexValue32()
+    doAssert makeString("ffffffffff").getHexValue64() == 0xffffffffff'i64,
+             "a long hex value parsed as " & $makeString("ffffffffff").getHexValue64()
+    doAssert makeString("9000000000").getLargeIntValue() == 9000000000'i64,
+             "a large int parsed as " & $makeString("9000000000").getLargeIntValue()
+    doAssert makeString("track12").getTrailingIntValue() == 12,
+             "the trailing int is " & $makeString("track12").getTrailingIntValue()
+
+    # A hash is whatever JUCE computes; what it must do is agree with itself
+    # and differ between different strings.
+    let one = makeString("one")
+    let other = makeString("two")
+    doAssert one.hash() == makeString("one").hash(),
+             "the same text hashed differently"
+    doAssert one.hash() != other.hash(), "two different strings hashed the same"
+    doAssert one.hashCode64() == makeString("one").hashCode64(),
+             "the same text gave two 64-bit hashes"
+
+    block:
+        # The encodings. Each pointer reads back the same characters, which is
+        # the only thing that shows the conversion happened rather than the
+        # pointer merely existing.
+        let text = makeString("hi")
+        doAssert text.getNumBytesAsUTF8() == 2'u64,
+                 "hi is " & $text.getNumBytesAsUTF8() & " UTF-8 bytes"
+        doAssert $makeString(text.toUTF8()) == "hi",
+                 "the UTF-8 round trip gave " & $makeString(text.toUTF8())
+        doAssert $makeString(text.toUTF16()) == "hi",
+                 "the UTF-16 round trip gave " & $makeString(text.toUTF16())
+        doAssert $makeString(text.toUTF32()) == "hi",
+                 "the UTF-32 round trip gave " & $makeString(text.toUTF32())
+        # toWideCharPointer hands back a ConstPtr, which is a pointer to const
+        # and so not the `ptr WChar` the constructor takes. Read through it
+        # instead: the first character is what shows the conversion happened.
+        doAssert text.toWideCharPointer()[] == WChar(ord('h')),
+                 "the wide pointer does not start at h"
+        # constChar is a distinct cstring, so it compares through the cast.
+        doAssert cast[cstring](text.toRawUTF8Impl()) == "hi",
+                 "the raw UTF-8 reads back as " &
+                 $cast[cstring](text.toRawUTF8Impl())
+
+        var utf8Buffer: array[8, char]
+        let written = text.copyToUTF8(cast[ptr char](addr utf8Buffer[0]), 8'u64)
+        doAssert written == 3'u64,
+                 "copyToUTF8 wrote " & $written & " bytes rather than 3"
+        var utf32Buffer: array[8, WChar]
+        discard text.copyToUTF32(cast[ptr WChar](addr utf32Buffer[0]), 32'u64)
+        doAssert utf32Buffer[0] == WChar(ord('h')),
+                 "copyToUTF32 did not write h first"
+
+    block:
+        # swapWith exchanges the two, and appendCharPointer grows one.
+        var first = makeString("first")
+        var second = makeString("second")
+        first.swapWith(second)
+        doAssert $first == "second" and $second == "first",
+                 "swapWith left " & $first & " and " & $second
+
+        var grown = makeString("a")
+        grown.preallocateBytes(64'u64)
+        grown.appendCharPointer(makeString("bc").toUTF8())
+        doAssert $grown == "abc", "appending gave " & $grown
+
+testStringNumbersAndEncodings()
+
+# File, in behaviour ==========================================================
+#
+# Against a real directory under the system temp, created and removed here.
+# The compile harness proves these link; what they answer about a file on disk
+# is what this checks.
+
+proc testFilePathsAndNames() =
+    let root = june.File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                   .getNonexistentChildFile(makeString("june-file"), makeString(""))
+    doAssert root.createDirectory().wasOk(), "could not make the temp directory"
+
+    block:
+        let document = root.getChildFile(makeStringRef("notes.txt"))
+        doAssert $document.getFileExtension() == ".txt",
+                 "the extension is " & $document.getFileExtension()
+        doAssert $document.getFileNameWithoutExtension() == "notes",
+                 "the stem is " & $document.getFileNameWithoutExtension()
+        doAssert document.hasFileExtension(makeStringRef("txt")),
+                 "hasFileExtension said no to txt"
+        doAssert not document.hasFileExtension(makeStringRef("md")),
+                 "hasFileExtension said yes to md"
+        doAssert $document.withFileExtension(makeStringRef("md")).getFileName() ==
+                 "notes.md",
+                 "changing the extension gave " &
+                 $document.withFileExtension(makeStringRef("md")).getFileName()
+
+        doAssert document.getParentDirectory() == root,
+                 "the parent is not the directory it was made in"
+        doAssert $document.getSiblingFile(makeStringRef("other.txt")).getFileName() ==
+                 "other.txt", "the sibling has the wrong name"
+        doAssert document.isAChildOf(root), "the document is not a child of root"
+        doAssert not root.isAChildOf(document), "root is a child of the document"
+        doAssert not document.isRoot(), "the document reports itself as a root"
+        doAssert $document.getRelativePathFrom(root) == "notes.txt",
+                 "the relative path is " & $document.getRelativePathFrom(root)
+
+        doAssert not document.exists(), "a file that was never written exists"
+        let sibling = document.getNonexistentSibling(true)
+        doAssert not sibling.exists(), "the nonexistent sibling exists"
+
+    doAssert root.deleteRecursively(), "could not remove the temp directory"
+
+testFilePathsAndNames()
+
+proc testFileContentsAndCopies() =
+    let root = june.File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                   .getNonexistentChildFile(makeString("june-content"), makeString(""))
+    doAssert root.createDirectory().wasOk(), "could not make the temp directory"
+
+    block:
+        var source = root.getChildFile(makeStringRef("source.txt"))
+        doAssert source.create().wasOk(), "create did not make the file"
+        doAssert source.exists(), "the created file does not exist"
+        doAssert source.appendText(makeString("one\n"), false, false,
+                                   cast[constChar](cstring("\n"))),
+                 "appending the first line failed"
+        doAssert source.appendText(makeString("two\n"), false, false,
+                                   cast[constChar](cstring("\n"))),
+                 "appending the second line failed"
+        doAssert $source.loadFileAsString() == "one\ntwo\n",
+                 "the file holds " & $source.loadFileAsString()
+
+        var lines = makeStringArray()
+        source.readLines(lines)
+        # Three, not two: the trailing newline ends a line, so what follows it
+        # is an empty one.
+        doAssert lines.size() == 3,
+                 "readLines gave " & $lines.size() & " lines"
+        doAssert $lines[0] == "one", "the first line is " & $lines[0]
+        doAssert $lines[1] == "two", "the second line is " & $lines[1]
+        doAssert $lines[2] == "", "the third line is " & $lines[2]
+
+        var block1 = makeMemoryBlock()
+        doAssert source.loadFileAsData(block1), "loadFileAsData failed"
+        doAssert block1.getSize() == 8'u64,
+                 "the file is " & $block1.getSize() & " bytes, not 8"
+
+        # A copy has the same content; a moved file leaves nothing behind.
+        let copied = root.getChildFile(makeStringRef("copied.txt"))
+        doAssert source.copyFileTo(copied), "the copy failed"
+        doAssert source.hasIdenticalContentTo(copied),
+                 "the copy does not match the original"
+        doAssert copied.getSize() == source.getSize(),
+                 "the copy is a different size"
+
+        let moved = root.getChildFile(makeStringRef("moved.txt"))
+        doAssert copied.moveFileTo(moved), "the move failed"
+        doAssert not copied.exists(), "the moved file is still at its old path"
+        doAssert moved.exists(), "the moved file is not at its new path"
+
+        doAssert source.replaceWithData(cast[constPointer](cstring("xy")), 2'u64),
+                 "replaceWithData failed"
+        doAssert $source.loadFileAsString() == "xy",
+                 "after replacing, the file holds " & $source.loadFileAsString()
+        doAssert source.appendData(cast[constPointer](cstring("z")), 1'u64),
+                 "appendData failed"
+        doAssert $source.loadFileAsString() == "xyz",
+                 "after appending, the file holds " & $source.loadFileAsString()
+
+        # A UniquePtr, so C++ owns it and there is nothing to delete here.
+        var stream = source.createOutputStream(0'u64)
+        doAssert not stream.isNil, "createOutputStream gave nothing"
+
+    block:
+        # Directories: children, counts and a recursive copy.
+        let inner = root.getChildFile(makeStringRef("inner"))
+        doAssert inner.createDirectory().wasOk(), "could not make the inner directory"
+        doAssert inner.getChildFile(makeStringRef("a.txt"))
+                      .replaceWithText(makeString("a")), "could not write a.txt"
+
+        doAssert root.containsSubDirectories(), "root holds no subdirectories"
+        doAssert not inner.containsSubDirectories(),
+                 "the inner directory holds subdirectories"
+        doAssert inner.getNumberOfChildFiles(3.cint, makeString("*")) == 1,
+                 "the inner directory holds " &
+                 $inner.getNumberOfChildFiles(3.cint, makeString("*")) & " children"
+
+        let found = inner.findChildFiles(3.cint, false, makeString("*"),
+                                         FileFollowSymlinks_no)
+        doAssert found.size() == 1,
+                 "findChildFiles found " & $found.size() & " files"
+        doAssert $found[0.cint].getFileName() == "a.txt",
+                 "findChildFiles found " & $found[0.cint].getFileName()
+
+        let elsewhere = root.getChildFile(makeStringRef("elsewhere"))
+        doAssert inner.copyDirectoryTo(elsewhere), "the directory copy failed"
+        doAssert elsewhere.getChildFile(makeStringRef("a.txt")).exists(),
+                 "the copied directory has no a.txt"
+
+    doAssert root.deleteRecursively(), "could not remove the temp directory"
+
+testFileContentsAndCopies()
+
+proc testFileMetadataAndVolumes() =
+    let root = june.File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                   .getNonexistentChildFile(makeString("june-meta"), makeString(""))
+    doAssert root.createDirectory().wasOk(), "could not make the temp directory"
+
+    block:
+        var document = root.getChildFile(makeStringRef("stamped.txt"))
+        doAssert document.replaceWithText(makeString("content")),
+                 "could not write the file"
+
+        let now = Time.getCurrentTime()
+        doAssert document.getLastModificationTime() <= now,
+                 "the file was modified in the future"
+        doAssert document.getCreationTime() <= now,
+                 "the file was created in the future"
+        discard document.getLastAccessTime()
+
+        # Set a timestamp and read it back. A second is the resolution every
+        # filesystem this runs on can hold.
+        let stamp = Time.getCurrentTime() - makeRelativeTime(3600.0)
+        doAssert document.setLastModificationTime(stamp),
+                 "setting the modification time failed"
+        doAssert abs(document.getLastModificationTime().toMilliseconds() -
+                     stamp.toMilliseconds()) < 2000,
+                 "the modification time came back too far from what was set"
+        discard document.setLastAccessTime(stamp)
+        discard document.setCreationTime(stamp)
+
+        doAssert document.hasReadAccess(), "the file cannot be read"
+        doAssert document.hasWriteAccess(), "the file cannot be written"
+        doAssert not document.isHidden(), "a plain file reports itself hidden"
+        doAssert document.getFileIdentifier() != 0'u64,
+                 "the file has no identifier"
+        doAssert not document.isOnCDRomDrive(), "the temp file is on a CD"
+        discard document.isOnHardDisk()
+        discard document.isOnRemovableDrive()
+        discard document.getVersion()
+
+        doAssert document.setExecutePermission(true),
+                 "granting execute permission failed"
+        doAssert document.setExecutePermission(false),
+                 "removing execute permission failed"
+
+    block:
+        # A symbolic link points back at what it was made from.
+        let target = root.getChildFile(makeStringRef("target.txt"))
+        doAssert target.replaceWithText(makeString("t")), "could not write the target"
+        let link = root.getChildFile(makeStringRef("link.txt"))
+        if target.createSymbolicLink(link, true):
+            doAssert link.getLinkedTarget() == target,
+                     "the link points at " & $link.getLinkedTarget().getFullPathName()
+            discard link.getNativeLinkedTarget()
+
+    block:
+        # The volume the temp directory sits on has a size and some space free.
+        doAssert root.getVolumeTotalSize() > 0'i64,
+                 "the volume reports no total size"
+        doAssert root.getBytesFreeOnVolume() > 0'i64,
+                 "the volume reports no free space"
+        discard root.getVolumeLabel()
+        discard root.getVolumeSerialNumber()
+
+    block:
+        # replaceFileIn puts one file where another was.
+        let original = root.getChildFile(makeStringRef("original.txt"))
+        let replacement = root.getChildFile(makeStringRef("replacement.txt"))
+        doAssert original.replaceWithText(makeString("old")), "could not write the original"
+        doAssert replacement.replaceWithText(makeString("new")),
+                 "could not write the replacement"
+        doAssert replacement.replaceFileIn(original), "replaceFileIn failed"
+        doAssert $original.loadFileAsString() == "new",
+                 "after replacing, the original holds " & $original.loadFileAsString()
+
+    doAssert root.deleteRecursively(), "could not remove the temp directory"
+
+testFileMetadataAndVolumes()
+
+# XmlElement's child list and attribute list are both ordered, and both are
+# edited through methods that take a raw pointer and take ownership of it.
+# testXmlRoundTrip above covers building and parsing; this covers editing.
+proc testXmlElementEditing() =
+  block:
+    # The attribute list keeps insertion order, and reads back by name or by
+    # index.
+    var element = makeXmlElement(makeString("node"))
+    doAssert element.getNumAttributes() == 0,
+             "a new element holds " & $element.getNumAttributes() & " attributes"
+
+    element.setAttribute(makeIdentifier("first"), makeString("one"))
+    element.setAttribute(makeIdentifier("second"), 2.cint)
+    element.setAttribute(makeIdentifier("third"), 3.5)
+
+    doAssert element.getNumAttributes() == 3,
+             "the element holds " & $element.getNumAttributes() & " attributes"
+    doAssert $element.getAttributeName(0.cint) == "first",
+             "attribute 0 is named " & $element.getAttributeName(0.cint)
+    doAssert $element.getAttributeValue(1.cint) == "2",
+             "attribute 1 reads as " & $element.getAttributeValue(1.cint)
+
+    # Each typed getter parses the stored text.
+    doAssert element.getIntAttribute("second", 0.cint) == 2,
+             "the int attribute is " & $element.getIntAttribute("second", 0.cint)
+    doAssert abs(element.getDoubleAttribute("third", 0.0) - 3.5) < 1.0e-9,
+             "the double attribute is " & $element.getDoubleAttribute("third", 0.0)
+
+    # A missing attribute gives the default rather than an error.
+    doAssert not element.hasAttribute("absent"), "a missing attribute exists"
+    doAssert element.getIntAttribute("absent", 42.cint) == 42,
+             "the default was not returned"
+    doAssert $element.getStringAttribute("absent", makeString("fallback")) ==
+             "fallback", "the string default was not returned"
+
+    # Setting the same name again replaces rather than appends.
+    element.setAttribute(makeIdentifier("first"), makeString("replaced"))
+    doAssert element.getNumAttributes() == 3,
+             "replacing an attribute left " & $element.getNumAttributes()
+    doAssert $element.getStringAttribute("first") == "replaced",
+             "the attribute reads as " & $element.getStringAttribute("first")
+
+    doAssert element.compareAttribute("first", "replaced"),
+             "compareAttribute denied the value it holds"
+    doAssert not element.compareAttribute("first", "REPLACED"),
+             "compareAttribute ignored case when it was told not to"
+    doAssert element.compareAttribute("first", "REPLACED", true),
+             "compareAttribute honoured case when it was told to ignore it"
+
+    element.removeAttribute(makeIdentifier("second"))
+    doAssert element.getNumAttributes() == 2,
+             "after removing one there are " & $element.getNumAttributes()
+    doAssert not element.hasAttribute("second"), "the removed attribute is back"
+
+    element.removeAllAttributes()
+    doAssert element.getNumAttributes() == 0,
+             "removeAllAttributes left " & $element.getNumAttributes()
+
+  block:
+    # The child list is ordered, and the three ways of adding a child put it in
+    # three different places.
+    var root = makeXmlElement(makeString("root"))
+    let middle = root.createNewChildElement("middle")
+    doAssert root.getNumChildElements() == 1,
+             "createNewChildElement gave " & $root.getNumChildElements() & " children"
+    doAssert middle != nil, "createNewChildElement returned nothing"
+
+    root.addChildElement(cnew makeXmlElement(makeString("last")))
+    root.prependChildElement(cnew makeXmlElement(makeString("first")))
+    root.insertChildElement(cnew makeXmlElement(makeString("second")), 1.cint)
+
+    doAssert root.getNumChildElements() == 4,
+             "the root holds " & $root.getNumChildElements() & " children"
+    doAssert $root.getChildElement(0.cint)[].getTagName() == "first",
+             "child 0 is " & $root.getChildElement(0.cint)[].getTagName()
+    doAssert $root.getChildElement(1.cint)[].getTagName() == "second",
+             "child 1 is " & $root.getChildElement(1.cint)[].getTagName()
+    doAssert $root.getChildElement(2.cint)[].getTagName() == "middle",
+             "child 2 is " & $root.getChildElement(2.cint)[].getTagName()
+    doAssert $root.getChildElement(3.cint)[].getTagName() == "last",
+             "child 3 is " & $root.getChildElement(3.cint)[].getTagName()
+
+    # The list is also walked by following each element to the next.
+    doAssert $root.getFirstChildElement()[].getTagName() == "first",
+             "the first child is " & $root.getFirstChildElement()[].getTagName()
+    doAssert $root.getFirstChildElement()[].getNextElement()[].getTagName() ==
+             "second",
+             "the second child is reached as " &
+             $root.getFirstChildElement()[].getNextElement()[].getTagName()
+
+    doAssert root.containsChildElement(middle),
+             "the root does not contain a child it made"
+    doAssert root.findParentElementOf(middle) == addr root,
+             "findParentElementOf did not find the root"
+    doAssert root.getChildByName("middle") == middle,
+             "getChildByName found a different element"
+    doAssert root.getChildByName("absent") == nil,
+             "getChildByName invented a child"
+
+    # An attribute finds a child too.
+    middle[].setAttribute(makeIdentifier("id"), makeString("target"))
+    doAssert root.getChildByAttribute("id", "target") == middle,
+             "getChildByAttribute found the wrong child"
+    doAssert root.getChildByAttribute("id", "other") == nil,
+             "getChildByAttribute invented a child"
+
+    root.removeChildElement(middle, true)
+    doAssert root.getNumChildElements() == 3,
+             "after removing one there are " & $root.getNumChildElements()
+    doAssert root.getChildByName("middle") == nil, "the removed child is back"
+
+    root.deleteAllChildElements()
+    doAssert root.getNumChildElements() == 0,
+             "deleteAllChildElements left " & $root.getNumChildElements()
+
+  block:
+    # A tag name may carry a namespace, and the accessors split it.
+    var element = makeXmlElement(makeString("juce:widget"))
+    doAssert $element.getTagName() == "juce:widget",
+             "the tag name is " & $element.getTagName()
+    doAssert $element.getNamespace() == "juce",
+             "the namespace is " & $element.getNamespace()
+    doAssert $element.getTagNameWithoutNamespace() == "widget",
+             "the local name is " & $element.getTagNameWithoutNamespace()
+    doAssert element.hasTagName("juce:widget"),
+             "hasTagName denied the full name"
+    doAssert not element.hasTagName("widget"),
+             "hasTagName accepted the name without its namespace"
+    doAssert element.hasTagNameIgnoringNamespace("widget"),
+             "hasTagNameIgnoringNamespace refused the local name"
+
+    element.setTagName("other")
+    doAssert $element.getTagName() == "other",
+             "setTagName left the name as " & $element.getTagName()
+
+    # A name with no colon has no namespace, but JUCE does not report an empty
+    # one: getNamespace takes everything up to the first colon and
+    # getTagNameWithoutNamespace everything after the last
+    # (juce_XmlElement.cpp:490 and :495), so both give back the whole name.
+    doAssert $element.getNamespace() == "other",
+             "a name with no colon reports the namespace " & $element.getNamespace()
+    doAssert $element.getTagNameWithoutNamespace() == "other",
+             "a name with no colon has the local name " &
+             $element.getTagNameWithoutNamespace()
+
+  block:
+    # Text is held in child elements of its own, which is why getText is empty
+    # on the element that owns the text and getAllSubText is not.
+    var root = makeXmlElement(makeString("root"))
+    root.addTextElement(makeString("hello "))
+    root.addTextElement(makeString("world"))
+
+    doAssert not root.isTextElement(), "an element with text is a text element"
+    doAssert root.getText().isEmpty(),
+             "the owning element's own text is " & $root.getText()
+    doAssert $root.getAllSubText() == "hello world",
+             "the collected text is " & $root.getAllSubText()
+    doAssert root.getFirstChildElement()[].isTextElement(),
+             "the text child is not a text element"
+    doAssert $root.getFirstChildElement()[].getText() == "hello ",
+             "the text child holds " & $root.getFirstChildElement()[].getText()
+
+    # setText belongs to a TEXT element, not to the element that owns one: on
+    # anything else it trips a jassert and changes nothing
+    # (juce_XmlElement.cpp:934). So it is the child that is rewritten.
+    root.getFirstChildElement()[].setText(makeString("HELLO "))
+    doAssert $root.getAllSubText() == "HELLO world",
+             "setText on the text child left " & $root.getAllSubText()
+
+    root.deleteAllTextElements()
+    doAssert root.getAllSubText().isEmpty(),
+             "deleteAllTextElements left " & $root.getAllSubText()
+
+    # A named child's text is reached in one call, with a default when it is
+    # not there.
+    let child = root.createNewChildElement("label")
+    child[].addTextElement(makeString("caption"))
+    doAssert $root.getChildElementAllSubText("label", makeString("")) == "caption",
+             "the child's text reads as " &
+             $root.getChildElementAllSubText("label", makeString(""))
+    doAssert $root.getChildElementAllSubText("absent", makeString("none")) == "none",
+             "the default was not returned for a missing child"
+
+  block:
+    # isEquivalentTo compares structure, and attribute order is only ignored
+    # when it is told to ignore it.
+    var first = makeXmlElement(makeString("node"))
+    first.setAttribute(makeIdentifier("a"), makeString("1"))
+    first.setAttribute(makeIdentifier("b"), makeString("2"))
+
+    var same = makeXmlElement(makeString("node"))
+    same.setAttribute(makeIdentifier("a"), makeString("1"))
+    same.setAttribute(makeIdentifier("b"), makeString("2"))
+    doAssert first.isEquivalentTo(addr same, false),
+             "two identical elements are not equivalent"
+
+    var reordered = makeXmlElement(makeString("node"))
+    reordered.setAttribute(makeIdentifier("b"), makeString("2"))
+    reordered.setAttribute(makeIdentifier("a"), makeString("1"))
+    doAssert not first.isEquivalentTo(addr reordered, false),
+             "attribute order was ignored when it should not have been"
+    doAssert first.isEquivalentTo(addr reordered, true),
+             "attribute order mattered when it should have been ignored"
+
+    var different = makeXmlElement(makeString("node"))
+    different.setAttribute(makeIdentifier("a"), makeString("9"))
+    doAssert not first.isEquivalentTo(addr different, true),
+             "elements with different values are equivalent"
+
+testXmlElementEditing()
+
+# BigInteger is an arbitrary-width integer that is also a bit set, and the two
+# faces have to agree: setting a bit is the same as adding a power of two.
+proc testBigIntegerArithmetic() =
+  block:
+    var value = makeBigInteger(0.cint)
+    doAssert value.isZero(), "a new BigInteger is not zero"
+    doAssert not value.isNegative(), "zero is negative"
+    doAssert value.getHighestBit() == -1,
+             "zero's highest bit is " & $value.getHighestBit()
+    doAssert value.countNumberOfSetBits() == 0,
+             "zero has " & $value.countNumberOfSetBits() & " bits set"
+
+    # The bit set and the number are the same thing seen twice.
+    discard value.setBit(3.cint)
+    doAssert value.toInteger() == 8,
+             "setting bit 3 gave " & $value.toInteger()
+    doAssert value[3.cint], "bit 3 did not read back"
+    doAssert value.getHighestBit() == 3,
+             "the highest bit is " & $value.getHighestBit()
+    doAssert value.countNumberOfSetBits() == 1,
+             "one bit reads as " & $value.countNumberOfSetBits()
+
+    discard value.setBit(0.cint)
+    doAssert value.toInteger() == 9,
+             "setting bit 0 as well gave " & $value.toInteger()
+    doAssert value.countNumberOfSetBits() == 2,
+             "two bits read as " & $value.countNumberOfSetBits()
+
+    doAssert value.findNextSetBit(1.cint) == 3,
+             "the next set bit after 0 is " & $value.findNextSetBit(1.cint)
+    doAssert value.findNextClearBit(0.cint) == 1,
+             "the next clear bit from 0 is " & $value.findNextClearBit(0.cint)
+
+    # A bit range reads several bits at once, and the range is [start, count).
+    doAssert value.getBitRange(0.cint, 4.cint).toInteger() == 9,
+             "the low four bits read as " &
+             $value.getBitRange(0.cint, 4.cint).toInteger()
+    doAssert value.getBitRange(1.cint, 3.cint).toInteger() == 4,
+             "bits 1..3 read as " & $value.getBitRange(1.cint, 3.cint).toInteger()
+
+    discard value.setBitRangeAsInt(8.cint, 4.cint, 5'u32)
+    doAssert value.getBitRange(8.cint, 4.cint).toInteger() == 5,
+             "the written range reads back as " &
+             $value.getBitRange(8.cint, 4.cint).toInteger()
+    doAssert value.getBitRange(0.cint, 4.cint).toInteger() == 9,
+             "writing a high range changed the low one to " &
+             $value.getBitRange(0.cint, 4.cint).toInteger()
+
+  block:
+    # A shift is a multiplication by a power of two, in both directions.
+    var value = makeBigInteger(5.cint)
+    discard value.shiftBits(4.cint, 0.cint)
+    doAssert value.toInteger() == 80, "5 << 4 gave " & $value.toInteger()
+    discard value.shiftBits(-4.cint, 0.cint)
+    doAssert value.toInteger() == 5, "shifting back gave " & $value.toInteger()
+
+    # inc and dec walk by one.
+    var counter = makeBigInteger(10.cint)
+    discard counter.inc()
+    doAssert counter.toInteger() == 11, "inc gave " & $counter.toInteger()
+    discard counter.dec()
+    discard counter.dec()
+    doAssert counter.toInteger() == 9, "two decs gave " & $counter.toInteger()
+
+  block:
+    # The sign is carried separately from the magnitude, which is why negate
+    # and setNegative are different operations.
+    var value = makeBigInteger(7.cint)
+    doAssert not value.isNegative(), "7 is negative"
+    value.negate()
+    doAssert value.isNegative(), "negate did not change the sign"
+    doAssert value.toInteger() == -7, "negating 7 gave " & $value.toInteger()
+
+    value.setNegative(false)
+    doAssert value.toInteger() == 7, "clearing the sign gave " & $value.toInteger()
+    value.setNegative(false)
+    doAssert value.toInteger() == 7,
+             "setting the sign twice the same way gave " & $value.toInteger()
+
+    # compareAbsolute ignores the sign; compare does not.
+    let negative = makeBigInteger(-9.cint)
+    let positive = makeBigInteger(9.cint)
+    doAssert negative.compareAbsolute(positive) == 0,
+             "the magnitudes compare as " & $negative.compareAbsolute(positive)
+    doAssert negative.compare(positive) < 0,
+             "-9 does not compare below 9"
+
+  block:
+    # divideBy writes the quotient into the receiver and the remainder into its
+    # argument, which is the shape a caller has to know.
+    var value = makeBigInteger(47.cint)
+    var remainder = makeBigInteger(0.cint)
+    value.divideBy(makeBigInteger(5.cint), remainder)
+    doAssert value.toInteger() == 9, "47 / 5 gave " & $value.toInteger()
+    doAssert remainder.toInteger() == 2, "47 %% 5 gave " & $remainder.toInteger()
+
+    # The greatest common divisor of 48 and 18 is 6.
+    doAssert makeBigInteger(48.cint).findGreatestCommonDivisor(
+                makeBigInteger(18.cint)).toInteger() == 6,
+             "gcd(48, 18) gave " &
+             $makeBigInteger(48.cint).findGreatestCommonDivisor(
+                 makeBigInteger(18.cint)).toInteger()
+
+    # 3^4 mod 5 is 81 mod 5, which is 1.
+    var power = makeBigInteger(3.cint)
+    power.exponentModulo(makeBigInteger(4.cint), makeBigInteger(5.cint))
+    doAssert power.toInteger() == 1,
+             "3^4 mod 5 gave " & $power.toInteger()
+
+  block:
+    # A number survives a round trip through its own text, in each base it
+    # knows.
+    var value = makeBigInteger(0.cint)
+    value.parseString(makeString("255"), 10.cint)
+    doAssert value.toInteger() == 255, "parsing 255 gave " & $value.toInteger()
+    doAssert $value.toString(16.cint, 0.cint) == "ff",
+             "255 in hex is " & $value.toString(16.cint, 0.cint)
+
+    var fromHex = makeBigInteger(0.cint)
+    fromHex.parseString(makeString("ff"), 16.cint)
+    doAssert fromHex.toInteger() == 255,
+             "parsing ff in base 16 gave " & $fromHex.toInteger()
+
+    # A number wider than an int survives the trip too, which is the whole
+    # point of the type.
+    var wide = makeBigInteger(0.cint)
+    wide.parseString(makeString("123456789012345678901234567890"), 10.cint)
+    doAssert $wide.toString(10.cint, 0.cint) == "123456789012345678901234567890",
+             "a 30 digit number came back as " & $wide.toString(10.cint, 0.cint)
+    doAssert wide.getHighestBit() > 63,
+             "a 30 digit number's highest bit is " & $wide.getHighestBit() &
+             ", so it fits in 64 bits"
+
+  block:
+    # A number survives a round trip through raw memory.
+    var value = makeBigInteger(0.cint)
+    value.parseString(makeString("987654321098765432109876543210"), 10.cint)
+    let block1 = value.toMemoryBlock()
+
+    var restored = makeBigInteger(0.cint)
+    restored.loadFromMemoryBlock(block1)
+    doAssert restored.compare(value) == 0,
+             "the round trip through memory gave " &
+             $restored.toString(10.cint, 0.cint)
+
+testBigIntegerArithmetic()
+
+# URL is a value type built by with- methods that each return a new URL. None
+# of these tests reach the network: every one is parsing or building.
+proc testUrlBuilding() =
+  block:
+    let url = makeURL(makeString(
+        "https://example.com:8080/a/b?first=1&second=two#section"))
+
+    doAssert $url.getScheme() == "https", "the scheme is " & $url.getScheme()
+    doAssert $url.getDomain() == "example.com",
+             "the domain is " & $url.getDomain()
+    doAssert url.getPort() == 8080, "the port is " & $url.getPort()
+    doAssert $url.getSubPath() == "a/b", "the sub path is " & $url.getSubPath()
+    doAssert $url.getAnchorString() == "#section",
+             "the anchor is " & $url.getAnchorString()
+    doAssert $url.getOrigin() == "https://example.com:8080",
+             "the origin is " & $url.getOrigin()
+    doAssert not url.isLocalFile(), "an https URL is a local file"
+
+    # The query is available whole and split into names and values, and the
+    # two agree.
+    # getQueryString appends the anchor to the parameters
+    # (juce_URL.cpp:374), so it is not only the query.
+    doAssert $url.getQueryString() == "?first=1&second=two#section",
+             "the query string is " & $url.getQueryString()
+    doAssert url.getParameterNames().size() == 2,
+             "there are " & $url.getParameterNames().size() & " parameter names"
+    doAssert $url.getParameterNames()[0.cint] == "first",
+             "the first name is " & $url.getParameterNames()[0.cint]
+    doAssert $url.getParameterValues()[1.cint] == "two",
+             "the second value is " & $url.getParameterValues()[1.cint]
+    doAssert url.getParameterValues().size() ==
+             url.getParameterNames().size(),
+             "there are " & $url.getParameterNames().size() & " names and " &
+             $url.getParameterValues().size() & " values"
+
+    # The parent drops the last path segment; a child adds one.
+    doAssert $url.getParentURL().toString(false) == "https://example.com:8080/a",
+             "the parent is " & $url.getParentURL().toString(false)
+    doAssert $url.getChildURL(makeString("c")).toString(false) ==
+             "https://example.com:8080/a/b/c",
+             "the child is " & $url.getChildURL(makeString("c")).toString(false)
+
+  block:
+    # The with- methods return a new URL and leave the receiver alone.
+    let base = makeURL(makeString("https://example.com/start"))
+
+    let withParams = base.withParameter(makeString("q"), makeString("nim"))
+    doAssert $withParams.getQueryString() == "?q=nim",
+             "the query is " & $withParams.getQueryString()
+    doAssert base.getQueryString().isEmpty(),
+             "withParameter changed the original to " & $base.getQueryString()
+
+    doAssert $base.withNewSubPath(makeString("other")).getSubPath() == "other",
+             "withNewSubPath gave " &
+             $base.withNewSubPath(makeString("other")).getSubPath()
+    doAssert $base.getSubPath() == "start",
+             "withNewSubPath changed the original to " & $base.getSubPath()
+
+    let moved = base.withNewDomainAndPath(makeString("other.org/elsewhere"))
+    doAssert $moved.getDomain() == "other.org",
+             "the new domain is " & $moved.getDomain()
+    doAssert $moved.getSubPath() == "elsewhere",
+             "the new path is " & $moved.getSubPath()
+
+    let anchored = base.withAnchor(makeString("top"))
+    doAssert $anchored.getAnchorString() == "#top",
+             "the anchor is " & $anchored.getAnchorString()
+    doAssert base.getAnchorString().isEmpty(),
+             "withAnchor changed the original"
+
+    # POST data is separate from the query string: it does not appear in the
+    # URL's text.
+    let posting = base.withPOSTData(makeString("body=here"))
+    doAssert $posting.getPostData() == "body=here",
+             "the post data is " & $posting.getPostData()
+    doAssert not ($posting.toString(true)).contains("body=here"),
+             "the post data leaked into the URL: " & $posting.toString(true)
+    doAssert posting.getPostDataAsMemoryBlock().getSize() == 9,
+             "the post data measures " &
+             $posting.getPostDataAsMemoryBlock().getSize() & " bytes"
+
+    # toString's argument decides whether the parameters are included.
+    doAssert ($withParams.toString(true)).contains("q=nim"),
+             "toString(true) dropped the parameters: " &
+             $withParams.toString(true)
+    doAssert not ($withParams.toString(false)).contains("q=nim"),
+             "toString(false) kept the parameters: " &
+             $withParams.toString(false)
+
+  block:
+    # A file URL knows it is one, and gives the file back.
+    let file = File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                   .getChildFile(makeString("june_url_test.txt"))
+    let url = makeURL(file)
+    doAssert url.isLocalFile(), "a file URL is not a local file"
+    doAssert url.getLocalFile().getFullPathName() == file.getFullPathName(),
+             "the file came back as " & $url.getLocalFile().getFullPathName()
+    doAssert $url.getScheme() == "file", "the scheme is " & $url.getScheme()
+
+  block:
+    # An empty URL is empty, and a well formed one is not.
+    doAssert makeURL().isEmpty(), "a default URL is not empty"
+    doAssert not makeURL(makeString("https://example.com")).isEmpty(),
+             "a real URL reports empty"
+    doAssert URL.isProbablyAWebsiteURL(makeString("www.example.com")),
+             "a website URL was not recognised"
+    doAssert not URL.isProbablyAWebsiteURL(makeString("not a url at all")),
+             "a sentence was recognised as a website URL"
+    doAssert URL.isProbablyAnEmailAddress(makeString("someone@example.com")),
+             "an email address was not recognised"
+
+testUrlBuilding()
+
+# The stream primitives. Each writer has a matching reader, and every pair is
+# asserted by writing and reading back - so a binding that wrote the wrong
+# width, or read the wrong endianness, fails rather than compiling quietly.
+proc testStreamPrimitives() =
+  block:
+    var buffer = makeMemoryBlock(0'u64, false)
+    block:
+      var output = makeMemoryOutputStream(buffer, false)
+      doAssert output.writeBool(true), "writeBool refused"
+      doAssert output.writeByte('A'), "writeByte refused"
+      doAssert output.writeShort(-1234'i16), "writeShort refused"
+      doAssert output.writeInt(123456.cint), "writeInt refused"
+      doAssert output.writeInt64(9876543210'i64), "writeInt64 refused"
+      doAssert output.writeFloat(2.5'f32), "writeFloat refused"
+      doAssert output.writeDouble(1.25), "writeDouble refused"
+      output.flush()
+
+    var input = makeMemoryInputStream(buffer, false)
+    doAssert input.readBool(), "the bool came back false"
+    doAssert input.readByte() == 'A',
+             "the byte came back as " & $input.readByte()
+    doAssert input.readShort() == -1234'i16, "the short did not come back"
+    doAssert input.readInt() == 123456.cint, "the int did not come back"
+    doAssert input.readInt64() == 9876543210'i64, "the int64 did not come back"
+    doAssert input.readFloat() == 2.5'f32, "the float did not come back"
+    doAssert input.readDouble() == 1.25, "the double did not come back"
+    doAssert input.isExhausted(),
+             "the stream has " & $input.getNumBytesRemaining() & " bytes left"
+
+  block:
+    # The big-endian writers put the same numbers down in the other order, so
+    # the little-endian reader gives a different answer for all but a
+    # palindrome.
+    var buffer = makeMemoryBlock(0'u64, false)
+    block:
+      var output = makeMemoryOutputStream(buffer, false)
+      doAssert output.writeIntBigEndian(1.cint), "writeIntBigEndian refused"
+      output.flush()
+
+    var swapped = makeMemoryInputStream(buffer, false)
+    doAssert swapped.readIntBigEndian() == 1.cint,
+             "the big-endian int came back as " & $swapped.readIntBigEndian()
+
+    var native = makeMemoryInputStream(buffer, false)
+    doAssert native.readInt() != 1.cint,
+             "the little-endian reader agreed with the big-endian writer, so " &
+             "one of the two is not swapping"
+
+  block:
+    # A compressed int uses fewer bytes for a small number than a plain one.
+    var small = makeMemoryBlock(0'u64, false)
+    block:
+      var output = makeMemoryOutputStream(small, false)
+      doAssert output.writeCompressedInt(7.cint), "writeCompressedInt refused"
+      output.flush()
+    doAssert small.getSize() < 4'u64,
+             "a compressed 7 took " & $small.getSize() & " bytes"
+
+    var input = makeMemoryInputStream(small, false)
+    doAssert input.readCompressedInt() == 7.cint,
+             "the compressed int came back as " & $input.readCompressedInt()
+
+  block:
+    # A string round trips, and so does a run of repeated bytes.
+    var buffer = makeMemoryBlock(0'u64, false)
+    block:
+      var output = makeMemoryOutputStream(buffer, false)
+      doAssert output.writeString(makeString("hello")), "writeString refused"
+      doAssert output.writeRepeatedByte(0xAB'u8, 4'u64),
+               "writeRepeatedByte refused"
+      output.flush()
+
+    var input = makeMemoryInputStream(buffer, false)
+    doAssert $input.readString() == "hello",
+             "the string came back as " & $input.readString()
+    doAssert input.getNumBytesRemaining() == 4'i64,
+             "the repeated bytes measure " & $input.getNumBytesRemaining()
+
+    var rest = makeMemoryBlock(0'u64, false)
+    discard input.readIntoMemoryBlock(rest, -1'i64)
+    doAssert rest.getSize() == 4'u64,
+             "the memory block took " & $rest.getSize() & " bytes"
+
+  block:
+    # skipNextBytes moves the read position without returning anything.
+    var buffer = makeMemoryBlock(0'u64, false)
+    block:
+      var output = makeMemoryOutputStream(buffer, false)
+      doAssert output.writeInt(1.cint), "writeInt refused"
+      doAssert output.writeInt(2.cint), "the second writeInt refused"
+      output.flush()
+
+    var input = makeMemoryInputStream(buffer, false)
+    input.skipNextBytes(4'i64)
+    doAssert input.readInt() == 2.cint,
+             "after skipping the first int the next is " & $input.readInt()
+
+  block:
+    # writeFromInputStream copies one stream into another.
+    var source = makeMemoryBlock(0'u64, false)
+    block:
+      var output = makeMemoryOutputStream(source, false)
+      doAssert output.writeInt(42.cint), "writeInt refused"
+      output.flush()
+
+    var copy = makeMemoryBlock(0'u64, false)
+    block:
+      var input = makeMemoryInputStream(source, false)
+      var output = makeMemoryOutputStream(copy, false)
+      doAssert output.writeFromInputStream(input, -1'i64) == 4'i64,
+               "the copy moved a different number of bytes"
+      output.flush()
+
+    var check = makeMemoryInputStream(copy, false)
+    doAssert check.readInt() == 42.cint,
+             "the copied int came back as " & $check.readInt()
+
+  block:
+    # The newline string is a property of the stream, and it round trips.
+    var buffer = makeMemoryBlock(0'u64, false)
+    var output = makeMemoryOutputStream(buffer, false)
+    doAssert output.getNewLineString().isNotEmpty(),
+             "the default newline string is empty"
+    output.setNewLineString(makeString("\r\n"))
+    doAssert $output.getNewLineString() == "\r\n",
+             "the newline string did not read back"
+
+testStreamPrimitives()
+
+# juce_var is a tagged union. Exactly one predicate answers for any value, and
+# the equality operators differ in whether they let the tags differ - which is
+# the distinction a caller has to know.
+proc testVarTypes() =
+  block:
+    # Each constructor sets exactly one tag.
+    let nothing = makejuce_var()
+    doAssert nothing.isVoid(), "a default var is not void"
+    doAssert not nothing.isUndefined(), "a void var is undefined"
+    doAssert not nothing.isInt(), "a void var is an int"
+
+    let whole = makejuce_var(7.cint)
+    doAssert whole.isInt(), "an int var is not an int"
+    doAssert not whole.isDouble(), "an int var is a double"
+    doAssert not whole.isBool(), "an int var is a bool"
+    doAssert not whole.isString(), "an int var is a string"
+
+    let wide = makejuce_var(9876543210'i64)
+    doAssert wide.isInt64(), "an int64 var is not an int64"
+    doAssert not wide.isInt(), "an int64 var is also an int"
+
+    let flag = makejuce_var(true)
+    doAssert flag.isBool(), "a bool var is not a bool"
+    doAssert not flag.isInt(), "a bool var is an int"
+
+    let fractional = makejuce_var(1.5)
+    doAssert fractional.isDouble(), "a double var is not a double"
+    doAssert not fractional.isInt(), "a double var is an int"
+
+    let text = makejuce_var(makeString("hello"))
+    doAssert text.isString(), "a string var is not a string"
+    doAssert not text.isArray(), "a string var is an array"
+
+    var bytes = makeMemoryBlock(8'u64, true)
+    let binary = makejuce_var(bytes)
+    doAssert binary.isBinaryData(), "a binary var is not binary data"
+    doAssert not binary.getBinaryData().isNil,
+             "a binary var has no data behind it"
+    doAssert binary.getBinaryData()[].getSize() == 8'u64,
+             "the binary data measures " & $binary.getBinaryData()[].getSize()
+
+    # A var that holds nothing has no object or array behind it either.
+    doAssert nothing.getArray().isNil, "a void var has an array"
+    doAssert nothing.getObject().isNil, "a void var has an object"
+    doAssert nothing.getDynamicObject().isNil, "a void var has a dynamic object"
+    doAssert not nothing.isMethod(), "a void var is a method"
+
+  block:
+    # equals compares by VALUE across types; equalsWithSameType also requires
+    # the tags to match. hasSameTypeAs asks about the tag alone.
+    let whole = makejuce_var(1.cint)
+    let fractional = makejuce_var(1.0)
+    let flag = makejuce_var(true)
+
+    doAssert whole.equals(fractional),
+             "1 and 1.0 do not compare equal by value"
+    doAssert not whole.equalsWithSameType(fractional),
+             "1 and 1.0 compare equal with the same type"
+    doAssert not whole.hasSameTypeAs(fractional),
+             "an int and a double have the same type"
+    doAssert whole.hasSameTypeAs(makejuce_var(2.cint)),
+             "two ints have different types"
+
+    doAssert whole.equals(flag), "1 and true do not compare equal by value"
+    doAssert not whole.equalsWithSameType(flag),
+             "1 and true compare equal with the same type"
+
+  block:
+    # An array var carries its elements, and the array operations move them
+    # about without changing the tag.
+    var list = makejuce_var(makeArray[juce_var]())
+    doAssert list.isArray(), "an array var is not an array"
+    doAssert list.size() == 0, "a new array holds " & $list.size() & " elements"
+
+    list.append(makejuce_var(10.cint))
+    list.append(makejuce_var(30.cint))
+    doAssert list.size() == 2, "the array holds " & $list.size() & " elements"
+    doAssert list[0.cint].toInt() == 10,
+             "element 0 is " & $list[0.cint].toInt()
+
+    list.insert(1.cint, makejuce_var(20.cint))
+    doAssert list.size() == 3, "after the insert there are " & $list.size()
+    doAssert list[1.cint].toInt() == 20,
+             "the inserted element is " & $list[1.cint].toInt()
+    doAssert list[2.cint].toInt() == 30,
+             "the insert did not push the last element along; it is " &
+             $list[2.cint].toInt()
+
+    doAssert list.indexOf(makejuce_var(30.cint)) == 2,
+             "30 is at index " & $list.indexOf(makejuce_var(30.cint))
+    doAssert list.indexOf(makejuce_var(99.cint)) == -1,
+             "an absent value is at index " &
+             $list.indexOf(makejuce_var(99.cint))
+
+    list.remove(0.cint)
+    doAssert list.size() == 2, "after the remove there are " & $list.size()
+    doAssert list[0.cint].toInt() == 20,
+             "the survivor is " & $list[0.cint].toInt()
+
+    # resize grows with void elements and shrinks by dropping them.
+    list.resize(5.cint)
+    doAssert list.size() == 5, "after growing there are " & $list.size()
+    doAssert list[4.cint].isVoid(),
+             "the grown elements are not void"
+    list.resize(1.cint)
+    doAssert list.size() == 1, "after shrinking there are " & $list.size()
+    doAssert list[0.cint].toInt() == 20,
+             "shrinking dropped the wrong end; the survivor is " &
+             $list[0.cint].toInt()
+
+    # The elements are reachable as a span too, and it agrees with size().
+    doAssert list.getArrayElements().size() == 1'u64,
+             "the span holds " & $list.getArrayElements().size() & " elements"
+
+    # clone copies the array rather than sharing it.
+    var copied = list.clone()
+    copied.append(makejuce_var(99.cint))
+    doAssert list.size() == 1,
+             "appending to the clone changed the original to " & $list.size()
+
+  block:
+    # A var survives a round trip through a stream, tag and all.
+    var buffer = makeMemoryBlock(0'u64, false)
+    block:
+      var output = makeMemoryOutputStream(buffer, false)
+      makejuce_var(makeString("carried")).writeToStream(output)
+      output.flush()
+
+    var input = makeMemoryInputStream(buffer, false)
+    let restored = juce_var.readFromStream(input)
+    doAssert restored.isString(),
+             "the restored var is not a string"
+    doAssert $restored.toString() == "carried",
+             "the restored var reads " & $restored.toString()
+
+testVarTypes()
+
+# The rest of the classes with an implicit default constructor. Requiring a
+# public field found only the AGGREGATES; these are the option structs and the
+# static-function holders, and an option struct nothing can build makes every
+# proc that takes one unreachable. Each is constructed here, which is what
+# compiles its importcpp - the constructor reaches the C++ compiler only at a
+# call site.
+proc testRemainingImplicitConstructors() =
+  block:
+    # The option structs. Each is a parameter of a proc that could not be
+    # called at all before.
+    var jsonFormat = makeJSONFormatOptions()
+    doAssert (addr jsonFormat) != nil, "the JSON format options did not build"
+    doAssert $JSON.toString(makejuce_var(makeString("x")), jsonFormat) == "\"x\"",
+             "JSON.toString gave " &
+             $JSON.toString(makejuce_var(makeString("x")), jsonFormat)
+
+    var socketOptions = makeSocketOptions()
+    var socket = makeDatagramSocket(false, socketOptions)
+    doAssert socket.getBoundPort() == -1,
+             "an unbound socket reports port " & $socket.getBoundPort()
+
+    var realtime = makeThreadRealtimeOptions()
+    doAssert (addr realtime) != nil, "the realtime options did not build"
+
+    var toVarOptions = makeToVarOptions()
+    doAssert (addr toVarOptions) != nil, "the ToVar options did not build"
+
+  block:
+    # The static-function holders. JUCE writes these as classes with nothing
+    # but static members, so C++ never instantiates one - but the binding
+    # declares the type, and a declared type with no constructor is a type
+    # whose importcpp is never compiled.
+    var base64 = makeBase64()
+    doAssert (addr base64) != nil, "Base64 did not build"
+    var characterFunctions = makeCharacterFunctions()
+    doAssert (addr characterFunctions) != nil, "CharacterFunctions did not build"
+    var hashFunctions = makeDefaultHashFunctions()
+    doAssert (addr hashFunctions) != nil, "DefaultHashFunctions did not build"
+    var runtimePermissions = makeRuntimePermissions()
+    doAssert (addr runtimePermissions) != nil, "RuntimePermissions did not build"
+    var androidPermission = makeAndroidDocumentPermission()
+    doAssert (addr androidPermission) != nil,
+             "AndroidDocumentPermission did not build"
+
+    var console = makeConsoleApplication()
+    doAssert console.getCommands().size() == 0'u64,
+             "a new ConsoleApplication holds " & $console.getCommands().size() &
+             " commands"
+
+    var entry = makeDirectoryEntry()
+    doAssert entry.getFile().getFullPathName().isEmpty(),
+             "a default DirectoryEntry names " & $entry.getFile().getFullPathName()
+
+    var newLine = makeNewLine()
+    doAssert (addr newLine) != nil, "NewLine did not build"
+
+    var fromVar = makeFromVar()
+    doAssert (addr fromVar) != nil, "FromVar did not build"
+    var toVar = makeToVar()
+    doAssert (addr toVar) != nil, "ToVar did not build"
+    var reservoir = makeReservoir()
+    doAssert (addr reservoir) != nil, "Reservoir did not build"
+    var nullChecked = makeNullCheckedInvocation()
+    doAssert (addr nullChecked) != nil, "NullCheckedInvocation did not build"
+    var timed = makeTimedDiagnostic()
+    doAssert (addr timed) != nil, "TimedDiagnostic did not build"
+
+  block:
+    # The listener bases. JUCE gives each method an empty body rather than
+    # making it pure, so the generator emits no Custom* subclass and one of
+    # these is the only way to get an instance at all.
+    var webListener = makeWebInputStreamListener()
+    doAssert (addr webListener) != nil, "the WebInputStream listener did not build"
+
+testRemainingImplicitConstructors()
+
+# StringArray's bulk operations. Each is asserted for what it does to the
+# array's CONTENTS and its size together, so an operation that changed the
+# count without changing the strings - or the reverse - would fail.
+proc testStringArrayOperations() =
+  block:
+    # addTokens splits on whitespace by default, and on the characters it is
+    # given otherwise.
+    var words = makeStringArray()
+    discard words.addTokens(makeString("one two three"), false)
+    doAssert words.size() == 3, "the sentence split into " & $words.size()
+    doAssert $words[1.cint] == "two", "the second word is " & $words[1.cint]
+
+    var fields = makeStringArray()
+    discard fields.addTokens(makeString("a,b,,c"), makeString(","), makeString(""))
+    doAssert fields.size() == 4,
+             "the record split into " & $fields.size() & " fields"
+    doAssert fields[2.cint].isEmpty(),
+             "the empty field became " & $fields[2.cint]
+
+    # A quoted section stays whole when a quote character is given.
+    var quoted = makeStringArray()
+    discard quoted.addTokens(makeString("a \"b c\" d"), makeString(" "), makeString("\""))
+    doAssert quoted.size() == 3,
+             "the quoted text split into " & $quoted.size() & " pieces"
+
+    # addLines splits on line breaks and keeps a trailing empty line.
+    var lines = makeStringArray()
+    discard lines.addLines(makeString("first\nsecond\n"))
+    doAssert lines.size() == 3,
+             "two lines and a trailing break gave " & $lines.size() & " lines"
+    doAssert $lines[0.cint] == "first", "the first line is " & $lines[0.cint]
+
+  block:
+    # The cleanup operations. Each removes only what it names.
+    var array = makeStringArray()
+    for text in ["b", "a", "b", "", "c", ""]:
+      array.add(makeString(text))
+    doAssert array.size() == 6, "the array holds " & $array.size() & " entries"
+
+    array.removeEmptyStrings(false)
+    doAssert array.size() == 4,
+             "after removing the empties there are " & $array.size()
+    doAssert not array.contains(makeString("")),
+             "an empty string survived removeEmptyStrings"
+
+    array.removeDuplicates(false)
+    doAssert array.size() == 3,
+             "after removing the duplicates there are " & $array.size()
+    doAssert array.contains(makeString("b")),
+             "removeDuplicates removed both copies rather than one"
+
+    array.removeString(makeString("a"), false)
+    doAssert array.size() == 2,
+             "after removing one string there are " & $array.size()
+    doAssert not array.contains(makeString("a")),
+             "removeString left the string behind"
+    doAssert array.contains(makeString("b")) and array.contains(makeString("c")),
+             "removeString took a neighbour with it"
+
+  block:
+    # Sorting. sort is lexicographic; sortNatural puts 2 before 10, which
+    # lexicographic order does not.
+    var lexical = makeStringArray()
+    for text in ["item10", "item2", "item1"]:
+      lexical.add(makeString(text))
+    lexical.sort(false)
+    doAssert $lexical[0.cint] == "item1" and $lexical[1.cint] == "item10",
+             "lexical order gave " & $lexical[0.cint] & ", " & $lexical[1.cint]
+
+    var natural = makeStringArray()
+    for text in ["item10", "item2", "item1"]:
+      natural.add(makeString(text))
+    natural.sortNatural()
+    doAssert $natural[1.cint] == "item2",
+             "natural order put " & $natural[1.cint] & " second, not item2"
+
+    # move reorders without adding or removing.
+    natural.move(0.cint, 2.cint)
+    doAssert natural.size() == 3, "move changed the size to " & $natural.size()
+    doAssert $natural[2.cint] == "item1",
+             "the moved entry is " & $natural[2.cint]
+
+  block:
+    # The two ways of combining arrays differ in whether duplicates survive.
+    var target = makeStringArray()
+    target.add(makeString("a"))
+    target.add(makeString("b"))
+
+    var source = makeStringArray()
+    source.add(makeString("b"))
+    source.add(makeString("c"))
+
+    var appended = target
+    appended.addArray(source, 0.cint, -1.cint)
+    doAssert appended.size() == 4,
+             "addArray gave " & $appended.size() & " entries"
+
+    var merged = target
+    merged.mergeArray(source, false)
+    doAssert merged.size() == 3,
+             "mergeArray gave " & $merged.size() & " entries"
+    doAssert merged.contains(makeString("c")),
+             "mergeArray did not bring the new entry"
+
+    # joinIntoString is the inverse of addTokens for a simple separator.
+    doAssert $target.joinIntoString(makeString("-"), 0.cint, -1.cint) == "a-b",
+             "joining gave " & $target.joinIntoString(makeString("-"),
+                                                      0.cint, -1.cint)
+
+  block:
+    # The storage operations change nothing a caller can observe except that
+    # clearQuick empties the array.
+    var array = makeStringArray()
+    array.ensureStorageAllocated(64.cint)
+    doAssert array.size() == 0,
+             "reserving space added " & $array.size() & " entries"
+    array.add(makeString("kept"))
+    array.minimiseStorageOverheads()
+    doAssert array.size() == 1 and $array[0.cint] == "kept",
+             "minimising the storage lost the entry"
+    array.clearQuick()
+    doAssert array.size() == 0,
+             "clearQuick left " & $array.size() & " entries"
+
+testStringArrayOperations()
+
+# Time's calendar accessors. A fixed instant is built from its parts so every
+# field has a known answer, rather than reading the clock and asserting a
+# range - which would pass whatever the binding returned.
+proc testTimeCalendar() =
+  block:
+    # 2024-03-15 was a Friday. Built in LOCAL time, because the getters read
+    # local time: passing useLocalTime=false makes the components UTC and the
+    # hour then reads back shifted by the machine's offset.
+    let moment = makeTime(2024.cint, 2.cint, 15.cint, 14.cint, 30.cint,
+                          45.cint, 500.cint, true)
+
+    doAssert moment.getYear() == 2024, "the year is " & $moment.getYear()
+    doAssert moment.getMonth() == 2,
+             "the month is " & $moment.getMonth() & "; JUCE counts from zero"
+    doAssert moment.getDayOfMonth() == 15,
+             "the day is " & $moment.getDayOfMonth()
+    doAssert moment.getHours() == 14, "the hour is " & $moment.getHours()
+    doAssert moment.getMinutes() == 30, "the minute is " & $moment.getMinutes()
+    doAssert moment.getSeconds() == 45, "the second is " & $moment.getSeconds()
+    doAssert moment.getMilliseconds() == 500,
+             "the millisecond is " & $moment.getMilliseconds()
+
+    # The 15th of March 2024 was a Friday, which JUCE numbers 5 counting
+    # Sunday as 0.
+    doAssert moment.getDayOfWeek() == 5,
+             "the day of the week is " & $moment.getDayOfWeek()
+    # January and February of a leap year are 31 + 29 days, so the 15th of
+    # March is day 74 counting from zero.
+    doAssert moment.getDayOfYear() == 74,
+             "the day of the year is " & $moment.getDayOfYear()
+
+    # The names come from the locale, so what is asserted is that they are
+    # non-empty and that the short form is no longer than the long one.
+    doAssert moment.getMonthName(false).isNotEmpty(),
+             "the month has no name"
+    doAssert moment.getWeekdayName(false).isNotEmpty(),
+             "the weekday has no name"
+    doAssert moment.getMonthName(true).length() <=
+             moment.getMonthName(false).length(),
+             "the abbreviated month name " & $moment.getMonthName(true) &
+             " is longer than the full one " & $moment.getMonthName(false)
+
+    # 14:30 in the afternoon is 2 on a twelve-hour clock.
+    doAssert moment.isAfternoon(), "14:30 is not in the afternoon"
+    doAssert moment.getHoursInAmPmFormat() == 2,
+             "14:00 reads as " & $moment.getHoursInAmPmFormat() & " on a " &
+             "twelve hour clock"
+
+    # A morning instant answers the other way.
+    let morning = makeTime(2024.cint, 2.cint, 15.cint, 9.cint, 0.cint,
+                           0.cint, 0.cint, true)
+    doAssert not morning.isAfternoon(), "09:00 is in the afternoon"
+    doAssert morning.getHoursInAmPmFormat() == 9,
+             "09:00 reads as " & $morning.getHoursInAmPmFormat()
+
+  block:
+    # A format string places the fields where it says.
+    let moment = makeTime(2024.cint, 2.cint, 15.cint, 14.cint, 30.cint,
+                          45.cint, 0.cint, true)
+    doAssert $moment.formatted(makeString("%Y-%m-%d")) == "2024-03-15",
+             "the formatted date is " & $moment.formatted(makeString("%Y-%m-%d"))
+    doAssert $moment.formatted(makeString("%H:%M")) == "14:30",
+             "the formatted time is " & $moment.formatted(makeString("%H:%M"))
+
+    # toString picks the fields by its four flags, so asking for none of them
+    # gives an empty string and asking for the date gives the year.
+    doAssert moment.toString(false, false, false, false).isEmpty(),
+             "asking for no fields gave " &
+             $moment.toString(false, false, false, false)
+    doAssert ($moment.toString(true, false, false, false)).contains("2024"),
+             "the date does not carry the year: " &
+             $moment.toString(true, false, false, false)
+
+  block:
+    # The zone information is the machine's, so what is asserted is that the
+    # pieces agree with each other rather than what they are.
+    let now = Time.getCurrentTime()
+    doAssert now.getTimeZone().isNotEmpty(), "the time zone has no name"
+    doAssert now.getUTCOffsetString(true).isNotEmpty(),
+             "the UTC offset string is empty"
+
+    # The offset in seconds and the string form describe the same offset, so a
+    # zero offset is spelled Z and a non-zero one is not.
+    if now.getUTCOffsetSeconds() == 0:
+      doAssert $now.getUTCOffsetString(true) == "Z",
+               "a zero offset is spelled " & $now.getUTCOffsetString(true)
+    else:
+      doAssert $now.getUTCOffsetString(true) != "Z",
+               "a non-zero offset of " & $now.getUTCOffsetSeconds() &
+               " seconds is spelled Z"
+
+    # Daylight saving is a property of the instant, and both answers are legal.
+    discard now.isDaylightSavingTime()
+
+testTimeCalendar()
+
+# ArgumentList is what a console program parses its command line into. The
+# option lookups accept several spellings of the same option, which is the part
+# a caller has to know, and the "AndRemove" variants consume what they find.
+proc testArgumentListOptions() =
+  block:
+    var args = makeArgumentList(
+        makeString("june"),
+        makeString("--input=in.txt --verbose -o out.txt extra"))
+
+    doAssert $args.executableName == "june",
+             "the executable is " & $args.executableName
+    # Five: --input=in.txt, --verbose, -o, out.txt, extra. A value given as a
+    # SEPARATE argument stays a separate argument; only the =value form is one.
+    doAssert args.size() == 5,
+             "the command line parsed into " & $args.size() & " arguments"
+
+    # An option is found by any of its spellings, and a missing one is not.
+    doAssert args.containsOption(makeString("--verbose")),
+             "--verbose was not found"
+    doAssert not args.containsOption(makeString("--quiet")),
+             "an option that is not there was found"
+    doAssert args.indexOfOption(makeString("--verbose")) == 1,
+             "--verbose is at index " & $args.indexOfOption(makeString("--verbose"))
+    doAssert args.indexOfOption(makeString("--quiet")) == -1,
+             "a missing option is at index " &
+             $args.indexOfOption(makeString("--quiet"))
+
+    # A pipe separates the spellings JUCE will accept for one option, which is
+    # how a short and a long form are given together.
+    doAssert args.containsOption(makeString("-o|--output")),
+             "the short form -o was not found through -o|--output"
+
+    # A value is taken from --option=value or from the next argument.
+    doAssert $args.getValueForOption(makeString("--input")) == "in.txt",
+             "the =value form gave " & $args.getValueForOption(makeString("--input"))
+    doAssert $args.getValueForOption(makeString("-o")) == "out.txt",
+             "the separate-argument form gave " &
+             $args.getValueForOption(makeString("-o"))
+    doAssert args.getValueForOption(makeString("--quiet")).isEmpty(),
+             "a missing option has the value " &
+             $args.getValueForOption(makeString("--quiet"))
+
+    # A file for an option is the value as a path.
+    doAssert $args.getFileForOption(makeString("--input")).getFileName() ==
+             "in.txt",
+             "the file for --input is " &
+             $args.getFileForOption(makeString("--input")).getFileName()
+
+  block:
+    # The AndRemove variants consume what they find, and the plain ones do not.
+    var args = makeArgumentList(makeString("june"),
+                                makeString("--verbose --input=in.txt"))
+    let before = args.size()
+
+    doAssert $args.getValueForOption(makeString("--input")) == "in.txt",
+             "the value was not found before removing it"
+    doAssert args.size() == before,
+             "the plain lookup consumed an argument"
+
+    doAssert $args.removeValueForOption(makeString("--input")) == "in.txt",
+             "removeValueForOption gave a different value"
+    doAssert not args.containsOption(makeString("--input")),
+             "removeValueForOption left the option behind"
+    doAssert args.size() < before,
+             "removeValueForOption left " & $args.size() & " arguments"
+
+    doAssert args.removeOptionIfFound(makeString("--verbose")),
+             "removeOptionIfFound did not find --verbose"
+    doAssert not args.containsOption(makeString("--verbose")),
+             "removeOptionIfFound left the option behind"
+    doAssert not args.removeOptionIfFound(makeString("--verbose")),
+             "removing an option twice succeeded twice"
+
+  block:
+    # The file lookups come in four shapes: file or folder, each with and
+    # without removal. The two "existing" ones raise on a path that is not
+    # there, so they are given one that is.
+    let directory = File.getSpecialLocation(
+        FileSpecialLocationType_tempDirectory)
+    let file = directory.getChildFile(makeString("june_argument_list.txt"))
+    discard file.replaceWithText(makeString("x"))
+
+    var args = makeArgumentList(
+        makeString("june"),
+        makeString("--file=" & $file.getFullPathName() &
+                   " --dir=" & $directory.getFullPathName()))
+
+    doAssert args.getExistingFileForOption(makeString("--file")) == file,
+             "the existing file is " &
+             $args.getExistingFileForOption(makeString("--file")).getFullPathName()
+    doAssert args.getExistingFolderForOption(makeString("--dir")) == directory,
+             "the existing folder is " &
+             $args.getExistingFolderForOption(makeString("--dir")).getFullPathName()
+
+    # The removing variants give the same answer and consume the argument.
+    let sizeBefore = args.size()
+    doAssert args.getExistingFileForOptionAndRemove(makeString("--file")) == file,
+             "the removing lookup gave a different file"
+    doAssert args.size() < sizeBefore,
+             "the removing lookup left " & $args.size() & " arguments"
+    doAssert args.getExistingFolderForOptionAndRemove(makeString("--dir")) ==
+             directory,
+             "the removing folder lookup gave a different folder"
+
+    doAssert file.deleteFile(), "the temporary file could not be removed"
+
+  block:
+    # The two checks pass silently when they are satisfied. They call exit on
+    # failure, so only the passing path is exercised.
+    var args = makeArgumentList(makeString("june"),
+                                makeString("--needed one two"))
+    args.checkMinNumArguments(1.cint)
+    args.failIfOptionIsMissing(makeString("--needed"))
+    doAssert args.size() == 3,
+             "the checks changed the argument count to " & $args.size()
+
+testArgumentListOptions()
+
+# MemoryBlock's editing operations. Every one is asserted on the BYTES
+# afterwards, not just the size, so an operation that resized without moving
+# the data - or moved it wrongly - fails.
+proc testMemoryBlockEditing() =
+  # MemoryBlock has no bound byte accessor - begin/end are commented out
+  # because the Nim iterator replaces them - so the bytes are read through
+  # getData, which is the pointer JUCE hands out for exactly this.
+  proc bytesOf(data: MemoryBlock): string =
+    let bytes = cast[ptr UncheckedArray[char]](data.getData())
+    for index in 0 ..< int(data.getSize()):
+      result.add(bytes[index])
+
+  block:
+    var data = makeMemoryBlock(0'u64, false)
+    data.append(cast[constPointer](cstring"abcdef"), 6'u64)
+    doAssert bytesOf(data) == "abcdef", "the block holds " & bytesOf(data)
+
+    # removeSection takes exactly what it names and closes the gap.
+    data.removeSection(2'u64, 2'u64)
+    doAssert bytesOf(data) == "abef",
+             "after removing two bytes the block holds " & bytesOf(data)
+
+    # insert puts bytes at a position and pushes the rest along.
+    data.insert(cast[constPointer](cstring"CD"), 2'u64, 2'u64)
+    doAssert bytesOf(data) == "abCDef",
+             "after inserting the block holds " & bytesOf(data)
+
+    # replaceAll throws the lot away.
+    data.replaceAll(cast[constPointer](cstring"xy"), 2'u64)
+    doAssert bytesOf(data) == "xy", "replaceAll left " & bytesOf(data)
+
+  block:
+    # copyFrom and copyTo move bytes in and out at an offset, and copyFrom
+    # grows the block if it has to.
+    var data = makeMemoryBlock(4'u64, true)
+    data.copyFrom(cast[constPointer](cstring"XY"), 1.cint, 2'u64)
+    doAssert bytesOf(data)[1] == 'X' and bytesOf(data)[2] == 'Y',
+             "copying at offset 1 gave " & bytesOf(data)
+    doAssert bytesOf(data)[0] == '\0',
+             "copying at offset 1 changed byte 0"
+
+    var out1 = newString(2)
+    data.copyTo(addr out1[0], 1.cint, 2'u64)
+    doAssert out1 == "XY", "copying back out gave " & out1
+
+    # ensureSize grows without losing what is there.
+    data.ensureSize(16'u64, true)
+    doAssert data.getSize() == 16'u64,
+             "after ensureSize the block is " & $data.getSize() & " bytes"
+    doAssert bytesOf(data)[1] == 'X',
+             "growing the block lost the data"
+
+  block:
+    # Two blocks holding the same bytes match; different ones do not.
+    var first = makeMemoryBlock(0'u64, false)
+    first.append(cast[constPointer](cstring"same"), 4'u64)
+    var second = makeMemoryBlock(0'u64, false)
+    second.append(cast[constPointer](cstring"same"), 4'u64)
+    var different = makeMemoryBlock(0'u64, false)
+    different.append(cast[constPointer](cstring"other"), 5'u64)
+
+    doAssert first.matches(cast[constPointer](cstring"same"), 4'u64),
+             "a block does not match its own bytes"
+    doAssert not first.matches(cast[constPointer](cstring"othe"), 4'u64),
+             "a block matches bytes it does not hold"
+    doAssert first == second, "two identical blocks are not equal"
+    doAssert not (first == different), "two different blocks are equal"
+
+  block:
+    # A block round trips through base64 and through hex, and the two
+    # encodings are different text for the same bytes.
+    var data = makeMemoryBlock(0'u64, false)
+    data.append(cast[constPointer](cstring"round trip"), 10'u64)
+
+    let base64 = data.toBase64Encoding()
+    doAssert base64.isNotEmpty(), "the base64 encoding is empty"
+    var fromBase64 = makeMemoryBlock(0'u64, false)
+    doAssert fromBase64.fromBase64Encoding(base64),
+             "the base64 text did not decode"
+    doAssert fromBase64 == data,
+             "the base64 round trip gave " & bytesOf(fromBase64)
+
+    let hex = data.toString()
+    var fromHex = makeMemoryBlock(0'u64, false)
+    fromHex.loadFromHexString(makeString("61 62 63"))
+    doAssert bytesOf(fromHex) == "abc",
+             "the hex string decoded to " & bytesOf(fromHex)
+    doAssert $base64 != $hex,
+             "base64 and the block's own text are the same"
+
+  block:
+    # setBitRange writes a run of bits, and the neighbours are left alone.
+    var data = makeMemoryBlock(2'u64, true)
+    data.setBitRange(0'u64, 8'u64, 0xFF.cint)
+    doAssert bytesOf(data)[0] == '\xFF',
+             "setting the first eight bits gave " & $ord(bytesOf(data)[0])
+    doAssert bytesOf(data)[1] == '\0',
+             "setting the first eight bits changed the second byte"
+    doAssert data.getBitRange(0'u64, 8'u64) == 0xFF,
+             "the bits read back as " & $data.getBitRange(0'u64, 8'u64)
+
+testMemoryBlockEditing()
+
+# Random is a seeded generator, so the property worth asserting is
+# REPRODUCIBILITY: the same seed gives the same sequence, and a different seed
+# gives a different one. Asserting a particular number would pin JUCE's
+# algorithm rather than the binding.
+proc testRandomSeeding() =
+  block:
+    var first = makeRandom(12345'i64)
+    var second = makeRandom(12345'i64)
+    doAssert first.getSeed() == 12345'i64,
+             "the seed reads back as " & $first.getSeed()
+
+    # Every generator method is drawn from both and compared, so one wired to
+    # the wrong C++ method would give a different sequence in one of them.
+    for step in 0 ..< 20:
+      doAssert first.nextInt() == second.nextInt(),
+               "nextInt diverged at step " & $step
+      doAssert first.nextInt64() == second.nextInt64(),
+               "nextInt64 diverged at step " & $step
+      doAssert first.nextBool() == second.nextBool(),
+               "nextBool diverged at step " & $step
+      doAssert first.nextFloat() == second.nextFloat(),
+               "nextFloat diverged at step " & $step
+      doAssert first.nextDouble() == second.nextDouble(),
+               "nextDouble diverged at step " & $step
+      doAssert first.nextLargeNumber(makeBigInteger(1000.cint)).toInteger() ==
+               second.nextLargeNumber(makeBigInteger(1000.cint)).toInteger(),
+               "nextLargeNumber diverged at step " & $step
+
+    # Having drawn the same values, the two are still in step.
+    doAssert first.getSeed() == second.getSeed(),
+             "the two generators ended on different seeds: " &
+             $first.getSeed() & " and " & $second.getSeed()
+
+  block:
+    # A different seed gives a different sequence. Twenty draws is enough that
+    # matching by chance is not worth considering.
+    var one = makeRandom(1'i64)
+    var other = makeRandom(2'i64)
+    var differed = false
+    for step in 0 ..< 20:
+      if one.nextInt() != other.nextInt():
+        differed = true
+    doAssert differed,
+             "two generators seeded 1 and 2 produced the same twenty numbers"
+
+    # setSeed puts a generator back, so it repeats itself.
+    var repeated = makeRandom(99'i64)
+    let firstDraw = repeated.nextInt()
+    repeated.setSeed(99'i64)
+    doAssert repeated.nextInt() == firstDraw,
+             "reseeding did not reproduce the first draw"
+
+    # combineSeed mixes a value in, which changes what comes next.
+    repeated.setSeed(99'i64)
+    repeated.combineSeed(7'i64)
+    doAssert repeated.getSeed() != 99'i64,
+             "combineSeed left the seed at " & $repeated.getSeed()
+    doAssert repeated.nextInt() != firstDraw,
+             "combining a seed did not change the sequence"
+
+    # setSeedRandomly picks one from the system, so it differs from what was
+    # set.
+    repeated.setSeed(99'i64)
+    repeated.setSeedRandomly()
+    doAssert repeated.getSeed() != 99'i64,
+             "setSeedRandomly left the seed where it was"
+
+  block:
+    # The bounded draws stay inside their bounds, over enough draws that a
+    # wrong bound would show.
+    var random = makeRandom(4242'i64)
+    for step in 0 ..< 200:
+      let bounded = random.nextInt(10.cint)
+      doAssert bounded >= 0 and bounded < 10,
+               "a draw bounded by 10 gave " & $bounded
+      let inRange = random.nextInt(makeRange(5.cint, 8.cint))
+      doAssert inRange >= 5 and inRange < 8,
+               "a draw in 5..<8 gave " & $inRange
+      let fraction = random.nextFloat()
+      doAssert fraction >= 0.0'f32 and fraction < 1.0'f32,
+               "nextFloat gave " & $fraction
+
+  block:
+    # fillBitsRandomly writes into a BigInteger, and asking for more bits
+    # gives a larger number to work with.
+    var random = makeRandom(7'i64)
+    var small = makeBigInteger(0.cint)
+    random.fillBitsRandomly(small, 0.cint, 8.cint)
+    doAssert small.getHighestBit() < 8,
+             "eight random bits reached bit " & $small.getHighestBit()
+
+    var large = makeBigInteger(0.cint)
+    random.fillBitsRandomly(large, 0.cint, 128.cint)
+    doAssert large.getHighestBit() < 128,
+             "128 random bits reached bit " & $large.getHighestBit()
+    doAssert large.getHighestBit() > 8,
+             "128 random bits only reached bit " & $large.getHighestBit()
+
+testRandomSeeding()
+
+# Thread's lifecycle, as seen from the outside. testGeneratedThreadRuns above
+# shows the handler reaches Nim; this covers the state a caller polls and the
+# two ways of asking a thread to stop.
+proc testThreadLifecycle() =
+  block:
+    # A thread that waits until it is told to exit. The signalling is the
+    # thing under test, so the body watches threadShouldExit rather than
+    # sleeping for a fixed time.
+    var thread = newCustomThread(makeString("june-signalled"), 0.csize_t)
+    var sawExitRequest = false
+    var started = false
+    let body = thread
+    thread[].setRunHandler(proc() =
+      started = true
+      while not body[].threadShouldExit():
+        discard body[].wait(10.0)
+      sawExitRequest = true)
+
+    doAssert not thread[].isThreadRunning(), "the thread runs before it starts"
+    doAssert thread[].startThread(), "the thread did not start"
+
+    # The id is real once it is running, and it is the thread's own.
+    doAssert thread[].waitForThreadToExit(0.cint) == false,
+             "the thread exited before it was asked to"
+    doAssert thread[].isThreadRunning(), "the started thread is not running"
+    doAssert thread[].getThreadId() != nil,
+             "a running thread has no id"
+
+    # notify wakes the wait() the body is sitting in, without asking it to
+    # stop - so the thread is still running afterwards.
+    thread[].notify()
+    doAssert thread[].isThreadRunning(),
+             "notify stopped the thread instead of waking it"
+
+    # signalThreadShouldExit is what threadShouldExit reports.
+    thread[].signalThreadShouldExit()
+    doAssert thread[].threadShouldExit(),
+             "signalling did not set the exit flag"
+    thread[].notify()
+    doAssert thread[].waitForThreadToExit(5000.cint),
+             "the thread did not finish after being signalled"
+    doAssert started, "the body never ran"
+    doAssert sawExitRequest, "the body never saw the exit request"
+    doAssert not thread[].isThreadRunning(),
+             "the finished thread still reports running"
+
+    cdelete thread
+
+  block:
+    # A realtime thread is started differently and says so while it runs.
+    var thread = newCustomThread(makeString("june-realtime"), 0.csize_t)
+    let body = thread
+    thread[].setRunHandler(proc() =
+      while not body[].threadShouldExit():
+        discard body[].wait(5.0))
+
+    doAssert not thread[].isRealtime(),
+             "a thread that has not started is realtime"
+
+    var options = makeThreadRealtimeOptions()
+    if thread[].startRealtimeThread(options):
+      # Whether the OS grants realtime priority is its business; what is
+      # asserted is that the thread started and stops cleanly.
+      doAssert thread[].isThreadRunning(),
+               "startRealtimeThread returned true but the thread is not running"
+      thread[].signalThreadShouldExit()
+      thread[].notify()
+      doAssert thread[].waitForThreadToExit(5000.cint),
+               "the realtime thread did not finish"
+    else:
+      echo "  note: the OS refused a realtime thread, so only the call is " &
+           "exercised"
+
+    cdelete thread
+
+  block:
+    # setAffinityMask is accepted before a thread starts. Whether the OS
+    # honours it is not observable through JUCE, so what is asserted is that
+    # the thread still runs afterwards.
+    var thread = newCustomThread(makeString("june-affinity"), 0.csize_t)
+    var ran = false
+    thread[].setRunHandler(proc() = ran = true)
+    thread[].setAffinityMask(1'u32)
+
+    doAssert thread[].startThread(), "the thread did not start"
+    doAssert thread[].waitForThreadToExit(5000.cint),
+             "the thread did not finish"
+    doAssert ran, "the body never ran"
+
+    cdelete thread
+
+testThreadLifecycle()
+
+# The rest of the CharPointer cursors. Each of the four encodings has the same
+# surface, so the same assertions are made against all of them - which is what
+# catches one of the four being wired to a different C++ method.
+#
+# None of them owns its bytes, so every buffer below outlives the cursor over
+# it, exactly as testCharPointerUTF8 above requires.
+proc testCharPointerNavigation() =
+  block:
+    # UTF-8, the encoding a Nim string already is.
+    var buffer = "  42abc"
+    let start = makeCharPointer_UTF8(cast[constChar](buffer[0].addr))
+
+    doAssert start.getAddress() == cast[ptr char](buffer[0].addr),
+             "the cursor's address is not the buffer's"
+
+    # Whitespace is skipped by the two spellings, and both land on the '4'.
+    var afterSpaces = start.findEndOfWhitespace()
+    doAssert afterSpaces.getAndAdvance() == uint32('4'),
+             "findEndOfWhitespace did not stop at the first digit"
+    var walking = makeCharPointer_UTF8(cast[constChar](buffer[0].addr))
+    walking.incrementToEndOfWhitespace()
+    doAssert walking.getAndAdvance() == uint32('4'),
+             "incrementToEndOfWhitespace did not stop at the first digit"
+
+    # The integer readers parse from where the cursor is and stop at the
+    # first character that is not part of a number.
+    doAssert start.getIntValue32() == 42,
+             "getIntValue32 read " & $start.getIntValue32()
+    doAssert start.getIntValue64() == 42'i64,
+             "getIntValue64 read " & $start.getIntValue64()
+
+    # findTerminatingNull walks to the end, so the remaining length is zero.
+    doAssert start.findTerminatingNull().length() == 0'u64,
+             "the terminator is " &
+             $start.findTerminatingNull().length() & " characters from the end"
+
+  block:
+    # ASCII. Its compareUpTo is the one method the other three do not have in
+    # the same shape.
+    var text = "  7xyz"
+    var other = "  7xyzzy"
+    let start = makeCharPointer_ASCII(cast[constChar](text[0].addr))
+    let longer = makeCharPointer_ASCII(cast[constChar](other[0].addr))
+
+    doAssert start.getAddress() == cast[ptr char](text[0].addr),
+             "the ASCII cursor's address is not the buffer's"
+    var afterAsciiSpaces = start.findEndOfWhitespace()
+    doAssert afterAsciiSpaces.getAndAdvance() == uint32('7'),
+             "the ASCII cursor did not skip the leading spaces"
+    doAssert start.getIntValue32() == 7,
+             "the ASCII cursor read " & $start.getIntValue32()
+
+    # The two texts agree for their first six characters and differ after.
+    doAssert start.compareUpTo(longer, 6.cint) == 0,
+             "six characters compared as " & $start.compareUpTo(longer, 6.cint)
+    doAssert start.compareUpTo(longer, 8.cint) != 0,
+             "eight characters compared as " & $start.compareUpTo(longer, 8.cint)
+
+  block:
+    # UTF-16 and UTF-32 carry wider units, so their buffers are arrays of
+    # those rather than a Nim string.
+    var wide: array[8, int16]
+    for index, ch in "  91ab":
+      wide[index] = int16(ord(ch))
+    wide[6] = 0'i16
+    let utf16 = makeCharPointer_UTF16(cast[ConstPtr[int16]](wide[0].addr))
+    doAssert utf16.getAddress() == cast[ptr int16](wide[0].addr),
+             "the UTF-16 cursor's address is not the buffer's"
+    var afterUtf16Spaces = utf16.findEndOfWhitespace()
+    doAssert afterUtf16Spaces.getAndAdvance() == uint32('9'),
+             "the UTF-16 cursor did not skip the leading spaces"
+    doAssert utf16.getIntValue32() == 91,
+             "the UTF-16 cursor read " & $utf16.getIntValue32()
+    doAssert utf16.getIntValue64() == 91'i64,
+             "the UTF-16 cursor read " & $utf16.getIntValue64() & " as 64 bits"
+    doAssert utf16.findTerminatingNull().length() == 0'u64,
+             "the UTF-16 terminator is not at the end"
+
+    var wider: array[8, WChar]
+    for index, ch in "  91ab":
+      wider[index] = WChar(ord(ch))
+    wider[6] = WChar(0)
+    let utf32 = makeCharPointer_UTF32(cast[ConstPtr[WChar]](wider[0].addr))
+    doAssert utf32.getAddress() == cast[ptr WChar](wider[0].addr),
+             "the UTF-32 cursor's address is not the buffer's"
+    var afterUtf32Spaces = utf32.findEndOfWhitespace()
+    doAssert afterUtf32Spaces.getAndAdvance() == uint32('9'),
+             "the UTF-32 cursor did not skip the leading spaces"
+    doAssert utf32.getIntValue32() == 91,
+             "the UTF-32 cursor read " & $utf32.getIntValue32()
+    doAssert utf32.getIntValue64() == 91'i64,
+             "the UTF-32 cursor read " & $utf32.getIntValue64() & " as 64 bits"
+
+    var walking = makeCharPointer_UTF32(cast[ConstPtr[WChar]](wider[0].addr))
+    walking.incrementToEndOfWhitespace()
+    doAssert walking.getAndAdvance() == uint32('9'),
+             "the UTF-32 cursor did not walk past the spaces"
+
+  block:
+    # replaceChar writes through the cursor, so the buffer behind it changes.
+    # UTF-32 is the fixed-width encoding, so one character is one unit and the
+    # write cannot resize anything.
+    var buffer: array[4, WChar]
+    for index, ch in "abc":
+      buffer[index] = WChar(ord(ch))
+    buffer[3] = WChar(0)
+
+    var cursor = makeCharPointer_UTF32(cast[ConstPtr[WChar]](buffer[0].addr))
+    cursor.replaceChar(uint32('z'))
+    doAssert buffer[0] == WChar(ord('z')),
+             "replaceChar wrote " & $buffer[0] & " rather than 'z'"
+    doAssert buffer[1] == WChar(ord('b')),
+             "replaceChar changed the next character to " & $buffer[1]
+
+    # writeNull terminates where the cursor is, so the length drops to zero.
+    cursor.writeNull()
+    doAssert cursor.length() == 0'u64,
+             "after writeNull the cursor has " & $cursor.length() &
+             " characters"
+
+    # And the same on an ASCII buffer. The buffer is an ARRAY, not a Nim
+    # string: writing through a cursor into a string's bytes crashed this
+    # process at teardown, because a `var s = "abc"` need not be storage the
+    # program owns outright. Reading through a cursor over a Nim string is
+    # fine - testCharPointerUTF8 above does it - but WRITING is not.
+    var letters: array[4, char]
+    letters[0] = 'a'
+    letters[1] = 'b'
+    letters[2] = 'c'
+    letters[3] = '\0'
+    var asciiCursor = makeCharPointer_ASCII(cast[constChar](letters[0].addr))
+    asciiCursor.replaceChar(uint32('z'))
+    doAssert letters[0] == 'z',
+             "the ASCII replaceChar wrote " & letters[0]
+    doAssert letters[1] == 'b',
+             "the ASCII replaceChar changed the next character to " & letters[1]
+    asciiCursor.writeNull()
+    doAssert asciiCursor.length() == 0'u64,
+             "after writeNull the ASCII cursor has " & $asciiCursor.length()
+
+  block:
+    # writeAll copies one buffer into another through the cursors, and toChar
+    # gives the raw pointer back. Both write, so both use arrays.
+    var source: array[8, char]
+    for index, ch in "copied":
+      source[index] = ch
+    source[6] = '\0'
+    var destination: array[8, char]
+    destination[0] = '\0'
+
+    let from8 = makeCharPointer_UTF8(cast[constChar](source[0].addr))
+    var into8 = makeCharPointer_UTF8(cast[constChar](destination[0].addr))
+    into8.writeAll(from8)
+    doAssert destination[0] == 'c' and destination[5] == 'd',
+             "writeAll copied " & destination[0] & " and " & destination[5]
+    doAssert destination[6] == '\0',
+             "writeAll did not terminate the copy"
+
+    # Compared as raw addresses: toChar returns a POINTER TO CONST, which is
+    # what C++ gives and what the binding now says, so it has no == against a
+    # mutable pointer.
+    doAssert cast[pointer](from8.toChar()) == cast[pointer](source[0].addr),
+             "toChar gave a different pointer than the buffer's"
+
+    # atomicSwap puts a new value in and hands the old one back, which is the
+    # whole of what it does.
+    var swappable = makeCharPointer_UTF8(cast[constChar](source[0].addr))
+    let previous = swappable.atomicSwap(
+        makeCharPointer_UTF8(cast[constChar](destination[0].addr)))
+    doAssert previous.getAddress() == cast[ptr char](source[0].addr),
+             "atomicSwap handed back a different pointer than it held"
+    doAssert swappable.getAddress() == cast[ptr char](destination[0].addr),
+             "atomicSwap did not take the new value"
+
+  block:
+    # The same pair on the two wide encodings, whose raw accessors are named
+    # after the unit they point at rather than after char.
+    var source: array[8, int16]
+    for index, ch in "wide":
+      source[index] = int16(ord(ch))
+    source[4] = 0'i16
+    var destination: array[8, int16]
+    destination[0] = 0'i16
+
+    let from16 = makeCharPointer_UTF16(cast[ConstPtr[int16]](source[0].addr))
+    var into16 = makeCharPointer_UTF16(cast[ConstPtr[int16]](destination[0].addr))
+    into16.writeAll(from16)
+    doAssert destination[0] == int16(ord('w')),
+             "the UTF-16 writeAll copied " & $destination[0]
+    doAssert cast[pointer](from16.toInt16()) == cast[pointer](source[0].addr),
+             "toInt16 gave a different pointer than the buffer's"
+    var swappable16 = makeCharPointer_UTF16(cast[ConstPtr[int16]](source[0].addr))
+    doAssert swappable16.atomicSwap(from16).getAddress() ==
+             cast[ptr int16](source[0].addr),
+             "the UTF-16 atomicSwap handed back a different pointer"
+
+    var wideSource: array[8, WChar]
+    for index, ch in "wide":
+      wideSource[index] = WChar(ord(ch))
+    wideSource[4] = WChar(0)
+    var wideDestination: array[8, WChar]
+    wideDestination[0] = WChar(0)
+
+    let from32 = makeCharPointer_UTF32(cast[ConstPtr[WChar]](wideSource[0].addr))
+    var into32 = makeCharPointer_UTF32(cast[ConstPtr[WChar]](wideDestination[0].addr))
+    into32.writeAll(from32)
+    doAssert wideDestination[0] == WChar(ord('w')),
+             "the UTF-32 writeAll copied " & $wideDestination[0]
+    doAssert cast[pointer](from32.toWChar()) == cast[pointer](wideSource[0].addr),
+             "toWChar gave a different pointer than the buffer's"
+    var swappable32 = makeCharPointer_UTF32(cast[ConstPtr[WChar]](wideSource[0].addr))
+    doAssert swappable32.atomicSwap(from32).getAddress() ==
+             cast[ptr WChar](wideSource[0].addr),
+             "the UTF-32 atomicSwap handed back a different pointer"
+
+    # And ASCII's own raw accessor.
+    var text: array[4, char]
+    text[0] = 'a'
+    text[1] = '\0'
+    let asciiRaw = makeCharPointer_ASCII(cast[constChar](text[0].addr))
+    doAssert cast[pointer](asciiRaw.toChar()) == cast[pointer](text[0].addr),
+             "the ASCII toChar gave a different pointer than the buffer's"
+
+testCharPointerNavigation()
+
+# ThreadPool's job list. Jobs are added, found and removed by pointer, and the
+# pool runs them on its own threads - so each job here signals when it has run
+# and the test waits for that rather than sleeping.
+proc testThreadPoolJobList() =
+  block:
+    var options = makeThreadPoolOptions()
+    options.numberOfThreads = 2.cint
+    var pool = makeThreadPool(options)
+
+    doAssert pool.getNumThreads() == 2,
+             "the pool has " & $pool.getNumThreads() & " threads"
+    doAssert pool.getNumJobs() == 0,
+             "a new pool holds " & $pool.getNumJobs() & " jobs"
+    doAssert pool.getJob(0.cint).isNil, "an empty pool returned a job"
+    doAssert pool.getNamesOfAllJobs(false).size() == 0,
+             "an empty pool names " & $pool.getNamesOfAllJobs(false).size() &
+             " jobs"
+
+    # A job that waits until it is released, so the pool's state can be read
+    # while it is genuinely running rather than after it has finished.
+    var release = makeWaitableEvent(true)
+    var blocking = newCustomThreadPoolJob(makeString("blocking"))
+    let gate = addr release
+    blocking[].setRunJobHandler(proc(): cint =
+      discard gate[].wait(5000.0)
+      cint(ThreadPoolJobJobStatus_jobHasFinished))
+
+    pool.addJob(cast[ptr ThreadPoolJob](blocking), false)
+    doAssert pool.getNumJobs() == 1,
+             "after adding one the pool holds " & $pool.getNumJobs()
+    doAssert pool.getJob(0.cint) == cast[ptr ThreadPoolJob](blocking),
+             "the job at index 0 is a different one"
+    doAssert pool.contains(cast[ptr ThreadPoolJob](blocking)),
+             "the pool does not contain the job it was given"
+    doAssert $pool.getNamesOfAllJobs(false)[0.cint] == "blocking",
+             "the pool names the job " & $pool.getNamesOfAllJobs(false)[0.cint]
+
+    # A second job that waits on the SAME gate. It has to block too: a job
+    # that returns at once may finish before the count below is read, and the
+    # pool drops a finished job from its list - which made this assertion fail
+    # on a fast machine and pass on a slow one.
+    var queued = newCustomThreadPoolJob(makeString("queued"))
+    queued[].setRunJobHandler(proc(): cint =
+      discard gate[].wait(5000.0)
+      cint(ThreadPoolJobJobStatus_jobHasFinished))
+    pool.addJob(cast[ptr ThreadPoolJob](queued), false)
+    doAssert pool.getNumJobs() == 2,
+             "the pool holds " & $pool.getNumJobs() & " jobs"
+
+    # moveJobToFront only moves a job that has not started.
+    pool.moveJobToFront(cast[ptr ThreadPoolJob](queued))
+
+    # Releasing the gate lets both finish. The event is manual-reset, so one
+    # signal releases both rather than only whichever thread wakes first.
+    release.signal()
+    doAssert pool.waitForJobToFinish(cast[ptr ThreadPoolJob](blocking),
+                                     5000.cint),
+             "the blocking job did not finish in time"
+    doAssert not pool.isJobRunning(cast[ptr ThreadPoolJob](blocking)),
+             "the finished job still reports running"
+
+    doAssert pool.removeAllJobs(true, 5000.cint, nil),
+             "the pool did not empty"
+    doAssert pool.getNumJobs() == 0,
+             "after emptying, the pool holds " & $pool.getNumJobs()
+
+    # Both jobs were added with deleteJobWhenFinished false, so the pool
+    # removed them without deleting them and they are this test's to free.
+    # Leaving them out leaked two ThreadPoolJobs, which the leak gate caught.
+    cdelete queued
+    cdelete blocking
+
+  block:
+    # A pool asked for ZERO threads gets one: the constructor takes
+    # jmax(1, numberOfThreads) (juce_ThreadPool.cpp:114) after asserting that
+    # nobody meant it. So "a pool that never runs anything" is not a thing
+    # that can be built, and the job below does run.
+    var options = makeThreadPoolOptions()
+    options.numberOfThreads = 0.cint
+    var pool = makeThreadPool(options)
+    doAssert pool.getNumThreads() == 1,
+             "a pool asked for zero threads has " & $pool.getNumThreads()
+
+    # removeJob reports whether it found the job. It is asserted after the
+    # job has run, because with a thread available it will have.
+    var job = newCustomThreadPoolJob(makeString("runs anyway"))
+    var ran = 0
+    job[].setRunJobHandler(proc(): cint =
+      ran += 1
+      cint(ThreadPoolJobJobStatus_jobHasFinished))
+
+    pool.addJob(cast[ptr ThreadPoolJob](job), false)
+    doAssert pool.removeJob(cast[ptr ThreadPoolJob](job), false, 5000.cint),
+             "removeJob did not find the job"
+    doAssert pool.getNumJobs() == 0,
+             "after removing it the pool holds " & $pool.getNumJobs()
+
+    # Whether the job RAN first is a race between the pool's thread picking it
+    # up and removeJob taking it away, and both orders were observed while
+    # this was written. So only the count's bounds are asserted; pinning it to
+    # 0 or to 1 would make this test fail on a differently loaded machine.
+    doAssert ran == 0 or ran == 1,
+             "the job ran " & $ran & " times"
+
+    cdelete job
+
+testThreadPoolJobList()
+
+# The rest of XmlElement: the boolean attribute, the document writers and the
+# two remaining navigation methods.
+proc testXmlElementDocumentAndSearch() =
+  block:
+    # A boolean attribute reads several spellings, and anything else is the
+    # default rather than false.
+    var element = makeXmlElement(makeString("flags"))
+    element.setAttribute(makeIdentifier("yes"), makeString("1"))
+    element.setAttribute(makeIdentifier("no"), makeString("0"))
+    element.setAttribute(makeIdentifier("spelled"), makeString("true"))
+    element.setAttribute(makeIdentifier("nonsense"), makeString("banana"))
+
+    doAssert element.getBoolAttribute("yes", false),
+             "the attribute 1 did not read as true"
+    doAssert not element.getBoolAttribute("no", true),
+             "the attribute 0 did not read as false"
+    doAssert element.getBoolAttribute("spelled", false),
+             "the attribute \"true\" did not read as true"
+    doAssert not element.getBoolAttribute("nonsense", false),
+             "an unrecognised value did not read as false"
+    doAssert element.getBoolAttribute("absent", true),
+             "a missing attribute did not give the default"
+
+  block:
+    # getNextElementWithTagName skips the siblings of other types.
+    var root = makeXmlElement(makeString("root"))
+    root.addChildElement(cnew makeXmlElement(makeString("wanted")))
+    root.addChildElement(cnew makeXmlElement(makeString("other")))
+    root.addChildElement(cnew makeXmlElement(makeString("wanted")))
+
+    let first = root.getChildByName("wanted")
+    doAssert first != nil, "the first wanted child is missing"
+    let second = first[].getNextElementWithTagName("wanted")
+    doAssert second != nil,
+             "the second wanted child was not found past the other one"
+    doAssert second != first, "the search found the same element again"
+    doAssert second[].getNextElementWithTagName("wanted").isNil,
+             "a third wanted child was found"
+
+    # replaceChildElement swaps one for another and reports whether it found
+    # the one to replace.
+    let replacement = cnew makeXmlElement(makeString("replaced"))
+    doAssert root.replaceChildElement(first, replacement),
+             "replaceChildElement did not find the child"
+    doAssert root.getNumChildElements() == 3,
+             "replacing changed the child count to " &
+             $root.getNumChildElements()
+    doAssert $root.getChildElement(0.cint)[].getTagName() == "replaced",
+             "the first child is now " &
+             $root.getChildElement(0.cint)[].getTagName()
+
+    # A FAILED replace does not take ownership of the new node: JUCE only
+    # adopts it once it has found the child to swap out
+    # (juce_XmlElement.cpp:758), and returns false without touching it
+    # otherwise. So the caller still owns it, and forgetting that leaks one
+    # XmlElement - which the leak gate caught here.
+    var stray = makeXmlElement(makeString("stray"))
+    let orphan = cnew makeXmlElement(makeString("x"))
+    doAssert not root.replaceChildElement(addr stray, orphan),
+             "replaceChildElement found a child that was never there"
+    cdelete orphan
+
+    # deleteAllChildElementsWithTagName removes only the named ones.
+    root.deleteAllChildElementsWithTagName("wanted")
+    doAssert root.getNumChildElements() == 2,
+             "after deleting the wanted children there are " &
+             $root.getNumChildElements()
+    doAssert root.getChildByName("wanted").isNil,
+             "a wanted child survived"
+    doAssert not root.getChildByName("other").isNil,
+             "a child of another type was deleted too"
+
+  block:
+    # createDocument wraps the element in a whole XML document, and its flags
+    # decide what goes around it.
+    var root = makeXmlElement(makeString("settings"))
+    root.setAttribute(makeIdentifier("version"), 2.cint)
+
+    let full = $root.createDocument(makeString(""), false, true,
+                                    makeString("UTF-8"), 60.cint)
+    doAssert full.contains("<?xml"),
+             "the document has no XML header: " & full
+    doAssert full.contains("<settings"), "the document has no root element"
+
+    let bare = $root.createDocument(makeString(""), true, false,
+                                    makeString("UTF-8"), 60.cint)
+    doAssert not bare.contains("<?xml"),
+             "the header was included when it was turned off: " & bare
+    doAssert not bare.contains("\n"),
+             "all-on-one-line still wrapped: " & bare
+
+  block:
+    # The two writers put the same document into a stream and into a file.
+    var root = makeXmlElement(makeString("written"))
+    root.setAttribute(makeIdentifier("n"), 7.cint)
+
+    var buffer = makeMemoryBlock(0'u64, false)
+    var stream = makeMemoryOutputStream(buffer, false)
+    root.writeTo(stream, makeXmlElementTextFormat())
+    stream.flush()
+    doAssert buffer.getSize() > 0'u64,
+             "writeTo wrote " & $buffer.getSize() & " bytes"
+    doAssert ($buffer.toString()).contains("written"),
+             "the stream does not name the element: " & $buffer.toString()
+
+    let file = File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                   .getChildFile(makeString("june_xml_write.xml"))
+    doAssert root.writeTo(file, makeXmlElementTextFormat()),
+             "writing the document to a file failed"
+    doAssert file.existsAsFile(), "the file was not created"
+    doAssert ($file.loadFileAsString()).contains("written"),
+             "the file does not name the element"
+
+    doAssert root.writeToFile(file, makeString(""), makeString("UTF-8"),
+                              60.cint),
+             "writeToFile failed"
+    doAssert ($file.loadFileAsString()).contains("<?xml"),
+             "writeToFile left out the XML header"
+
+    doAssert file.deleteFile(), "the temporary file could not be removed"
+
+testXmlElementDocumentAndSearch()
+
+# The rest of URL. The readEntire* methods are given a file:// URL, so they
+# read a local file and touch no network. downloadToFile and
+# launchInDefaultBrowser are left to the compile harness: one reaches out over
+# the network and the other opens a browser, and neither belongs in a test run.
+proc testUrlUploadsAndReads() =
+  block:
+    # withParameters adds several at once, and the existing ones stay.
+    let base = makeURL(makeString("https://example.com/search?first=1"))
+    var extra = makeStringPairArray(true)
+    extra.set(makeString("second"), makeString("two"))
+    extra.set(makeString("third"), makeString("three"))
+
+    let combined = base.withParameters(extra)
+    doAssert combined.getParameterNames().size() == 3,
+             "the combined URL has " & $combined.getParameterNames().size() &
+             " parameters"
+    doAssert combined.getParameterNames().contains(makeString("first")),
+             "the original parameter was lost"
+    doAssert combined.getParameterNames().contains(makeString("third")),
+             "an added parameter is missing"
+    doAssert base.getParameterNames().size() == 1,
+             "withParameters changed the original, which now has " &
+             $base.getParameterNames().size() & " parameters"
+
+  block:
+    # An upload turns the URL into a POST with a multipart body, which is what
+    # isPost reports and what the plain query string does not carry.
+    let directory = File.getSpecialLocation(
+        FileSpecialLocationType_tempDirectory)
+    let payload = directory.getChildFile(makeString("june_url_upload.txt"))
+    doAssert payload.replaceWithText(makeString("file contents")),
+             "the payload file could not be written"
+
+    # An upload is not visible through anything the binding exposes: JUCE's
+    # isPost and its list of uploads are not bound, and an attachment does not
+    # appear in the URL's text or in its post data. So what is asserted is
+    # that the call produces a usable URL naming the same endpoint and leaves
+    # the receiver alone - which is the with- contract, and all that can be
+    # checked from here.
+    let base = makeURL(makeString("https://example.com/upload"))
+
+    let withFile = base.withFileToUpload(makeString("attachment"), payload,
+                                         makeString("text/plain"))
+    doAssert $withFile.toString(true) == $base.toString(true),
+             "the attachment changed the URL's text to " &
+             $withFile.toString(true)
+    doAssert not withFile.isEmpty(), "the URL with an attachment is empty"
+
+    var bytes = makeMemoryBlock(0'u64, false)
+    bytes.append(cast[constPointer](cstring"raw bytes"), 9'u64)
+    let withData = base.withDataToUpload(makeString("blob"),
+                                         makeString("blob.bin"), bytes,
+                                         makeString("application/octet-stream"))
+    doAssert $withData.getDomain() == "example.com",
+             "the uploaded data changed the domain to " & $withData.getDomain()
+    doAssert base.getPostData().isEmpty(),
+             "an upload put post data on the ORIGINAL, which now holds " &
+             $base.getPostData()
+
+    doAssert payload.deleteFile(), "the payload file could not be removed"
+
+  block:
+    # A file:// URL reads through the same three methods a network one would.
+    let directory = File.getSpecialLocation(
+        FileSpecialLocationType_tempDirectory)
+    let textFile = directory.getChildFile(makeString("june_url_read.txt"))
+    doAssert textFile.replaceWithText(makeString("the whole text")),
+             "the text file could not be written"
+
+    let textUrl = makeURL(textFile)
+    doAssert $textUrl.readEntireTextStream(false) == "the whole text",
+             "reading the file gave " & $textUrl.readEntireTextStream(false)
+
+    var binary = makeMemoryBlock(0'u64, false)
+    doAssert textUrl.readEntireBinaryStream(binary, false),
+             "reading the file as bytes failed"
+    doAssert binary.getSize() == 14'u64,
+             "the file read as " & $binary.getSize() & " bytes"
+
+    # And an XML file parses through readEntireXmlStream.
+    let xmlFile = directory.getChildFile(makeString("june_url_read.xml"))
+    doAssert xmlFile.replaceWithText(makeString("<root n=\"5\"/>")),
+             "the XML file could not be written"
+    let xmlUrl = makeURL(xmlFile)
+    var parsed = xmlUrl.readEntireXmlStream(false)
+    doAssert not parsed.isNil(), "the XML did not parse"
+    doAssert parsed.get()[].hasTagName("root"),
+             "the parsed root is " & $parsed.get()[].getTagName()
+    doAssert parsed.get()[].getIntAttribute("n", 0.cint) == 5,
+             "the parsed attribute is " &
+             $parsed.get()[].getIntAttribute("n", 0.cint)
+
+    # A URL naming a file that is not there reads as nothing rather than
+    # failing.
+    let missing = makeURL(directory.getChildFile(makeString("june_absent.txt")))
+    doAssert missing.readEntireTextStream(false).isEmpty(),
+             "a missing file read as " & $missing.readEntireTextStream(false)
+
+    doAssert textFile.deleteFile() and xmlFile.deleteFile(),
+             "the temporary files could not be removed"
+
+testUrlUploadsAndReads()
+
+# JSONFormatOptions and ThreadRealtimeOptions are value builders, and their
+# with- methods pair mechanically with their getters - which is exactly where
+# one can be wired to the wrong field with nothing to notice.
+proc testOptionBuilders() =
+  block:
+    let base = makeJSONFormatOptions()
+
+    # Each with- moves its own field and leaves the neighbours.
+    let spaced = base.withSpacing(JSONSpacing_multiLine)
+    doAssert spaced.getSpacing() == JSONSpacing_multiLine,
+             "withSpacing did not take"
+    doAssert spaced.getIndentLevel() == base.getIndentLevel(),
+             "withSpacing moved the indent level to " &
+             $spaced.getIndentLevel()
+
+    let indented = base.withIndentLevel(4.cint)
+    doAssert indented.getIndentLevel() == 4,
+             "the indent level is " & $indented.getIndentLevel()
+    doAssert indented.getSpacing() == base.getSpacing(),
+             "withIndentLevel moved the spacing"
+    doAssert base.getIndentLevel() != 4,
+             "withIndentLevel changed the original, which now reads " &
+             $base.getIndentLevel()
+
+    let encoded = base.withEncoding(JSONEncoding_utf8)
+    doAssert encoded.getEncoding() == JSONEncoding_utf8,
+             "withEncoding did not take"
+
+    let rounded = base.withMaxDecimalPlaces(3.cint)
+    doAssert rounded.getMaxDecimalPlaces() == 3,
+             "the decimal places read " & $rounded.getMaxDecimalPlaces()
+    doAssert rounded.getEncoding() == base.getEncoding(),
+             "withMaxDecimalPlaces moved the encoding"
+
+    # And the options reach JSON.toString, which is what they are for:
+    # multi-line spacing puts a newline in and the default does not.
+    let value = makejuce_var(makeArray[juce_var]())
+    let onOneLine = $JSON.toString(makejuce_var(makeString("x")), base)
+    doAssert not onOneLine.contains("\n"),
+             "the default spacing wrapped: " & onOneLine
+
+  block:
+    let base = makeThreadRealtimeOptions()
+
+    let periodic = base.withPeriodMs(5.0)
+    doAssert periodic.getPeriodMs().hasValue(),
+             "withPeriodMs left the period unset"
+    doAssert periodic.getPeriodMs().value() == 5.0,
+             "the period is " & $periodic.getPeriodMs().value() & "ms"
+    doAssert not base.getPeriodMs().hasValue(),
+             "withPeriodMs changed the original"
+
+    # withPeriodHz is the same field named the other way round, so 100Hz is a
+    # 10ms period.
+    let byRate = base.withPeriodHz(100.0)
+    doAssert byRate.getPeriodMs().hasValue(),
+             "withPeriodHz left the period unset"
+    doAssert abs(byRate.getPeriodMs().value() - 10.0) < 1.0e-9,
+             "100Hz is a period of " & $byRate.getPeriodMs().value() & "ms"
+
+    let timed = base.withProcessingTimeMs(2.0)
+    doAssert timed.getProcessingTimeMs().hasValue(),
+             "withProcessingTimeMs left the time unset"
+    doAssert timed.getProcessingTimeMs().value() == 2.0,
+             "the processing time is " & $timed.getProcessingTimeMs().value()
+    doAssert not timed.getMaximumProcessingTimeMs().hasValue(),
+             "withProcessingTimeMs set the MAXIMUM as well"
+
+    let capped = base.withMaximumProcessingTimeMs(8.0)
+    doAssert capped.getMaximumProcessingTimeMs().hasValue(),
+             "withMaximumProcessingTimeMs left the maximum unset"
+    doAssert capped.getMaximumProcessingTimeMs().value() == 8.0,
+             "the maximum is " & $capped.getMaximumProcessingTimeMs().value()
+    doAssert not capped.getProcessingTimeMs().hasValue(),
+             "withMaximumProcessingTimeMs set the plain time as well"
+
+    let prioritised = base.withPriority(7.cint)
+    doAssert prioritised.getPriority() == 7,
+             "the priority is " & $prioritised.getPriority()
+    doAssert base.getPriority() != 7,
+             "withPriority changed the original"
+
+    # withApproximateAudioProcessingTime sets ONLY the maximum: it works out
+    # the frame time and forwards to withMaximumProcessingTimeMs
+    # (juce_Thread.h:142), leaving the period and the plain processing time
+    # alone. The name suggests it fills in more than it does.
+    let audio = base.withApproximateAudioProcessingTime(512.cint, 48000.0)
+    doAssert audio.getMaximumProcessingTimeMs().hasValue(),
+             "the audio shortcut left the maximum unset"
+    doAssert abs(audio.getMaximumProcessingTimeMs().value() - 512.0 / 48.0) <
+             0.1,
+             "512 frames at 48kHz is " &
+             $audio.getMaximumProcessingTimeMs().value() & "ms"
+    doAssert not audio.getProcessingTimeMs().hasValue(),
+             "the audio shortcut also set the plain processing time"
+    doAssert not audio.getPeriodMs().hasValue(),
+             "the audio shortcut also set the period"
+
+testOptionBuilders()
+
+# Expression's STRUCTURE. An expression parsed from text can be taken apart
+# without a scope: the operator, the inputs and the symbol names are all in the
+# tree itself.
+#
+# What needs a scope cannot be tested here. Expression::Scope gives every one
+# of its methods a body rather than making it pure (juce_Expression.h:127-162),
+# so the generator emits no CustomExpressionScope and there is no way to supply
+# symbol values from Nim. referencesSymbol, findReferencedSymbols and
+# withRenamedSymbol all resolve through the scope, so with the base one they
+# answer for an expression whose symbols are unknown - which is asserted below
+# as the limitation it is, rather than left looking like a passing test.
+proc testExpressionStructure() =
+  block:
+    var parseError = makeString("")
+    let sum = makeExpression(makeString("x + y * 2"), parseError)
+    doAssert parseError.isEmpty(),
+             "the expression did not parse: " & $parseError
+
+    # A binary operation has two inputs, each an expression of its own.
+    doAssert sum.getNumInputs() == 2,
+             "the sum has " & $sum.getNumInputs() & " inputs"
+    doAssert sum.getType() == ExpressionType_operatorType,
+             "a sum is not an operator"
+    doAssert $sum.getSymbolOrFunction() == "+",
+             "the sum's operator is " & $sum.getSymbolOrFunction()
+
+    # The first input is the symbol x, which knows its own name; the second is
+    # the multiplication, which is an operator with two inputs of its own.
+    let firstInput = sum.getInput(0.cint)
+    doAssert firstInput.getType() == ExpressionType_symbolType,
+             "the first input is not a symbol"
+    doAssert $firstInput.getSymbolOrFunction() == "x",
+             "the first input names " & $firstInput.getSymbolOrFunction()
+    doAssert firstInput.getNumInputs() == 0,
+             "a symbol has " & $firstInput.getNumInputs() & " inputs"
+
+    let secondInput = sum.getInput(1.cint)
+    doAssert secondInput.getType() == ExpressionType_operatorType,
+             "the second input is not an operator"
+    doAssert secondInput.getNumInputs() == 2,
+             "the multiplication has " & $secondInput.getNumInputs() & " inputs"
+
+    doAssert sum.usesAnySymbols(), "x + y * 2 uses no symbols"
+
+  block:
+    # A constant depends on nothing and needs no scope at all.
+    let constant = makeExpression(3.0)
+    doAssert not constant.usesAnySymbols(), "the number 3 uses symbols"
+    doAssert constant.getNumInputs() == 0,
+             "the number 3 has " & $constant.getNumInputs() & " inputs"
+    doAssert constant.getType() == ExpressionType_constantType,
+             "the number 3 is not a constant"
+
+    # The scope-taking methods DO work on an expression with no symbols to
+    # resolve, which is the one case a base scope can answer.
+    var scope = makeExpressionScope()
+    let x = makeExpressionSymbol(makeString(""), makeString("x"))
+    doAssert not constant.referencesSymbol(x, scope),
+             "the number 3 references x"
+
+    var found = makeArray[ExpressionSymbol]()
+    constant.findReferencedSymbols(found, scope)
+    doAssert found.size() == 0,
+             "the number 3 references " & $found.size() & " symbols"
+
+    doAssert not constant.withRenamedSymbol(x, makeString("w"), scope)
+                        .usesAnySymbols(),
+             "renaming a symbol in a constant introduced one"
+
+    # adjustedToGiveNewResult rewrites an expression so it evaluates to a
+    # wanted value, which is what a UI does when a user types a number into a
+    # field driven by a formula.
+    let adjusted = constant.adjustedToGiveNewResult(10.0, scope)
+    doAssert adjusted.evaluate() == 10.0,
+             "the adjusted expression evaluates to " & $adjusted.evaluate()
+    doAssert constant.evaluate() == 3.0,
+             "adjustedToGiveNewResult changed the original, which now gives " &
+             $constant.evaluate()
+
+testExpressionStructure()
+
+# ConsoleApplication dispatches a command line to one of several commands. The
+# command bodies run here, so the assertions are on which one was chosen and
+# what it was given.
+proc testConsoleApplicationDispatch() =
+  block:
+    var app = makeConsoleApplication()
+    var buildRan = 0
+    var cleanRan = 0
+    var seenArguments = 0
+
+    var build = makeConsoleApplicationCommand()
+    build.commandOption = makeString("build|-b")
+    build.argumentDescription = makeString("build <target>")
+    build.shortDescription = makeString("Build a target")
+    build.longDescription = makeString("Builds the named target from source.")
+    build.command = bindConstRefClosure(proc(args: ptr ArgumentList) =
+      buildRan += 1
+      seenArguments = args[].size())
+    app.addCommand(build)
+
+    var clean = makeConsoleApplicationCommand()
+    clean.commandOption = makeString("clean")
+    clean.shortDescription = makeString("Remove the build output")
+    clean.command = bindConstRefClosure(proc(args: ptr ArgumentList) =
+      cleanRan += 1)
+    app.addCommand(clean)
+
+    doAssert app.getCommands().size() == 2'u64,
+             "the application holds " & $app.getCommands().size() & " commands"
+
+    # findCommand picks by the option, and either spelling finds the same one.
+    let buildArgs = makeArgumentList(makeString("june"),
+                                     makeString("build release"))
+    let found = app.findCommand(buildArgs, false)
+    doAssert not found.isNil, "the build command was not found"
+    let shortArgs = makeArgumentList(makeString("june"), makeString("-b debug"))
+    doAssert not app.findCommand(shortArgs, false).isNil,
+             "the short spelling did not find the command"
+
+    let unknown = makeArgumentList(makeString("june"), makeString("nonsense"))
+    doAssert app.findCommand(unknown, false).isNil,
+             "an unknown command was found"
+
+    # findAndRunCommand runs the one it picked, and hands it the arguments.
+    doAssert app.findAndRunCommand(buildArgs, false) == 0,
+             "the build command reported failure"
+    doAssert buildRan == 1, "the build command ran " & $buildRan & " times"
+    doAssert cleanRan == 0, "running build also ran clean"
+    doAssert seenArguments == 2,
+             "the command was given " & $seenArguments & " arguments"
+
+    doAssert app.findAndRunCommand(
+                 makeArgumentList(makeString("june"), makeString("clean")),
+                 false) == 0,
+             "the clean command reported failure"
+    doAssert cleanRan == 1, "the clean command ran " & $cleanRan & " times"
+    doAssert buildRan == 1, "running clean also ran build"
+
+  block:
+    # A DEFAULT command runs when nothing else matches, which is the whole
+    # difference from an ordinary one.
+    var app = makeConsoleApplication()
+    var defaultRan = 0
+
+    var fallback = makeConsoleApplicationCommand()
+    fallback.commandOption = makeString("")
+    fallback.shortDescription = makeString("The default")
+    fallback.command = bindConstRefClosure(proc(args: ptr ArgumentList) =
+      defaultRan += 1)
+    app.addDefaultCommand(fallback)
+
+    discard app.findAndRunCommand(
+        makeArgumentList(makeString("june"), makeString("anything at all")),
+        false)
+    doAssert defaultRan == 1,
+             "the default command ran " & $defaultRan & " times"
+
+  block:
+    # The built-in help and version commands are added by name, and appear in
+    # the command list like any other.
+    var app = makeConsoleApplication()
+    app.addHelpCommand(makeString("--help|-h"), makeString("Usage: june"), true)
+    app.addVersionCommand(makeString("--version"), makeString("june 1.0"))
+    doAssert app.getCommands().size() == 2'u64,
+             "the application holds " & $app.getCommands().size() &
+             " built-in commands"
+
+    doAssert not app.findCommand(
+                 makeArgumentList(makeString("june"), makeString("--version")),
+                 false).isNil,
+             "the version command was not found"
+
+    # printCommandList and printCommandDetails write to stdout, so what is
+    # asserted is that they run and leave the command list alone.
+    let arguments = makeArgumentList(makeString("june"), makeString("--help"))
+    app.printCommandList(arguments)
+    let helpCommand = app.findCommand(arguments, false)
+    doAssert not helpCommand.isNil, "the help command was not found"
+    app.printCommandDetails(arguments, helpCommand[])
+    doAssert app.getCommands().size() == 2'u64,
+             "printing changed the command count to " & $app.getCommands().size()
+
+testConsoleApplicationDispatch()
+
+# The two sockets, without a peer. Everything here binds a local port, asks the
+# socket about itself and closes again - no connection is made and nothing
+# leaves the machine, so the test cannot be flaky on a sandboxed runner.
+proc testSocketsWithoutAPeer() =
+  block:
+    # A datagram socket reports no port until it is bound, and an ephemeral
+    # port once it is - the number is the OS's to choose, so only its range is
+    # asserted.
+    var options = makeSocketOptions()
+    var socket = makeDatagramSocket(false, options)
+    doAssert socket.getBoundPort() == -1,
+             "an unbound socket reports port " & $socket.getBoundPort()
+
+    doAssert socket.bindToPort(0.cint),
+             "binding to an ephemeral port failed"
+    let port = socket.getBoundPort()
+    doAssert port > 0 and port <= 65535,
+             "the bound port is " & $port
+
+    doAssert socket.getRawSocketHandle() != -1,
+             "a bound socket has no raw handle"
+
+    # waitUntilReady for READING times out at once: nothing has been sent.
+    doAssert socket.waitUntilReady(true, 50.cint) == 0,
+             "an idle socket reported " & $socket.waitUntilReady(true, 50.cint) &
+             " rather than timing out"
+
+    # These have no reader; what is asserted is that they run and leave the
+    # socket bound.
+    discard socket.setEnablePortReuse(true)
+    discard socket.setMulticastLoopbackEnabled(true)
+    doAssert socket.getBoundPort() == port,
+             "the socket options changed the bound port to " &
+             $socket.getBoundPort()
+
+    # Multicast on a group nothing is serving answers without hanging. What it
+    # answers is the machine's business - a runner with no multicast route
+    # refuses - so only the pair's symmetry is asserted.
+    let joined = socket.joinMulticast(makeString("239.255.0.1"))
+    if joined:
+      doAssert socket.leaveMulticast(makeString("239.255.0.1")),
+               "the socket joined a multicast group and could not leave it"
+
+    socket.shutdown()
+    doAssert socket.getBoundPort() == -1,
+             "after shutdown the socket reports port " & $socket.getBoundPort()
+
+  block:
+    # A streaming socket that is listening is not connected, which is the
+    # distinction the two predicates draw.
+    var socket = makeStreamingSocket()
+    doAssert not socket.isConnected(), "a new socket is connected"
+    doAssert socket.getBoundPort() == -1,
+             "a new socket reports port " & $socket.getBoundPort()
+
+    doAssert socket.createListener(0.cint, makeString("127.0.0.1")),
+             "creating a listener on an ephemeral port failed"
+    let port = socket.getBoundPort()
+    doAssert port > 0 and port <= 65535,
+             "the listening port is " & $port
+    # isConnected means "the socket is OPEN", not "a peer is attached":
+    # createListener sets the flag itself (juce_Socket.cpp:628), and the
+    # assertion at the end of that function allows a listener to be connected.
+    # So a listener nobody has dialled still reports connected.
+    doAssert socket.isConnected(),
+             "a listening socket does not report itself connected"
+    doAssert socket.getRawSocketHandle() != -1,
+             "a listening socket has no raw handle"
+    # getHostName is the name of the OTHER end, so for a listener with no peer
+    # it is the placeholder "listener" rather than the address it bound to.
+    doAssert $socket.getHostName() == "listener",
+             "the listener reports host " & $socket.getHostName()
+    doAssert not socket.isLocal(),
+             "a listener with no peer reports a local peer"
+
+    # waitForNextConnection is NOT called. It has no timeout - it blocks until
+    # a connection arrives or the socket is closed from another thread - so
+    # calling it here hung the test run, which is how this was found. The
+    # compile harness covers it.
+    #
+    # waitUntilReady is the timeout-taking way to ask the same question, and
+    # it reports at once that nothing is waiting to be accepted.
+    doAssert socket.waitUntilReady(true, 50.cint) == 0,
+             "a listener nobody dialled reported " &
+             $socket.waitUntilReady(true, 50.cint) & " rather than timing out"
+
+    socket.close()
+    doAssert socket.getBoundPort() == -1,
+             "after closing, the socket reports port " & $socket.getBoundPort()
+
+  block:
+    # Connecting to a port nothing is listening on fails rather than hanging,
+    # which is what the timeout is for.
+    var socket = makeStreamingSocket()
+    doAssert not socket.connect(makeString("127.0.0.1"), 1.cint, 200.cint),
+             "connecting to port 1 succeeded"
+    doAssert not socket.isConnected(),
+             "a failed connect left the socket connected"
+
+testSocketsWithoutAPeer()
+
+# AbstractFifo hands out index ranges into a buffer a caller owns. It never
+# touches the data itself, so the whole of it is arithmetic - and the two
+# blocks it reports are how a ring buffer wraps.
+proc testAbstractFifo() =
+  block:
+    var fifo = makeAbstractFifo(8.cint)
+    doAssert fifo.getTotalSize() == 8,
+             "the fifo holds " & $fifo.getTotalSize() & " slots"
+    doAssert fifo.getFreeSpace() == 7,
+             "an empty fifo of 8 has " & $fifo.getFreeSpace() & " free"
+    doAssert fifo.getNumReady() == 0,
+             "an empty fifo has " & $fifo.getNumReady() & " ready"
+
+    # A write that fits in one run gives one block and an empty second.
+    var start1, size1, start2, size2: cint
+    fifo.prepareToWrite(3.cint, start1, size1, start2, size2)
+    doAssert size1 == 3, "the first block is " & $size1 & " long"
+    doAssert size2 == 0,
+             "a write that fits gave a second block of " & $size2
+    doAssert start1 == 0, "the first block starts at " & $start1
+
+    # Nothing is readable until the write is finished.
+    doAssert fifo.getNumReady() == 0,
+             "the fifo has " & $fifo.getNumReady() & " ready before the " &
+             "write was finished"
+    fifo.finishedWrite(3.cint)
+    doAssert fifo.getNumReady() == 3,
+             "after writing 3 the fifo has " & $fifo.getNumReady() & " ready"
+    doAssert fifo.getFreeSpace() == 4,
+             "after writing 3 there are " & $fifo.getFreeSpace() & " free"
+
+    # Reading gives the same run back.
+    fifo.prepareToRead(2.cint, start1, size1, start2, size2)
+    doAssert size1 == 2 and size2 == 0,
+             "reading 2 gave blocks of " & $size1 & " and " & $size2
+    doAssert start1 == 0, "the read starts at " & $start1
+    fifo.finishedRead(2.cint)
+    doAssert fifo.getNumReady() == 1,
+             "after reading 2 of 3 the fifo has " & $fifo.getNumReady()
+
+  block:
+    # A write that runs off the end WRAPS, which is the whole reason
+    # prepareToWrite reports two blocks rather than one range.
+    var fifo = makeAbstractFifo(8.cint)
+    var start1, size1, start2, size2: cint
+
+    # Fill and drain most of it, so the write pointer is near the end.
+    fifo.prepareToWrite(6.cint, start1, size1, start2, size2)
+    fifo.finishedWrite(6.cint)
+    fifo.prepareToRead(6.cint, start1, size1, start2, size2)
+    fifo.finishedRead(6.cint)
+
+    # Now a write of 4 has to wrap: 2 at the end and 2 at the start.
+    fifo.prepareToWrite(4.cint, start1, size1, start2, size2)
+    doAssert size1 + size2 == 4,
+             "the wrapped write covers " & $(size1 + size2) & " slots"
+    doAssert size2 > 0,
+             "a write past the end did not wrap; the blocks are " & $size1 &
+             " and " & $size2
+    doAssert start1 == 6, "the first block starts at " & $start1
+    doAssert start2 == 0, "the second block starts at " & $start2
+
+    fifo.finishedWrite(4.cint)
+    doAssert fifo.getNumReady() == 4,
+             "after the wrapped write " & $fifo.getNumReady() & " are ready"
+
+    # And the matching read wraps the same way.
+    fifo.prepareToRead(4.cint, start1, size1, start2, size2)
+    doAssert size2 > 0, "the wrapped read did not wrap"
+    doAssert start1 == 6 and start2 == 0,
+             "the wrapped read starts at " & $start1 & " and " & $start2
+
+  block:
+    # Asking for more than there is room for gives what there is, not what was
+    # asked for - which is what makes the return values worth reading.
+    var fifo = makeAbstractFifo(4.cint)
+    var start1, size1, start2, size2: cint
+    fifo.prepareToWrite(100.cint, start1, size1, start2, size2)
+    doAssert size1 + size2 == 3,
+             "a fifo of 4 offered " & $(size1 + size2) & " slots for 100"
+
+    # setTotalSize resizes and empties it.
+    fifo.finishedWrite(3.cint)
+    fifo.setTotalSize(16.cint)
+    doAssert fifo.getTotalSize() == 16,
+             "after resizing the fifo holds " & $fifo.getTotalSize()
+    doAssert fifo.getNumReady() == 0,
+             "resizing left " & $fifo.getNumReady() & " ready"
+
+testAbstractFifo()
+
+# Uuid's field accessors. A UUID is sixteen bytes, and each accessor names a
+# slice of them - so the assertions are that the slices agree with the raw
+# bytes and that two different UUIDs differ.
+proc testUuidFields() =
+  block:
+    let first = makeUuid()
+    let second = makeUuid()
+    doAssert not first.isNull(), "a generated UUID is null"
+    doAssert not (first == second), "two generated UUIDs are equal"
+
+    doAssert not first.getRawData().isNil,
+             "a UUID has no raw data"
+
+    # The time fields come from the first eight bytes, so a UUID that differs
+    # differs in at least one of them or in the node.
+    doAssert first.getTimeLow() != second.getTimeLow() or
+             first.getTimeMid() != second.getTimeMid() or
+             first.getTimeHighAndVersion() != second.getTimeHighAndVersion() or
+             first.getClockSeqAndReserved() != second.getClockSeqAndReserved() or
+             first.getClockSeqLow() != second.getClockSeqLow() or
+             first.getNode() != second.getNode(),
+             "two different UUIDs agree on every field"
+
+    # A UUID rebuilt from its own text has the same fields.
+    let rebuilt = makeUuid(first.toString())
+    doAssert rebuilt == first, "the round trip changed the UUID"
+    doAssert rebuilt.getTimeLow() == first.getTimeLow(),
+             "the round trip changed the time-low field"
+    doAssert rebuilt.getNode() == first.getNode(),
+             "the round trip changed the node"
+
+    # A null UUID is all zeroes, so every field is zero.
+    let empty = makeUuid(makeString("00000000-0000-0000-0000-000000000000"))
+    doAssert empty.isNull(), "the all-zero UUID is not null"
+    doAssert empty.getTimeLow() == 0'u32,
+             "the null UUID's time-low is " & $empty.getTimeLow()
+    doAssert empty.getTimeMid() == 0'u16,
+             "the null UUID's time-mid is " & $empty.getTimeMid()
+    doAssert empty.getTimeHighAndVersion() == 0'u16,
+             "the null UUID's version field is " &
+             $empty.getTimeHighAndVersion()
+    doAssert empty.getClockSeqAndReserved() == 0'u8,
+             "the null UUID's clock-seq-and-reserved is " &
+             $empty.getClockSeqAndReserved()
+    doAssert empty.getClockSeqLow() == 0'u8,
+             "the null UUID's clock-seq-low is " & $empty.getClockSeqLow()
+    doAssert empty.getNode() == 0'u64,
+             "the null UUID's node is " & $empty.getNode()
+
+testUuidFields()
+
+# ZipFile, built and then read back. The archive is made with JUCE's own
+# Builder, so the test does not depend on a fixture file being checked in and
+# the round trip is what is actually asserted.
+proc testZipFileRoundTrip() =
+  block:
+    let directory = File.getSpecialLocation(
+        FileSpecialLocationType_tempDirectory)
+    let alpha = directory.getChildFile(makeString("june_zip_alpha.txt"))
+    let beta = directory.getChildFile(makeString("june_zip_beta.txt"))
+    doAssert alpha.replaceWithText(makeString("first file")),
+             "the first file could not be written"
+    doAssert beta.replaceWithText(makeString("the second file's contents")),
+             "the second file could not be written"
+
+    # Added out of alphabetical order on purpose, so sortEntriesByFilename has
+    # something to do.
+    var builder = makeZipFileBuilder()
+    builder.addFile(beta, 9.cint, makeString("beta.txt"))
+    builder.addFile(alpha, 9.cint, makeString("alpha.txt"))
+
+    let archive = directory.getChildFile(makeString("june_zip_test.zip"))
+    discard archive.deleteFile()
+    block:
+      var output = makeFileOutputStream(archive, 0'u64)
+      doAssert builder.writeToStream(output, nil),
+               "the archive could not be written"
+      output.flush()
+    doAssert archive.existsAsFile(), "the archive was not created"
+
+    var zip = makeZipFile(archive)
+    doAssert zip.getNumEntries() == 2,
+             "the archive holds " & $zip.getNumEntries() & " entries"
+
+    # The entries are in the order they were added until they are sorted.
+    doAssert $zip.getEntry(0.cint)[].filename() == "beta.txt",
+             "entry 0 is " & $zip.getEntry(0.cint)[].filename()
+    zip.sortEntriesByFilename()
+    doAssert $zip.getEntry(0.cint)[].filename() == "alpha.txt",
+             "after sorting, entry 0 is " & $zip.getEntry(0.cint)[].filename()
+
+    # An entry is found by name, and a name that is not there is not.
+    doAssert zip.getIndexOfFileName(makeString("beta.txt"), false) == 1,
+             "beta.txt is at index " &
+             $zip.getIndexOfFileName(makeString("beta.txt"), false)
+    doAssert zip.getIndexOfFileName(makeString("absent.txt"), false) == -1,
+             "a name that is not in the archive is at index " &
+             $zip.getIndexOfFileName(makeString("absent.txt"), false)
+    doAssert not zip.getEntry(makeString("alpha.txt"), false).isNil,
+             "getEntry by name found nothing"
+
+    # The sizes are the originals, not the compressed ones.
+    doAssert zip.getEntry(makeString("alpha.txt"), false)[]
+                .uncompressedSize() == 10'i64,
+             "alpha.txt uncompresses to " &
+             $zip.getEntry(makeString("alpha.txt"), false)[].uncompressedSize() &
+             " bytes"
+
+    # A stream over an entry gives the original bytes back.
+    var stream = zip.createStreamForEntry(0.cint)
+    doAssert not stream.isNil, "no stream was made for entry 0"
+    doAssert $stream[].readEntireStreamAsString() == "first file",
+             "the entry read back as " & $stream[].readEntireStreamAsString()
+    cdelete stream
+
+    # And uncompressing writes the files out again.
+    let extracted = directory.getChildFile(makeString("june_zip_out"))
+    discard extracted.deleteRecursively()
+    doAssert zip.uncompressTo(extracted, true).wasOk(),
+             "uncompressing the whole archive failed"
+    doAssert extracted.getChildFile(makeString("alpha.txt")).existsAsFile(),
+             "alpha.txt was not extracted"
+    doAssert $extracted.getChildFile(makeString("alpha.txt"))
+                       .loadFileAsString() == "first file",
+             "the extracted file holds " &
+             $extracted.getChildFile(makeString("alpha.txt")).loadFileAsString()
+
+    # A single entry can be extracted on its own.
+    let single = directory.getChildFile(makeString("june_zip_single"))
+    discard single.deleteRecursively()
+    doAssert zip.uncompressEntry(1.cint, single, true).wasOk(),
+             "uncompressing one entry failed"
+    doAssert single.getChildFile(makeString("beta.txt")).existsAsFile(),
+             "beta.txt was not extracted on its own"
+    doAssert not single.getChildFile(makeString("alpha.txt")).existsAsFile(),
+             "extracting one entry brought the other out too"
+
+    doAssert alpha.deleteFile() and beta.deleteFile() and archive.deleteFile(),
+             "the temporary files could not be removed"
+    doAssert extracted.deleteRecursively() and single.deleteRecursively(),
+             "the extracted directories could not be removed"
+
+testZipFileRoundTrip()
+
+# AndroidDocument on a desktop ================================================
+#
+# Nothing about AndroidDocument is Android-only. juce_core.cpp includes
+# juce_AndroidDocument_android.cpp on every platform, and AndroidDocument's
+# fromFile builds an AndroidDocumentPimplFile that wraps a plain File, so the
+# whole class works against ordinary files here.
+
+proc testAndroidDocumentOverAFile() =
+    let root = june.File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                   .getNonexistentChildFile(makeString("june-android-doc"),
+                                            makeString(""))
+    doAssert root.createDirectory().wasOk(), "could not make the temp directory"
+    defer: discard root.deleteRecursively(false)
+
+    block:
+        let file = root.getChildFile(makeStringRef("note.txt"))
+        doAssert file.replaceWithText(makeString("some text")),
+                 "could not write the file"
+
+        let document = june.AndroidDocument.fromFile(file)
+        doAssert document.hasValue(), "a document over a real file holds nothing"
+        doAssert document.toBool(),
+                 "the document's conversion to bool disagrees with hasValue"
+        doAssert document.getUrl().getLocalFile() == file,
+                 "the document's url points at " &
+                 $document.getUrl().getLocalFile().getFullPathName()
+
+        let info = document.getInfo()
+        doAssert info.exists(), "the document says its file does not exist"
+        doAssert info.isFile() and not info.isDirectory(),
+                 "the document does not call an ordinary file a file"
+        doAssert not info.isVirtual(), "an ordinary file is virtual"
+        doAssert $info.getName() == "note.txt",
+                 "the document is called " & $info.getName()
+        doAssert info.getType().isNotEmpty(),
+                 "the document has no MIME type at all"
+
+        doAssert info.canRead() and info.canWrite(),
+                 "a file this process just wrote is neither readable nor writable"
+        doAssert info.canDelete() and info.canRename() and
+                 info.canCopy() and info.canMove(),
+                 "a writable file cannot be deleted, renamed, copied or moved"
+
+        # canCreateChildren is the same underlying flag as write access, which
+        # the desktop implementation sets for any writable path rather than
+        # only for directories
+        # (juce_AndroidDocument_android.cpp:266 getFlagsForFile).
+        doAssert info.canCreateChildren(),
+                 "a writable file does not carry the create-children flag"
+
+        doAssert info.isSizeInBytesValid(), "the size is not valid"
+        doAssert info.getSizeInBytes() == file.getSize(),
+                 "the document is " & $info.getSizeInBytes() &
+                 " bytes and the file " & $file.getSize()
+        doAssert info.isLastModifiedValid(), "the modification time is not valid"
+        doAssert info.getLastModified() ==
+                 file.getLastModificationTime().toMilliseconds(),
+                 "the document was modified at " & $info.getLastModified()
+
+    block:
+        # An empty file has no size to report, so the size is withheld rather
+        # than given as zero (juce_AndroidDocument_android.cpp:678 passes an
+        # empty Opt when the size is 0).
+        let empty = root.getChildFile(makeStringRef("empty.txt"))
+        doAssert empty.create().wasOk(), "could not make the empty file"
+        let info = june.AndroidDocument.fromFile(empty).getInfo()
+        doAssert not info.isSizeInBytesValid(),
+                 "an empty file reports a valid size"
+        doAssert info.getSizeInBytes() == 0,
+                 "an empty file reports " & $info.getSizeInBytes() & " bytes"
+
+    block:
+        # A directory is a directory, and a directory's MIME type is withheld
+        # (juce_AndroidDocument.h: getType returns nothing for a directory).
+        let folder = root.getChildFile(makeStringRef("folder"))
+        doAssert folder.createDirectory().wasOk(), "could not make the folder"
+        let info = june.AndroidDocument.fromFile(folder).getInfo()
+        doAssert info.isDirectory() and not info.isFile(),
+                 "a directory is not reported as one"
+        doAssert info.getType().isEmpty(),
+                 "a directory has the MIME type " & $info.getType()
+
+    block:
+        # A document that holds nothing reports so, and every info field of a
+        # default-built one is empty.
+        let nothing = makeAndroidDocument()
+        doAssert not nothing.hasValue(), "an empty document holds something"
+        doAssert not nothing.toBool(),
+                 "an empty document converts to true"
+
+        let info = makeAndroidDocumentInfo()
+        doAssert not info.exists(), "a default info says its document exists"
+        doAssert not info.isFile() and not info.isDirectory(),
+                 "a default info is either a file or a directory"
+        doAssert not info.canRead() and not info.canWrite() and
+                 not info.canDelete() and not info.canRename() and
+                 not info.canCopy() and not info.canMove() and
+                 not info.canCreateChildren() and not info.isVirtual(),
+                 "a default info grants a permission"
+        doAssert info.getName().isEmpty() and info.getType().isEmpty(),
+                 "a default info is called " & $info.getName()
+        doAssert not info.isLastModifiedValid() and
+                 not info.isSizeInBytesValid(),
+                 "a default info has a valid time or size"
+        doAssert info.getLastModified() == 0 and info.getSizeInBytes() == 0,
+                 "a default info reports a time or a size"
+
+    block:
+        # The streams read and write the file behind the document.
+        let file = root.getChildFile(makeStringRef("stream.txt"))
+        doAssert file.replaceWithText(makeString("original")),
+                 "could not write the file"
+        let document = june.AndroidDocument.fromFile(file)
+
+        block:
+            var input = document.createInputStream()
+            doAssert not input.get().isNil, "the document opened no input stream"
+            doAssert $input.get()[].readEntireStreamAsString() == "original",
+                     "the input stream read something else"
+
+        block:
+            # createOutputStream truncates first
+            # (juce_AndroidDocument_android.cpp:608), so what is written
+            # replaces the old contents rather than appending to them.
+            var output = document.createOutputStream()
+            doAssert not output.get().isNil,
+                     "the document opened no output stream"
+            doAssert output.get()[].writeString(makeString("replaced")),
+                     "the output stream wrote nothing"
+
+        doAssert $file.loadFileAsString() == "replaced",
+                 "the file now holds " & $file.loadFileAsString()
+
+    block:
+        # Creating children, copying, moving, renaming and deleting all go
+        # through the same File operations underneath.
+        let source = root.getChildFile(makeStringRef("source"))
+        let target = root.getChildFile(makeStringRef("target"))
+        doAssert source.createDirectory().wasOk() and
+                 target.createDirectory().wasOk(),
+                 "could not make the two directories"
+
+        var sourceDocument = june.AndroidDocument.fromFile(source)
+        let targetDocument = june.AndroidDocument.fromFile(target)
+
+        let child = sourceDocument.createChildDocumentWithTypeAndName(
+            makeString("text/plain"), makeString("child"))
+        doAssert child.hasValue(), "no child document was created"
+        doAssert child.getUrl().getLocalFile().existsAsFile(),
+                 "the child document has no file"
+
+        let directory = sourceDocument.createChildDirectory(
+            makeString("subfolder"))
+        doAssert directory.hasValue(), "no child directory was created"
+        doAssert directory.getUrl().getLocalFile().isDirectory(),
+                 "the child directory is not a directory"
+
+        # A copy lands in the target directory under the same name.
+        let copied = child.copyDocumentToParentDocument(targetDocument)
+        doAssert copied.hasValue(), "the child was not copied"
+        doAssert copied.getUrl().getLocalFile().getParentDirectory() == target,
+                 "the copy landed in " &
+                 $copied.getUrl().getLocalFile().getParentDirectory()
+                     .getFullPathName()
+
+        # A rename moves the document to a sibling of the same name, and the
+        # document itself follows.
+        var toRename = june.AndroidDocument.fromFile(
+            source.getChildFile(makeStringRef("rename-me.txt")))
+        doAssert source.getChildFile(makeStringRef("rename-me.txt"))
+                     .replaceWithText(makeString("x")),
+                 "could not write the file to rename"
+        doAssert toRename.renameTo(makeString("renamed.txt")),
+                 "the document was not renamed"
+        doAssert source.getChildFile(makeStringRef("renamed.txt"))
+                     .existsAsFile(),
+                 "the renamed file is not there"
+
+        # A move needs the document's current parent named correctly; the
+        # implementation refuses when the document is not a child of it
+        # (juce_AndroidDocument_android.cpp:646).
+        var toMove = june.AndroidDocument.fromFile(
+            source.getChildFile(makeStringRef("renamed.txt")))
+        doAssert not toMove.moveDocumentFromParentToParent(targetDocument,
+                                                           targetDocument),
+                 "a document was moved out of a directory it is not in"
+        doAssert toMove.moveDocumentFromParentToParent(sourceDocument,
+                                                       targetDocument),
+                 "the document was not moved"
+        doAssert target.getChildFile(makeStringRef("renamed.txt"))
+                     .existsAsFile(),
+                 "the moved file is not in the target directory"
+
+        # And deleting removes the file for good.
+        let doomed = june.AndroidDocument.fromFile(
+            target.getChildFile(makeStringRef("renamed.txt")))
+        doAssert doomed.deleteDocument(), "the document was not deleted"
+        doAssert not target.getChildFile(makeStringRef("renamed.txt"))
+                     .existsAsFile(),
+                 "the deleted file is still there"
+
+    block:
+        # The iterator walks a real directory now that there is one to walk.
+        let folder = root.getChildFile(makeStringRef("walk"))
+        doAssert folder.createDirectory().wasOk(), "could not make the folder"
+        for name in ["one.txt", "two.txt"]:
+            doAssert folder.getChildFile(makeStringRef(name))
+                         .replaceWithText(makeString("x")),
+                     "could not write " & name
+
+        # The iterator works here too: makeNonRecursive falls through to a
+        # plain directory walk over the document's local file
+        # (juce_AndroidDocument_android.cpp:954).
+        let document = june.AndroidDocument.fromFile(folder)
+        var walker = AndroidDocumentIterator.makeNonRecursive(document)
+        let done = makeAndroidDocumentIterator()
+        var seen = 0
+        while not (walker == done):
+            let entry = `*`(walker)
+            doAssert entry.hasValue(), "the iterator produced an empty document"
+            doAssert entry.getUrl().getLocalFile().getParentDirectory() ==
+                     folder,
+                     "the iterator wandered out of the folder"
+            seen += 1
+            discard inc(walker)
+        doAssert seen == 2, "the iterator walked " & $seen & " documents"
+
+testAndroidDocumentOverAFile()
+
+# The rest of PropertySet, RelativeTime and ArgumentList::Argument ============
+
+proc testPropertySetFallbackAndXml() =
+    block:
+        # A fallback set answers for keys the front one does not hold, and the
+        # front one still wins where both have a key.
+        var fallback = makePropertySet(false)
+        fallback.setValue("shared", makejuce_var(makeString("from fallback")))
+        fallback.setValue("only-in-fallback", makejuce_var(makeString("deep")))
+
+        var settings = makePropertySet(false)
+        settings.setValue("shared", makejuce_var(makeString("from front")))
+
+        doAssert settings.getFallbackPropertySet().isNil,
+                 "a fresh set already has a fallback"
+        settings.setFallbackPropertySet(addr fallback)
+        doAssert settings.getFallbackPropertySet() == addr fallback,
+                 "the fallback did not stick"
+
+        doAssert $settings.getValue("only-in-fallback", makeString("none")) ==
+                 "deep",
+                 "the fallback was not consulted: " &
+                 $settings.getValue("only-in-fallback", makeString("none"))
+        doAssert $settings.getValue("shared", makeString("none")) ==
+                 "from front",
+                 "the fallback overrode the front set"
+
+        # containsKey asks only the front set
+        # (juce_PropertySet.cpp: containsKey does not walk the fallback).
+        doAssert not settings.containsKey("only-in-fallback"),
+                 "containsKey walked into the fallback"
+
+        settings.setFallbackPropertySet(nil)
+        doAssert settings.getFallbackPropertySet().isNil,
+                 "clearing the fallback left one behind"
+
+    block:
+        # addAllPropertiesFrom copies every key across, overwriting what is
+        # already there.
+        var source = makePropertySet(false)
+        source.setValue("a", makejuce_var(makeString("one")))
+        source.setValue("b", makejuce_var(makeString("two")))
+
+        var target = makePropertySet(false)
+        target.setValue("b", makejuce_var(makeString("old")))
+        target.setValue("c", makejuce_var(makeString("three")))
+        target.addAllPropertiesFrom(source)
+
+        doAssert target.getAllProperties().size() == 3,
+                 "the target holds " & $target.getAllProperties().size() &
+                 " keys"
+        doAssert $target.getValue("b", makeString("none")) == "two",
+                 "the copied key did not overwrite the old one"
+        doAssert $target.getValue("c", makeString("none")) == "three",
+                 "a key the source did not have was lost"
+
+        # getAllProperties hands back the set's own storage, so writing
+        # through it is visible to the set.
+        target.getAllProperties().set(makeString("d"), makeString("four"))
+        doAssert target.containsKey("d"),
+                 "the property list is a copy rather than the set's own"
+
+        # The lock is the set's own. It comes back as a pointer rather than a
+        # value because a CriticalSection cannot be copied, so binding the
+        # C++ `const CriticalSection&` as a plain value made a proc nothing
+        # could call.
+        block:
+            let lock = target.getLock()
+            doAssert not lock.isNil, "the set has no lock"
+            lock[].enter()
+            lock[].exit()
+
+    block:
+        # An XML value round-trips through the set as text.
+        var settings = makePropertySet(false)
+        var element = makeXmlElement(makeString("SETTINGS"))
+        element.setAttribute(makeIdentifier(makeString("colour")),
+                             makeString("red"))
+        settings.setValue("xml", addr element)
+
+        var read = settings.getXmlValue("xml")
+        doAssert not read.get().isNil, "the XML value did not come back"
+        doAssert $read.get()[].getTagName() == "SETTINGS",
+                 "the XML came back as " & $read.get()[].getTagName()
+        doAssert $read.get()[].getStringAttribute(
+                     makeString("colour")) == "red",
+                 "the XML lost its attribute"
+
+        # A key that holds something other than XML gives nothing back.
+        settings.setValue("plain", makejuce_var(makeString("not xml")))
+        doAssert settings.getXmlValue("plain").get().isNil,
+                 "a plain string parsed as XML"
+
+proc testRelativeTimeUnits() =
+    block:
+        # One value expressed in every unit. The conversions are exact, so
+        # each is asserted against the whole number it must be.
+        let day = RelativeTime.days(1.0)
+        doAssert day.inMilliseconds() == 86_400_000'i64,
+                 "a day is " & $day.inMilliseconds() & " milliseconds"
+        doAssert day.inSeconds() == 86_400.0, "a day is " & $day.inSeconds() &
+                 " seconds"
+        doAssert day.inMinutes() == 1_440.0, "a day is " & $day.inMinutes() &
+                 " minutes"
+        doAssert day.inHours() == 24.0, "a day is " & $day.inHours() & " hours"
+        doAssert day.inDays() == 1.0, "a day is " & $day.inDays() & " days"
+        doAssert day.inWeeks() == 1.0 / 7.0, "a day is " & $day.inWeeks() &
+                 " weeks"
+
+        # And the factories agree with each other.
+        doAssert RelativeTime.weeks(1.0).inDays() == 7.0,
+                 "a week is " & $RelativeTime.weeks(1.0).inDays() & " days"
+        doAssert RelativeTime.hours(2.0).inMinutes() == 120.0,
+                 "two hours is " & $RelativeTime.hours(2.0).inMinutes() &
+                 " minutes"
+        doAssert RelativeTime.minutes(90.0).inHours() == 1.5,
+                 "ninety minutes is " & $RelativeTime.minutes(90.0).inHours() &
+                 " hours"
+
+    block:
+        # The approximate description rounds to the largest unit that fits,
+        # which is what makes it approximate.
+        doAssert $RelativeTime.days(400.0).getApproximateDescription() ==
+                 "1 year",
+                 "400 days is described as " &
+                 $RelativeTime.days(400.0).getApproximateDescription()
+        doAssert $RelativeTime.seconds(0.0).getApproximateDescription() ==
+                 "< 1 sec",
+                 "no time at all is described as " &
+                 $RelativeTime.seconds(0.0).getApproximateDescription()
+
+proc testArgumentListArgument() =
+    block:
+        # An ArgumentList is what a command line parses into, and each of its
+        # arguments answers about its own shape.
+        let arguments = makeArgumentList(
+            makeString("june"),
+            makeString("--input=file.txt -v plain"))
+
+        doAssert arguments.size() == 3,
+                 "the command line parsed into " & $arguments.size() &
+                 " arguments"
+
+        let long = arguments[0.cint]
+        doAssert long.isOption() and long.isLongOption() and
+                 not long.isShortOption(),
+                 "--input=file.txt is not a long option"
+        doAssert long.isLongOption(makeString("input")),
+                 "--input=file.txt does not answer to the name input"
+        doAssert not long.isLongOption(makeString("output")),
+                 "--input=file.txt answers to the name output"
+        doAssert $long.getLongOptionValue() == "file.txt",
+                 "the option's value is " & $long.getLongOptionValue()
+
+        let short = arguments[1.cint]
+        doAssert short.isOption() and short.isShortOption() and
+                 not short.isLongOption(),
+                 "-v is not a short option"
+        # isShortOption(char) does NOT ask whether the option carries that
+        # letter. JUCE writes `text.containsChar (String (option)[0])`
+        # (juce_ConsoleApplication.cpp), and juce_wchar is uint32 off Windows
+        # (juce_CharacterFunctions.h:58), so a char promotes to int and picks
+        # String(int) rather than String(juce_wchar): 'v' becomes the string
+        # "118" and the test is against its FIRST DIGIT.
+        #
+        # No binding can repair that - the conversion happens inside the
+        # function - so the test records what it really does. -v is checked
+        # against '1', the first digit of 118.
+        doAssert not short.isShortOption('v'),
+                 "-v answers to v; its text is " & $short.text()
+
+        let digit = makeArgumentList(makeString("june"), makeString("-9"))
+        doAssert digit[0.cint].isShortOption('a'),
+                 "-9 does not answer to 'a', whose decimal form starts with 9"
+        doAssert not digit[0.cint].isShortOption('9'),
+                 "-9 answers to '9', whose decimal form starts with 5"
+
+        let plain = arguments[2.cint]
+        doAssert not plain.isOption(), "a bare word is an option"
+        doAssert plain.getLongOptionValue().isEmpty(),
+                 "a bare word has the option value " &
+                 $plain.getLongOptionValue()
+
+    block:
+        # The three resolvers turn an argument into a File. resolveAsFile is
+        # the only one that does not care whether the path exists.
+        let root = june.File.getSpecialLocation(
+                       FileSpecialLocationType_tempDirectory)
+                       .getNonexistentChildFile(makeString("june-arguments"),
+                                                makeString(""))
+        doAssert root.createDirectory().wasOk(), "could not make the directory"
+        defer: discard root.deleteRecursively(false)
+
+        let file = root.getChildFile(makeStringRef("present.txt"))
+        doAssert file.replaceWithText(makeString("x")),
+                 "could not write the file"
+
+        let arguments = makeArgumentList(
+            makeString("june"), makeString(file.getFullPathName()))
+        let argument = arguments[0.cint]
+
+        doAssert argument.resolveAsFile() == file,
+                 "resolveAsFile gave " &
+                 $argument.resolveAsFile().getFullPathName()
+        doAssert argument.resolveAsExistingFile() == file,
+                 "resolveAsExistingFile gave " &
+                 $argument.resolveAsExistingFile().getFullPathName()
+
+        let folderArguments = makeArgumentList(
+            makeString("june"), makeString(root.getFullPathName()))
+        doAssert folderArguments[0.cint].resolveAsExistingFolder() == root,
+                 "resolveAsExistingFolder gave " &
+                 $folderArguments[0.cint].resolveAsExistingFolder()
+                     .getFullPathName()
+
+testPropertySetFallbackAndXml()
+testRelativeTimeUnits()
+testArgumentListArgument()
+
+# TimeSliceThread's client queue and the rest of NamedValueSet ================
+
+proc testTimeSliceThreadQueue() =
+    block:
+        # The queue is asserted while the thread is NOT running, so the clients
+        # are added and removed without a worker racing the counts. Whether a
+        # started thread has already called a client is a race; whether the
+        # queue holds it is not.
+        var thread = makeTimeSliceThread(makeString("june-slices"))
+        doAssert thread.getNumClients() == 0,
+                 "a new thread already has " & $thread.getNumClients() &
+                 " clients"
+
+        var first = newCustomTimeSliceClient()
+        first[].setUseTimeSliceHandler(proc(): cint = -1)
+        var second = newCustomTimeSliceClient()
+        second[].setUseTimeSliceHandler(proc(): cint = -1)
+
+        var firstBase = cast[ptr TimeSliceClient](first)
+        var secondBase = cast[ptr TimeSliceClient](second)
+
+        thread.addTimeSliceClient(firstBase)
+        thread.addTimeSliceClient(secondBase, 100.cint)
+        doAssert thread.getNumClients() == 2,
+                 "the thread holds " & $thread.getNumClients() & " clients"
+        doAssert thread.contains(firstBase) and thread.contains(secondBase),
+                 "the thread lost one of the two clients"
+        doAssert thread.getClient(0.cint) == firstBase,
+                 "the first client is not first in the queue"
+        doAssert thread.getClient(1.cint) == secondBase,
+                 "the second client is not second in the queue"
+
+        # moveToFrontOfQueue does NOT reorder the array. It sets the client's
+        # next call time to now, so the running thread reaches it first
+        # (juce_TimeSliceThread.cpp: moveToFrontOfQueue). The array getClient
+        # indexes is untouched, and a client that is not in the queue is
+        # ignored.
+        thread.moveToFrontOfQueue(secondBase)
+        doAssert thread.getClient(0.cint) == firstBase,
+                 "moveToFrontOfQueue reordered the array after all"
+        doAssert thread.getNumClients() == 2,
+                 "moveToFrontOfQueue changed the count to " &
+                 $thread.getNumClients()
+
+        # Adding a client that is already there does not add it twice.
+        thread.addTimeSliceClient(firstBase)
+        doAssert thread.getNumClients() == 2,
+                 "adding a client twice gave " & $thread.getNumClients() &
+                 " clients"
+
+        thread.removeTimeSliceClient(firstBase)
+        doAssert thread.getNumClients() == 1 and
+                 not thread.contains(firstBase),
+                 "the removed client is still among the " &
+                 $thread.getNumClients() & " in the queue"
+
+        thread.removeAllClients()
+        doAssert thread.getNumClients() == 0,
+                 "removeAllClients left " & $thread.getNumClients() & " behind"
+
+        cdelete first
+        cdelete second
+
+proc testNamedValueSetRest() =
+    block:
+        var values = makeNamedValueSet()
+        discard values.set(makeIdentifier(makeString("name")),
+                           makejuce_var(makeString("june")))
+        discard values.set(makeIdentifier(makeString("count")),
+                           makejuce_var(7.cint))
+
+        # By index rather than by name.
+        doAssert values.getValueAt(0.cint) == values[
+                     makeIdentifier(makeString("name"))],
+                 "the value at 0 is not the one called name"
+        doAssert values.getVarPointerAt(0.cint)[].toString() ==
+                 makeString("june"),
+                 "the pointer at 0 holds " &
+                 $values.getVarPointerAt(0.cint)[].toString()
+
+        # The pointer is INTO the set, so writing through it changes the set.
+        values.getVarPointerAt(1.cint)[] = makejuce_var(9.cint)
+        doAssert values[makeIdentifier(makeString("count"))].toInt() == 9,
+                 "writing through the pointer left the value at " &
+                 $values[makeIdentifier(makeString("count"))].toInt()
+
+        var byName = values.getVarPointer(makeIdentifier(makeString("count")))
+        doAssert byName == values.getVarPointerAt(1.cint),
+                 "the two ways of reaching the same value disagree"
+        doAssert values.getVarPointer(
+                     makeIdentifier(makeString("missing"))).isNil,
+                 "a name nobody set has a pointer"
+
+        # The span is the set's own storage, one NamedValue per entry.
+        let span = values.asSpan()
+        doAssert span.size() == csize_t(values.size()),
+                 "the span holds " & $span.size() & " of " & $values.size() &
+                 " entries"
+        doAssert span[0.csize_t].name() == values.getName(0.cint),
+                 "the first span entry is called " & $span[0.csize_t].name()
+
+    block:
+        # Every value round-trips through an XML element's attributes.
+        var values = makeNamedValueSet()
+        discard values.set(makeIdentifier(makeString("colour")),
+                           makejuce_var(makeString("red")))
+        discard values.set(makeIdentifier(makeString("size")),
+                           makejuce_var(12.cint))
+
+        var element = makeXmlElement(makeString("STYLE"))
+        values.copyToXmlAttributes(element)
+        doAssert element.getNumAttributes() == 2,
+                 "the element carries " & $element.getNumAttributes() &
+                 " attributes"
+        doAssert $element.getStringAttribute(makeString("colour")) == "red",
+                 "the colour attribute is " &
+                 $element.getStringAttribute(makeString("colour"))
+
+        var restored = makeNamedValueSet()
+        discard restored.set(makeIdentifier(makeString("stale")),
+                             makejuce_var(1.cint))
+        restored.setFromXmlAttributes(element)
+        doAssert restored.size() == 2,
+                 "the restored set holds " & $restored.size() & " entries"
+        doAssert not restored.contains(makeIdentifier(makeString("stale"))),
+                 "setFromXmlAttributes kept an entry the element did not have"
+        doAssert $restored[makeIdentifier(makeString("colour"))].toString() ==
+                 "red",
+                 "the restored colour is " &
+                 $restored[makeIdentifier(makeString("colour"))].toString()
+
+        # An XML attribute has no type, so a number comes back as a string
+        # (juce_NamedValueSet.cpp: setFromXmlAttributes stores the text).
+        doAssert restored[makeIdentifier(makeString("size"))].isString(),
+                 "the restored size is not a string"
+        doAssert restored[makeIdentifier(makeString("size"))].toInt() == 12,
+                 "the restored size reads as " &
+                 $restored[makeIdentifier(makeString("size"))].toInt()
+
+testTimeSliceThreadQueue()
+testNamedValueSetRest()
+
+# ChildProcess against a real process =========================================
+#
+# /bin/echo, /bin/sleep and /bin/sh are on both platforms this suite runs on,
+# so the test drives a real child rather than a stub.
+
+proc testChildProcess() =
+    block:
+        var process = makeChildProcess()
+        doAssert not process.isRunning(),
+                 "a process that was never started is running"
+
+        doAssert process.start(makeString("/bin/echo hello from june"),
+                               ChildProcessStreamFlags_wantStdOut.cint),
+                 "/bin/echo did not start"
+        let output = process.readAllProcessOutput()
+        doAssert "hello from june" in $output,
+                 "the child wrote " & $output
+
+        # readAllProcessOutput returns when the PIPE reaches EOF, which can
+        # happen before the kernel has reaped the child - getExitCode polls
+        # with waitpid(WNOHANG) and answers 0 until then. Wait first, or the
+        # assertion below reads the initial 0 and passes for the wrong reason.
+        doAssert process.waitForProcessToFinish(2000.cint),
+                 "the finished child did not report finishing"
+        doAssert not process.isRunning(),
+                 "the finished child is still running"
+        doAssert process.getExitCode() == 0'u32,
+                 "the child exited with " & $process.getExitCode()
+
+    block:
+        # An argument list is the other way to start one, and it needs no
+        # shell quoting.
+        var arguments = makeStringArray()
+        arguments.add(makeString("/bin/echo"))
+        arguments.add(makeString("one two"))
+
+        var process = makeChildProcess()
+        doAssert process.start(arguments,
+                               ChildProcessStreamFlags_wantStdOut.cint),
+                 "/bin/echo did not start from an argument list"
+        doAssert "one two" in $process.readAllProcessOutput(),
+                 "the argument was split by a shell"
+
+    block:
+        # A failing command's exit code comes back as its own. The argument
+        # list is used because the String form splits on whitespace and does
+        # no shell quoting, so a quoted argument would arrive with its quotes
+        # and the shell would exit 127 instead.
+        var arguments = makeStringArray()
+        arguments.add(makeString("/bin/sh"))
+        arguments.add(makeString("-c"))
+        arguments.add(makeString("exit 3"))
+
+        var process = makeChildProcess()
+        doAssert process.start(arguments,
+                               ChildProcessStreamFlags_wantStdOut.cint),
+                 "the shell did not start"
+        discard process.readAllProcessOutput()
+        doAssert process.waitForProcessToFinish(2000.cint),
+                 "the child running `exit 3` did not report finishing"
+        doAssert process.getExitCode() == 3'u32,
+                 "the child exited with " & $process.getExitCode()
+
+    block:
+        # A child that is still running can be killed, and waiting for a
+        # timeout shorter than it needs reports that it has not finished.
+        var process = makeChildProcess()
+        doAssert process.start(makeString("/bin/sleep 30"),
+                               ChildProcessStreamFlags_wantStdOut.cint),
+                 "/bin/sleep did not start"
+        doAssert process.isRunning(), "the sleeping child is not running"
+        doAssert not process.waitForProcessToFinish(50.cint),
+                 "a child sleeping for 30 seconds finished within 50ms"
+        doAssert process.kill(), "the child was not killed"
+        doAssert process.waitForProcessToFinish(2000.cint),
+                 "the killed child never finished"
+
+    block:
+        # readProcessOutput fills a caller's buffer rather than a String, and
+        # returns how many bytes it wrote.
+        var process = makeChildProcess()
+        doAssert process.start(makeString("/bin/echo abcdef"),
+                               ChildProcessStreamFlags_wantStdOut.cint),
+                 "/bin/echo did not start"
+        var buffer: array[64, char]
+        var total = 0
+        while total < buffer.len:
+            let read = process.readProcessOutput(
+                addr buffer[total], cint(buffer.len - total))
+            if read <= 0:
+                break
+            total += read
+        doAssert total >= 6, "the child's output came back as " & $total &
+                 " bytes"
+        var arrived = newString(total)
+        for i in 0 ..< total:
+            arrived[i] = buffer[i]
+        doAssert "abcdef" in arrived, "the buffer holds " & arrived
+
+testChildProcess()
+
+# BigInteger's number theory =================================================
+
+proc testBigIntegerNumberTheory() =
+    block:
+        # shr is the non-mutating shift, and insertBit pushes the bits above
+        # the insertion point up by one.
+        let sixteen = makeBigInteger(16.cint)
+        doAssert (sixteen shr 2.cint).toInteger() == 4,
+                 "16 >> 2 is " & $(sixteen shr 2.cint).toInteger()
+        doAssert sixteen.shr(2.cint) == (sixteen shr 2.cint),
+                 "the two spellings of the shift disagree"
+        doAssert sixteen.toInteger() == 16,
+                 "shr changed the original to " & $sixteen.toInteger()
+
+        # 0b101 with a set bit inserted at 1 becomes 0b1011.
+        var bits = makeBigInteger(5.cint)
+        discard bits.insertBit(1.cint, true)
+        doAssert bits.toInteger() == 11,
+                 "inserting a bit gave " & $bits.toInteger()
+
+        # And inserting a clear bit at the bottom is a shift left.
+        var shifted = makeBigInteger(5.cint)
+        discard shifted.insertBit(0.cint, false)
+        doAssert shifted.toInteger() == 10,
+                 "inserting a clear bit at the bottom gave " &
+                 $shifted.toInteger()
+
+    block:
+        # The modular inverse of 3 mod 11 is 4, because 3 * 4 = 12 = 1 mod 11.
+        var value = makeBigInteger(3.cint)
+        value.inverseModulo(makeBigInteger(11.cint))
+        doAssert value.toInteger() == 4,
+                 "the inverse of 3 mod 11 is " & $value.toInteger()
+
+        # A modulus of one has no inverse to give, so the result is cleared
+        # (juce_BigInteger.cpp: inverseModulo).
+        var noInverse = makeBigInteger(3.cint)
+        noInverse.inverseModulo(makeBigInteger(1.cint))
+        doAssert noInverse.isZero(),
+                 "the inverse modulo one is " & $noInverse.toInteger()
+
+    block:
+        # extendedEuclidean leaves the GCD in the receiver and the Bezout
+        # coefficients in the two out parameters, so that gcd = y*b - x*a
+        # holds (juce_BigInteger.cpp: extendedEuclidean checks exactly that).
+        let a = makeBigInteger(240.cint)
+        let b = makeBigInteger(46.cint)
+        var x = makeBigInteger()
+        var y = makeBigInteger()
+        var gcd = makeBigInteger()
+        gcd.extendedEuclidean(a, b, x, y)
+        doAssert gcd.toInteger() == 2,
+                 "the gcd of 240 and 46 is " & $gcd.toInteger()
+
+        var identity = y * b - x * a
+        doAssert identity.compareAbsolute(gcd) == 0,
+                 "y*b - x*a is " & $identity.toInteger() &
+                 " against a gcd of " & $gcd.toInteger()
+        doAssert gcd == a.findGreatestCommonDivisor(b),
+                 "extendedEuclidean and findGreatestCommonDivisor disagree"
+
+    block:
+        # Montgomery multiplication computes a*b*R^-1 mod n for R = 2^k, given
+        # n' with n*n' = -1 mod R. For n = 11, k = 4, R = 16: n' = 13, because
+        # 11 * 13 = 143 = 9 * 16 - 1.
+        #
+        # 4 * 7 * 16^-1 mod 11. 16 mod 11 is 5 and the inverse of 5 mod 11 is
+        # 9, so the answer is 28 * 9 mod 11 = 252 mod 11 = 10.
+        var value = makeBigInteger(4.cint)
+        value.montgomeryMultiplication(makeBigInteger(7.cint),
+                                       makeBigInteger(11.cint),
+                                       makeBigInteger(13.cint), 4.cint)
+        doAssert value.toInteger() == 10,
+                 "the montgomery product is " & $value.toInteger()
+
+testBigIntegerNumberTheory()
+
+# XmlDocument's parser state and ApplicationProperties =======================
+
+proc testXmlDocumentParserState() =
+    block:
+        # A document that parses gives its element back, and the error is
+        # empty.
+        var document = makeXmlDocument(makeString(
+            "<SETTINGS colour=\"red\"><ITEM/></SETTINGS>"))
+        var element = document.getDocumentElement()
+        doAssert not element.get().isNil, "the document did not parse"
+        doAssert document.getLastParseError().isEmpty(),
+                 "a document that parsed reports " &
+                 $document.getLastParseError()
+
+        # getDocumentElementIfTagMatches parses only far enough to check the
+        # outer tag, and hands back nothing when it does not match.
+        var matching = makeXmlDocument(makeString(
+            "<SETTINGS colour=\"red\"><ITEM/></SETTINGS>"))
+        doAssert not matching.getDocumentElementIfTagMatches("SETTINGS")
+                     .get().isNil,
+                 "the matching tag was refused"
+        var other = makeXmlDocument(makeString(
+            "<SETTINGS colour=\"red\"><ITEM/></SETTINGS>"))
+        doAssert other.getDocumentElementIfTagMatches("OTHER").get().isNil,
+                 "a document was returned for a tag it does not have"
+
+    block:
+        # A document that does not parse says why.
+        var broken = makeXmlDocument(makeString("<SETTINGS><ITEM/>"))
+        doAssert broken.getDocumentElement().get().isNil,
+                 "a truncated document parsed"
+        doAssert broken.getLastParseError().isNotEmpty(),
+                 "a document that failed to parse reports no error"
+
+    block:
+        # setEmptyTextElementsIgnored governs a NARROWER thing than plain
+        # whitespace between elements. The parser skips leading whitespace
+        # before it decides whether it is looking at a character block, so
+        # `<ROOT>  <A/>  </ROOT>` never produces one at all and the flag
+        # cannot change its child count either way
+        # (juce_XmlDocument.cpp: the else branch is reached only when the
+        # first non-whitespace character is not `<`).
+        #
+        # The block that IS empty and does reach the flag is one written as a
+        # whitespace ENTITY, which is read as content and then found to hold
+        # no non-whitespace (juce_XmlDocument.cpp:630).
+        proc childrenOf(text: string, ignoreEmpty: bool): cint =
+            var document = makeXmlDocument(makeString(text))
+            document.setEmptyTextElementsIgnored(ignoreEmpty)
+            var element = document.getDocumentElement()
+            doAssert not element.get().isNil, "the document did not parse"
+            element.get()[].getNumChildElements()
+
+        doAssert childrenOf("<ROOT>  <A/>  </ROOT>", false) ==
+                 childrenOf("<ROOT>  <A/>  </ROOT>", true),
+                 "plain whitespace between elements followed the flag"
+
+        doAssert childrenOf("<ROOT>&#32;<A/></ROOT>", false) == 2,
+                 "keeping the empty text left " &
+                 $childrenOf("<ROOT>&#32;<A/></ROOT>", false) & " children"
+        doAssert childrenOf("<ROOT>&#32;<A/></ROOT>", true) == 1,
+                 "ignoring the empty text left " &
+                 $childrenOf("<ROOT>&#32;<A/></ROOT>", true) & " children"
+
+        # Text that is not whitespace stays either way.
+        doAssert childrenOf("<ROOT>keep<A/></ROOT>", true) == 2,
+                 "ignoring the empty text dropped real text as well"
+
+    block:
+        # A document can read from an input source rather than from a string,
+        # which is how JUCE parses one that is too big to hold in memory.
+        let root = june.File.getSpecialLocation(
+                       FileSpecialLocationType_tempDirectory)
+                       .getNonexistentChildFile(makeString("june-xml"),
+                                                makeString(".xml"))
+        doAssert root.replaceWithText(makeString("<FROMFILE/>")),
+                 "could not write the XML file"
+        defer: discard root.deleteFile()
+
+        var document = makeXmlDocument(makeString(""))
+        document.setInputSource(cast[ptr InputSource](newFileInputSource(root)))
+        var element = document.getDocumentElement()
+        doAssert not element.get().isNil,
+                 "the document did not parse from its input source"
+        doAssert $element.get()[].getTagName() == "FROMFILE",
+                 "the parsed tag is " & $element.get()[].getTagName()
+
+proc testApplicationProperties() =
+    initialiseJuce_GUI()
+
+    let root = june.File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                   .getNonexistentChildFile(makeString("june-app-props"),
+                                            makeString(""))
+    doAssert root.createDirectory().wasOk(), "could not make the directory"
+    defer: discard root.deleteRecursively(false)
+
+    block:
+        var properties = makeApplicationProperties()
+
+        var options = makePropertiesFileOptions()
+        options.applicationName = makeString("june-test")
+        options.filenameSuffix = makeString("settings")
+        options.folderName = makeString(root.getFullPathName())
+        options.storageFormat = PropertiesFileStorageFormat_storeAsXML
+        # macOS refuses to place settings anywhere else. Leaving this unset
+        # trips JUCE's own assertion and lands the file somewhere the reopen
+        # does not find it (juce_PropertiesFile.cpp:69).
+        options.osxLibrarySubFolder = makeString("Application Support")
+        # No deferred save, so nothing is left holding a timer after the test.
+        options.millisecondsBeforeSaving = 0.cint
+        properties.setStorageParameters(options)
+
+        doAssert $properties.getStorageParameters().applicationName() ==
+                 "june-test",
+                 "the parameters came back as " &
+                 $properties.getStorageParameters().applicationName()
+
+        # The user settings file is made on first use and kept afterwards.
+        let user = properties.getUserSettings()
+        doAssert not user.isNil, "there are no user settings"
+        doAssert properties.getUserSettings() == user,
+                 "asking twice gave two different settings files"
+
+        user[].setValue("colour", makejuce_var(makeString("red")))
+        doAssert properties.saveIfNeeded(),
+                 "the properties were not saved"
+        doAssert user[].getFile().existsAsFile(),
+                 "saving wrote no file at " &
+                 $user[].getFile().getFullPathName()
+
+        # Closing releases both, so the next ask opens them again - and what
+        # comes back has been re-read from disk. The pointer is not compared:
+        # the allocator is free to hand back the same address.
+        properties.closeFiles()
+        let reopened = properties.getUserSettings()
+        doAssert not reopened.isNil, "closeFiles left no way to reopen"
+        doAssert $reopened[].getValue("colour", makeString("none")) == "red",
+                 "the reopened settings hold " &
+                 $reopened[].getValue("colour", makeString("none"))
+
+    block:
+        # getCommonSettings decides whether the common file is read-only by
+        # SAVING IT (juce_ApplicationProperties.cpp: getCommonSettings calls
+        # commonProps->save() and reads the result). That is a write, not a
+        # probe, and it is why this runs against its own directory: the
+        # folderName here is an absolute path, so the user file and the common
+        # file land in the same place and the common save would overwrite the
+        # user one.
+        let ownDirectory = root.getNonexistentChildFile(makeString("common"),
+                                                        makeString(""))
+        doAssert ownDirectory.createDirectory().wasOk(),
+                 "could not make the directory"
+
+        var properties = makeApplicationProperties()
+        var options = makePropertiesFileOptions()
+        options.applicationName = makeString("june-common")
+        options.filenameSuffix = makeString("settings")
+        options.folderName = makeString(ownDirectory.getFullPathName())
+        options.storageFormat = PropertiesFileStorageFormat_storeAsXML
+        options.osxLibrarySubFolder = makeString("Application Support")
+        options.millisecondsBeforeSaving = 0.cint
+        properties.setStorageParameters(options)
+
+        let common = properties.getCommonSettings(true)
+        doAssert not common.isNil, "there are no common settings"
+        doAssert common[].getFile().existsAsFile(),
+                 "asking for the common settings did not write the file"
+
+        # Asked without the fallback, the common file comes back either way.
+        doAssert not properties.getCommonSettings(false).isNil,
+                 "there are no common settings without the fallback"
+
+    shutdownJuce_GUI()
+
+testXmlDocumentParserState()
+testApplicationProperties()
+
+# The three small options builders ===========================================
+#
+# ToVarOptions, ThreadPool::Options and SocketOptions are all the same shape:
+# a value with with- methods that return a copy. What is asserted for each is
+# that the copy carries the change and the original does not.
+
+proc testSmallOptionsBuilders() =
+    block:
+        let plain = makeToVarOptions()
+        doAssert plain.getVersionIncluded(),
+                 "a fresh ToVarOptions leaves the version out"
+        doAssert not plain.getExplicitVersion().hasValue(),
+                 "a fresh ToVarOptions already names a version"
+
+        let without = plain.withVersionIncluded(false)
+        doAssert not without.getVersionIncluded(),
+                 "the version is still included"
+        doAssert plain.getVersionIncluded(),
+                 "withVersionIncluded changed the original"
+
+        # The explicit version is an optional inside an optional: the outer
+        # one says whether a version was named at all, and the inner one
+        # whether that name is a number or "no version".
+        let versioned = plain.withExplicitVersion(makeCppOptional(3.cint))
+        doAssert versioned.getExplicitVersion().hasValue(),
+                 "the explicit version did not stick"
+        doAssert versioned.getExplicitVersion().value().hasValue(),
+                 "the named version is empty"
+        doAssert versioned.getExplicitVersion().value().value() == 3,
+                 "the named version is " &
+                 $versioned.getExplicitVersion().value().value()
+
+    block:
+        let plain = makeThreadPoolOptions()
+        doAssert plain.threadName().isNotEmpty(),
+                 "a fresh ThreadPool::Options has no thread name"
+
+        let configured = plain.withThreadName(makeString("june-pool"))
+                              .withNumberOfThreads(3.cint)
+                              .withThreadStackSizeBytes(65536'u64)
+                              .withDesiredThreadPriority(
+                                  ThreadPriority_background)
+        doAssert $configured.threadName() == "june-pool",
+                 "the thread name is " & $configured.threadName()
+        doAssert configured.numberOfThreads() == 3,
+                 "the pool wants " & $configured.numberOfThreads() & " threads"
+        doAssert configured.threadStackSizeBytes() == 65536'u64,
+                 "the stack is " & $configured.threadStackSizeBytes() &
+                 " bytes"
+        doAssert configured.desiredThreadPriority() ==
+                 ThreadPriority_background,
+                 "the priority did not stick"
+        doAssert $plain.threadName() != "june-pool",
+                 "withThreadName changed the original"
+
+        # And a pool really built from them takes the thread count.
+        var pool = makeThreadPool(configured)
+        doAssert pool.getNumThreads() == 3,
+                 "the pool started " & $pool.getNumThreads() & " threads"
+
+    block:
+        let plain = makeSocketOptions()
+        doAssert not plain.getReceiveBufferSize().hasValue(),
+                 "a fresh SocketOptions already names a receive buffer"
+        doAssert not plain.getSendBufferSize().hasValue(),
+                 "a fresh SocketOptions already names a send buffer"
+
+        let sized = plain.withReceiveBufferSize(8192.cint)
+                         .withSendBufferSize(4096.cint)
+        doAssert sized.getReceiveBufferSize().value() == 8192,
+                 "the receive buffer is " &
+                 $sized.getReceiveBufferSize().value()
+        doAssert sized.getSendBufferSize().value() == 4096,
+                 "the send buffer is " & $sized.getSendBufferSize().value()
+        doAssert not plain.getReceiveBufferSize().hasValue(),
+                 "withReceiveBufferSize changed the original"
+
+testSmallOptionsBuilders()
+
+# OutputStream's big-endian writers ==========================================
+#
+# The little-endian writers are covered elsewhere. Each big-endian one is
+# checked by reading the bytes back in the other order, so a writer that
+# quietly wrote the host order fails.
+
+proc testOutputStreamBigEndian() =
+    block:
+        var stream = makeMemoryOutputStream(0.uint64)
+        doAssert stream.writeShortBigEndian(0x0102'i16),
+                 "the short was not written"
+        doAssert stream.getDataSize() == 2'u64,
+                 "the short took " & $stream.getDataSize() & " bytes"
+
+        var input = makeMemoryInputStream(stream.getData(),
+                                          stream.getDataSize(), false)
+        doAssert input.readShortBigEndian() == 0x0102'i16,
+                 "the short read back as " & $input.readShortBigEndian()
+
+        var reversed = makeMemoryInputStream(stream.getData(),
+                                             stream.getDataSize(), false)
+        doAssert reversed.readShort() == 0x0201'i16,
+                 "the bytes are not in big-endian order: " &
+                 $reversed.readShort()
+
+    block:
+        var stream = makeMemoryOutputStream(0.uint64)
+        doAssert stream.writeInt64BigEndian(0x0102030405060708'i64),
+                 "the 64-bit integer was not written"
+        var input = makeMemoryInputStream(stream.getData(),
+                                          stream.getDataSize(), false)
+        doAssert input.readInt64BigEndian() == 0x0102030405060708'i64,
+                 "the 64-bit integer read back as " &
+                 $input.readInt64BigEndian()
+
+    block:
+        var stream = makeMemoryOutputStream(0.uint64)
+        doAssert stream.writeFloatBigEndian(0.5'f32),
+                 "the float was not written"
+        doAssert stream.writeDoubleBigEndian(0.25'f64),
+                 "the double was not written"
+        doAssert stream.getDataSize() == 12'u64,
+                 "the pair took " & $stream.getDataSize() & " bytes"
+
+        var input = makeMemoryInputStream(stream.getData(),
+                                          stream.getDataSize(), false)
+        doAssert input.readFloatBigEndian() == 0.5'f32,
+                 "the float read back as " & $input.readFloatBigEndian()
+        doAssert input.readDoubleBigEndian() == 0.25'f64,
+                 "the double read back as " & $input.readDoubleBigEndian()
+
+testOutputStreamBigEndian()
+
+# ThreadPoolJob's own methods ================================================
+#
+# The pool tests run jobs through a pool. These call the job's own methods
+# directly, with no pool and no worker thread, which is what makes the exit
+# flag readable at a known moment rather than raced against.
+
+proc testThreadPoolJobDirectly() =
+    block:
+        var ran = 0
+        var sawExitRequest = false
+
+        var job = newCustomThreadPoolJob(makeString("direct"))
+        var base = cast[ptr ThreadPoolJob](job)
+        # cint rather than the enum: the generator marks JobStatus basescalar
+        # so the closure never names the distinct, and the forwarder casts.
+        job[].setRunJobHandler(proc(): cint =
+            ran += 1
+            sawExitRequest = base[].shouldExit()
+            cint(ThreadPoolJobJobStatus_jobHasFinished))
+
+        doAssert $base[].getJobName() == "direct",
+                 "the job is called " & $base[].getJobName()
+        base[].setJobName(makeString("renamed"))
+        doAssert $base[].getJobName() == "renamed",
+                 "the job is called " & $base[].getJobName()
+
+        # A job that is not in a pool is not running and has not been asked to
+        # stop.
+        doAssert not base[].isRunning(), "a job outside a pool is running"
+        doAssert not base[].shouldExit(),
+                 "a job nobody asked to stop wants to exit"
+
+        # runJob is the virtual, so calling it through the base class is what
+        # shows the Nim override reached C++.
+        doAssert base[].runJob() == ThreadPoolJobJobStatus_jobHasFinished,
+                 "the job did not report finishing"
+        doAssert ran == 1, "the job ran " & $ran & " times"
+        doAssert not sawExitRequest,
+                 "the job was asked to exit before anything asked it"
+
+        # And after signalJobShouldExit it is, which is how a long job knows
+        # to stop part way through.
+        base[].signalJobShouldExit()
+        doAssert base[].shouldExit(), "the job did not notice the request"
+        discard base[].runJob()
+        doAssert sawExitRequest,
+                 "the running job did not see the exit request"
+
+        cdelete job
+
+testThreadPoolJobDirectly()
+
+# UnitTest's own entry points ================================================
+#
+# The runner tests go through UnitTestRunner. These call the test's own
+# methods, which is what the runner does underneath.
+
+proc testUnitTestEntryPoints() =
+    block:
+        var ran = 0
+        var subject = newCustomUnitTest(makeString("june-direct"),
+                                        makeString("june"))
+        subject[].setRunTestHandler(proc() = ran += 1)
+        var base = cast[ptr UnitTest](subject)
+
+        doAssert $base[].getName() == "june-direct",
+                 "the test is called " & $base[].getName()
+        doAssert $base[].getCategory() == "june",
+                 "the test is in category " & $base[].getCategory()
+
+        # runTest is the virtual, so calling it through the base class is what
+        # shows the Nim override reached C++.
+        base[].runTest()
+        doAssert ran == 1, "the test body ran " & $ran & " times"
+
+        # initialise and shutdown are the runner's hooks around it, and JUCE
+        # gives both empty bodies - a test that needs neither leaves them
+        # alone, which is what makes calling them safe here.
+        base[].initialise()
+        base[].shutdown()
+        doAssert ran == 1,
+                 "the hooks ran the test body " & $ran & " times"
+
+        # performTest is what the runner really calls: it takes the runner,
+        # runs initialise, runTest and shutdown, and reports through it.
+        var runner = makeUnitTestRunner()
+        runner.setAssertOnFailure(false)
+        runner.setPassesAreLogged(false)
+        base[].performTest(addr runner)
+        doAssert ran == 2, "performTest ran the body " & $(ran - 1) & " times"
+
+        # getRandom hands back a generator the runner seeded, so two draws
+        # from it differ - which is all that can be said about a random one.
+        var random = base[].getRandom()
+        var draws: seq[cint] = @[]
+        for i in 0 ..< 8:
+            draws.add(random.nextInt(1000.cint))
+        doAssert draws.len == 8, "eight draws gave " & $draws.len
+        var distinctDraws = 0
+        for i in 0 ..< draws.len:
+            if draws[i] != draws[0]:
+                distinctDraws += 1
+        doAssert distinctDraws > 0,
+                 "eight draws from the test's generator were all " & $draws[0]
+
+        cdelete subject
+
+testUnitTestEntryPoints()
+
+# File's five OS-integration methods =========================================
+#
+# addToDock is NOT here. It writes the user's Dock preferences with `defaults
+# write` and then quits the Dock (juce_Files_mac.mm:491), so there is no path
+# through it that leaves the machine as it found it. It is listed method by
+# method in the coverage report instead.
+
+proc testFileOsIntegration() =
+    let root = june.File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                   .getNonexistentChildFile(makeString("june-os"),
+                                            makeString(""))
+    doAssert root.createDirectory().wasOk(), "could not make the directory"
+    defer: discard root.deleteRecursively(false)
+
+    block:
+        # A bundle is a directory the platform treats as one file. macOS only:
+        # JUCE declares isBundle nowhere else, and the bindings are generated
+        # on macOS, so the proc exists here while the C++ method does not -
+        # which is why the compile harness lists it in MACOS_ONLY_METHODS and
+        # why this needs the same guard.
+        when defined(macosx):
+            doAssert not root.isBundle(), "a plain directory is a bundle"
+            let file = root.getChildFile(makeStringRef("plain.txt"))
+            doAssert file.replaceWithText(makeString("x")),
+                     "could not write the file"
+            doAssert not file.isBundle(), "a text file is a bundle"
+
+    block:
+        # The working directory is process-wide, so it is put back straight
+        # away and the assertion is against what it was changed to.
+        # The directory is identified by a marker file inside it rather than
+        # by its path: the temp directory reaches this process through a
+        # symlink (/var -> /private/var on macOS), so the working directory
+        # comes back spelled differently from the path that was asked for
+        # even though it is the same directory.
+        let marker = root.getChildFile(makeStringRef("marker"))
+        doAssert marker.replaceWithText(makeString("x")),
+                 "could not write the marker"
+
+        let before = june.File.getCurrentWorkingDirectory()
+        doAssert root.setAsCurrentWorkingDirectory(),
+                 "could not change to the temp directory"
+        doAssert june.File.getCurrentWorkingDirectory()
+                     .getChildFile(makeStringRef("marker")).existsAsFile(),
+                 "the working directory is " &
+                 $june.File.getCurrentWorkingDirectory().getFullPathName()
+        doAssert before.setAsCurrentWorkingDirectory(),
+                 "could not change back"
+        doAssert not june.File.getCurrentWorkingDirectory()
+                     .getChildFile(makeStringRef("marker")).existsAsFile(),
+                 "the working directory was left at " &
+                 $june.File.getCurrentWorkingDirectory().getFullPathName()
+
+        # A path that is not a directory cannot become one.
+        doAssert not root.getChildFile(makeStringRef("nowhere"))
+                      .setAsCurrentWorkingDirectory(),
+                 "a path that does not exist became the working directory"
+
+    block:
+        # Starting a file that is not there fails rather than launching
+        # anything.
+        doAssert not root.getChildFile(makeStringRef("missing"))
+                      .startAsProcess(makeString("")),
+                 "a file that does not exist started as a process"
+
+        # revealToUser opens a file manager, so the only call that leaves the
+        # machine alone is one on a path whose PARENT does not exist either:
+        # JUCE walks up to the parent and stops when that is missing too
+        # (juce_Files_mac.mm:461).
+        root.getChildFile(makeStringRef("gone"))
+            .getChildFile(makeStringRef("also-gone"))
+            .revealToUser()
+
+    block:
+        # moveToTrash on a file that is not there reports success and does
+        # nothing (juce_Files_mac.mm: it returns true when the file does not
+        # exist), and on one that is there it really removes it.
+        doAssert root.getChildFile(makeStringRef("never-existed")).moveToTrash(),
+                 "trashing a file that is not there reported failure"
+
+        let doomed = root.getChildFile(makeStringRef("doomed.txt"))
+        doAssert doomed.replaceWithText(makeString("x")),
+                 "could not write the file to trash"
+        doAssert doomed.moveToTrash(), "the file was not trashed"
+        doAssert not doomed.existsAsFile(),
+                 "the trashed file is still where it was"
+
+testFileOsIntegration()

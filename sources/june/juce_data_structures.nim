@@ -29,6 +29,12 @@ type
 # and $ so a value can appear in a message. $ prints the number
 # rather than the name: the binding holds the C++ enumerator and
 # there is no table of names on this side to look one up in.
+#
+# A scoped enum - `enum class` in C++ - does not convert to int
+# on its own, so a borrowed $ emits dollar_(int32) over a value
+# clang refuses to narrow, and the error appears at the call
+# site rather than here. Those get toCint, which does the
+# static_cast C++ requires, and a $ written over it.
 proc `==`*(a: PropertiesFileStorageFormat, b: PropertiesFileStorageFormat): bool {.borrow.}
 proc `$`*(value: PropertiesFileStorageFormat): string {.borrow.}
 
@@ -42,7 +48,7 @@ proc getSizeInUnits*(this: var UndoableAction): cint {.header: juce_data_structu
 proc createCoalescedAction*(this: var UndoableAction, nextAction: ptr UndoableAction): ptr UndoableAction {.header: juce_data_structures, importcpp: "#.createCoalescedAction(@)".}
 proc `==`*(this: UndoableAction, other: UndoableAction): bool {.error: "juce::UndoableAction defines no operator==; compare a property instead".}
 
-proc makeUndoManager*(maxNumberOfUnitsToKeep: cint, minimumTransactionsToKeep: cint): UndoManager {.header: juce_data_structures, importcpp: "juce::UndoManager(@)".}
+proc makeUndoManager*(maxNumberOfUnitsToKeep: cint = 30000, minimumTransactionsToKeep: cint = 30): UndoManager {.header: juce_data_structures, importcpp: "juce::UndoManager(@)".}
 proc clearUndoHistory*(this: var UndoManager) {.header: juce_data_structures, importcpp: "#.clearUndoHistory()".}
 proc getNumberOfUnitsTakenUpByStoredCommands*(this: UndoManager): cint {.header: juce_data_structures, importcpp: "#.getNumberOfUnitsTakenUpByStoredCommands()".}
 proc setMaxNumberOfStoredUnits*(this: var UndoManager, maxNumberOfUnitsToKeep: cint, minimumTransactionsToKeep: cint) {.header: juce_data_structures, importcpp: "#.setMaxNumberOfStoredUnits(@)".}
@@ -157,6 +163,7 @@ proc `==`*(this: ValueTreeIterator, arg1: ValueTreeIterator): bool {.header: juc
 # proc operator!=*(this: ValueTreeIterator, arg1: ValueTreeIterator): bool {.header: juce_data_structures, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc `*`*(this: ValueTreeIterator): ValueTree {.header: juce_data_structures, importcpp: "#.operator*()".}
 
+proc makeValueTreeListener*(): ValueTreeListener {.header: juce_data_structures, importcpp: "juce::ValueTree::Listener(@)".}  # implicit default constructor
 proc valueTreePropertyChanged*(this: var ValueTreeListener, treeWhosePropertyHasChanged: var ValueTree, property: Identifier) {.header: juce_data_structures, importcpp: "#.valueTreePropertyChanged(@)".}
 proc valueTreeChildAdded*(this: var ValueTreeListener, parentTree: var ValueTree, childWhichHasBeenAdded: var ValueTree) {.header: juce_data_structures, importcpp: "#.valueTreeChildAdded(@)".}
 proc valueTreeChildRemoved*(this: var ValueTreeListener, parentTree: var ValueTree, childWhichHasBeenRemoved: var ValueTree, indexFromWhichChildWasRemoved: cint) {.header: juce_data_structures, importcpp: "#.valueTreeChildRemoved(@)".}

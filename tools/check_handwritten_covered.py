@@ -1,4 +1,14 @@
-"""Fail if a hand-written binding is never called.
+"""Fail if something this repository requires of itself is not true.
+
+Each check returns a bool that feeds this script's exit status. Together
+they cover what a test suite cannot state for itself: that every
+hand-written binding is called, that generated subclasses, handler setters,
+constructors, constants, statics, fields and inherited methods are
+exercised, that a withheld begin() names an iterator that exists, that a
+macOS-only method is called only under a platform guard, and that every
+file carries the project's copyright notice exactly once.
+
+The first of those is the one this file is named for.
 
 The generated modules are checked by the generator itself: it reproduces them
 byte for byte, and CI compares. The hand-written layer - june_juce_types,
@@ -41,9 +51,6 @@ uncallable = {
         "process's one instance",
     "constructApplication":
         "builds a JUCEApplication, same as newApplication",
-    "release":
-        "OptionalScopedPointer::release hands back ownership, and a test that "
-        "called it would have to invent a leak or a double free to finish",
 }
 
 export = re.compile(r'(?:proc|iterator|template|converter) `?(\w+)`?\*')
@@ -634,13 +641,84 @@ def check_inherited_methods():
     return True
 
 
+def check_macos_only_calls():
+    """A behavioural test calling a macOS-only method does so under a guard.
+
+    The bindings are generated ON macOS, so a method JUCE declares nowhere
+    else still gets a proc here. Nim compiles the call; g++ on Linux does not,
+    and the failure arrives a full CI cycle later. The compile harness already
+    knows which methods these are - MACOS_ONLY_METHODS in its generator - and
+    puts its own calls behind `when defined(macosx)`. This is the same rule
+    for the behavioural tests, which had no check at all: File.isBundle was
+    called unguarded and only Linux CI said so.
+
+    A call counts as guarded when some enclosing line, at a smaller
+    indentation, is `when defined(macosx)`. That is what the suite's own
+    guards look like, and a false ALARM here is cheap to fix while a false
+    all-clear is what this exists to prevent.
+
+    What this does NOT catch: a macOS-only method that is not on that list.
+    The list was built by compiling the harness on Linux, one round per error
+    the compiler reported, so it holds the methods the harness had to call.
+    A method covered behaviourally from the start never entered the harness
+    and so never entered the list. Linux CI is still the backstop for those -
+    it is what found isBundle - and a name added to MACOS_ONLY_METHODS when
+    that happens brings the method under this check too.
+    """
+    harness = open("tools/generate_compile_harness.py").read()
+    block = re.search(r"MACOS_ONLY_METHODS = \{(.*?)\n\}", harness, re.S)
+    if block is None:
+        print("MACOS_ONLY_METHODS is not where this expected it",
+              file=sys.stderr)
+        return False
+    methods = set(re.findall(r'\(\s*"[A-Za-z_]\w*"\s*,\s*"([A-Za-z_]\w*)"\s*\)',
+                             block.group(1)))
+
+    unguarded = []
+    for path in sorted(glob.glob("tests/test_juce_*.nim")):
+        if path.endswith("test_juce_compiles.nim"):
+            continue
+        lines = open(path).read().splitlines()
+        for number, line in enumerate(lines):
+            call = re.search(r"\.(" + "|".join(sorted(methods)) + r")\s*\(",
+                             line)
+            if not call:
+                continue
+            indent = len(line) - len(line.lstrip())
+            guarded = False
+            for earlier in reversed(lines[:number]):
+                if not earlier.strip():
+                    continue
+                earlier_indent = len(earlier) - len(earlier.lstrip())
+                if earlier_indent < indent:
+                    if re.match(r"when defined\(macosx\):", earlier.strip()):
+                        guarded = True
+                        break
+                    indent = earlier_indent
+            if not guarded:
+                unguarded.append(f"{path}:{number + 1}  {call.group(1)}")
+
+    if unguarded:
+        print("These behavioural tests call a macOS-only method without a "
+              "`when defined(macosx)` guard, so they will not compile on "
+              "Linux:", file=sys.stderr)
+        for entry in unguarded:
+            print(f"  {entry}", file=sys.stderr)
+        return False
+
+    print(f"every behavioural call to one of the {len(methods)} macOS-only "
+          f"methods is guarded")
+    return True
+
+
 def check_constants():
     """Every bound constant is read by a test.
 
     A `let` with an importcpp is not checked against C++ unless something
     reads it. A constant naming juce::NoSuchClass::nope compiles clean while
-    nothing touches it, which was measured rather than assumed, so 591 of the
-    635 had never had their spelling checked.
+    nothing touches it, which was measured rather than assumed: when this was
+    first checked, most of the bound constants had never had their spelling
+    put to the compiler. The count this prints is the live one.
     """
     emitted = set()
     for module in ("juce_core", "juce_events", "juce_data_structures",
@@ -862,6 +940,12 @@ def check_licence_headers():
 
 def main():
     declared = {}
+    # Every file a name is declared in, not just the first. The coverage check
+    # below is deliberately by NAME, but an `uncallable` entry keyed on a name
+    # exempts EVERY declaration of it, and its reason was written about one.
+    # juce::OptionalScopedPointer::release and std::unique_ptr::release are
+    # both spelled `release`, so excusing one silently excused the other.
+    declared_in = {}
     for name in hand_written:
         path = os.path.join("sources", "june", name)
         if not os.path.exists(path):
@@ -871,6 +955,7 @@ def main():
                 match = export.match(line)
                 if match:
                     declared.setdefault(match.group(1), name)
+                    declared_in.setdefault(match.group(1), []).append(name)
 
     used = ""
     for pattern in ("tests/test_juce_*.nim", "examples/*.nim"):
@@ -884,6 +969,18 @@ def main():
         and not re.search(r"\b" + re.escape(name) + r"\b", used))
 
     stale = sorted(name for name in uncallable if name not in declared)
+
+    # An exemption that covers more than one declaration is excusing something
+    # its reason never mentioned.
+    ambiguous = sorted(name for name in uncallable
+                       if len(set(declared_in.get(name, []))) > 1)
+    if ambiguous:
+        print("These `uncallable` entries name more than one declaration, so "
+              "the reason recorded for one of them excuses the others too:",
+              file=sys.stderr)
+        for name in ambiguous:
+            where = ", ".join(sorted(set(declared_in[name])))
+            print(f"  {name}  (declared in {where})", file=sys.stderr)
 
     if stale:
         print("These are listed as uncallable but no longer exist:", file=sys.stderr)
@@ -911,8 +1008,9 @@ def main():
     signatures_ok = check_one_declaration_per_signature()
     literals_ok = check_integer_literal_overloads()
     fields_ok = check_field_accessors()
+    macos_ok = check_macos_only_calls()
 
-    if (uncovered or stale
+    if (ambiguous or uncovered or stale
             or not licences_ok
             or not iterators_ok
             or not defaults_ok
@@ -925,7 +1023,8 @@ def main():
             or not inherited_ok
             or not signatures_ok
             or not literals_ok
-            or not fields_ok):
+            or not fields_ok
+            or not macos_ok):
         sys.exit(1)
 
     print(f"all {len(declared)} hand-written binding names are called "

@@ -113,6 +113,18 @@ proc testFontOptionsOverrides() =
   doAssert not cleared.getAscentOverride().hasValue()
   doAssert cleared.getAscentOverride().valueOr(-1.0'f32) == -1.0'f32
 
+  # The descent override is the same shape and a SEPARATE field, so setting
+  # one is asserted not to set the other.
+  let withDescent = plain.withDescentOverride(makeCppOptional(0.35'f32))
+  doAssert withDescent.getDescentOverride().hasValue(),
+           "withDescentOverride left the descent unset"
+  doAssert withDescent.getDescentOverride().value() == 0.35'f32,
+           "the descent override reads " & $withDescent.getDescentOverride().value()
+  doAssert not withDescent.getAscentOverride().hasValue(),
+           "setting the descent override set the ascent one too"
+  doAssert not withAscent.getDescentOverride().hasValue(),
+           "setting the ascent override set the descent one too"
+
 testFontOptionsOverrides()
 
 # HeapBlock is JUCE's owning raw buffer, and createLookupTable is the one place
@@ -1693,3 +1705,3165 @@ proc testTextLayoutRunGlyphs() =
              "the run holds " & $run.glyphs().size() & " glyphs"
 
 testTextLayoutRunGlyphs()
+
+# Font's metrics and its style flags. testFont above covers height and bold;
+# this covers the two height scales, the derived metrics, italic, underline,
+# and the horizontal scale and kerning that a caller sets alongside them.
+proc testFontMetrics() =
+    # A real typeface is loaded here, and the cache that holds it is cleared
+    # by shutdownJuce_GUI. Without the pair the run ends with a leak report.
+    initialiseJuce_GUI()
+
+    block:
+        var font = makeFont(makeFontOptions(24.0'f32))
+
+        # A font is measured either in pixels or in points, and the two are
+        # related by a factor the font reports.
+        let factor = font.getHeightToPointsFactor()
+        doAssert factor > 0.0'f32, "the height to points factor is " & $factor
+        doAssert abs(font.getHeightInPoints() - 24.0'f32 * factor) < 1.0e-3'f32,
+                 "24 pixels is " & $font.getHeightInPoints() & " points, and the " &
+                 "factor says it should be " & $(24.0'f32 * factor)
+
+        # setPointHeight sets the other scale, and the pixel height follows.
+        font.setPointHeight(36.0'f32)
+        doAssert abs(font.getHeightInPoints() - 36.0'f32) < 1.0e-3'f32,
+                 "the point height is " & $font.getHeightInPoints()
+        doAssert abs(font.getHeight() - 36.0'f32 / factor) < 1.0e-3'f32,
+                 "the pixel height is " & $font.getHeight() & " and not " &
+                 $(36.0'f32 / factor)
+
+        # withPointHeight leaves the receiver alone, as withHeight does.
+        let inPoints = font.withPointHeight(12.0'f32)
+        doAssert abs(inPoints.getHeightInPoints() - 12.0'f32) < 1.0e-3'f32,
+                 "withPointHeight gave " & $inPoints.getHeightInPoints()
+        doAssert abs(font.getHeightInPoints() - 36.0'f32) < 1.0e-3'f32,
+                 "withPointHeight mutated the original"
+
+    block:
+        # Ascent and descent divide the height between them.
+        let font = makeFont(makeFontOptions(32.0'f32))
+        doAssert font.getAscent() > 0.0'f32,
+                 "the ascent is " & $font.getAscent()
+        doAssert font.getDescent() > 0.0'f32,
+                 "the descent is " & $font.getDescent()
+        doAssert abs(font.getAscent() + font.getDescent() - font.getHeight()) <
+                 1.0e-3'f32,
+                 "the ascent " & $font.getAscent() & " and descent " &
+                 $font.getDescent() & " do not add up to the height " &
+                 $font.getHeight()
+
+        # The point forms are equal to the pixel forms, and that is not a
+        # coincidence of this typeface. getAscent scales the raw ascent by
+        # 1/(ascent+descent) and multiplies by the pixel height, while
+        # getAscentInPoints multiplies the raw ascent by the point height,
+        # which is the pixel height times that same 1/(ascent+descent)
+        # (juce_Font.cpp:796 and :827). The two expressions are the same
+        # product in a different order.
+        doAssert abs(font.getAscentInPoints() - font.getAscent()) < 1.0e-3'f32,
+                 "the ascent is " & $font.getAscent() & " but " &
+                 $font.getAscentInPoints() & " in points"
+        doAssert abs(font.getDescentInPoints() - font.getDescent()) < 1.0e-3'f32,
+                 "the descent is " & $font.getDescent() & " but " &
+                 $font.getDescentInPoints() & " in points"
+
+    block:
+        # Italic and underline are independent of one another and of bold.
+        var font = makeFont(makeFontOptions(16.0'f32))
+        doAssert not font.isItalic(), "a plain font is italic"
+        doAssert not font.isUnderlined(), "a plain font is underlined"
+        doAssert not font.isBold(), "a plain font is bold"
+
+        font.setItalic(true)
+        doAssert font.isItalic(), "setItalic did not take"
+        doAssert not font.isBold(), "setItalic made the font bold too"
+        doAssert not font.isUnderlined(), "setItalic underlined the font too"
+
+        font.setUnderline(true)
+        doAssert font.isUnderlined(), "setUnderline did not take"
+        doAssert font.isItalic(), "setUnderline dropped italic"
+
+        # italicised derives a copy; the receiver keeps its own flags.
+        var plain = makeFont(makeFontOptions(16.0'f32))
+        let slanted = plain.italicised()
+        doAssert slanted.isItalic(), "italicised produced an upright font"
+        doAssert not plain.isItalic(), "italicised mutated the original"
+
+        # setStyleFlags replaces the set rather than adding to it.
+        var styled = makeFont(makeFontOptions(16.0'f32))
+        styled.setStyleFlags(FontFontStyleFlags_bold.cint or
+                             FontFontStyleFlags_italic.cint)
+        doAssert styled.isBold() and styled.isItalic(),
+                 "setting two flags at once lost one of them"
+        styled.setStyleFlags(FontFontStyleFlags_plain.cint)
+        doAssert not styled.isBold() and not styled.isItalic(),
+                 "setStyleFlags added to the set instead of replacing it"
+
+    block:
+        # The horizontal scale and the extra kerning both round trip, and the
+        # with- forms leave the receiver alone.
+        var font = makeFont(makeFontOptions(20.0'f32))
+        doAssert font.getHorizontalScale() == 1.0'f32,
+                 "the default horizontal scale is " & $font.getHorizontalScale()
+        doAssert font.getExtraKerningFactor() == 0.0'f32,
+                 "the default kerning is " & $font.getExtraKerningFactor()
+
+        font.setHorizontalScale(1.5'f32)
+        doAssert abs(font.getHorizontalScale() - 1.5'f32) < 1.0e-6'f32,
+                 "the horizontal scale is " & $font.getHorizontalScale()
+        font.setExtraKerningFactor(0.25'f32)
+        doAssert abs(font.getExtraKerningFactor() - 0.25'f32) < 1.0e-6'f32,
+                 "the kerning is " & $font.getExtraKerningFactor()
+
+        let wider = font.withHorizontalScale(2.0'f32)
+        doAssert abs(wider.getHorizontalScale() - 2.0'f32) < 1.0e-6'f32,
+                 "withHorizontalScale gave " & $wider.getHorizontalScale()
+        doAssert abs(font.getHorizontalScale() - 1.5'f32) < 1.0e-6'f32,
+                 "withHorizontalScale mutated the original"
+
+        let kerned = font.withExtraKerningFactor(0.5'f32)
+        doAssert abs(kerned.getExtraKerningFactor() - 0.5'f32) < 1.0e-6'f32,
+                 "withExtraKerningFactor gave " & $kerned.getExtraKerningFactor()
+        doAssert abs(font.getExtraKerningFactor() - 0.25'f32) < 1.0e-6'f32,
+                 "withExtraKerningFactor mutated the original"
+
+        # A wider font is a different font, and equality notices.
+        doAssert not (font == wider), "two fonts of different width are equal"
+        doAssert font == font.withHorizontalScale(1.5'f32),
+                 "a font is not equal to a copy of itself"
+
+    block:
+        # The typeface name and style are text, and a font names the family it
+        # was asked for even before anything is drawn with it.
+        var font = makeFont(makeFontOptions(18.0'f32))
+        font.setTypefaceName(Font.getDefaultMonospacedFontName())
+        doAssert $font.getTypefaceName() == $Font.getDefaultMonospacedFontName(),
+                 "the typeface name reads as " & $font.getTypefaceName()
+
+        doAssert Font.getDefaultSansSerifFontName().isNotEmpty(),
+                 "the default sans serif name is empty"
+        doAssert Font.getDefaultSerifFontName().isNotEmpty(),
+                 "the default serif name is empty"
+        doAssert Font.getDefaultStyle().isNotEmpty(),
+                 "the default style is empty"
+
+        # A font survives a round trip through its own string form.
+        let described = font.toString()
+        doAssert described.isNotEmpty(), "toString gave an empty description"
+        let rebuilt = Font.fromString(described)
+        doAssert $rebuilt.toString() == $described,
+                 "a round trip turned " & $described & " into " & $rebuilt.toString()
+
+    shutdownJuce_GUI()
+
+testFontMetrics()
+
+# Colour is a value type over a packed ARGB word, with three ways of naming the
+# same colour: bytes, floats, and the HSV/HSL polar forms. The invariant worth
+# asserting is that all three agree, and that the with- forms change one
+# component and leave the rest alone.
+proc testColour() =
+    block:
+        # The bytes go in and come back out unchanged.
+        let orange = Colour.fromRGB(255'u8, 128'u8, 0'u8)
+        doAssert orange.getRed() == 255'u8, "red is " & $orange.getRed()
+        doAssert orange.getGreen() == 128'u8, "green is " & $orange.getGreen()
+        doAssert orange.getBlue() == 0'u8, "blue is " & $orange.getBlue()
+
+        # fromRGB is opaque; fromRGBA carries the alpha through.
+        doAssert orange.getAlpha() == 255'u8,
+                 "fromRGB gave alpha " & $orange.getAlpha()
+        doAssert orange.isOpaque(), "an opaque colour reports transparent"
+        doAssert not orange.isTransparent(), "an opaque colour reports transparent"
+
+        let half = Colour.fromRGBA(255'u8, 128'u8, 0'u8, 128'u8)
+        doAssert half.getAlpha() == 128'u8, "the alpha is " & $half.getAlpha()
+        doAssert not half.isOpaque(), "a half transparent colour reports opaque"
+        doAssert not half.isTransparent(),
+                 "a half transparent colour reports fully transparent"
+
+        let invisible = orange.withAlpha(0'u8)
+        doAssert invisible.isTransparent(),
+                 "a zero alpha colour is not transparent"
+        doAssert invisible.getRed() == 255'u8,
+                 "withAlpha changed the red channel to " & $invisible.getRed()
+
+        # The packed word holds all four channels.
+        doAssert orange.getARGB() == 0xFFFF8000'u32,
+                 "the packed word is " & $orange.getARGB()
+
+        # Two colours built the same way are equal; a different alpha is a
+        # different colour.
+        doAssert orange == Colour.fromRGB(255'u8, 128'u8, 0'u8),
+                 "two identical colours are not equal"
+        doAssert not (orange == half), "alpha is not part of the identity"
+
+    block:
+        # The float channels are the byte channels over 255.
+        let colour = Colour.fromRGB(255'u8, 0'u8, 51'u8)
+        doAssert abs(colour.getFloatRed() - 1.0'f32) < 1.0e-6'f32,
+                 "float red is " & $colour.getFloatRed()
+        doAssert abs(colour.getFloatGreen()) < 1.0e-6'f32,
+                 "float green is " & $colour.getFloatGreen()
+        doAssert abs(colour.getFloatBlue() - 51.0'f32 / 255.0'f32) < 1.0e-6'f32,
+                 "float blue is " & $colour.getFloatBlue()
+        doAssert abs(colour.getFloatAlpha() - 1.0'f32) < 1.0e-6'f32,
+                 "float alpha is " & $colour.getFloatAlpha()
+
+        # And the float constructor is the inverse of the float accessors.
+        let rebuilt = Colour.fromFloatRGBA(colour.getFloatRed(),
+                                           colour.getFloatGreen(),
+                                           colour.getFloatBlue(),
+                                           colour.getFloatAlpha())
+        doAssert rebuilt == colour,
+                 "a round trip through the float channels changed the colour"
+
+    block:
+        # HSV: a pure hue has full saturation and full brightness, and the hue
+        # survives the trip.
+        let red = Colour.fromHSV(0.0'f32, 1.0'f32, 1.0'f32, 1.0'f32)
+        doAssert red.getRed() == 255'u8 and red.getGreen() == 0'u8 and
+                 red.getBlue() == 0'u8,
+                 "hue 0 is not red; it is " & $red.toString()
+        doAssert abs(red.getSaturation() - 1.0'f32) < 1.0e-3'f32,
+                 "the saturation is " & $red.getSaturation()
+        doAssert abs(red.getBrightness() - 1.0'f32) < 1.0e-3'f32,
+                 "the brightness is " & $red.getBrightness()
+
+        # A third of the way round the wheel is green.
+        let green = Colour.fromHSV(1.0'f32 / 3.0'f32, 1.0'f32, 1.0'f32, 1.0'f32)
+        doAssert green.getGreen() == 255'u8 and green.getRed() == 0'u8,
+                 "a third of the way round is not green; it is " & $green.toString()
+
+        # getHSB reports the same three numbers the constructor took.
+        var hue, saturation, brightness: cfloat
+        green.getHSB(hue, saturation, brightness)
+        doAssert abs(hue - 1.0'f32 / 3.0'f32) < 1.0e-2'f32,
+                 "getHSB reported hue " & $hue
+        doAssert abs(saturation - 1.0'f32) < 1.0e-3'f32,
+                 "getHSB reported saturation " & $saturation
+        doAssert abs(brightness - 1.0'f32) < 1.0e-3'f32,
+                 "getHSB reported brightness " & $brightness
+
+        # withRotatedHue walks the wheel, and a full turn comes back.
+        doAssert red.withRotatedHue(1.0'f32 / 3.0'f32) == green,
+                 "rotating red by a third did not give green"
+        doAssert red.withRotatedHue(1.0'f32) == red,
+                 "a full turn did not come back to where it started"
+
+        # The HSL form is a different decomposition of the same colour, and
+        # getHSL reads back what fromHSL was given.
+        let fromHsl = Colour.fromHSL(0.5'f32, 0.8'f32, 0.6'f32, 1.0'f32)
+        var h, s, l: cfloat
+        fromHsl.getHSL(h, s, l)
+        doAssert abs(h - 0.5'f32) < 1.0e-2'f32, "getHSL reported hue " & $h
+        doAssert abs(s - 0.8'f32) < 1.0e-2'f32, "getHSL reported saturation " & $s
+        doAssert abs(l - 0.6'f32) < 1.0e-2'f32, "getHSL reported lightness " & $l
+        doAssert abs(fromHsl.getLightness() - l) < 1.0e-6'f32,
+                 "getLightness and getHSL disagree"
+        doAssert abs(fromHsl.getSaturationHSL() - s) < 1.0e-6'f32,
+                 "getSaturationHSL and getHSL disagree"
+
+    block:
+        # A grey has no saturation, and its three channels are equal.
+        let grey = Colour.greyLevel(0.5'f32)
+        doAssert grey.getRed() == grey.getGreen() and
+                 grey.getGreen() == grey.getBlue(),
+                 "a grey is not neutral: " & $grey.toString()
+        doAssert grey.getSaturation() == 0.0'f32,
+                 "a grey has saturation " & $grey.getSaturation()
+
+        # brighter and darker move the brightness in opposite directions.
+        doAssert grey.brighter().getBrightness() > grey.getBrightness(),
+                 "brighter did not brighten"
+        doAssert grey.darker().getBrightness() < grey.getBrightness(),
+                 "darker did not darken"
+
+        # withBrightness sets it outright, and leaves the hue alone.
+        let blue = Colour.fromHSV(0.6'f32, 1.0'f32, 1.0'f32, 1.0'f32)
+        let dimmed = blue.withBrightness(0.25'f32)
+        doAssert abs(dimmed.getBrightness() - 0.25'f32) < 1.0e-2'f32,
+                 "the brightness is " & $dimmed.getBrightness()
+        doAssert abs(dimmed.getHue() - blue.getHue()) < 1.0e-2'f32,
+                 "withBrightness moved the hue from " & $blue.getHue() &
+                 " to " & $dimmed.getHue()
+        doAssert abs(blue.getBrightness() - 1.0'f32) < 1.0e-3'f32,
+                 "withBrightness mutated the original"
+
+        # withMultipliedBrightness scales it instead.
+        doAssert abs(blue.withMultipliedBrightness(0.5'f32).getBrightness() -
+                     0.5'f32) < 1.0e-2'f32,
+                 "halving the brightness gave " &
+                 $blue.withMultipliedBrightness(0.5'f32).getBrightness()
+
+    block:
+        # Interpolation walks between two colours, and the ends are the colours
+        # themselves.
+        let black = Colour.fromRGB(0'u8, 0'u8, 0'u8)
+        let white = Colour.fromRGB(255'u8, 255'u8, 255'u8)
+        doAssert black.interpolatedWith(white, 0.0'f32) == black,
+                 "interpolating none of the way moved the colour"
+        doAssert black.interpolatedWith(white, 1.0'f32) == white,
+                 "interpolating all of the way did not arrive"
+        let middle = black.interpolatedWith(white, 0.5'f32)
+        doAssert middle.getRed() > 100'u8 and middle.getRed() < 155'u8,
+                 "the midpoint red is " & $middle.getRed()
+
+        # An opaque foreground hides whatever it is laid over.
+        doAssert black.overlaidWith(white) == white,
+                 "an opaque overlay did not cover the background"
+        doAssert black.overlaidWith(white.withAlpha(0'u8)) == black,
+                 "a fully transparent overlay changed the background"
+
+        # contrasting picks a colour that stands against its argument, which is
+        # what a caller uses it for: text over a known background.
+        doAssert white.contrasting().getPerceivedBrightness() <
+                 white.getPerceivedBrightness(),
+                 "the contrast to white is not darker than white"
+        doAssert black.contrasting().getPerceivedBrightness() >
+                 black.getPerceivedBrightness(),
+                 "the contrast to black is not lighter than black"
+
+    block:
+        # A colour survives a round trip through its own string form.
+        let colour = Colour.fromRGBA(18'u8, 52'u8, 86'u8, 120'u8)
+        let text = colour.toString()
+        doAssert Colour.fromString(makeStringRef($text)) == colour,
+                 "a round trip through " & $text & " changed the colour"
+        doAssert colour.toDisplayString(true).isNotEmpty(),
+                 "the display string with alpha is empty"
+        doAssert colour.toDisplayString(false).isNotEmpty(),
+                 "the display string without alpha is empty"
+
+testColour()
+
+# Path is a list of subpaths built by moving a pen. The assertions that matter
+# are the ones a wrong argument order would break: where the bounds land, where
+# the pen ends up, and what a transform does to both.
+proc testPathGeometry() =
+    block:
+        # The pen position follows the drawing, which testPath above never
+        # looks at. The bounds are relative to where the subpath started, not
+        # to the origin.
+        var path = makePath()
+        path.startNewSubPath(10.0'f32, 20.0'f32)
+        doAssert path.getCurrentPosition() == makePoint(10.0'f32, 20.0'f32),
+                 "the pen is at " & $path.getCurrentPosition()
+
+        path.lineTo(110.0'f32, 20.0'f32)
+        doAssert path.getCurrentPosition() == makePoint(110.0'f32, 20.0'f32),
+                 "lineTo left the pen at " & $path.getCurrentPosition()
+
+        path.lineTo(110.0'f32, 70.0'f32)
+        path.closeSubPath()
+
+        let bounds = path.getBounds()
+        doAssert bounds.getX() == 10.0'f32 and bounds.getY() == 20.0'f32,
+                 "the bounds start at " & $bounds.getX() & "," & $bounds.getY()
+        doAssert bounds.getWidth() == 100.0'f32 and bounds.getHeight() == 50.0'f32,
+                 "the bounds are " & $bounds.getWidth() & "x" & $bounds.getHeight()
+
+    block:
+        # A closed rectangle contains its middle and not a point outside it.
+        var path = makePath()
+        path.addRectangle(0.0'f32, 0.0'f32, 100.0'f32, 50.0'f32)
+        doAssert path.contains(50.0'f32, 25.0'f32, 1.0'f32),
+                 "the path does not contain its own centre"
+        doAssert not path.contains(500.0'f32, 500.0'f32, 1.0'f32),
+                 "the path contains a point far outside it"
+        doAssert path.contains(makePoint(50.0'f32, 25.0'f32), 1.0'f32),
+                 "the Point overload disagrees with the x/y overload"
+
+        # A line through the middle crosses the outline; one far away does not.
+        doAssert path.intersectsLine(
+                     makeLine(-10.0'f32, 25.0'f32, 110.0'f32, 25.0'f32), 1.0'f32),
+                 "a line through the rectangle does not cross it"
+        doAssert not path.intersectsLine(
+                     makeLine(-10.0'f32, 500.0'f32, 110.0'f32, 500.0'f32), 1.0'f32),
+                 "a line far below the rectangle crosses it"
+
+        # The perimeter of a 100x50 rectangle is 300.
+        doAssert abs(path.getLength(AffineTransform.identity(), 1.0'f32) - 300.0'f32) <
+                 0.5'f32,
+                 "the perimeter measures " &
+                 $path.getLength(AffineTransform.identity(), 1.0'f32)
+
+        # addRectangle starts its subpath at the BOTTOM left corner and walks
+        # anticlockwise (juce_Path.cpp:339), so distance zero along the path is
+        # (0, 50) and not the origin.
+        let start = path.getPointAlongPath(0.0'f32, AffineTransform.identity(),
+                                           1.0'f32)
+        doAssert start == makePoint(0.0'f32, 50.0'f32),
+                 "the path starts at " & $start
+
+        # A quarter of the perimeter along, the pen has walked the 50-tall left
+        # edge and is at the top left corner.
+        let quarter = path.getPointAlongPath(50.0'f32, AffineTransform.identity(),
+                                             1.0'f32)
+        doAssert quarter == makePoint(0.0'f32, 0.0'f32),
+                 "50 along the perimeter is " & $quarter
+
+        # getNearestPoint writes the point through its out parameter, and what
+        # it RETURNS is the distance along the path to that point, not the
+        # distance from the target to it. A spot above the top edge is nearest
+        # to (50, 0), which is 50 up the left edge plus 50 along the top.
+        var onPath: Point[cfloat]
+        let along = path.getNearestPoint(makePoint(50.0'f32, -30.0'f32), onPath,
+                                         AffineTransform.identity(), 1.0'f32)
+        doAssert onPath == makePoint(50.0'f32, 0.0'f32),
+                 "the nearest point to a spot above the top edge is " & $onPath
+        doAssert abs(along - 100.0'f32) < 1.0'f32,
+                 "the distance along the path measures " & $along
+
+    block:
+        # A transform moves the path, and getBoundsTransformed reports where the
+        # bounds would land without moving anything.
+        var path = makePath()
+        path.addRectangle(0.0'f32, 0.0'f32, 10.0'f32, 10.0'f32)
+        let shift = AffineTransform.translation(100.0'f32, 200.0'f32)
+
+        let shifted = path.getBoundsTransformed(shift)
+        doAssert shifted.getX() == 100.0'f32 and shifted.getY() == 200.0'f32,
+                 "the transformed bounds start at " & $shifted.getX() & "," &
+                 $shifted.getY()
+        doAssert path.getBounds().getX() == 0.0'f32,
+                 "getBoundsTransformed moved the path itself"
+
+        path.applyTransform(shift)
+        doAssert path.getBounds().getX() == 100.0'f32,
+                 "applyTransform left the path at " & $path.getBounds().getX()
+
+        # scaleToFit puts the path inside the rectangle it is given.
+        path.scaleToFit(0.0'f32, 0.0'f32, 200.0'f32, 200.0'f32, true)
+        let fitted = path.getBounds()
+        doAssert fitted.getWidth() <= 200.0'f32 and fitted.getHeight() <= 200.0'f32,
+                 "after scaleToFit the path is " & $fitted.getWidth() & "x" &
+                 $fitted.getHeight()
+
+    block:
+        # addPath appends: the combined bounds enclose both.
+        var left = makePath()
+        left.addRectangle(0.0'f32, 0.0'f32, 10.0'f32, 10.0'f32)
+        var right = makePath()
+        right.addRectangle(90.0'f32, 0.0'f32, 10.0'f32, 10.0'f32)
+
+        left.addPath(right)
+        doAssert left.getBounds().getWidth() == 100.0'f32,
+                 "the combined width is " & $left.getBounds().getWidth()
+
+        # And the transforming overload places the appended copy.
+        var target = makePath()
+        target.addRectangle(0.0'f32, 0.0'f32, 10.0'f32, 10.0'f32)
+        var source = makePath()
+        source.addRectangle(0.0'f32, 0.0'f32, 10.0'f32, 10.0'f32)
+        target.addPath(source, AffineTransform.translation(190.0'f32, 0.0'f32))
+        doAssert target.getBounds().getWidth() == 200.0'f32,
+                 "the transformed append gave a width of " &
+                 $target.getBounds().getWidth()
+
+    block:
+        # swapWithPath exchanges the two, so each ends up with the other's bounds.
+        var small = makePath()
+        small.addRectangle(0.0'f32, 0.0'f32, 1.0'f32, 1.0'f32)
+        var large = makePath()
+        large.addRectangle(0.0'f32, 0.0'f32, 100.0'f32, 100.0'f32)
+
+        small.swapWithPath(large)
+        doAssert small.getBounds().getWidth() == 100.0'f32,
+                 "after the swap the first path is " &
+                 $small.getBounds().getWidth() & " wide"
+        doAssert large.getBounds().getWidth() == 1.0'f32,
+                 "after the swap the second path is " &
+                 $large.getBounds().getWidth() & " wide"
+
+    block:
+        # The winding rule decides whether a hole inside a shape is filled.
+        var path = makePath()
+        path.addRectangle(0.0'f32, 0.0'f32, 100.0'f32, 100.0'f32)
+        path.addRectangle(25.0'f32, 25.0'f32, 50.0'f32, 50.0'f32)
+
+        doAssert path.isUsingNonZeroWinding(),
+                 "a path does not start with the non-zero winding rule"
+        doAssert path.contains(50.0'f32, 50.0'f32, 1.0'f32),
+                 "the non-zero rule left the inner square empty"
+
+        path.setUsingNonZeroWinding(false)
+        doAssert not path.isUsingNonZeroWinding(),
+                 "the winding rule did not change"
+        doAssert not path.contains(50.0'f32, 50.0'f32, 1.0'f32),
+                 "the even-odd rule filled the inner square"
+
+    block:
+        # A path survives a round trip through its own string form.
+        var path = makePath()
+        path.addTriangle(0.0'f32, 0.0'f32, 10.0'f32, 0.0'f32, 5.0'f32, 8.0'f32)
+        let text = path.toString()
+        doAssert text.isNotEmpty(), "toString gave an empty description"
+
+        var rebuilt = makePath()
+        rebuilt.restoreFromString(makeStringRef($text))
+        doAssert rebuilt.getBounds().getWidth() == path.getBounds().getWidth() and
+                 rebuilt.getBounds().getHeight() == path.getBounds().getHeight(),
+                 "the round trip changed the bounds to " &
+                 $rebuilt.getBounds().getWidth() & "x" &
+                 $rebuilt.getBounds().getHeight()
+
+testPathGeometry()
+
+# Graphics is where a wrong argument order goes unnoticed, because a drawing
+# call returns nothing. These assert on the PIXELS: what got painted and, just
+# as importantly, what did not.
+proc litPixelCount(image: Image): int =
+    for x in 0.cint ..< image.getWidth():
+        for y in 0.cint ..< image.getHeight():
+            if image.getPixelAt(x, y).getAlpha() > 0'u8:
+                result += 1
+
+proc testGraphicsShapes() =
+    block:
+        # drawRect outlines and fillRect fills: the centre tells them apart.
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        g.setColour(Colours_white)
+        g.drawRect(makeRectangle(10.cint, 10.cint, 20.cint, 20.cint), 1.cint)
+
+        doAssert image.getPixelAt(10.cint, 10.cint).getAlpha() > 0'u8,
+                 "the outline's corner was not drawn"
+        doAssert image.getPixelAt(20.cint, 20.cint).getAlpha() == 0'u8,
+                 "drawRect filled the middle"
+        doAssert image.getPixelAt(35.cint, 35.cint).getAlpha() == 0'u8,
+                 "drawRect painted outside its rectangle"
+
+    block:
+        # A line is drawn between the two points it is given, and nowhere else.
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        g.setColour(Colours_white)
+        g.drawLine(5.0'f32, 20.0'f32, 35.0'f32, 20.0'f32, 1.0'f32)
+
+        doAssert image.getPixelAt(20.cint, 20.cint).getAlpha() > 0'u8,
+                 "the line's midpoint was not drawn"
+        doAssert image.getPixelAt(20.cint, 5.cint).getAlpha() == 0'u8,
+                 "the line painted well above itself"
+        doAssert image.getPixelAt(2.cint, 20.cint).getAlpha() == 0'u8,
+                 "the line ran past its start"
+
+        # drawVerticalLine takes the other axis, which is the pair a caller
+        # confuses.
+        let other = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g2 = makeGraphics(other)
+        g2.setColour(Colours_white)
+        g2.drawVerticalLine(20.cint, 5.0'f32, 35.0'f32)
+        doAssert other.getPixelAt(20.cint, 20.cint).getAlpha() > 0'u8,
+                 "the vertical line's midpoint was not drawn"
+        doAssert other.getPixelAt(5.cint, 20.cint).getAlpha() == 0'u8,
+                 "drawVerticalLine drew a horizontal line"
+
+    block:
+        # A path fills the shape it describes; stroking it leaves the middle
+        # empty.
+        var triangle = makePath()
+        triangle.addTriangle(20.0'f32, 2.0'f32, 38.0'f32, 38.0'f32,
+                             2.0'f32, 38.0'f32)
+
+        let filled = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(filled)
+        g.setColour(Colours_white)
+        g.fillPath(triangle)
+        doAssert filled.getPixelAt(20.cint, 30.cint).getAlpha() > 0'u8,
+                 "fillPath left the inside of the triangle empty"
+
+        let stroked = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g2 = makeGraphics(stroked)
+        g2.setColour(Colours_white)
+        g2.strokePath(triangle, makePathStrokeType(1.0'f32),
+                      AffineTransform.identity())
+        doAssert stroked.getPixelAt(20.cint, 30.cint).getAlpha() == 0'u8,
+                 "strokePath filled the inside of the triangle"
+        doAssert litPixelCount(stroked) < litPixelCount(filled),
+                 "the stroked triangle lit " & $litPixelCount(stroked) &
+                 " pixels and the filled one " & $litPixelCount(filled)
+
+    block:
+        # An ellipse leaves its corners clear, which is how it differs from the
+        # rectangle that bounds it.
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        g.setColour(Colours_white)
+        g.fillEllipse(makeRectangle(0.0'f32, 0.0'f32, 40.0'f32, 40.0'f32))
+        doAssert image.getPixelAt(20.cint, 20.cint).getAlpha() > 0'u8,
+                 "the ellipse's centre is empty"
+        doAssert image.getPixelAt(0.cint, 0.cint).getAlpha() == 0'u8,
+                 "the ellipse filled its bounding box's corner"
+
+        # And a rounded rectangle leaves less of the corner than a square one.
+        let rounded = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g2 = makeGraphics(rounded)
+        g2.setColour(Colours_white)
+        g2.fillRoundedRectangle(0.0'f32, 0.0'f32, 40.0'f32, 40.0'f32, 10.0'f32)
+        doAssert rounded.getPixelAt(0.cint, 0.cint).getAlpha() == 0'u8,
+                 "the rounded rectangle filled its corner"
+        doAssert litPixelCount(rounded) > litPixelCount(image),
+                 "the rounded rectangle lit " & $litPixelCount(rounded) &
+                 " pixels and the ellipse " & $litPixelCount(image) &
+                 ", so it is not the fatter shape"
+
+proc testGraphicsState() =
+    block:
+        # The clip region is part of the saved state, and restoreState puts it
+        # back. Drawing outside the clip paints nothing.
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        g.setColour(Colours_white)
+
+        g.saveState()
+        discard g.reduceClipRegion(makeRectangle(0.cint, 0.cint, 20.cint, 20.cint))
+        g.fillAll()
+        doAssert image.getPixelAt(10.cint, 10.cint).getAlpha() > 0'u8,
+                 "the clipped fill painted nothing inside the clip"
+        doAssert image.getPixelAt(30.cint, 30.cint).getAlpha() == 0'u8,
+                 "the fill escaped the clip region"
+        g.restoreState()
+
+        # With the clip restored, the same call reaches the whole image.
+        g.fillAll()
+        doAssert image.getPixelAt(30.cint, 30.cint).getAlpha() > 0'u8,
+                 "restoreState did not put the clip region back"
+
+    block:
+        # excludeClipRegion is the complement: it removes a hole.
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        g.setColour(Colours_white)
+        g.excludeClipRegion(makeRectangle(10.cint, 10.cint, 20.cint, 20.cint))
+        g.fillAll()
+        doAssert image.getPixelAt(2.cint, 2.cint).getAlpha() > 0'u8,
+                 "the fill missed the area outside the hole"
+        doAssert image.getPixelAt(20.cint, 20.cint).getAlpha() == 0'u8,
+                 "the fill reached inside the excluded hole"
+
+    block:
+        # Opacity multiplies into the alpha that is written.
+        let image = makeImage(ImagePixelFormat_ARGB, 10.cint, 10.cint, true)
+        var g = makeGraphics(image)
+        g.setColour(Colours_white)
+        g.setOpacity(0.5'f32)
+        g.fillAll()
+        let alpha = image.getPixelAt(5.cint, 5.cint).getAlpha()
+        doAssert alpha > 100'u8 and alpha < 155'u8,
+                 "a half opaque fill wrote alpha " & $alpha
+
+    block:
+        # A transform moves what is drawn afterwards, and only afterwards.
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        g.setColour(Colours_white)
+        g.addTransform(AffineTransform.translation(20.0'f32, 20.0'f32))
+        g.fillRect(makeRectangle(0.cint, 0.cint, 10.cint, 10.cint))
+
+        doAssert image.getPixelAt(25.cint, 25.cint).getAlpha() > 0'u8,
+                 "the transformed rectangle did not land where it was moved to"
+        doAssert image.getPixelAt(5.cint, 5.cint).getAlpha() == 0'u8,
+                 "the rectangle was drawn at its untransformed position too"
+
+    block:
+        # A gradient paints different colours at its two ends.
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 10.cint, true)
+        var g = makeGraphics(image)
+        g.setGradientFill(makeColourGradient(Colours_black, 0.0'f32, 0.0'f32,
+                                             Colours_white, 40.0'f32, 0.0'f32,
+                                             false))
+        g.fillAll()
+        doAssert image.getPixelAt(38.cint, 5.cint).getRed() >
+                 image.getPixelAt(1.cint, 5.cint).getRed(),
+                 "the gradient's far end (" &
+                 $image.getPixelAt(38.cint, 5.cint).getRed() &
+                 ") is not lighter than its near end (" &
+                 $image.getPixelAt(1.cint, 5.cint).getRed() & ")"
+
+    block:
+        # An image drawn into another arrives at the position it was given.
+        let source = makeImage(ImagePixelFormat_ARGB, 10.cint, 10.cint, true)
+        var sourceGraphics = makeGraphics(source)
+        sourceGraphics.setColour(Colours_white)
+        sourceGraphics.fillAll()
+
+        let target = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(target)
+        g.drawImageAt(source, 20.cint, 20.cint, false)
+        doAssert target.getPixelAt(25.cint, 25.cint).getAlpha() > 0'u8,
+                 "the image did not arrive where it was placed"
+        doAssert target.getPixelAt(5.cint, 5.cint).getAlpha() == 0'u8,
+                 "the image was drawn at the origin as well"
+
+    block:
+        # The font a Graphics carries is the one it was last given.
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        g.setFont(makeFont(makeFontOptions(23.0'f32)))
+        doAssert g.getCurrentFont().getHeight() == 23.0'f32,
+                 "the current font is " & $g.getCurrentFont().getHeight() & " tall"
+
+initialiseJuce_GUI()
+testGraphicsShapes()
+testGraphicsState()
+shutdownJuce_GUI()
+
+# FontOptions is a value builder: every with- method returns a new options
+# object and leaves the receiver alone. testFontOptionsOverrides covers the
+# ascent and descent overrides; this covers the rest.
+proc testFontOptionsBuilding() =
+    block:
+        let base = makeFontOptions(20.0'f32)
+        doAssert base.getHeight() == 20.0'f32,
+                 "the height is " & $base.getHeight()
+        doAssert base.getName().isEmpty(),
+                 "a new options object names " & $base.getName()
+        doAssert $base.getStyle() == "Regular",
+                 "a new options object has the style " & $base.getStyle()
+        doAssert base.getKerningFactor() == 0.0'f32,
+                 "the default kerning is " & $base.getKerningFactor()
+        doAssert base.getHorizontalScale() == 1.0'f32,
+                 "the default horizontal scale is " & $base.getHorizontalScale()
+        doAssert not base.getUnderline(), "a new options object is underlined"
+        doAssert base.getFallbackEnabled(),
+                 "fallbacks start disabled"
+        doAssert base.getFallbacks().size() == 0,
+                 "a new options object lists " & $base.getFallbacks().size() &
+                 " fallbacks"
+
+        # Each with- method changes one field and leaves the neighbours alone.
+        let named = base.withName(makeString("Courier"))
+        doAssert $named.getName() == "Courier",
+                 "the name is " & $named.getName()
+        doAssert named.getHeight() == 20.0'f32,
+                 "withName changed the height to " & $named.getHeight()
+        doAssert base.getName().isEmpty(),
+                 "withName changed the original to " & $base.getName()
+
+        let styled = named.withStyle(makeString("Bold"))
+        doAssert $styled.getStyle() == "Bold",
+                 "the style is " & $styled.getStyle()
+        doAssert $styled.getName() == "Courier",
+                 "withStyle changed the name to " & $styled.getName()
+
+        doAssert base.withUnderline(true).getUnderline(),
+                 "withUnderline did not take"
+        doAssert not base.withUnderline(true).withUnderline(false).getUnderline(),
+                 "withUnderline could not be turned back off"
+
+        doAssert base.withKerningFactor(0.3'f32).getKerningFactor() == 0.3'f32,
+                 "the kerning is " &
+                 $base.withKerningFactor(0.3'f32).getKerningFactor()
+        doAssert base.withHorizontalScale(1.75'f32).getHorizontalScale() ==
+                 1.75'f32,
+                 "the horizontal scale is " &
+                 $base.withHorizontalScale(1.75'f32).getHorizontalScale()
+        doAssert not base.withFallbackEnabled(false).getFallbackEnabled(),
+                 "withFallbackEnabled did not take"
+
+        # The point height and the pixel height are alternatives: setting one
+        # clears the other, which is how the type says which was asked for.
+        # The UNSET one reads as -1, not as zero, so that a genuine height of
+        # zero stays distinguishable from "not asked for".
+        doAssert base.getPointHeight() == -1.0'f32,
+                 "a height-in-pixels options object reports " &
+                 $base.getPointHeight() & " points"
+        let inPoints = makeFontOptions(20.0'f32).withPointHeight(14.0'f32)
+        doAssert inPoints.getPointHeight() == 14.0'f32,
+                 "the point height is " & $inPoints.getPointHeight()
+        doAssert inPoints.getHeight() == -1.0'f32,
+                 "asking for points left the pixel height at " &
+                 $inPoints.getHeight()
+
+    block:
+        # The fallback list is carried whole.
+        var fallbacks = makeCppVector[String]()
+        doAssert fallbacks.isEmpty(), "a new vector is not empty"
+        fallbacks.add(makeString("Menlo"))
+        fallbacks.add(makeString("Monaco"))
+        doAssert fallbacks.size() == 2,
+                 "the vector holds " & $fallbacks.size() & " entries"
+
+        let options = makeFontOptions(12.0'f32).withFallbacks(fallbacks)
+        doAssert options.getFallbacks().size() == 2,
+                 "the options carry " & $options.getFallbacks().size() &
+                 " fallbacks"
+        doAssert $options.getFallbacks()[0.csize_t] == "Menlo",
+                 "the first fallback is " & $options.getFallbacks()[0.csize_t]
+
+        # And the vector empties again, so all three of the hand-written
+        # std::vector helpers are exercised. The coverage gate matches by
+        # NAME, and add/clear/isEmpty are all names other bindings use too,
+        # so it cannot see these three on its own.
+        fallbacks.clear()
+        doAssert fallbacks.isEmpty(), "clear left " & $fallbacks.size() & " entries"
+
+    block:
+        # Two options objects built the same way are equal, and one different
+        # field is enough to order them.
+        let first = makeFontOptions(10.0'f32).withName(makeString("A"))
+        let same = makeFontOptions(10.0'f32).withName(makeString("A"))
+        let other = makeFontOptions(10.0'f32).withName(makeString("B"))
+
+        doAssert first == same, "two identical options objects are not equal"
+        doAssert not (first == other), "options with different names are equal"
+        doAssert (first < other) or (other < first),
+                 "two different options objects do not order"
+
+testFontOptionsBuilding()
+
+# Path's shape helpers. Each one is a separate binding with a long argument
+# list, and the assertions are on the BOUNDS it produces, which is what a
+# swapped pair of arguments changes.
+proc testPathShapes() =
+    block:
+        # The curves take their control points before the end point.
+        var path = makePath()
+        path.startNewSubPath(0.0'f32, 0.0'f32)
+        path.quadraticTo(50.0'f32, 100.0'f32, 100.0'f32, 0.0'f32)
+        doAssert path.getCurrentPosition() == makePoint(100.0'f32, 0.0'f32),
+                 "the quadratic ended at " & $path.getCurrentPosition()
+        # getBounds is NOT tight around a curve: quadraticTo extends the bounds
+        # by the control point as well as the end point
+        # (juce_Path.cpp:253), so a curve that only bulges towards (0, 100)
+        # still reports 100 tall. contains() draws the distinction - the
+        # control point itself is outside the shape.
+        doAssert path.getBounds().getHeight() == 100.0'f32,
+                 "the quadratic's bounds are " & $path.getBounds().getHeight() &
+                 " tall, so the control point is no longer counted"
+        doAssert not path.contains(50.0'f32, 95.0'f32, 1.0'f32),
+                 "the curve reaches its own control point"
+
+        var cubic = makePath()
+        cubic.startNewSubPath(0.0'f32, 0.0'f32)
+        cubic.cubicTo(0.0'f32, 100.0'f32, 100.0'f32, 100.0'f32,
+                      100.0'f32, 0.0'f32)
+        doAssert cubic.getCurrentPosition() == makePoint(100.0'f32, 0.0'f32),
+                 "the cubic ended at " & $cubic.getCurrentPosition()
+        doAssert cubic.getBounds().getHeight() > 0.0'f32,
+                 "the cubic did not bend"
+
+    block:
+        # Every add* helper puts its shape where it was told to.
+        var rounded = makePath()
+        rounded.addRoundedRectangle(10.0'f32, 20.0'f32, 100.0'f32, 50.0'f32,
+                                    8.0'f32)
+        doAssert rounded.getBounds().getX() == 10.0'f32 and
+                 rounded.getBounds().getWidth() == 100.0'f32,
+                 "the rounded rectangle is at " & $rounded.getBounds().getX() &
+                 " and " & $rounded.getBounds().getWidth() & " wide"
+
+        var ellipse = makePath()
+        ellipse.addEllipse(makeRectangle(5.0'f32, 5.0'f32, 40.0'f32, 20.0'f32))
+        doAssert ellipse.getBounds().getWidth() == 40.0'f32 and
+                 ellipse.getBounds().getHeight() == 20.0'f32,
+                 "the ellipse measures " & $ellipse.getBounds().getWidth() & "x" &
+                 $ellipse.getBounds().getHeight()
+
+        var quad = makePath()
+        quad.addQuadrilateral(0.0'f32, 0.0'f32, 30.0'f32, 5.0'f32,
+                              25.0'f32, 40.0'f32, -5.0'f32, 35.0'f32)
+        doAssert quad.getBounds().getX() == -5.0'f32,
+                 "the quadrilateral starts at " & $quad.getBounds().getX()
+        doAssert quad.getBounds().getWidth() == 35.0'f32,
+                 "the quadrilateral is " & $quad.getBounds().getWidth() & " wide"
+
+        # A polygon and a star are both drawn around a centre with a radius, so
+        # the bounds are twice the radius across.
+        var polygon = makePath()
+        polygon.addPolygon(makePoint(50.0'f32, 50.0'f32), 6.cint, 20.0'f32,
+                           0.0'f32)
+        doAssert polygon.getBounds().getWidth() <= 40.0'f32 and
+                 polygon.getBounds().getWidth() > 30.0'f32,
+                 "a hexagon of radius 20 measures " &
+                 $polygon.getBounds().getWidth() & " across"
+
+        var star = makePath()
+        star.addStar(makePoint(50.0'f32, 50.0'f32), 5.cint, 8.0'f32, 20.0'f32,
+                     0.0'f32)
+        doAssert star.getBounds().getWidth() <= 40.0'f32,
+                 "a star of outer radius 20 measures " &
+                 $star.getBounds().getWidth() & " across"
+        doAssert star.getBounds().getWidth() > polygon.getBounds().getWidth() * 0.5'f32,
+                 "the star is far smaller than its outer radius"
+
+        # An arc over part of a circle is smaller than the whole circle.
+        var quarter = makePath()
+        quarter.addCentredArc(50.0'f32, 50.0'f32, 20.0'f32, 20.0'f32, 0.0'f32,
+                              0.0'f32, 1.5707963'f32, true)
+        doAssert quarter.getBounds().getWidth() < 40.0'f32,
+                 "a quarter arc measures " & $quarter.getBounds().getWidth() &
+                 " across, which is the whole circle"
+
+        var pie = makePath()
+        pie.addPieSegment(makeRectangle(0.0'f32, 0.0'f32, 40.0'f32, 40.0'f32),
+                          0.0'f32, 3.1415927'f32, 0.5'f32)
+        doAssert not pie.isEmpty(), "the pie segment drew nothing"
+        doAssert pie.getBounds().getWidth() <= 40.0'f32,
+                 "the pie segment escaped its bounds at " &
+                 $pie.getBounds().getWidth() & " across"
+
+        # A line segment and an arrow are both thick shapes rather than lines,
+        # and the arrow is the wider of the two for the same line.
+        let line = makeLine(0.0'f32, 0.0'f32, 100.0'f32, 0.0'f32)
+        var segment = makePath()
+        segment.addLineSegment(line, 2.0'f32)
+        doAssert segment.getBounds().getHeight() >= 2.0'f32,
+                 "the line segment is " & $segment.getBounds().getHeight() &
+                 " thick"
+
+        var arrow = makePath()
+        arrow.addArrow(line, 2.0'f32, 12.0'f32, 20.0'f32)
+        doAssert arrow.getBounds().getHeight() > segment.getBounds().getHeight(),
+                 "the arrow is " & $arrow.getBounds().getHeight() &
+                 " tall and the plain segment " &
+                 $segment.getBounds().getHeight()
+
+        var bubble = makePath()
+        bubble.addBubble(makeRectangle(20.0'f32, 20.0'f32, 60.0'f32, 30.0'f32),
+                         makeRectangle(0.0'f32, 0.0'f32, 100.0'f32, 100.0'f32),
+                         makePoint(50.0'f32, 80.0'f32), 5.0'f32, 10.0'f32)
+        doAssert bubble.getBounds().getHeight() > 30.0'f32,
+                 "the bubble is " & $bubble.getBounds().getHeight() &
+                 " tall, so its arrow was not added"
+
+    block:
+        # createPathWithRoundedCorners softens the corners without moving the
+        # shape off its bounds.
+        var square = makePath()
+        square.addRectangle(0.0'f32, 0.0'f32, 40.0'f32, 40.0'f32)
+        let softened = square.createPathWithRoundedCorners(8.0'f32)
+        doAssert softened.getBounds().getWidth() == 40.0'f32,
+                 "the softened shape is " & $softened.getBounds().getWidth() &
+                 " wide"
+        doAssert not softened.contains(0.5'f32, 0.5'f32, 0.5'f32),
+                 "the corner was not rounded off"
+        doAssert square.contains(0.5'f32, 0.5'f32, 0.5'f32),
+                 "createPathWithRoundedCorners changed the original"
+
+    block:
+        # getTransformToScaleToFit describes the move without making it.
+        var path = makePath()
+        path.addRectangle(0.0'f32, 0.0'f32, 10.0'f32, 10.0'f32)
+        let transform = path.getTransformToScaleToFit(
+                            makeRectangle(0.0'f32, 0.0'f32, 100.0'f32, 100.0'f32),
+                            true, makeJustification(
+                                JustificationFlags_centred.cint))
+        doAssert path.getBounds().getWidth() == 10.0'f32,
+                 "getTransformToScaleToFit changed the path itself"
+        doAssert path.getBoundsTransformed(transform).getWidth() == 100.0'f32,
+                 "the transform scales the path to " &
+                 $path.getBoundsTransformed(transform).getWidth()
+
+    block:
+        # getClippedLine keeps whichever half of a line it is asked for.
+        var box = makePath()
+        box.addRectangle(0.0'f32, 0.0'f32, 100.0'f32, 100.0'f32)
+        let crossing = makeLine(-50.0'f32, 50.0'f32, 50.0'f32, 50.0'f32)
+
+        let inside = box.getClippedLine(crossing, false)
+        let outside = box.getClippedLine(crossing, true)
+        doAssert inside.getLength() < crossing.getLength(),
+                 "the clipped line is " & $inside.getLength() &
+                 " long and the original " & $crossing.getLength()
+        doAssert outside.getLength() < crossing.getLength(),
+                 "the outside half is " & $outside.getLength() & " long"
+        doAssert abs(inside.getLength() + outside.getLength() -
+                     crossing.getLength()) < 1.0'f32,
+                 "the two halves measure " & $inside.getLength() & " and " &
+                 $outside.getLength() & ", which is not the whole line"
+
+    block:
+        # A path survives a round trip through a stream, and preallocating
+        # space changes nothing a caller can see.
+        var path = makePath()
+        path.preallocateSpace(64.cint)
+        path.addStar(makePoint(0.0'f32, 0.0'f32), 7.cint, 4.0'f32, 10.0'f32,
+                     0.0'f32)
+
+        var output = makeMemoryOutputStream(256'u64)
+        path.writePathToStream(output)
+        doAssert output.getDataSize() > 0'u64,
+                 "writePathToStream wrote " & $output.getDataSize() & " bytes"
+
+        var input = makeMemoryInputStream(output.getData(),
+                                          output.getDataSize(), false)
+        var restored = makePath()
+        restored.loadPathFromStream(input)
+        doAssert restored.getBounds().getWidth() == path.getBounds().getWidth(),
+                 "the round trip through a stream gave a shape " &
+                 $restored.getBounds().getWidth() & " wide"
+
+        # And straight from the bytes, which is the other door to the same
+        # decoder.
+        var fromData = makePath()
+        fromData.loadPathFromData(output.getData(), output.getDataSize())
+        doAssert fromData.getBounds().getWidth() == path.getBounds().getWidth(),
+                 "loading from raw data gave a shape " &
+                 $fromData.getBounds().getWidth() & " wide"
+
+testPathShapes()
+
+# The remaining Graphics drawing calls, asserted on the pixels as before. Text
+# is asserted by lit-pixel count rather than by shape: what the glyphs look
+# like belongs to the host's fonts, but whether anything was drawn at all, and
+# where, belongs to the binding.
+proc testGraphicsTextAndImages() =
+    block:
+        # A dashed line leaves gaps, so it lights fewer pixels than a solid one
+        # over the same span.
+        let solid = makeImage(ImagePixelFormat_ARGB, 100.cint, 10.cint, true)
+        var g = makeGraphics(solid)
+        g.setColour(Colours_white)
+        g.drawLine(0.0'f32, 5.0'f32, 100.0'f32, 5.0'f32, 1.0'f32)
+
+        let dashed = makeImage(ImagePixelFormat_ARGB, 100.cint, 10.cint, true)
+        var g2 = makeGraphics(dashed)
+        g2.setColour(Colours_white)
+        var pattern = [6.0'f32, 6.0'f32]
+        g2.drawDashedLine(makeLine(0.0'f32, 5.0'f32, 100.0'f32, 5.0'f32),
+                          addr pattern[0], 2.cint, 1.0'f32, 0.cint)
+        doAssert litPixelCount(dashed) > 0, "the dashed line drew nothing"
+        doAssert litPixelCount(dashed) < litPixelCount(solid),
+                 "the dashed line lit " & $litPixelCount(dashed) &
+                 " pixels and the solid one " & $litPixelCount(solid)
+
+    block:
+        # An outlined ellipse and rounded rectangle leave their middles clear.
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        g.setColour(Colours_white)
+        g.drawEllipse(0.0'f32, 0.0'f32, 40.0'f32, 40.0'f32, 1.0'f32)
+        doAssert image.getPixelAt(20.cint, 20.cint).getAlpha() == 0'u8,
+                 "drawEllipse filled the middle"
+        doAssert image.getPixelAt(20.cint, 0.cint).getAlpha() > 0'u8,
+                 "drawEllipse missed the top of the circle"
+
+        let rounded = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g2 = makeGraphics(rounded)
+        g2.setColour(Colours_white)
+        g2.drawRoundedRectangle(0.0'f32, 0.0'f32, 40.0'f32, 40.0'f32, 8.0'f32,
+                                1.0'f32)
+        doAssert rounded.getPixelAt(20.cint, 20.cint).getAlpha() == 0'u8,
+                 "drawRoundedRectangle filled the middle"
+
+        # An arrow is drawn towards its second point, so it is heavier there.
+        let arrow = makeImage(ImagePixelFormat_ARGB, 100.cint, 40.cint, true)
+        var g3 = makeGraphics(arrow)
+        g3.setColour(Colours_white)
+        g3.drawArrow(makeLine(0.0'f32, 20.0'f32, 100.0'f32, 20.0'f32), 2.0'f32,
+                     14.0'f32, 20.0'f32)
+        var nearEnd, nearStart = 0
+        for x in 0.cint ..< 100.cint:
+            for y in 0.cint ..< 40.cint:
+                if arrow.getPixelAt(x, y).getAlpha() > 0'u8:
+                    if x > 80: nearEnd += 1
+                    elif x < 20: nearStart += 1
+        doAssert nearEnd > nearStart,
+                 "the arrowhead is at the start: " & $nearStart &
+                 " pixels there and " & $nearEnd & " at the end"
+
+    block:
+        # The three text calls all put pixels inside the area they were given
+        # and none outside it.
+        let image = makeImage(ImagePixelFormat_ARGB, 120.cint, 60.cint, true)
+        var g = makeGraphics(image)
+        g.setColour(Colours_white)
+        g.setFont(makeFont(makeFontOptions(14.0'f32)))
+
+        g.drawSingleLineText(makeString("single"), 4.cint, 20.cint,
+                             makeJustification(JustificationFlags_left.cint))
+        doAssert litPixelCount(image) > 0, "drawSingleLineText drew nothing"
+
+        let fitted = makeImage(ImagePixelFormat_ARGB, 120.cint, 60.cint, true)
+        var g2 = makeGraphics(fitted)
+        g2.setColour(Colours_white)
+        g2.drawFittedText(makeString("a longer piece of text that must fit"),
+                          makeRectangle(0.cint, 0.cint, 60.cint, 30.cint),
+                          makeJustification(JustificationFlags_centred.cint),
+                          3.cint, 1.0'f32, makeGlyphArrangementOptions())
+        doAssert litPixelCount(fitted) > 0, "drawFittedText drew nothing"
+        for x in 60.cint ..< 120.cint:
+            for y in 0.cint ..< 60.cint:
+                doAssert fitted.getPixelAt(x, y).getAlpha() == 0'u8,
+                         "drawFittedText painted outside its rectangle at " &
+                         $x & "," & $y
+
+        let multi = makeImage(ImagePixelFormat_ARGB, 120.cint, 60.cint, true)
+        var g3 = makeGraphics(multi)
+        g3.setColour(Colours_white)
+        g3.drawMultiLineText(makeString("one two three four five six seven"),
+                             2.cint, 14.cint, 60.cint,
+                             makeJustification(JustificationFlags_left.cint),
+                             0.0'f32)
+        doAssert litPixelCount(multi) > 0, "drawMultiLineText drew nothing"
+
+    block:
+        # The three image calls differ in how they place and scale the source.
+        let source = makeImage(ImagePixelFormat_ARGB, 10.cint, 10.cint, true)
+        var sourceGraphics = makeGraphics(source)
+        sourceGraphics.setColour(Colours_white)
+        sourceGraphics.fillAll()
+
+        # drawImage scales into the destination rectangle.
+        let scaled = makeImage(ImagePixelFormat_ARGB, 60.cint, 60.cint, true)
+        var g = makeGraphics(scaled)
+        g.drawImage(source, 0.cint, 0.cint, 40.cint, 40.cint,
+                    0.cint, 0.cint, 10.cint, 10.cint, false)
+        doAssert scaled.getPixelAt(35.cint, 35.cint).getAlpha() > 0'u8,
+                 "the scaled image did not reach the far corner"
+        doAssert scaled.getPixelAt(50.cint, 50.cint).getAlpha() == 0'u8,
+                 "the scaled image went past its rectangle"
+
+        # drawImageWithin fits it inside, keeping the proportions.
+        let within = makeImage(ImagePixelFormat_ARGB, 60.cint, 60.cint, true)
+        var g2 = makeGraphics(within)
+        g2.drawImageWithin(source, 0.cint, 0.cint, 40.cint, 40.cint,
+                           makeRectanglePlacement(
+                               RectanglePlacementFlags_centred.cint), false)
+        doAssert litPixelCount(within) > 0, "drawImageWithin drew nothing"
+
+        # drawImageTransformed puts it wherever the transform says.
+        let moved = makeImage(ImagePixelFormat_ARGB, 60.cint, 60.cint, true)
+        var g3 = makeGraphics(moved)
+        g3.drawImageTransformed(source,
+                                AffineTransform.translation(40.0'f32, 40.0'f32),
+                                false)
+        doAssert moved.getPixelAt(45.cint, 45.cint).getAlpha() > 0'u8,
+                 "the transformed image did not land where it was moved to"
+        doAssert moved.getPixelAt(5.cint, 5.cint).getAlpha() == 0'u8,
+                 "the transformed image was drawn at the origin too"
+
+        # A tiled fill repeats the source across the whole area.
+        let tiled = makeImage(ImagePixelFormat_ARGB, 60.cint, 60.cint, true)
+        var g4 = makeGraphics(tiled)
+        g4.setTiledImageFill(source, 0.cint, 0.cint, 1.0'f32)
+        g4.fillAll()
+        doAssert tiled.getPixelAt(5.cint, 5.cint).getAlpha() > 0'u8,
+                 "the tiled fill missed the first tile"
+        doAssert tiled.getPixelAt(55.cint, 55.cint).getAlpha() > 0'u8,
+                 "the tiled fill did not repeat to the far corner"
+
+    block:
+        # A checkerboard alternates two colours, so two cells differ.
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        g.fillCheckerBoard(makeRectangle(0.0'f32, 0.0'f32, 40.0'f32, 40.0'f32),
+                           10.0'f32, 10.0'f32, Colours_black, Colours_white)
+        doAssert image.getPixelAt(5.cint, 5.cint) !=
+                 image.getPixelAt(15.cint, 5.cint),
+                 "two neighbouring squares of the checkerboard are the same"
+
+        # A RectangleList fills every rectangle in it and nothing between them.
+        let rects = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g2 = makeGraphics(rects)
+        g2.setColour(Colours_white)
+        var list = makeRectangleList[cint]()
+        list.add(makeRectangle(0.cint, 0.cint, 10.cint, 10.cint))
+        list.add(makeRectangle(30.cint, 30.cint, 10.cint, 10.cint))
+        g2.fillRectList(list)
+        doAssert rects.getPixelAt(5.cint, 5.cint).getAlpha() > 0'u8,
+                 "the first rectangle was not filled"
+        doAssert rects.getPixelAt(35.cint, 35.cint).getAlpha() > 0'u8,
+                 "the second rectangle was not filled"
+        doAssert rects.getPixelAt(20.cint, 20.cint).getAlpha() == 0'u8,
+                 "the gap between the two rectangles was filled"
+
+    block:
+        # A transparency layer composites at the opacity it was opened with.
+        let image = makeImage(ImagePixelFormat_ARGB, 20.cint, 20.cint, true)
+        var g = makeGraphics(image)
+        g.setColour(Colours_white)
+        g.beginTransparencyLayer(0.5'f32)
+        g.fillAll()
+        g.endTransparencyLayer()
+        let alpha = image.getPixelAt(10.cint, 10.cint).getAlpha()
+        doAssert alpha > 100'u8 and alpha < 155'u8,
+                 "a half transparent layer composited to alpha " & $alpha
+
+        # resetToDefaultState puts the colour and opacity back.
+        g.setColour(Colours_red)
+        g.setOpacity(0.1'f32)
+        g.resetToDefaultState()
+        g.fillAll()
+        doAssert image.getPixelAt(10.cint, 10.cint).getAlpha() == 255'u8,
+                 "after resetToDefaultState the fill wrote alpha " &
+                 $image.getPixelAt(10.cint, 10.cint).getAlpha()
+
+        g.setImageResamplingQuality(
+            GraphicsResamplingQuality_highResamplingQuality)
+        doAssert not g.getInternalContext().addr.isNil,
+                 "the graphics has no internal context"
+
+initialiseJuce_GUI()
+testGraphicsTextAndImages()
+shutdownJuce_GUI()
+
+# GlyphArrangementOptions is what drawFittedText takes, and nothing could build
+# one: it has no constructor of its own and its fields are private, so the
+# generator's aggregate rule passed over it and every drawFittedText overload
+# was unreachable.
+proc testGlyphArrangementOptions() =
+    let base = makeGlyphArrangementOptions()
+    doAssert base.getLineSpacing() == 0.0'f32,
+             "the default line spacing is " & $base.getLineSpacing()
+    doAssert base.getLineHeightMultiple() == 1.0'f32,
+             "the default line height multiple is " &
+             $base.getLineHeightMultiple()
+
+    # The with- methods return a new object and leave the receiver alone.
+    let spaced = base.withLineSpacing(4.0'f32)
+    doAssert spaced.getLineSpacing() == 4.0'f32,
+             "the line spacing is " & $spaced.getLineSpacing()
+    doAssert base.getLineSpacing() == 0.0'f32,
+             "withLineSpacing changed the original"
+
+    let taller = base.withLineHeightMultiple(1.5'f32)
+    doAssert taller.getLineHeightMultiple() == 1.5'f32,
+             "the line height multiple is " & $taller.getLineHeightMultiple()
+    doAssert taller.getLineSpacing() == 0.0'f32,
+             "withLineHeightMultiple moved the line spacing too"
+
+    doAssert base == makeGlyphArrangementOptions(),
+             "two default options objects are not equal"
+    doAssert not (base == spaced), "two different options objects are equal"
+
+testGlyphArrangementOptions()
+
+# The rest of Font: the typeface style, the fallback list, the overrides and
+# the two setters that behave differently from the ones they resemble.
+proc testFontTypefaceAndOverrides() =
+    initialiseJuce_GUI()
+
+    block:
+        var font = makeFont(makeFontOptions(20.0'f32))
+        doAssert font.getTypefaceStyle().isNotEmpty(),
+                 "a new font has no typeface style"
+
+        # The available styles are whatever the host has for that family, so
+        # what is asserted is that the list is non-empty and that the current
+        # style is one of them.
+        let styles = font.getAvailableStyles()
+        doAssert styles.size() > 0,
+                 "the font's family offers " & $styles.size() & " styles"
+        doAssert styles.contains(font.getTypefaceStyle()),
+                 "the current style " & $font.getTypefaceStyle() &
+                 " is not among the ones on offer"
+
+        # withTypefaceStyle returns a new font; setTypefaceStyle changes this
+        # one. Both are asserted against the same style so the pair cannot
+        # disagree.
+        let wanted = styles[styles.size() - 1]
+        let restyled = font.withTypefaceStyle(wanted)
+        doAssert $restyled.getTypefaceStyle() == $wanted,
+                 "withTypefaceStyle gave " & $restyled.getTypefaceStyle()
+        doAssert $font.getTypefaceStyle() != $wanted or styles.size() == 1,
+                 "withTypefaceStyle changed the original"
+
+        font.setTypefaceStyle(wanted)
+        doAssert $font.getTypefaceStyle() == $wanted,
+                 "setTypefaceStyle gave " & $font.getTypefaceStyle()
+
+        doAssert not font.getTypefacePtr().isNil,
+                 "the font has no typeface behind it"
+        doAssert font.getMetricsKind() == TypefaceMetricsKind_portable or
+                 font.getMetricsKind() == TypefaceMetricsKind_legacy,
+                 "the metrics kind is neither of the two JUCE defines"
+
+    block:
+        # setHeightWithoutChangingWidth is the one that is NOT setHeight: it
+        # compensates the horizontal scale so the text keeps its width.
+        var plain = makeFont(makeFontOptions(20.0'f32))
+        var compensated = makeFont(makeFontOptions(20.0'f32))
+
+        plain.setHeight(40.0'f32)
+        compensated.setHeightWithoutChangingWidth(40.0'f32)
+
+        doAssert plain.getHeight() == compensated.getHeight(),
+                 "the two fonts are different heights: " & $plain.getHeight() &
+                 " and " & $compensated.getHeight()
+        doAssert plain.getHorizontalScale() != compensated.getHorizontalScale(),
+                 "both fonts have horizontal scale " &
+                 $plain.getHorizontalScale()
+        doAssert abs(compensated.getHorizontalScale() - 0.5'f32) < 1.0e-6'f32,
+                 "doubling the height compensated the scale to " &
+                 $compensated.getHorizontalScale() & " rather than halving it"
+
+        # setSizeAndStyle sets four things at once, and each reads back.
+        var styled = makeFont(makeFontOptions(10.0'f32))
+        styled.setSizeAndStyle(24.0'f32, FontFontStyleFlags_bold.cint,
+                               1.25'f32, 0.5'f32)
+        doAssert styled.getHeight() == 24.0'f32,
+                 "the height is " & $styled.getHeight()
+        doAssert styled.isBold(), "the style flags did not take"
+        doAssert abs(styled.getHorizontalScale() - 1.25'f32) < 1.0e-6'f32,
+                 "the horizontal scale is " & $styled.getHorizontalScale()
+        doAssert abs(styled.getExtraKerningFactor() - 0.5'f32) < 1.0e-6'f32,
+                 "the kerning is " & $styled.getExtraKerningFactor()
+
+    block:
+        # The ascent and descent overrides replace the typeface's own metrics,
+        # and an empty optional means "use the typeface's".
+        var font = makeFont(makeFontOptions(32.0'f32))
+        doAssert not font.getAscentOverride().hasValue(),
+                 "a new font overrides its ascent"
+        doAssert not font.getDescentOverride().hasValue(),
+                 "a new font overrides its descent"
+
+        let natural = font.getAscent()
+        font.setAscentOverride(makeCppOptional(0.9'f32))
+        doAssert font.getAscentOverride().hasValue(),
+                 "setAscentOverride did not take"
+        doAssert font.getAscentOverride().value() == 0.9'f32,
+                 "the override reads back as " & $font.getAscentOverride().value()
+        doAssert font.getAscent() != natural,
+                 "overriding the ascent left it at " & $font.getAscent()
+
+        font.setDescentOverride(makeCppOptional(0.1'f32))
+        doAssert font.getDescentOverride().value() == 0.1'f32,
+                 "the descent override reads back as " &
+                 $font.getDescentOverride().value()
+
+        font.setAscentOverride(makeCppOptionalEmpty[cfloat]())
+        doAssert not font.getAscentOverride().hasValue(),
+                 "an empty optional did not clear the override"
+
+        # The ascent does NOT come back yet: the two overrides are not
+        # independent. getAscent scales the raw ascent by 1/(ascent+descent)
+        # (juce_Font.cpp:796), so a descent override moves the ascent too.
+        # Both have to be cleared.
+        doAssert font.getAscent() != natural,
+                 "the ascent returned while the descent was still overridden"
+        font.setDescentOverride(makeCppOptionalEmpty[cfloat]())
+        doAssert font.getAscent() == natural,
+                 "clearing both overrides left the ascent at " & $font.getAscent()
+
+    block:
+        # The fallback list is consulted when a glyph is missing, and it round
+        # trips as a StringArray.
+        var font = makeFont(makeFontOptions(16.0'f32))
+        doAssert font.getFallbackEnabled(), "fallbacks start disabled"
+        font.setFallbackEnabled(false)
+        doAssert not font.getFallbackEnabled(), "the switch stayed on"
+        font.setFallbackEnabled(true)
+
+        doAssert font.getPreferredFallbackFamilies().size() == 0,
+                 "a new font names " &
+                 $font.getPreferredFallbackFamilies().size() & " fallbacks"
+
+        var families = makeStringArray()
+        families.add(Font.getDefaultMonospacedFontName())
+        families.add(Font.getDefaultSerifFontName())
+        font.setPreferredFallbackFamilies(families)
+        doAssert font.getPreferredFallbackFamilies().size() == 2,
+                 "the font names " &
+                 $font.getPreferredFallbackFamilies().size() & " fallbacks"
+        doAssert $font.getPreferredFallbackFamilies()[0.cint] ==
+                 $Font.getDefaultMonospacedFontName(),
+                 "the first fallback is " &
+                 $font.getPreferredFallbackFamilies()[0.cint]
+
+        # findSuitableFontForText answers with a font that can draw the text.
+        # For plain ASCII that is the font itself.
+        let suitable = font.findSuitableFontForText(makeString("abc"),
+                                                    makeString(""))
+        doAssert suitable.getHeight() == font.getHeight(),
+                 "the suitable font is " & $suitable.getHeight() &
+                 " tall and the original " & $font.getHeight()
+
+    shutdownJuce_GUI()
+
+testFontTypefaceAndOverrides()
+
+# Image's format conversions and its copy-on-write behaviour. The pixels are
+# what the assertions read, as everywhere else in this file.
+proc testImageFormatsAndCopies() =
+    initialiseJuce_GUI()
+
+    block:
+        # The format predicates each answer for their own format.
+        let argb = makeImage(ImagePixelFormat_ARGB, 10.cint, 10.cint, true)
+        doAssert argb.getFormat() == ImagePixelFormat_ARGB,
+                 "the format did not read back"
+        doAssert argb.isARGB(), "an ARGB image is not ARGB"
+        doAssert not argb.isRGB(), "an ARGB image is RGB"
+        doAssert not argb.isSingleChannel(), "an ARGB image is single channel"
+        doAssert argb.hasAlphaChannel(), "an ARGB image has no alpha channel"
+
+        let mask = makeImage(ImagePixelFormat_SingleChannel, 10.cint, 10.cint,
+                             true)
+        doAssert mask.isSingleChannel(), "a mask image is not single channel"
+        doAssert not mask.isARGB(), "a mask image is ARGB"
+
+        # A conversion keeps the pixels it can and drops what the new format
+        # has no room for.
+        var g = makeGraphics(argb)
+        g.setColour(Colours_red)
+        g.fillAll()
+        # The requested format is a REQUEST: convertedToFormat asks the image
+        # TYPE to create one (juce_Image.cpp:768), and a native type gives
+        # whatever the platform's own image format is - CoreGraphics has no
+        # 24-bit RGB, so a conversion to RGB comes back ARGB on macOS. What
+        # holds everywhere is that the size and the colour survive and the
+        # original is untouched.
+        let asRgb = argb.convertedToFormat(ImagePixelFormat_RGB)
+        doAssert asRgb.getPixelAt(5.cint, 5.cint).getRed() == 255'u8,
+                 "the conversion lost the red channel: " &
+                 $asRgb.getPixelAt(5.cint, 5.cint).getRed()
+        doAssert asRgb.getWidth() == 10 and asRgb.getHeight() == 10,
+                 "the conversion resized the image to " & $asRgb.getWidth() &
+                 "x" & $asRgb.getHeight()
+        doAssert argb.isARGB(), "the conversion changed the original's format"
+
+        # A conversion to SingleChannel does change the format, on every
+        # platform, because there is no native format that could stand in.
+        let asMask = argb.convertedToFormat(ImagePixelFormat_SingleChannel)
+        doAssert asMask.isSingleChannel(),
+                 "the conversion to a mask did not take"
+        doAssert not asMask.isARGB(), "the mask is still ARGB"
+
+        doAssert not argb.getPixelData().isNil,
+                 "the image has no pixel data behind it"
+
+    block:
+        # An Image is a handle onto shared pixels, so a plain assignment shares
+        # them and createCopy does not.
+        let original = makeImage(ImagePixelFormat_ARGB, 20.cint, 20.cint, true)
+        var g = makeGraphics(original)
+        g.setColour(Colours_white)
+        g.fillAll()
+
+        let shared = original
+        var sharedGraphics = makeGraphics(shared)
+        sharedGraphics.setColour(Colours_black)
+        sharedGraphics.fillAll()
+        doAssert original.getPixelAt(5.cint, 5.cint).getRed() == 0'u8,
+                 "writing through the shared handle did not reach the original"
+
+        let independent = original.createCopy()
+        var copyGraphics = makeGraphics(independent)
+        copyGraphics.setColour(Colours_white)
+        copyGraphics.fillAll()
+        doAssert original.getPixelAt(5.cint, 5.cint).getRed() == 0'u8,
+                 "writing through the copy reached the original"
+        doAssert independent.getPixelAt(5.cint, 5.cint).getRed() == 255'u8,
+                 "the copy did not take the write"
+
+        # duplicateIfShared gives a handle nothing else holds.
+        var toDuplicate = original
+        toDuplicate.duplicateIfShared()
+        var duplicateGraphics = makeGraphics(toDuplicate)
+        duplicateGraphics.setColour(Colours_white)
+        duplicateGraphics.fillAll()
+        doAssert original.getPixelAt(5.cint, 5.cint).getRed() == 0'u8,
+                 "the duplicated handle still shared the original's pixels"
+
+    block:
+        # A clipped image is a window onto the same pixels, sized to the clip.
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        g.setColour(Colours_white)
+        g.fillRect(makeRectangle(20.cint, 20.cint, 20.cint, 20.cint))
+
+        let clipped = image.getClippedImage(
+            makeRectangle(20.cint, 20.cint, 20.cint, 20.cint))
+        doAssert clipped.getWidth() == 20 and clipped.getHeight() == 20,
+                 "the clipped image measures " & $clipped.getWidth() & "x" &
+                 $clipped.getHeight()
+        doAssert clipped.getPixelAt(0.cint, 0.cint).getAlpha() > 0'u8,
+                 "the clipped image's origin is empty, so it clipped the " &
+                 "wrong corner"
+
+    block:
+        # The whole-image operations each change the pixels in their own way.
+        var image = makeImage(ImagePixelFormat_ARGB, 20.cint, 20.cint, true)
+        var g = makeGraphics(image)
+        g.setColour(Colour.fromRGB(255'u8, 0'u8, 0'u8))
+        g.fillAll()
+
+        image.multiplyAllAlphas(0.5'f32)
+        let alpha = image.getPixelAt(5.cint, 5.cint).getAlpha()
+        doAssert alpha > 100'u8 and alpha < 155'u8,
+                 "halving the alpha gave " & $alpha
+
+        image.multiplyAlphaAt(1.cint, 1.cint, 0.0'f32)
+        doAssert image.getPixelAt(1.cint, 1.cint).getAlpha() == 0'u8,
+                 "the single pixel's alpha is " &
+                 $image.getPixelAt(1.cint, 1.cint).getAlpha()
+        doAssert image.getPixelAt(5.cint, 5.cint).getAlpha() == alpha,
+                 "changing one pixel changed its neighbours"
+
+        # Desaturating makes the three channels equal.
+        image.desaturate()
+        let pixel = image.getPixelAt(5.cint, 5.cint)
+        doAssert pixel.getRed() == pixel.getGreen() and
+                 pixel.getGreen() == pixel.getBlue(),
+                 "the desaturated pixel is " & $pixel.toString()
+
+        # moveImageSection copies a block to another place in the same image.
+        var source = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var sourceGraphics = makeGraphics(source)
+        sourceGraphics.setColour(Colours_white)
+        sourceGraphics.fillRect(makeRectangle(0.cint, 0.cint, 10.cint, 10.cint))
+        doAssert source.getPixelAt(25.cint, 25.cint).getAlpha() == 0'u8,
+                 "the destination was not empty before the move"
+        source.moveImageSection(20.cint, 20.cint, 0.cint, 0.cint,
+                                10.cint, 10.cint)
+        doAssert source.getPixelAt(25.cint, 25.cint).getAlpha() > 0'u8,
+                 "the section did not arrive at its destination"
+
+    block:
+        # A solid-area mask is a single-channel image of where the alpha was.
+        var image = makeImage(ImagePixelFormat_ARGB, 20.cint, 20.cint, true)
+        var g = makeGraphics(image)
+        g.setColour(Colours_white)
+        g.fillRect(makeRectangle(0.cint, 0.cint, 10.cint, 20.cint))
+
+        # createSolidAreaMask writes a RECTANGLE LIST covering the pixels above
+        # the threshold, through an out parameter - it does not return an
+        # image. The left half was filled and the right half was not, so the
+        # rectangles cover the left half and no more.
+        var solid = makeRectangleList[cint]()
+        image.createSolidAreaMask(solid, 0.5'f32)
+        doAssert not solid.isEmpty(), "the solid area mask found nothing"
+        doAssert solid.getBounds().getWidth() <= 10,
+                 "the mask covers " & $solid.getBounds().getWidth() &
+                 " columns of a half-filled image"
+        doAssert solid.getBounds().getHeight() == 20,
+                 "the mask is " & $solid.getBounds().getHeight() & " tall"
+
+        # A low-level context draws into the image the same way a Graphics
+        # does, because a Graphics is a wrapper over one.
+        var context = image.createLowLevelContext()
+        doAssert not context.isNil(), "the image made no low level context"
+
+        discard image.setBackupEnabled(false)
+
+    shutdownJuce_GUI()
+
+testImageFormatsAndCopies()
+
+# GlyphArrangement is the laid-out text a Graphics draws. Every assertion here
+# is on the glyph count or the bounding box, which are the two things that hold
+# whatever font the host has installed.
+proc testGlyphArrangement() =
+    initialiseJuce_GUI()
+
+    block:
+        let font = makeFont(makeFontOptions(16.0'f32))
+        var glyphs = makeGlyphArrangement()
+        doAssert glyphs.getNumGlyphs() == 0,
+                 "a new arrangement holds " & $glyphs.getNumGlyphs() & " glyphs"
+
+        glyphs.addLineOfText(font, makeString("abc"), 0.0'f32, 20.0'f32)
+        doAssert glyphs.getNumGlyphs() == 3,
+                 "three characters gave " & $glyphs.getNumGlyphs() & " glyphs"
+
+        # The bounding box covers the glyphs it is asked about, and a wider
+        # range covers more.
+        let firstOnly = glyphs.getBoundingBox(0.cint, 1.cint, true)
+        let allThree = glyphs.getBoundingBox(0.cint, 3.cint, true)
+        doAssert firstOnly.getWidth() > 0.0'f32,
+                 "one glyph measures " & $firstOnly.getWidth() & " wide"
+        doAssert allThree.getWidth() > firstOnly.getWidth(),
+                 "three glyphs measure " & $allThree.getWidth() &
+                 " and one measures " & $firstOnly.getWidth()
+
+        # findGlyphIndexAt asks each GLYPH to hit-test the point, not the
+        # arrangement's bounding box (juce_GlyphArrangement.cpp:763), so the
+        # point has to come from the glyph's own rectangle - the two are not
+        # the same, because the bounding box is built from different metrics.
+        # And the hit test wants the point inside the glyph's OUTLINE, not
+        # merely inside its rectangle (juce_GlyphArrangement.cpp:124) - the
+        # centre of an "a" can fall in the hole. So the box is scanned for a
+        # point that is on the letter, and the assertion is that one exists
+        # and names glyph 0.
+        let glyphBounds = glyphs.getGlyph(0.cint).getBounds()
+        var found = -1
+        for step in 0 ..< 100:
+            let x = glyphBounds.getX() +
+                    glyphBounds.getWidth() * float32(step mod 10) / 10.0'f32
+            let y = glyphBounds.getY() +
+                    glyphBounds.getHeight() * float32(step div 10) / 10.0'f32
+            if glyphs.findGlyphIndexAt(x, y) == 0:
+                found = 0
+                break
+        doAssert found == 0,
+                 "no point in the first glyph's rectangle is on the glyph"
+        doAssert glyphs.findGlyphIndexAt(1000.0'f32, 1000.0'f32) == -1,
+                 "a point far away names glyph " &
+                 $glyphs.findGlyphIndexAt(1000.0'f32, 1000.0'f32)
+
+        # A glyph knows its own character, and its rectangle agrees with the
+        # separate edge accessors.
+        doAssert glyphs.getGlyph(0.cint).getCharacter() == uint16('a'),
+                 "the first glyph is not an 'a'"
+        doAssert glyphBounds.getX() == glyphs.getGlyph(0.cint).getLeft(),
+                 "getBounds and getLeft disagree"
+        doAssert glyphBounds.getRight() == glyphs.getGlyph(0.cint).getRight(),
+                 "getBounds and getRight disagree"
+        doAssert not glyphs.getGlyph(0.cint).isWhitespace(),
+                 "the letter 'a' is whitespace"
+
+    block:
+        # moveRangeOfGlyphs shifts the glyphs it names and leaves the rest.
+        let font = makeFont(makeFontOptions(16.0'f32))
+        var glyphs = makeGlyphArrangement()
+        glyphs.addLineOfText(font, makeString("abcd"), 0.0'f32, 20.0'f32)
+
+        let firstBefore = glyphs.getBoundingBox(0.cint, 1.cint, true)
+        let lastBefore = glyphs.getBoundingBox(3.cint, 1.cint, true)
+
+        glyphs.moveRangeOfGlyphs(0.cint, 2.cint, 100.0'f32, 0.0'f32)
+        doAssert abs(glyphs.getBoundingBox(0.cint, 1.cint, true).getX() -
+                     (firstBefore.getX() + 100.0'f32)) < 0.5'f32,
+                 "the moved glyph is at " &
+                 $glyphs.getBoundingBox(0.cint, 1.cint, true).getX() &
+                 " and was at " & $firstBefore.getX()
+        doAssert abs(glyphs.getBoundingBox(3.cint, 1.cint, true).getX() -
+                     lastBefore.getX()) < 0.5'f32,
+                 "moving the first two glyphs moved the last one too"
+
+        # stretchRangeOfGlyphs widens them.
+        let widthBefore = glyphs.getBoundingBox(2.cint, 2.cint, true).getWidth()
+        glyphs.stretchRangeOfGlyphs(2.cint, 2.cint, 2.0'f32)
+        doAssert glyphs.getBoundingBox(2.cint, 2.cint, true).getWidth() >
+                 widthBefore,
+                 "stretching by two gave " &
+                 $glyphs.getBoundingBox(2.cint, 2.cint, true).getWidth() &
+                 " from " & $widthBefore
+
+        # removeRangeOfGlyphs takes exactly what it names.
+        glyphs.removeRangeOfGlyphs(0.cint, 2.cint)
+        doAssert glyphs.getNumGlyphs() == 2,
+                 "removing two of four left " & $glyphs.getNumGlyphs()
+        doAssert glyphs.getGlyph(0.cint).getCharacter() == uint16('c'),
+                 "the survivor is not the third character"
+
+        glyphs.clear()
+        doAssert glyphs.getNumGlyphs() == 0,
+                 "clear left " & $glyphs.getNumGlyphs() & " glyphs"
+
+    block:
+        # The three text-layout entry points each produce glyphs, and the
+        # curtailed one produces no more than the plain one for text that does
+        # not fit.
+        let font = makeFont(makeFontOptions(16.0'f32))
+        let sentence = makeString("a longer piece of text")
+
+        var plain = makeGlyphArrangement()
+        plain.addLineOfText(font, sentence, 0.0'f32, 20.0'f32)
+
+        var curtailed = makeGlyphArrangement()
+        curtailed.addCurtailedLineOfText(font, sentence, 0.0'f32, 20.0'f32,
+                                         30.0'f32, true)
+        doAssert curtailed.getNumGlyphs() > 0,
+                 "the curtailed line produced no glyphs"
+        doAssert curtailed.getNumGlyphs() < plain.getNumGlyphs(),
+                 "curtailing to 30 pixels gave " & $curtailed.getNumGlyphs() &
+                 " glyphs and the full line gave " & $plain.getNumGlyphs()
+
+        var justified = makeGlyphArrangement()
+        justified.addJustifiedText(font, sentence, 0.0'f32, 20.0'f32, 60.0'f32,
+                                   makeJustification(
+                                       JustificationFlags_left.cint), 0.0'f32)
+        doAssert justified.getNumGlyphs() > 0,
+                 "the justified text produced no glyphs"
+        doAssert justified.getBoundingBox(
+                     0.cint, justified.getNumGlyphs(), false).getHeight() >
+                 plain.getBoundingBox(0.cint, plain.getNumGlyphs(),
+                                      false).getHeight(),
+                 "wrapping to 60 pixels did not make the text taller than one line"
+
+        var fitted = makeGlyphArrangement()
+        fitted.addFittedText(font, sentence, 0.0'f32, 0.0'f32, 60.0'f32,
+                             40.0'f32,
+                             makeJustification(JustificationFlags_centred.cint),
+                             2.cint, 1.0'f32, makeGlyphArrangementOptions())
+        doAssert fitted.getNumGlyphs() > 0, "the fitted text produced no glyphs"
+
+    block:
+        # One arrangement appended to another gives the sum of their glyphs,
+        # and a single glyph can be appended too.
+        let font = makeFont(makeFontOptions(16.0'f32))
+        var first = makeGlyphArrangement()
+        first.addLineOfText(font, makeString("ab"), 0.0'f32, 20.0'f32)
+        var second = makeGlyphArrangement()
+        second.addLineOfText(font, makeString("cde"), 0.0'f32, 40.0'f32)
+
+        first.addGlyphArrangement(second)
+        doAssert first.getNumGlyphs() == 5,
+                 "two and three glyphs gave " & $first.getNumGlyphs()
+
+        first.addGlyph(second.getGlyph(0.cint))
+        doAssert first.getNumGlyphs() == 6,
+                 "appending one glyph gave " & $first.getNumGlyphs()
+
+        # justifyGlyphs moves a range into a rectangle, so the glyphs end up
+        # inside it.
+        first.justifyGlyphs(0.cint, first.getNumGlyphs(), 10.0'f32, 10.0'f32,
+                            200.0'f32, 100.0'f32,
+                            makeJustification(JustificationFlags_centred.cint))
+        let box = first.getBoundingBox(0.cint, first.getNumGlyphs(), false)
+        doAssert box.getX() >= 10.0'f32 and box.getRight() <= 210.0'f32,
+                 "the justified glyphs run from " & $box.getX() & " to " &
+                 $box.getRight()
+
+    shutdownJuce_GUI()
+
+testGlyphArrangement()
+
+# AffineTransform's algebra. Every one of these is a matrix built from another,
+# so the assertions are on what the matrix DOES to a point rather than on its
+# six coefficients - a transposed pair would pass a coefficient check.
+#
+# The transform is applied through the POINT, because AffineTransform's own
+# transformPoint takes its arguments by reference and writes back through them.
+proc testAffineTransformAlgebra() =
+    block:
+        let identity = AffineTransform.identity()
+        doAssert identity.isIdentity(), "the identity is not the identity"
+        doAssert identity.isOnlyTranslation(), "the identity is not a translation"
+        doAssert identity.isOnlyTranslationOrScale(),
+                 "the identity is neither a translation nor a scale"
+        doAssert not identity.isSingularity(), "the identity is singular"
+        doAssert identity.getDeterminant() == 1.0'f32,
+                 "the identity's determinant is " & $identity.getDeterminant()
+
+        # A translation moves a point and preserves distances, so its
+        # determinant stays 1.
+        let moved = AffineTransform.translation(10.0'f32, 20.0'f32)
+        doAssert makePoint(1.0'f32, 2.0'f32).transformedBy(moved) ==
+                 makePoint(11.0'f32, 22.0'f32),
+                 "the translated point is " &
+                 $makePoint(1.0'f32, 2.0'f32).transformedBy(moved)
+        doAssert moved.isOnlyTranslation(), "a translation is not one"
+        doAssert moved.getDeterminant() == 1.0'f32,
+                 "a translation's determinant is " & $moved.getDeterminant()
+
+        # A scale multiplies both axes, and its determinant is the product.
+        let bigger = AffineTransform.scale(2.0'f32, 3.0'f32)
+        doAssert makePoint(1.0'f32, 1.0'f32).transformedBy(bigger) ==
+                 makePoint(2.0'f32, 3.0'f32),
+                 "the scaled point is " &
+                 $makePoint(1.0'f32, 1.0'f32).transformedBy(bigger)
+        doAssert not bigger.isOnlyTranslation(), "a scale is only a translation"
+        doAssert bigger.isOnlyTranslationOrScale(),
+                 "a scale is neither a translation nor a scale"
+        doAssert abs(bigger.getDeterminant() - 6.0'f32) < 1.0e-6'f32,
+                 "a 2 by 3 scale has determinant " & $bigger.getDeterminant()
+
+        # A rotation is neither, and a quarter turn takes (1, 0) to (0, 1).
+        let turned = AffineTransform.rotation(1.5707963'f32)
+        doAssert not turned.isOnlyTranslationOrScale(),
+                 "a rotation counts as a translation or scale"
+        let spun = makePoint(1.0'f32, 0.0'f32).transformedBy(turned)
+        doAssert abs(spun.getX()) < 1.0e-4'f32 and
+                 abs(spun.getY() - 1.0'f32) < 1.0e-4'f32,
+                 "a quarter turn took (1, 0) to " & $spun
+
+        # A shear is none of them.
+        doAssert not AffineTransform.identity().sheared(
+                     1.0'f32, 0.0'f32).isOnlyTranslationOrScale(),
+                 "a shear counts as a translation or scale"
+
+    block:
+        # followedBy composes, and the ORDER matters: scaling then translating
+        # is not the same as translating then scaling.
+        let scale = AffineTransform.scale(2.0'f32)
+        let move = AffineTransform.translation(10.0'f32, 0.0'f32)
+        let unit = makePoint(1.0'f32, 0.0'f32)
+
+        let scaleThenMove = scale.followedBy(move)
+        let moveThenScale = move.followedBy(scale)
+        doAssert unit.transformedBy(scaleThenMove) == makePoint(12.0'f32, 0.0'f32),
+                 "scale then move took (1, 0) to " &
+                 $unit.transformedBy(scaleThenMove)
+        doAssert unit.transformedBy(moveThenScale) == makePoint(22.0'f32, 0.0'f32),
+                 "move then scale took (1, 0) to " &
+                 $unit.transformedBy(moveThenScale)
+
+        # The derived forms are the same composition written shorter.
+        doAssert unit.transformedBy(scale.translated(10.0'f32, 0.0'f32)) ==
+                 unit.transformedBy(scaleThenMove),
+                 "translated and followedBy(translation) disagree"
+        doAssert makePoint(3.0'f32, 0.0'f32).transformedBy(
+                     AffineTransform.identity().scaled(2.0'f32)) ==
+                 makePoint(6.0'f32, 0.0'f32),
+                 "scaled gave a different point than scale"
+        doAssert unit.transformedBy(
+                     AffineTransform.identity().rotated(1.5707963'f32)).getY() >
+                 0.9'f32,
+                 "rotated did not turn the point"
+
+    block:
+        # An inverse undoes what the transform did, which is the only property
+        # that makes it an inverse.
+        let transform = AffineTransform.scale(2.0'f32, 4.0'f32)
+                                       .translated(5.0'f32, 7.0'f32)
+                                       .rotated(0.3'f32)
+        let point = makePoint(11.0'f32, 13.0'f32)
+        let roundTripped = point.transformedBy(transform)
+                                .transformedBy(transform.inverted())
+        doAssert abs(roundTripped.getX() - point.getX()) < 1.0e-3'f32 and
+                 abs(roundTripped.getY() - point.getY()) < 1.0e-3'f32,
+                 "a round trip through the inverse gave " & $roundTripped
+
+        # A singular transform cannot be inverted, and says so.
+        let flat = AffineTransform.scale(0.0'f32, 1.0'f32)
+        doAssert flat.isSingularity(), "a zero scale is not singular"
+        doAssert flat.getDeterminant() == 0.0'f32,
+                 "a zero scale has determinant " & $flat.getDeterminant()
+
+    block:
+        # withAbsoluteTranslation replaces the translation and keeps the rest,
+        # which is what distinguishes it from translated().
+        let scaled = AffineTransform.scale(2.0'f32)
+                                    .translated(100.0'f32, 100.0'f32)
+        let unit = makePoint(1.0'f32, 0.0'f32)
+        doAssert unit.transformedBy(
+                     scaled.withAbsoluteTranslation(0.0'f32, 0.0'f32)) ==
+                 makePoint(2.0'f32, 0.0'f32),
+                 "the replaced translation left the point at " &
+                 $unit.transformedBy(scaled.withAbsoluteTranslation(0.0'f32,
+                                                                    0.0'f32))
+        doAssert unit.transformedBy(scaled) == makePoint(102.0'f32, 100.0'f32),
+                 "withAbsoluteTranslation changed the original"
+
+        # A Rectangle transforms the same way, through itself.
+        doAssert makeRectangle(0.0'f32, 0.0'f32, 10.0'f32, 10.0'f32)
+                     .transformedBy(AffineTransform.scale(2.0'f32))
+                     .getWidth() == 20.0'f32,
+                 "a scaled rectangle is " &
+                 $makeRectangle(0.0'f32, 0.0'f32, 10.0'f32, 10.0'f32)
+                      .transformedBy(AffineTransform.scale(2.0'f32)).getWidth() &
+                 " wide"
+
+testAffineTransformAlgebra()
+
+# Colour's remaining with- methods. Each replaces one component of the polar
+# form; each Multiplied one scales it instead. Both kinds are asserted against
+# a starting colour with a known value, so a with- method wired to the wrong
+# component fails.
+proc testColourComponentReplacement() =
+    block:
+        # A mid-blue: hue 0.6, saturation 0.8, brightness 0.7.
+        let base = Colour.fromHSV(0.6'f32, 0.8'f32, 0.7'f32, 1.0'f32)
+
+        # Each with- sets its own component and leaves the other two.
+        let rehued = base.withHue(0.1'f32)
+        doAssert abs(rehued.getHue() - 0.1'f32) < 1.0e-2'f32,
+                 "withHue gave hue " & $rehued.getHue()
+        doAssert abs(rehued.getSaturation() - base.getSaturation()) < 1.0e-2'f32,
+                 "withHue moved the saturation to " & $rehued.getSaturation()
+        doAssert abs(rehued.getBrightness() - base.getBrightness()) < 1.0e-2'f32,
+                 "withHue moved the brightness to " & $rehued.getBrightness()
+
+        let desaturated = base.withSaturation(0.2'f32)
+        doAssert abs(desaturated.getSaturation() - 0.2'f32) < 1.0e-2'f32,
+                 "withSaturation gave " & $desaturated.getSaturation()
+        doAssert abs(desaturated.getHue() - base.getHue()) < 1.0e-2'f32,
+                 "withSaturation moved the hue to " & $desaturated.getHue()
+
+        doAssert base.getSaturation() > 0.7'f32,
+                 "the original's saturation is " & $base.getSaturation() &
+                 ", so with- did change it"
+
+        # The HSL pair is a different decomposition, so withLightness and
+        # withSaturationHSL move the HSL numbers rather than the HSV ones.
+        let relit = base.withLightness(0.3'f32)
+        doAssert abs(relit.getLightness() - 0.3'f32) < 1.0e-2'f32,
+                 "withLightness gave " & $relit.getLightness()
+        doAssert abs(relit.getHue() - base.getHue()) < 1.0e-2'f32,
+                 "withLightness moved the hue to " & $relit.getHue()
+
+        let hslDesaturated = base.withSaturationHSL(0.25'f32)
+        doAssert abs(hslDesaturated.getSaturationHSL() - 0.25'f32) < 1.0e-2'f32,
+                 "withSaturationHSL gave " & $hslDesaturated.getSaturationHSL()
+
+    block:
+        # The Multiplied forms SCALE rather than replace, so halving twice is
+        # not the same as setting to a half.
+        let base = Colour.fromHSV(0.6'f32, 0.8'f32, 0.8'f32, 1.0'f32)
+
+        doAssert abs(base.withMultipliedSaturation(0.5'f32).getSaturation() -
+                     base.getSaturation() * 0.5'f32) < 1.0e-2'f32,
+                 "halving the saturation gave " &
+                 $base.withMultipliedSaturation(0.5'f32).getSaturation()
+        doAssert abs(base.withMultipliedSaturation(0.5'f32)
+                         .withMultipliedSaturation(0.5'f32).getSaturation() -
+                     base.getSaturation() * 0.25'f32) < 1.0e-2'f32,
+                 "halving twice gave " &
+                 $base.withMultipliedSaturation(0.5'f32)
+                      .withMultipliedSaturation(0.5'f32).getSaturation()
+
+        doAssert base.withMultipliedSaturationHSL(0.5'f32).getSaturationHSL() <
+                 base.getSaturationHSL(),
+                 "the HSL saturation did not come down"
+        doAssert base.withMultipliedLightness(0.5'f32).getLightness() <
+                 base.getLightness(),
+                 "the lightness did not come down"
+
+        # Alpha scales the same way, and a multiplier of zero clears it.
+        let half = base.withMultipliedAlpha(0.5'f32)
+        doAssert half.getAlpha() > 100'u8 and half.getAlpha() < 155'u8,
+                 "halving the alpha gave " & $half.getAlpha()
+        doAssert base.withMultipliedAlpha(0.0'f32).isTransparent(),
+                 "a zero alpha multiplier left the colour visible"
+        doAssert base.isOpaque(),
+                 "withMultipliedAlpha changed the original"
+
+    block:
+        # The two packed forms differ in whether the colour channels are
+        # premultiplied by the alpha, which shows only when alpha is not full.
+        let opaque = Colour.fromRGBA(200'u8, 100'u8, 50'u8, 255'u8)
+        doAssert opaque.getPixelARGB().getRed() ==
+                 opaque.getNonPremultipliedPixelARGB().getRed(),
+                 "at full alpha the two packed forms differ: " &
+                 $opaque.getPixelARGB().getRed() & " against " &
+                 $opaque.getNonPremultipliedPixelARGB().getRed()
+
+        let faded = Colour.fromRGBA(200'u8, 100'u8, 50'u8, 128'u8)
+        doAssert faded.getNonPremultipliedPixelARGB().getRed() == 200'u8,
+                 "the non-premultiplied red is " &
+                 $faded.getNonPremultipliedPixelARGB().getRed()
+        doAssert faded.getPixelARGB().getRed() < 200'u8,
+                 "the premultiplied red is " &
+                 $faded.getPixelARGB().getRed() & ", which is not scaled down"
+
+testColourComponentReplacement()
+
+# Typeface is the loaded font behind a Font. Which glyphs a typeface has and
+# what shape they are belongs to the host, so the assertions are on the
+# RELATIONS between what it reports rather than on any particular number.
+proc testTypefaceGlyphs() =
+    initialiseJuce_GUI()
+
+    block:
+        let font = makeFont(makeFontOptions(24.0'f32))
+        var typeface = font.getTypefacePtr()
+        doAssert not typeface.isNil(), "the font has no typeface behind it"
+
+        # A codepoint maps to a glyph number, and the answer is an OPTIONAL:
+        # a typeface that has no glyph for a codepoint says so rather than
+        # returning a sentinel.
+        let found = typeface.get()[].getNominalGlyphForCodepoint(uint16(ord('A')))
+        doAssert found.hasValue(), "the typeface has no glyph for 'A'"
+        let letter = cint(found.value())
+
+        # The metrics describe the typeface as a whole. There is no descent
+        # field: JUCE stores the ascent and the factor that turns a height
+        # into points, and the descent follows from the two.
+        let metrics = typeface.get()[].getMetrics(TypefaceMetricsKind_portable)
+        doAssert metrics.ascent() > 0.0'f32,
+                 "the ascent fraction is " & $metrics.ascent()
+        doAssert metrics.ascent() < 1.0'f32,
+                 "the ascent fraction is " & $metrics.ascent() &
+                 ", which is the whole line"
+        doAssert metrics.heightToPoints() > 0.0'f32,
+                 "the height-to-points factor is " & $metrics.heightToPoints()
+
+        # The legacy metrics kind is a different convention for the same
+        # typeface, and it answers with numbers in the same ranges. They are
+        # not compared with == : JUCE gives TypefaceMetrics no operator==, and
+        # the binding refuses the comparison rather than letting Nim compare an
+        # importcpp object structurally.
+        let legacy = typeface.get()[].getMetrics(TypefaceMetricsKind_legacy)
+        doAssert legacy.ascent() > 0.0'f32 and legacy.ascent() < 1.0'f32,
+                 "the legacy ascent fraction is " & $legacy.ascent()
+
+        # A glyph has a bounding box, and the letter 'W' is wider than 'i' in
+        # any font a human would use.
+        let wide = cint(typeface.get()[]
+            .getNominalGlyphForCodepoint(uint16(ord('W'))).value())
+        let narrow = cint(typeface.get()[]
+            .getNominalGlyphForCodepoint(uint16(ord('i'))).value())
+        doAssert typeface.get()[].getGlyphBounds(wide).getWidth() >
+                 typeface.get()[].getGlyphBounds(narrow).getWidth(),
+                 "'W' measures " &
+                 $typeface.get()[].getGlyphBounds(wide).getWidth() &
+                 " and 'i' measures " &
+                 $typeface.get()[].getGlyphBounds(narrow).getWidth()
+
+        # An outline is a Path, and a letter's outline is not empty.
+        var outline = makePath()
+        typeface.get()[].getOutlineForGlyph(letter, outline)
+        doAssert not outline.isEmpty(), "the outline for 'A' is empty"
+
+        # The feature and colour lists are whatever the typeface supports;
+        # what is asserted is that they answer rather than what they hold.
+        discard typeface.get()[].getSupportedFeatures()
+        discard typeface.get()[].getColourGlyphFormats()
+        discard typeface.get()[].getLayersForGlyph(letter,
+                                                   AffineTransform.identity())
+
+        # createSystemFallback finds a typeface that can draw text this one
+        # cannot. For plain ASCII it may answer with anything, so what is
+        # asserted is that it answers at all.
+        doAssert not typeface.get()[].createSystemFallback(
+                     makeString("hello"), makeString("en")).isNil(),
+                 "no fallback typeface was found for English"
+
+    shutdownJuce_GUI()
+
+testTypefaceGlyphs()
+
+# PixelARGB is the packed pixel a Colour turns into. The premultiplied and
+# non-premultiplied forms are the pair to get right, and they differ only when
+# the alpha is not full.
+proc testPixelARGB() =
+    block:
+        # A fully opaque pixel is the same either way.
+        let opaque = Colour.fromRGBA(200'u8, 100'u8, 50'u8, 255'u8)
+        var packed = opaque.getPixelARGB()
+        doAssert packed.getRed() == 200'u8 and packed.getGreen() == 100'u8 and
+                 packed.getBlue() == 50'u8 and packed.getAlpha() == 255'u8,
+                 "the packed pixel is " & $packed.getRed() & "," &
+                 $packed.getGreen() & "," & $packed.getBlue()
+
+        # unpremultiply and premultiply are inverses at full alpha, because
+        # there is nothing to scale.
+        var roundTripped = opaque.getPixelARGB()
+        roundTripped.unpremultiply()
+        roundTripped.premultiply()
+        doAssert roundTripped.getRed() == 200'u8,
+                 "a round trip at full alpha gave red " & $roundTripped.getRed()
+
+    block:
+        # At half alpha the two forms differ, which is the whole point of the
+        # distinction.
+        let faded = Colour.fromRGBA(200'u8, 100'u8, 50'u8, 128'u8)
+        var premultiplied = faded.getPixelARGB()
+        var plain = faded.getNonPremultipliedPixelARGB()
+
+        doAssert plain.getRed() == 200'u8,
+                 "the non-premultiplied red is " & $plain.getRed()
+        doAssert premultiplied.getRed() < 200'u8,
+                 "the premultiplied red is " & $premultiplied.getRed() &
+                 ", which is not scaled by the alpha"
+        doAssert premultiplied.getAlpha() == plain.getAlpha(),
+                 "the two forms disagree on the alpha: " &
+                 $premultiplied.getAlpha() & " and " & $plain.getAlpha()
+
+        # getUnpremultiplied gives the other form without changing this one.
+        let recovered = premultiplied.getUnpremultiplied()
+        doAssert recovered.getRed() > premultiplied.getRed(),
+                 "unpremultiplying gave red " & $recovered.getRed() &
+                 " from " & $premultiplied.getRed()
+        doAssert premultiplied.getRed() < 200'u8,
+                 "getUnpremultiplied changed the original"
+
+        # And the in-place forms move the pixel the same way.
+        var mutated = faded.getPixelARGB()
+        let before = mutated.getRed()
+        mutated.unpremultiply()
+        doAssert mutated.getRed() > before,
+                 "unpremultiply in place gave red " & $mutated.getRed() &
+                 " from " & $before
+        mutated.premultiply()
+        doAssert mutated.getRed() <= before + 2'u8 and
+                 mutated.getRed() + 2'u8 >= before,
+                 "premultiplying back gave red " & $mutated.getRed() &
+                 " from " & $before
+
+    block:
+        # The byte-order accessors are how a renderer reaches the channels, and
+        # the two halves together are the whole pixel.
+        let colour = Colour.fromRGBA(0x11'u8, 0x22'u8, 0x33'u8, 0xFF'u8)
+        var packed = colour.getPixelARGB()
+
+        doAssert packed.getNativeARGB() != 0'u32,
+                 "the native word is zero for a visible pixel"
+        doAssert packed.getInARGBMaskOrder() != 0'u32,
+                 "the mask-order word is zero"
+        doAssert packed.getInARGBMemoryOrder() != 0'u32,
+                 "the memory-order word is zero"
+
+        # The even and odd byte pairs each hold two of the four channels, so
+        # neither is the whole pixel on its own.
+        doAssert packed.getEvenBytes() != packed.getOddBytes(),
+                 "the even and odd byte pairs are the same"
+
+    block:
+        # blend takes a PixelRGB, not another PixelARGB - a source with no
+        # alpha of its own, so it always replaces what is underneath.
+        var white = makePixelRGB()
+        white.setARGB(255'u8, 255'u8, 255'u8, 255'u8)
+        var target = Colour.fromRGBA(0'u8, 0'u8, 0'u8, 255'u8).getPixelARGB()
+        target.blend(white)
+        doAssert target.getRed() == 255'u8,
+                 "an opaque white blended over black gave red " &
+                 $target.getRed()
+
+        # PixelRGB carries no alpha channel, so it always reads as opaque
+        # however it was set.
+        doAssert white.getAlpha() == 255'u8,
+                 "a PixelRGB reports alpha " & $white.getAlpha()
+        white.setAlpha(0'u8)
+        doAssert white.getAlpha() == 255'u8,
+                 "setting the alpha on a PixelRGB gave " & $white.getAlpha()
+
+        # The remaining PixelARGB mutators, each asserted through what it
+        # leaves behind.
+        var faded = Colour.fromRGBA(200'u8, 100'u8, 50'u8, 255'u8).getPixelARGB()
+        faded.multiplyAlpha(128.cint)
+        doAssert faded.getAlpha() < 255'u8,
+                 "multiplying the alpha left it at " & $faded.getAlpha()
+
+        var built = makePixelARGB()
+        built.setARGB(255'u8, 10'u8, 20'u8, 30'u8)
+        doAssert built.getRed() == 10'u8 and built.getGreen() == 20'u8 and
+                 built.getBlue() == 30'u8,
+                 "setARGB gave " & $built.getRed() & "," & $built.getGreen() &
+                 "," & $built.getBlue()
+        built.setAlpha(64'u8)
+        doAssert built.getAlpha() == 64'u8,
+                 "setAlpha gave " & $built.getAlpha()
+
+        var grey = makePixelARGB()
+        grey.setARGB(255'u8, 200'u8, 100'u8, 50'u8)
+        grey.desaturate()
+        doAssert grey.getRed() == grey.getGreen() and
+                 grey.getGreen() == grey.getBlue(),
+                 "the desaturated pixel is " & $grey.getRed() & "," &
+                 $grey.getGreen() & "," & $grey.getBlue()
+
+testPixelARGB()
+
+# Drawable's placement and its bounds. A Drawable is a Component that draws
+# vector art, and the transform methods are how a caller fits it into a space.
+proc testDrawablePlacement() =
+    initialiseJuce_GUI()
+
+    block:
+        # A path drawable is the simplest concrete one, and its bounds follow
+        # the path it was given.
+        var triangle = makePath()
+        triangle.addTriangle(0.0'f32, 0.0'f32, 40.0'f32, 0.0'f32,
+                             20.0'f32, 30.0'f32)
+        var drawable = makeDrawablePath()
+        drawable.setPath(triangle)
+        drawable.setFill(makeFillType(Colours_white))
+
+        doAssert drawable.getDrawableBounds().getWidth() == 40.0'f32,
+                 "the drawable measures " &
+                 $drawable.getDrawableBounds().getWidth() & " wide"
+        doAssert drawable.getDrawableBounds().getHeight() == 30.0'f32,
+                 "the drawable measures " &
+                 $drawable.getDrawableBounds().getHeight() & " tall"
+
+        # The outline is the path, so it covers the same area.
+        var outline = makePath()
+        doAssert drawable.getOutlineAsPath().getBounds().getWidth() ==
+                 drawable.getDrawableBounds().getWidth(),
+                 "the outline is " &
+                 $drawable.getOutlineAsPath().getBounds().getWidth() &
+                 " wide and the drawable " &
+                 $drawable.getDrawableBounds().getWidth()
+
+        # setOriginWithOriginalSize puts the drawable at a point at its own
+        # size, so the component's bounds match the art's.
+        drawable.setOriginWithOriginalSize(makePoint(10.0'f32, 20.0'f32))
+        doAssert drawable.getWidth() == 40 and drawable.getHeight() == 30,
+                 "after setOriginWithOriginalSize the component is " &
+                 $drawable.getWidth() & "x" & $drawable.getHeight()
+
+        # setTransformToFit scales it into a rectangle instead.
+        drawable.setTransformToFit(
+            makeRectangle(0.0'f32, 0.0'f32, 200.0'f32, 150.0'f32),
+            makeRectanglePlacement(RectanglePlacementFlags_centred.cint))
+        doAssert drawable.isTransformed(),
+                 "fitting the drawable left it untransformed"
+
+        # setDrawableTransform is the raw form, and the identity clears it.
+        drawable.setDrawableTransform(AffineTransform.scale(2.0'f32))
+        doAssert drawable.isTransformed(),
+                 "a 2x scale did not count as a transform"
+        # The identity restores the art's own size. It does NOT clear the
+        # component's transform: a Drawable keeps one to place its art inside
+        # the component, so isTransformed stays true even with no scaling of
+        # the caller's own.
+        drawable.setDrawableTransform(AffineTransform.identity())
+        doAssert drawable.getWidth() == 40 and drawable.getHeight() == 30,
+                 "the identity left the drawable at " & $drawable.getWidth() &
+                 "x" & $drawable.getHeight() & " rather than its own size"
+        doAssert drawable.isTransformed(),
+                 "the component transform was cleared, so a Drawable no " &
+                 "longer keeps one to place its art"
+
+    block:
+        # replaceColour swaps one colour for another throughout, and reports
+        # whether it found any to swap.
+        var square = makePath()
+        square.addRectangle(0.0'f32, 0.0'f32, 20.0'f32, 20.0'f32)
+        var drawable = makeDrawablePath()
+        drawable.setPath(square)
+        drawable.setFill(makeFillType(Colours_red))
+
+        doAssert drawable.replaceColour(Colours_red, Colours_blue),
+                 "replaceColour did not find the colour that is there"
+        doAssert not drawable.replaceColour(Colours_green, Colours_black),
+                 "replaceColour found a colour the drawable does not use"
+
+        # And the change is visible in what it draws.
+        let image = makeImage(ImagePixelFormat_ARGB, 20.cint, 20.cint, true)
+        var g = makeGraphics(image)
+        drawable.draw(g, 1.0'f32, AffineTransform.identity())
+        doAssert image.getPixelAt(10.cint, 10.cint).getBlue() > 200'u8,
+                 "the replaced colour did not reach the drawing; blue is " &
+                 $image.getPixelAt(10.cint, 10.cint).getBlue()
+        doAssert image.getPixelAt(10.cint, 10.cint).getRed() < 100'u8,
+                 "the old colour is still being drawn; red is " &
+                 $image.getPixelAt(10.cint, 10.cint).getRed()
+
+    block:
+        # drawWithin fits the art into a rectangle as it draws, so a drawable
+        # smaller than the target still fills the area it is placed in.
+        var dot = makePath()
+        dot.addRectangle(0.0'f32, 0.0'f32, 4.0'f32, 4.0'f32)
+        var drawable = makeDrawablePath()
+        drawable.setPath(dot)
+        drawable.setFill(makeFillType(Colours_white))
+
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        drawable.drawWithin(
+            g, makeRectangle(0.0'f32, 0.0'f32, 40.0'f32, 40.0'f32),
+            makeRectanglePlacement(RectanglePlacementFlags_stretchToFit.cint),
+            1.0'f32)
+        doAssert image.getPixelAt(20.cint, 20.cint).getAlpha() > 0'u8,
+                 "the stretched drawable did not reach the middle"
+        doAssert image.getPixelAt(38.cint, 38.cint).getAlpha() > 0'u8,
+                 "the stretched drawable did not reach the far corner"
+
+        # A clip path limits what is drawn, so the far corner goes empty.
+        var clip = makePath()
+        clip.addRectangle(0.0'f32, 0.0'f32, 2.0'f32, 2.0'f32)
+        drawable.setClipPath(makeUniquePtr[Drawable](nil))
+
+    shutdownJuce_GUI()
+
+testDrawablePlacement()
+
+# The rest of FontOptions: the typeface, the metrics kind and the OpenType
+# feature settings. testFontOptionsBuilding above covers the sizes and names.
+proc testFontOptionsFeatures() =
+    initialiseJuce_GUI()
+
+    block:
+        let base = makeFontOptions(14.0'f32)
+        doAssert base.getTypeface().isNil(),
+                 "a new options object names a typeface"
+
+        # A typeface supplied outright wins over the name, and reads back.
+        var typeface = makeFont(makeFontOptions(14.0'f32)).getTypefacePtr()
+        doAssert not typeface.isNil(), "the default font has no typeface"
+        let supplied = base.withTypeface(typeface)
+        doAssert not supplied.getTypeface().isNil(),
+                 "withTypeface left the typeface unset"
+        doAssert base.getTypeface().isNil(),
+                 "withTypeface changed the original"
+
+        # The metrics kind is one of the two JUCE defines.
+        let portable = base.withMetricsKind(TypefaceMetricsKind_portable)
+        doAssert portable.getMetricsKind() == TypefaceMetricsKind_portable,
+                 "withMetricsKind did not take"
+        let legacy = base.withMetricsKind(TypefaceMetricsKind_legacy)
+        doAssert legacy.getMetricsKind() == TypefaceMetricsKind_legacy,
+                 "the legacy metrics kind did not take"
+        doAssert portable.getMetricsKind() != legacy.getMetricsKind(),
+                 "the two metrics kinds are the same"
+
+    block:
+        # A feature setting is an OpenType tag and a value. The four methods
+        # that manage them are asserted against the span they produce.
+        let base = makeFontOptions(14.0'f32)
+        doAssert base.getFeatureSettings().size() == 0'u64,
+                 "a new options object carries " &
+                 $base.getFeatureSettings().size() & " feature settings"
+
+        let ligatures = FontFeatureTag.fromString(makeString("liga"))
+        let kerning = FontFeatureTag.fromString(makeString("kern"))
+        doAssert not (ligatures == kerning),
+                 "two different feature tags are equal"
+
+        # withFeatureEnabled and withFeatureDisabled both ADD a setting; they
+        # differ in the value they give it, not in whether one removes.
+        let enabled = base.withFeatureEnabled(ligatures)
+        doAssert enabled.getFeatureSettings().size() == 1'u64,
+                 "enabling a feature gave " &
+                 $enabled.getFeatureSettings().size() & " settings"
+        let disabled = base.withFeatureDisabled(ligatures)
+        doAssert disabled.getFeatureSettings().size() == 1'u64,
+                 "disabling a feature gave " &
+                 $disabled.getFeatureSettings().size() & " settings"
+        doAssert enabled.getFeatureSettings()[0'u64].value() !=
+                 disabled.getFeatureSettings()[0'u64].value(),
+                 "enabling and disabling gave the same value"
+
+        # Two different features accumulate.
+        let both = enabled.withFeatureEnabled(kerning)
+        doAssert both.getFeatureSettings().size() == 2'u64,
+                 "two features gave " & $both.getFeatureSettings().size() &
+                 " settings"
+
+        # withFeatureRemoved takes one out and leaves the other.
+        let fewer = both.withFeatureRemoved(ligatures)
+        doAssert fewer.getFeatureSettings().size() == 1'u64,
+                 "removing one left " & $fewer.getFeatureSettings().size()
+        doAssert fewer.getFeatureSettings()[0'u64].tag() == kerning,
+                 "removing the wrong feature left " &
+                 $fewer.getFeatureSettings()[0'u64].tag().toString()
+        doAssert both.getFeatureSettings().size() == 2'u64,
+                 "withFeatureRemoved changed the original"
+
+        # And a setting made by hand carries the tag and the value it was
+        # given, which is what the with- forms build.
+        let setting = makeFontFeatureSetting(
+            kerning, uint32(FontFeatureSetting.featureEnabled))
+        let byHand = base.withFeatureSetting(setting)
+        doAssert byHand.getFeatureSettings().size() == 1'u64,
+                 "the hand-made setting did not join"
+        doAssert byHand.getFeatureSettings()[0'u64].tag() == kerning,
+                 "the hand-made setting names " &
+                 $byHand.getFeatureSettings()[0'u64].tag().toString()
+
+    shutdownJuce_GUI()
+
+testFontOptionsFeatures()
+
+# The internal graphics context ===============================================
+#
+# Graphics is a thin front for a LowLevelGraphicsContext, and the clipping and
+# drawing calls it does not forward are only reachable through
+# getInternalContext. Every assertion below reads the pixels back out of the
+# image the context is drawing into, so a call that did nothing fails.
+proc testLowLevelGraphicsContext() =
+    initialiseJuce_GUI()
+
+    proc opaque(image: Image, x, y: int): bool =
+        image.getPixelAt(x.cint, y.cint).getAlpha() > 0'u8
+
+    block:
+        var image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        var context = g.getInternalContext().addr
+
+        # A software renderer is not a vector device and draws at the image's
+        # own scale.
+        doAssert not context[].isVectorDevice(),
+                 "an image context calls itself a vector device"
+        doAssert context[].getPhysicalPixelScaleFactor() > 0.0'f32,
+                 "the physical pixel scale is " &
+                 $context[].getPhysicalPixelScaleFactor()
+
+        # The frame id is only meaningful to a context that tracks frames, so
+        # what is asserted is that it is stable across a draw.
+        let frame = context[].getFrameId()
+        context[].setFill(makeFillType(Colours_red))
+        context[].fillAll()
+        doAssert context[].getFrameId() == frame,
+                 "the frame id moved from " & $frame & " to " &
+                 $context[].getFrameId()
+        doAssert opaque(image, 20, 20), "fillAll left the image empty"
+
+        # The preferred image type for a temporary image can build one.
+        let imageType = context[].getPreferredImageTypeForTemporaryImages()
+        doAssert not imageType.get().isNil,
+                 "the context prefers no image type at all"
+
+    block:
+        # clipToRectangle narrows the clip, and drawing outside it is dropped.
+        var image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        var context = g.getInternalContext().addr
+
+        context[].saveState()
+        doAssert context[].clipToRectangle(
+                     makeRectangle(0.cint, 0.cint, 20.cint, 20.cint)),
+                 "clipping to a rectangle inside the image emptied the clip"
+        doAssert context[].getClipBounds() ==
+                 makeRectangle(0.cint, 0.cint, 20.cint, 20.cint),
+                 "the clip bounds are " & $context[].getClipBounds()
+        context[].setFill(makeFillType(Colours_red))
+        context[].fillAll()
+        doAssert opaque(image, 5, 5), "nothing was drawn inside the clip"
+        doAssert not opaque(image, 30, 30), "the clip did not hold"
+        context[].restoreState()
+
+        # excludeClipRectangle punches a hole in it.
+        context[].saveState()
+        context[].excludeClipRectangle(
+            makeRectangle(0.cint, 0.cint, 40.cint, 20.cint))
+        context[].setFill(makeFillType(Colours_blue))
+        context[].fillAll()
+        doAssert image.getPixelAt(20.cint, 30.cint).getBlue() == 255'u8,
+                 "nothing was drawn below the excluded band"
+        doAssert image.getPixelAt(30.cint, 5.cint).getAlpha() == 0'u8,
+                 "the excluded band was drawn into"
+        context[].restoreState()
+
+    block:
+        # clipToRectangleList takes the union of its rectangles.
+        var image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        var context = g.getInternalContext().addr
+
+        var list = makeRectangleList[cint]()
+        list.add(makeRectangle(0.cint, 0.cint, 10.cint, 10.cint))
+        list.add(makeRectangle(30.cint, 30.cint, 10.cint, 10.cint))
+        doAssert context[].clipToRectangleList(list),
+                 "clipping to two rectangles emptied the clip"
+        context[].setFill(makeFillType(Colours_red))
+        context[].fillAll()
+        doAssert opaque(image, 5, 5) and opaque(image, 35, 35),
+                 "one of the two clipped rectangles was not drawn"
+        doAssert not opaque(image, 20, 20),
+                 "the gap between the two rectangles was drawn into"
+
+    block:
+        # clipToPath clips to an arbitrary shape.
+        var image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        var context = g.getInternalContext().addr
+
+        var path = makePath()
+        path.addEllipse(0.0'f32, 0.0'f32, 20.0'f32, 20.0'f32)
+        context[].clipToPath(path, makeAffineTransform())
+        context[].setFill(makeFillType(Colours_red))
+        context[].fillAll()
+        doAssert opaque(image, 10, 10), "the middle of the ellipse is empty"
+        doAssert not opaque(image, 35, 35),
+                 "a point well outside the ellipse was drawn"
+
+    block:
+        # clipToImageAlpha clips through another image's alpha channel, so the
+        # transparent half of the mask blocks the fill.
+        var mask = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        block:
+            var maskGraphics = makeGraphics(mask)
+            maskGraphics.setColour(Colours_white)
+            maskGraphics.fillRect(makeRectangle(0.cint, 0.cint, 20.cint, 40.cint))
+
+        var image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        var context = g.getInternalContext().addr
+        context[].clipToImageAlpha(mask, makeAffineTransform())
+        context[].setFill(makeFillType(Colours_red))
+        context[].fillAll()
+        doAssert opaque(image, 5, 20), "the opaque half of the mask blocked the fill"
+        doAssert not opaque(image, 35, 20),
+                 "the transparent half of the mask let the fill through"
+
+    block:
+        # A thick line covers pixels a hairline would not.
+        var image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        var context = g.getInternalContext().addr
+
+        context[].setFill(makeFillType(Colours_red))
+        context[].drawLineWithThickness(
+            makeLine(0.0'f32, 20.0'f32, 40.0'f32, 20.0'f32), 8.0'f32)
+        doAssert opaque(image, 20, 20), "the line's centre is empty"
+        doAssert opaque(image, 20, 23),
+                 "the line is not as thick as it was asked to be"
+        doAssert not opaque(image, 20, 35),
+                 "the line spread well past its thickness"
+
+    block:
+        # setInterpolationQuality picks how a scaled image is resampled. Both
+        # settings draw, which is all that can be asserted without pinning a
+        # resampler's exact output.
+        var source = makeImage(ImagePixelFormat_ARGB, 4.cint, 4.cint, true)
+        block:
+            var sourceGraphics = makeGraphics(source)
+            sourceGraphics.setColour(Colours_red)
+            sourceGraphics.fillAll()
+
+        for quality in [GraphicsResamplingQuality_lowResamplingQuality,
+                        GraphicsResamplingQuality_highResamplingQuality]:
+            var image = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+            var g = makeGraphics(image)
+            var context = g.getInternalContext().addr
+            context[].setInterpolationQuality(quality)
+            context[].drawImage(source, makeAffineTransform().scaled(10.0'f32))
+            doAssert opaque(image, 20, 20),
+                     "the scaled image is empty at quality " & $quality
+
+    block:
+        # drawGlyphs takes parallel spans of glyph ids and positions, which is
+        # the layer GlyphArrangement itself draws through.
+        var image = makeImage(ImagePixelFormat_ARGB, 80.cint, 40.cint, true)
+        var g = makeGraphics(image)
+        var context = g.getInternalContext().addr
+
+        let font = makeFont(makeFontOptions(24.0'f32))
+        context[].setFont(font)
+        doAssert context[].getFont().getHeight() == font.getHeight(),
+                 "the context's font is " & $context[].getFont().getHeight() &
+                 " tall"
+
+        var arrangement = makeGlyphArrangement()
+        arrangement.addLineOfText(font, makeString("Ag"), 4.0'f32, 30.0'f32)
+        doAssert arrangement.getNumGlyphs() >= 2,
+                 "the arrangement holds " & $arrangement.getNumGlyphs() &
+                 " glyphs"
+
+        # The spans are arrays rather than seqs: Nim's seq payload names an
+        # importcpp generic type without substituting its argument, so a
+        # seq[Point[cfloat]] does not reach the C++ compiler.
+        const room = 16
+        var ids: array[room, uint16]
+        var positions: array[room, Point[cfloat]]
+        var count = 0
+        for i in 0 ..< min(arrangement.getNumGlyphs(), room.cint):
+            let glyph = arrangement.getGlyph(i)
+            ids[count] = uint16(glyph.getGlyphIndex())
+            positions[count] = makePoint(glyph.getLeft(), glyph.getBaselineY())
+            count += 1
+
+        context[].setFill(makeFillType(Colours_red))
+        context[].drawGlyphs(makeSpan(addr ids[0], csize_t(count)),
+                             makeSpan(addr positions[0], csize_t(count)),
+                             makeAffineTransform())
+
+        var painted = 0
+        for x in 0 ..< 80:
+            for y in 0 ..< 40:
+                if opaque(image, x, y):
+                    painted += 1
+        doAssert painted > 0, "drawGlyphs painted nothing"
+
+    shutdownJuce_GUI()
+
+testLowLevelGraphicsContext()
+
+# The pixel data behind an Image ==============================================
+#
+# Image is a reference-counted handle; ImagePixelData is what it points at.
+# Most of the effects Image offers are forwarded straight to it, and the ones
+# Image does not forward - the in-area variants, initialiseBitmapData,
+# createType - are only reachable through getPixelData.
+proc testImagePixelData() =
+    initialiseJuce_GUI()
+
+    proc filled(width, height: int, colour: Colour): Image =
+        result = makeImage(ImagePixelFormat_ARGB, width.cint, height.cint, true)
+        var g = makeGraphics(result)
+        g.setColour(colour)
+        g.fillAll()
+
+    block:
+        var image = filled(8, 8, Colours_red)
+        var data = image.getPixelData()
+        doAssert not data.get().isNil, "an image has no pixel data"
+
+        doAssert data.get()[].width() == 8 and data.get()[].height() == 8,
+                 "the pixel data is " & $data.get()[].width() & "x" &
+                 $data.get()[].height()
+        doAssert data.get()[].pixelFormat() == ImagePixelFormat_ARGB,
+                 "the pixel format is not the one the image was made with"
+
+        # The handle and the data share a count, so a second Image referring
+        # to the same pixels raises it.
+        let before = data.get()[].getSharedCount()
+        var second = image
+        doAssert data.get()[].getSharedCount() > before,
+                 "a second handle did not raise the shared count from " &
+                 $before
+        doAssert second.getWidth() == 8, "the second handle lost the width"
+
+        # createType names how the pixels are stored, and the type it names
+        # can make another image of the same kind.
+        let imageType = data.get()[].createType()
+        doAssert not imageType.get().isNil, "the pixel data has no image type"
+        # createType names the type that actually MADE the pixels, not the
+        # type that was asked for. juce_Image.cpp:675 builds every plain Image
+        # through NativeImageType, but on Linux and BSD NativeImageType::create
+        # returns a SoftwarePixelData (juce_Image.cpp:645), and that names the
+        # software type. So the answer differs by platform even though the
+        # call is the same.
+        when defined(linux) or defined(bsd):
+            let expectedTypeID = makeSoftwareImageType().getTypeID()
+        else:
+            let expectedTypeID = makeNativeImageType().getTypeID()
+        doAssert imageType.get()[].getTypeID() == expectedTypeID,
+                 "an ordinary image reports type id " &
+                 $imageType.get()[].getTypeID() & " rather than " &
+                 $expectedTypeID
+
+        # An image asked for the software type reports it everywhere.
+        var software = makeImage(ImagePixelFormat_ARGB, 4.cint, 4.cint, true,
+                                 makeSoftwareImageType())
+        doAssert software.getPixelData().get()[].createType().get()[].getTypeID() ==
+                 makeSoftwareImageType().getTypeID(),
+                 "an image asked for the software type did not get it"
+
+        # Backup extensions belong to the image types that can drop their
+        # pixels and fetch them back, which the desktop platforms' own types
+        # do not, so an ordinary image offers none.
+        doAssert data.get()[].getBackupExtensions().isNil,
+                 "an ordinary image offers backup extensions"
+
+    block:
+        # initialiseBitmapData is what Image::BitmapData is built on, so the
+        # two must describe the same pixels.
+        var image = filled(8, 8, Colours_red)
+        var data = image.getPixelData()
+
+        var direct = makeImageBitmapData(image, 0.cint, 0.cint, 8.cint, 8.cint,
+                                         ImageBitmapDataReadWriteMode_readOnly)
+        var built = makeImageBitmapData(image, 0.cint, 0.cint, 1.cint, 1.cint,
+                                        ImageBitmapDataReadWriteMode_readOnly)
+        data.get()[].initialiseBitmapData(built, 0.cint, 0.cint,
+                                          ImageBitmapDataReadWriteMode_readOnly)
+        doAssert built.lineStride() == direct.lineStride() and
+                 built.pixelStride() == direct.pixelStride(),
+                 "the bitmap data describes a stride of " &
+                 $built.lineStride() & "/" & $built.pixelStride() &
+                 " against " & $direct.lineStride() & "/" &
+                 $direct.pixelStride()
+        doAssert built.data() == direct.data(),
+                 "the bitmap data points somewhere else entirely"
+
+    block:
+        # The in-area effects touch only their rectangle. Each is checked at a
+        # pixel inside it and at one outside.
+        var image = filled(16, 16, makeColour(200'u8, 40'u8, 40'u8, 255'u8))
+        var data = image.getPixelData()
+        data.get()[].desaturateInArea(makeRectangle(0.cint, 0.cint,
+                                                    8.cint, 16.cint))
+        let inside = image.getPixelAt(2.cint, 2.cint)
+        let outside = image.getPixelAt(12.cint, 2.cint)
+        doAssert inside.getRed() == inside.getGreen() and
+                 inside.getGreen() == inside.getBlue(),
+                 "the desaturated half is still " & $inside.getRed() & "," &
+                 $inside.getGreen() & "," & $inside.getBlue()
+        doAssert outside.getRed() != outside.getGreen(),
+                 "the far half was desaturated too"
+
+    block:
+        var image = filled(16, 16, Colours_red)
+        var data = image.getPixelData()
+        data.get()[].multiplyAllAlphasInArea(
+            makeRectangle(0.cint, 0.cint, 8.cint, 16.cint), 0.5'f32)
+        doAssert image.getPixelAt(2.cint, 2.cint).getAlpha() < 200'u8,
+                 "the alpha in the area is " &
+                 $image.getPixelAt(2.cint, 2.cint).getAlpha()
+        doAssert image.getPixelAt(12.cint, 2.cint).getAlpha() == 255'u8,
+                 "the alpha outside the area is " &
+                 $image.getPixelAt(12.cint, 2.cint).getAlpha()
+
+    block:
+        # A blur spreads a hard edge, so a pixel that was fully transparent
+        # next to the shape picks up some alpha.
+        var image = makeImage(ImagePixelFormat_ARGB, 32.cint, 32.cint, true)
+        block:
+            var g = makeGraphics(image)
+            g.setColour(Colours_white)
+            g.fillRect(makeRectangle(0.cint, 0.cint, 16.cint, 32.cint))
+
+        var data = image.getPixelData()
+        doAssert image.getPixelAt(18.cint, 16.cint).getAlpha() == 0'u8,
+                 "the right half was not empty to begin with"
+        data.get()[].applyGaussianBlurEffect(4.0'f32)
+        doAssert image.getPixelAt(18.cint, 16.cint).getAlpha() > 0'u8,
+                 "the blur did not reach past the edge"
+
+    block:
+        var image = makeImage(ImagePixelFormat_SingleChannel, 32.cint, 32.cint,
+                              true)
+        block:
+            var g = makeGraphics(image)
+            g.setColour(Colours_white)
+            g.fillRect(makeRectangle(0.cint, 0.cint, 16.cint, 32.cint))
+
+        var data = image.getPixelData()
+        data.get()[].applySingleChannelBoxBlurEffect(4.cint)
+        doAssert image.getPixelAt(17.cint, 16.cint).getAlpha() > 0'u8,
+                 "the box blur did not reach past the edge"
+
+        # And the in-area forms of both blurs leave the rest alone.
+        var other = makeImage(ImagePixelFormat_SingleChannel, 32.cint, 32.cint,
+                              true)
+        block:
+            var g = makeGraphics(other)
+            g.setColour(Colours_white)
+            g.fillRect(makeRectangle(0.cint, 0.cint, 8.cint, 32.cint))
+            g.fillRect(makeRectangle(20.cint, 0.cint, 8.cint, 32.cint))
+
+        var otherData = other.getPixelData()
+        otherData.get()[].applySingleChannelBoxBlurEffectInArea(
+            makeRectangle(0.cint, 0.cint, 16.cint, 32.cint), 4.cint)
+        doAssert other.getPixelAt(9.cint, 16.cint).getAlpha() > 0'u8,
+                 "the blur did not run inside its area"
+        doAssert other.getPixelAt(29.cint, 16.cint).getAlpha() == 0'u8,
+                 "the blur ran outside its area"
+
+        var third = filled(32, 32, Colours_white)
+        var thirdData = third.getPixelData()
+        thirdData.get()[].applyGaussianBlurEffectInArea(
+            makeRectangle(0.cint, 0.cint, 16.cint, 32.cint), 4.0'f32)
+        doAssert third.getPixelAt(29.cint, 16.cint).getAlpha() == 255'u8,
+                 "the gaussian blur ran outside its area"
+
+    block:
+        # sendDataChangeMessage tells the listeners, and a listener attached
+        # through a subclass is the only way to hear it from Nim. There is no
+        # binding for the listener list, so what is asserted is that the call
+        # is harmless on data nobody is listening to.
+        var image = filled(4, 4, Colours_red)
+        var data = image.getPixelData()
+        data.get()[].sendDataChangeMessage()
+        doAssert image.getPixelAt(0.cint, 0.cint).getRed() == 255'u8,
+                 "sendDataChangeMessage changed the pixels"
+
+    shutdownJuce_GUI()
+
+testImagePixelData()
+
+# EdgeTable ===================================================================
+#
+# An EdgeTable is the scanline form of a shape: one run list per row. Nothing
+# reads a level back out from Nim, so every assertion here is about the bounds
+# and about emptiness, which is what the clipping operations actually change.
+proc testEdgeTable() =
+    initialiseJuce_GUI()
+
+    block:
+        var table = makeEdgeTable(makeRectangle(0.cint, 0.cint,
+                                                20.cint, 20.cint))
+        doAssert not table.isEmpty(), "a table over a rectangle is empty"
+        doAssert table.getMaximumBounds() ==
+                 makeRectangle(0.cint, 0.cint, 20.cint, 20.cint),
+                 "the table covers " & $table.getMaximumBounds()
+
+        # optimiseTable repacks the rows and changes nothing observable.
+        table.optimiseTable()
+        doAssert table.getMaximumBounds() ==
+                 makeRectangle(0.cint, 0.cint, 20.cint, 20.cint),
+                 "optimiseTable changed the bounds to " &
+                 $table.getMaximumBounds()
+        doAssert not table.isEmpty(), "optimiseTable emptied the table"
+
+        # Clipping does NOT narrow the bounds to the intersection. It clears
+        # the rows above the clip and trims the BOTTOM edge, and it leaves the
+        # top and both sides where they were: the rows are emptied instead
+        # (juce_EdgeTable.cpp: clipToRectangle only calls bounds.setHeight).
+        # So the bounds stay a bound, which is what the name says.
+        table.clipToRectangle(makeRectangle(5.cint, 5.cint, 10.cint, 10.cint))
+        doAssert table.getMaximumBounds() ==
+                 makeRectangle(0.cint, 0.cint, 20.cint, 15.cint),
+                 "the clipped table covers " & $table.getMaximumBounds()
+
+        # Translating moves the bounds, and the x offset is taken as a whole
+        # number of pixels (juce_EdgeTable.cpp: translate floors it).
+        table.translate(3.0'f32, 4.cint)
+        doAssert table.getMaximumBounds().getX() == 3 and
+                 table.getMaximumBounds().getY() == 4,
+                 "the translated table starts at " &
+                 $table.getMaximumBounds().getX() & "," &
+                 $table.getMaximumBounds().getY()
+
+    block:
+        # Excluding the whole area empties the table, but leaves the bounds
+        # where they were: excludeRectangle changes the runs, not the extent
+        # (juce_EdgeTable.cpp: excludeRectangle).
+        var table = makeEdgeTable(makeRectangle(0.cint, 0.cint,
+                                                20.cint, 20.cint))
+        table.excludeRectangle(makeRectangle(0.cint, 0.cint,
+                                             20.cint, 20.cint))
+        doAssert table.isEmpty(),
+                 "excluding the whole area left something behind"
+
+        # And excluding a part of it does not.
+        var partial = makeEdgeTable(makeRectangle(0.cint, 0.cint,
+                                                  20.cint, 20.cint))
+        partial.excludeRectangle(makeRectangle(0.cint, 0.cint,
+                                               10.cint, 20.cint))
+        doAssert not partial.isEmpty(),
+                 "excluding half the area emptied the table"
+
+    block:
+        # Clipping one table against another intersects the RUNS. As with
+        # clipToRectangle, the bounds are only ever trimmed at the bottom, so
+        # what changes here is emptiness rather than the extent.
+        var table = makeEdgeTable(makeRectangle(0.cint, 0.cint,
+                                                20.cint, 20.cint))
+        let mask = makeEdgeTable(makeRectangle(10.cint, 10.cint,
+                                               20.cint, 20.cint))
+        table.clipToEdgeTable(mask)
+        doAssert table.getMaximumBounds() ==
+                 makeRectangle(0.cint, 0.cint, 20.cint, 20.cint),
+                 "the intersection covers " & $table.getMaximumBounds()
+        doAssert not table.isEmpty(), "the overlapping tables intersect to nothing"
+
+        # Two tables that do not overlap intersect to nothing at all.
+        var apart = makeEdgeTable(makeRectangle(0.cint, 0.cint,
+                                                5.cint, 5.cint))
+        apart.clipToEdgeTable(makeEdgeTable(
+            makeRectangle(50.cint, 50.cint, 5.cint, 5.cint)))
+        doAssert apart.isEmpty(), "two tables that do not overlap intersect"
+
+    block:
+        # A zero multiplier takes every level to nothing. The table does not
+        # mark itself for an emptiness check when it does that
+        # (juce_EdgeTable.cpp: multiplyLevels sets no flag), so the bounds are
+        # what is asserted rather than isEmpty.
+        var table = makeEdgeTable(makeRectangle(0.cint, 0.cint,
+                                                8.cint, 8.cint))
+        table.multiplyLevels(0.5'f32)
+        doAssert table.getMaximumBounds() ==
+                 makeRectangle(0.cint, 0.cint, 8.cint, 8.cint),
+                 "multiplyLevels changed the bounds to " &
+                 $table.getMaximumBounds()
+
+    block:
+        # clipLineToMask intersects ONE row with an alpha mask. A mask of
+        # zeroes clears that row; a mask of 255s leaves it alone.
+        var cleared = makeEdgeTable(makeRectangle(0.cint, 0.cint,
+                                                  4.cint, 1.cint))
+        var zeroes: array[4, uint8]
+        cleared.clipLineToMask(0.cint, 0.cint,
+                               cast[ConstPtr[uint8]](addr zeroes[0]),
+                               1.cint, 4.cint)
+        doAssert cleared.isEmpty(),
+                 "a row masked with zeroes is not empty"
+
+        var kept = makeEdgeTable(makeRectangle(0.cint, 0.cint,
+                                               4.cint, 1.cint))
+        var opaque: array[4, uint8] = [255'u8, 255'u8, 255'u8, 255'u8]
+        kept.clipLineToMask(0.cint, 0.cint,
+                            cast[ConstPtr[uint8]](addr opaque[0]),
+                            1.cint, 4.cint)
+        doAssert not kept.isEmpty(),
+                 "a row masked with 255s came out empty"
+
+    shutdownJuce_GUI()
+
+testEdgeTable()
+
+# ImageFileFormat =============================================================
+#
+# The three formats JUCE ships. Each one writes an image to a stream and reads
+# it back, which is the only way to show that the format really encoded it
+# rather than the static loadFrom helpers guessing.
+proc testImageFileFormats() =
+    initialiseJuce_GUI()
+
+    proc source(): Image =
+        result = makeImage(ImagePixelFormat_ARGB, 8.cint, 8.cint, true)
+        var g = makeGraphics(result)
+        g.setColour(Colours_red)
+        g.fillRect(makeRectangle(0.cint, 0.cint, 4.cint, 8.cint))
+        g.setColour(Colours_blue)
+        g.fillRect(makeRectangle(4.cint, 0.cint, 4.cint, 8.cint))
+
+    block:
+        var png = makePNGImageFormat()
+        var base = cast[ptr ImageFileFormat](png.addr)
+
+        doAssert $base[].getFormatName() == "PNG",
+                 "the format calls itself " & $base[].getFormatName()
+        doAssert base[].usesFileExtension(makeFile(makeString("/tmp/a.png"))),
+                 "the PNG format does not claim a .png file"
+        doAssert not base[].usesFileExtension(
+                     makeFile(makeString("/tmp/a.jpg"))),
+                 "the PNG format claims a .jpg file"
+
+        # Written out and read back, the two halves survive.
+        var written = makeMemoryOutputStream(0.uint64)
+        doAssert base[].writeImageToStream(source(), written),
+                 "the PNG was not written"
+        doAssert written.getDataSize() > 0'u64, "the PNG is empty"
+
+        var reading = makeMemoryInputStream(written.getData(),
+                                            written.getDataSize(), false)
+        doAssert base[].canUnderstand(reading),
+                 "the PNG format does not recognise its own output"
+
+        var decoding = makeMemoryInputStream(written.getData(),
+                                             written.getDataSize(), false)
+        let decoded = base[].decodeImage(decoding)
+        doAssert decoded.isValid(), "the PNG did not decode"
+        doAssert decoded.getWidth() == 8 and decoded.getHeight() == 8,
+                 "the decoded image is " & $decoded.getWidth() & "x" &
+                 $decoded.getHeight()
+        doAssert decoded.getPixelAt(1.cint, 1.cint).getRed() == 255'u8,
+                 "the left half decoded to red " &
+                 $decoded.getPixelAt(1.cint, 1.cint).getRed()
+        doAssert decoded.getPixelAt(6.cint, 1.cint).getBlue() == 255'u8,
+                 "the right half decoded to blue " &
+                 $decoded.getPixelAt(6.cint, 1.cint).getBlue()
+
+        # And a stream of something else is not a PNG.
+        var text = makeMemoryInputStream(
+            constPointer("not an image".cstring), 12.uint64, false)
+        doAssert not base[].canUnderstand(text),
+                 "the PNG format understood a line of text"
+
+    block:
+        # JPEG is lossy, so the halves are checked by which channel dominates
+        # rather than by an exact value.
+        var jpeg = makeJPEGImageFormat()
+        var base = cast[ptr ImageFileFormat](jpeg.addr)
+        doAssert $base[].getFormatName() == "JPEG",
+                 "the format calls itself " & $base[].getFormatName()
+
+        var written = makeMemoryOutputStream(0.uint64)
+        doAssert base[].writeImageToStream(source(), written),
+                 "the JPEG was not written"
+
+        var reading = makeMemoryInputStream(written.getData(),
+                                            written.getDataSize(), false)
+        let decoded = base[].decodeImage(reading)
+        doAssert decoded.isValid(), "the JPEG did not decode"
+        let left = decoded.getPixelAt(1.cint, 1.cint)
+        doAssert left.getRed() > left.getBlue(),
+                 "the left half decoded to " & $left.getRed() & " red and " &
+                 $left.getBlue() & " blue"
+
+    block:
+        # GIF is read-only in JUCE: writeImageToStream is a stub that reports
+        # failure (juce_GIFLoader.cpp).
+        var gif = makeGIFImageFormat()
+        var base = cast[ptr ImageFileFormat](gif.addr)
+        doAssert $base[].getFormatName() == "GIF",
+                 "the format calls itself " & $base[].getFormatName()
+        doAssert base[].usesFileExtension(makeFile(makeString("/tmp/a.gif"))),
+                 "the GIF format does not claim a .gif file"
+
+        var written = makeMemoryOutputStream(0.uint64)
+        doAssert not base[].writeImageToStream(source(), written),
+                 "the GIF format wrote an image"
+
+    shutdownJuce_GUI()
+
+testImageFileFormats()
+
+# AttributedString's layout settings and its attribute list ==================
+proc testAttributedStringSettings() =
+    initialiseJuce_GUI()
+
+    block:
+        var text = makeAttributedString(makeString("hello there"))
+
+        # byWord is what JUCE starts with, and the setting round-trips.
+        doAssert text.getWordWrap() == AttributedStringWordWrap_byWord,
+                 "a new attributed string does not wrap by word"
+        text.setWordWrap(AttributedStringWordWrap_none)
+        doAssert text.getWordWrap() == AttributedStringWordWrap_none,
+                 "the word wrap did not stick"
+        text.setWordWrap(AttributedStringWordWrap_byChar)
+        doAssert text.getWordWrap() == AttributedStringWordWrap_byChar,
+                 "the word wrap did not change again"
+
+        doAssert text.getReadingDirection() ==
+                 AttributedStringReadingDirection_natural,
+                 "a new attributed string is not read naturally"
+        text.setReadingDirection(
+            AttributedStringReadingDirection_rightToLeft)
+        doAssert text.getReadingDirection() ==
+                 AttributedStringReadingDirection_rightToLeft,
+                 "the reading direction did not stick"
+
+    block:
+        # Attributes carve the text into ranges, and getAttribute reads one
+        # back out by index.
+        # A string built from text starts with ONE attribute covering all of
+        # it, not none: append() adds a range as it adds the characters.
+        var text = makeAttributedString(makeString("hello there"))
+        doAssert text.getNumAttributes() == 1,
+                 "a new attributed string carries " &
+                 $text.getNumAttributes() & " attributes"
+        doAssert text.getAttribute(0.cint).range() ==
+                 makeRange(0.cint, 11.cint),
+                 "the whole-text attribute covers " &
+                 $text.getAttribute(0.cint).range().getStart() & " to " &
+                 $text.getAttribute(0.cint).range().getEnd()
+
+        # Colouring two halves splits that one attribute into two.
+        text.setColour(makeRange(0.cint, 5.cint), Colours_red)
+        text.setColour(makeRange(6.cint, 11.cint), Colours_blue)
+        doAssert text.getNumAttributes() >= 2,
+                 "the string carries " & $text.getNumAttributes() &
+                 " attributes"
+
+        # The split leaves the runs in text order, so each colour is looked up
+        # by the range it covers rather than by a guessed index.
+        var redAt = -1
+        var blueAt = -1
+        for i in 0 ..< text.getNumAttributes():
+            let attribute = text.getAttribute(i)
+            if attribute.range().getStart() == 0 and
+               attribute.colour().getRed() == 255'u8:
+                redAt = int(i)
+            if attribute.range().getEnd() == 11 and
+               attribute.colour().getBlue() == 255'u8:
+                blueAt = int(i)
+        doAssert redAt >= 0, "no attribute covers the red half"
+        doAssert blueAt >= 0, "no attribute covers the blue half"
+        doAssert redAt < blueAt,
+                 "the attributes are out of text order: red at " & $redAt &
+                 " and blue at " & $blueAt
+
+        # A font set over a range shows up on the attribute too.
+        text.setFont(makeRange(0.cint, 5.cint),
+                     makeFont(makeFontOptions(30.0'f32)))
+        doAssert text.getAttribute(redAt.cint).font().getHeight() == 30.0'f32,
+                 "the attribute's font is " &
+                 $text.getAttribute(redAt.cint).font().getHeight() & " tall"
+
+    shutdownJuce_GUI()
+
+testAttributedStringSettings()
+
+# PathStrokeType's joints, caps and the two special strokes ==================
+proc testPathStrokeTypeStyles() =
+    initialiseJuce_GUI()
+
+    block:
+        var stroke = makePathStrokeType(4.0'f32)
+        doAssert stroke.getJointStyle() == PathStrokeTypeJointStyle_mitered,
+                 "a new stroke is not mitered"
+        doAssert stroke.getEndStyle() == PathStrokeTypeEndCapStyle_butt,
+                 "a new stroke is not butt-ended"
+
+        stroke.setJointStyle(PathStrokeTypeJointStyle_curved)
+        doAssert stroke.getJointStyle() == PathStrokeTypeJointStyle_curved,
+                 "the joint style did not stick"
+        stroke.setEndStyle(PathStrokeTypeEndCapStyle_rounded)
+        doAssert stroke.getEndStyle() == PathStrokeTypeEndCapStyle_rounded,
+                 "the end style did not stick"
+
+        # A rounded cap reaches past the line's ends, so the stroked path is
+        # longer than a butt-ended one.
+        var line = makePath()
+        line.startNewSubPath(0.0'f32, 0.0'f32)
+        line.lineTo(20.0'f32, 0.0'f32)
+
+        var rounded = makePath()
+        stroke.createStrokedPath(rounded, line, makeAffineTransform(), 1.0'f32)
+
+        stroke.setEndStyle(PathStrokeTypeEndCapStyle_butt)
+        var butted = makePath()
+        stroke.createStrokedPath(butted, line, makeAffineTransform(), 1.0'f32)
+
+        doAssert rounded.getBounds().getWidth() >
+                 butted.getBounds().getWidth(),
+                 "the rounded stroke is " & $rounded.getBounds().getWidth() &
+                 " wide against a butted " & $butted.getBounds().getWidth()
+
+    block:
+        # A dashed stroke breaks the line into pieces, so it holds more
+        # sub-paths than the solid one does.
+        let stroke = makePathStrokeType(2.0'f32)
+        var line = makePath()
+        line.startNewSubPath(0.0'f32, 0.0'f32)
+        line.lineTo(100.0'f32, 0.0'f32)
+
+        var solid = makePath()
+        stroke.createStrokedPath(solid, line, makeAffineTransform(), 1.0'f32)
+
+        var dashes = [8.0'f32, 4.0'f32]
+        var dashed = makePath()
+        stroke.createDashedStroke(dashed, line, addr dashes[0], 2.cint,
+                                  makeAffineTransform(), 1.0'f32)
+        doAssert not dashed.isEmpty(), "the dashed stroke is empty"
+
+        proc subPaths(path: Path): int =
+            var walker = makePathIterator(path)
+            while walker.next():
+                if walker.elementType() ==
+                   PathIteratorPathElementType_startNewSubPath:
+                    result += 1
+
+        doAssert subPaths(dashed) > subPaths(solid),
+                 "the dashed stroke holds " & $subPaths(dashed) &
+                 " sub-paths against a solid " & $subPaths(solid)
+
+    block:
+        # Arrowheads widen the ends, so the stroked path is taller than the
+        # line's own thickness.
+        let stroke = makePathStrokeType(2.0'f32)
+        var line = makePath()
+        line.startNewSubPath(0.0'f32, 20.0'f32)
+        line.lineTo(100.0'f32, 20.0'f32)
+
+        var plain = makePath()
+        stroke.createStrokedPath(plain, line, makeAffineTransform(), 1.0'f32)
+
+        var arrowed = makePath()
+        stroke.createStrokeWithArrowheads(arrowed, line, 10.0'f32, 12.0'f32,
+                                          10.0'f32, 12.0'f32,
+                                          makeAffineTransform(), 1.0'f32)
+        doAssert not arrowed.isEmpty(), "the arrowed stroke is empty"
+        doAssert arrowed.getBounds().getHeight() >
+                 plain.getBounds().getHeight(),
+                 "the arrowed stroke is " &
+                 $arrowed.getBounds().getHeight() &
+                 " tall against a plain " & $plain.getBounds().getHeight()
+
+    shutdownJuce_GUI()
+
+testPathStrokeTypeStyles()
+
+# FillType's three kinds =====================================================
+#
+# A fill is a colour, a gradient or a tiled image, and the three questions
+# discriminate. Each setter is asserted to switch the kind rather than only to
+# store something.
+proc testFillTypeKinds() =
+    initialiseJuce_GUI()
+
+    block:
+        var fill = makeFillType(Colours_red)
+        doAssert fill.isColour(), "a colour fill is not a colour"
+        doAssert not fill.isGradient() and not fill.isTiledImage(),
+                 "a colour fill claims another kind"
+
+        fill.setGradient(makeColourGradient(
+            Colours_red, 0.0'f32, 0.0'f32,
+            Colours_blue, 100.0'f32, 0.0'f32, false))
+        doAssert fill.isGradient(), "the gradient did not take"
+        doAssert not fill.isColour() and not fill.isTiledImage(),
+                 "a gradient fill claims another kind"
+
+        var image = makeImage(ImagePixelFormat_ARGB, 8.cint, 8.cint, true)
+        fill.setTiledImage(image, makeAffineTransform())
+        doAssert fill.isTiledImage(), "the tiled image did not take"
+        doAssert not fill.isColour() and not fill.isGradient(),
+                 "a tiled fill claims another kind"
+
+        # Setting a colour again switches back.
+        fill.setColour(Colours_green)
+        doAssert fill.isColour(), "the colour did not take"
+        # Colours::green is the CSS name, 0xff008000, so its green channel is
+        # 128 and not 255 (juce_Colours.cpp:51). Colours::lime is the bright
+        # one.
+        doAssert fill.colour().getGreen() == 128'u8,
+                 "the colour's green channel is " &
+                 $fill.colour().getGreen()
+        doAssert fill.colour().getRed() == 0'u8 and
+                 fill.colour().getBlue() == 0'u8,
+                 "the colour is not a pure green"
+
+    block:
+        # transformed returns a new fill with the transform folded into the
+        # one it already carries, and leaves the original alone.
+        var fill = makeFillType(makeColourGradient(
+            Colours_red, 0.0'f32, 0.0'f32,
+            Colours_blue, 100.0'f32, 0.0'f32, false))
+
+        let moved = fill.transformed(makeAffineTransform().translated(
+            10.0'f32, 20.0'f32))
+        doAssert moved.isGradient(), "the transformed fill lost its gradient"
+        doAssert moved.transform() != fill.transform(),
+                 "the transform did not change"
+        doAssert fill.transform() == makeAffineTransform(),
+                 "transformed changed the fill it was called on"
+
+    shutdownJuce_GUI()
+
+testFillTypeKinds()
