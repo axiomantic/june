@@ -67,9 +67,6 @@ uncallable = {
         "process's one instance",
     "constructApplication":
         "builds a JUCEApplication, same as newApplication",
-    "release":
-        "OptionalScopedPointer::release hands back ownership, and a test that "
-        "called it would have to invent a leak or a double free to finish",
 }
 
 # `macro` belongs here with the rest. A macro is only checked where it is
@@ -1032,6 +1029,18 @@ def main():
 
     stale = sorted(name for name in uncallable if name not in declared)
 
+    # An exemption that covers more than one declaration is excusing something
+    # its reason never mentioned.
+    ambiguous = sorted(name for name in uncallable
+                       if len(set(declared_in.get(name, []))) > 1)
+    if ambiguous:
+        print("These `uncallable` entries name more than one declaration, so "
+              "the reason recorded for one of them excuses the others too:",
+              file=sys.stderr)
+        for name in ambiguous:
+            where = ", ".join(sorted(set(declared_in[name])))
+            print(f"  {name}  (declared in {where})", file=sys.stderr)
+
     if stale:
         print("These are listed as uncallable but no longer exist:", file=sys.stderr)
         for name in stale:
@@ -1061,7 +1070,7 @@ def main():
     fields_ok = check_field_accessors()
     macos_ok = check_macos_only_calls()
 
-    if (uncovered or stale
+    if (ambiguous or uncovered or stale
             or not gitignore_ok
             or not licences_ok
             or not iterators_ok
