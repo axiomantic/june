@@ -750,6 +750,15 @@ against that whole shape, and it fails when any of these is not exercised::
 - a no-argument constructor that no test calls
 - a bound constant or static variable that no test reads
 - a class with a constructor that no test names
+- a public field that no test reads or assigns
+- an overload set taking a Nim ``int`` with no proc that accepts one losslessly
+- the same signature declared more than once
+- an inherited method a secondary base had to restate
+- a macOS-only method called outside a ``when defined(macosx)`` guard
+- a file under ``sources/`` whose copyright notice is missing, doubled, or -
+  in a generated module - not byte-identical to the hand-written ones
+- an exemption that covers more than one declaration, so its recorded reason
+  excuses something it never named
 
 It reports what it covered rather than only what failed, so the figures are
 read off the run rather than out of this file.
