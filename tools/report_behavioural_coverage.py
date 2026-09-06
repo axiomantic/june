@@ -1,7 +1,8 @@
 """Report which bound methods no behavioural test calls.
 
-The compile harness calls every bound method once, so it answers "does this
-binding reach the C++ compiler". This answers the other question: "does
+The compile harness calls the bound methods no behavioural test reaches and a
+call can be built for, so it answers "does this binding reach the C++
+compiler". This answers the other question: "does
 anything assert what the method DOES".
 
 ONE UNIT is one bound method declaration whose first parameter is `this` - that

@@ -165,10 +165,17 @@ The other layer
 ===============
 
 Behavioural coverage is the second of two. The first is
-``tests/test_juce_compiles.nim``, which calls every binding the behavioural
+``tests/test_juce_compiles.nim``, which calls the bindings the behavioural
 tests do not reach, so that each one is handed to the C++ compiler and the
 linker at least once - an ``importcpp`` proc reaches the compiler only at a
 call site.
+
+Not every one of them. The generator emits a call where it can build one and
+skips the rest with a reason apiece - a setter the field check covers, a free
+function or a method with no receiver, an operator, a type it does not export -
+printing both counts when it runs. Those skipped are the bindings still reaching
+no compiler through this layer, so the report is the thing to read rather than
+this sentence.
 
 The harness BINDS each result whose type is a plain class name rather than
 discarding it, because a discarded call constructs nothing: a by-value binding
