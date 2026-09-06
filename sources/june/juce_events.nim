@@ -47,10 +47,17 @@ type
 # and $ so a value can appear in a message. $ prints the number
 # rather than the name: the binding holds the C++ enumerator and
 # there is no table of names on this side to look one up in.
+#
+# A scoped enum - `enum class` in C++ - does not convert to int
+# on its own, so a borrowed $ emits dollar_(int32) over a value
+# clang refuses to narrow, and the error appears at the call
+# site rather than here. Those get toCint, which does the
+# static_cast C++ requires, and a $ written over it.
 proc `==`*(a: NotificationType, b: NotificationType): bool {.borrow.}
 proc `$`*(value: NotificationType): string {.borrow.}
 proc `==`*(a: InterprocessConnectionNotify, b: InterprocessConnectionNotify): bool {.borrow.}
-proc `$`*(value: InterprocessConnectionNotify): string {.borrow.}
+proc toCint*(this: InterprocessConnectionNotify): cint {.header: juce_events, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: InterprocessConnectionNotify): string = $value.toCint()
 
 let NotificationType_dontSendNotification* {.header: juce_events, importcpp: "juce::dontSendNotification".}: NotificationType
 let NotificationType_sendNotification* {.header: juce_events, importcpp: "juce::sendNotification".}: NotificationType
@@ -92,7 +99,7 @@ proc exit*(this: MessageManagerInnerLock) {.header: juce_events, importcpp: "#.e
 proc abort*(this: MessageManagerInnerLock) {.header: juce_events, importcpp: "#.abort()".}
 proc `==`*(this: MessageManagerInnerLock, other: MessageManagerInnerLock): bool {.error: "juce::MessageManager::Lock defines no operator==; compare a property instead".}
 
-proc makeMessageManagerLock*(threadToCheckForExitSignal: ptr Thread): MessageManagerLock {.header: juce_events, importcpp: "juce::MessageManagerLock(@)".}
+proc makeMessageManagerLock*(threadToCheckForExitSignal: ptr Thread = nil): MessageManagerLock {.header: juce_events, importcpp: "juce::MessageManagerLock(@)".}
 proc makeMessageManagerLock*(jobToCheckForExitSignal: ptr ThreadPoolJob): MessageManagerLock {.header: juce_events, importcpp: "juce::MessageManagerLock(@)".}
 proc lockWasGained*(this: MessageManagerLock): bool {.header: juce_events, importcpp: "#.lockWasGained()".}
 proc `==`*(this: MessageManagerLock, other: MessageManagerLock): bool {.error: "juce::MessageManagerLock defines no operator==; compare a property instead".}
@@ -232,7 +239,7 @@ proc addChildProcessExitedListener*(this: var ChildProcessManager, listener: Cpp
 proc hasRunningProcess*(this: ChildProcessManager): bool {.header: juce_events, importcpp: "#.hasRunningProcess()".}
 proc `==`*(this: ChildProcessManager, other: ChildProcessManager): bool {.error: "juce::ChildProcessManager defines no operator==; compare a property instead".}
 
-# proc makeInterprocessConnection*(callbacksOnMessageThread: bool, magicMessageHeaderNumber: uint32): InterprocessConnection {.header: juce_events, importcpp: "juce::InterprocessConnection(@)".}  # InterprocessConnection is abstract; build a CustomInterprocessConnection instead
+# proc makeInterprocessConnection*(callbacksOnMessageThread: bool = true, magicMessageHeaderNumber: uint32 = 0xf2b49e2c): InterprocessConnection {.header: juce_events, importcpp: "juce::InterprocessConnection(@)".}  # InterprocessConnection is abstract; build a CustomInterprocessConnection instead
 proc connectToSocket*(this: var InterprocessConnection, hostName: String, portNumber: cint, timeOutMillisecs: cint): bool {.header: juce_events, importcpp: "#.connectToSocket(@)".}
 proc connectToPipe*(this: var InterprocessConnection, pipeName: String, pipeReceiveMessageTimeoutMs: cint): bool {.header: juce_events, importcpp: "#.connectToPipe(@)".}
 proc createPipe*(this: var InterprocessConnection, pipeName: String, pipeReceiveMessageTimeoutMs: cint, mustNotExist: bool = false): bool {.header: juce_events, importcpp: "#.createPipe(@)".}
@@ -275,6 +282,7 @@ proc sendMessageToWorker*(this: var ChildProcessCoordinator, arg1: MemoryBlock):
 proc sendMessageToSlave*(this: var ChildProcessCoordinator, mb: MemoryBlock): bool {.header: juce_events, importcpp: "#.sendMessageToSlave(@)".}
 proc `==`*(this: ChildProcessCoordinator, other: ChildProcessCoordinator): bool {.error: "juce::ChildProcessCoordinator defines no operator==; compare a property instead".}
 
+proc makeNetworkServiceDiscovery*(): NetworkServiceDiscovery {.header: juce_events, importcpp: "juce::NetworkServiceDiscovery(@)".}  # implicit default constructor
 proc `==`*(this: NetworkServiceDiscovery, other: NetworkServiceDiscovery): bool {.error: "juce::NetworkServiceDiscovery defines no operator==; compare a property instead".}
 
 proc makeNetworkServiceDiscoveryAdvertiser*(serviceTypeUID: String, serviceDescription: String, broadcastPort: cint, connectionPort: cint, minTimeBetweenBroadcasts: RelativeTime): NetworkServiceDiscoveryAdvertiser {.header: juce_events, importcpp: "juce::NetworkServiceDiscovery::Advertiser(@)".}

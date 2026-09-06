@@ -324,14 +324,69 @@ def split_template_arguments(text):
 
 
 def map_std_function(bare, declared, aliases):
-    """Withheld.
+    """`std::function<void (bool)>` -> `CppFunctionObjectN1[bool]`.
 
-    The Nim binding for std::function<void(bool)> is CppFunctionObjectN1[bool],
-    and the macro renders a bracket type by substituting the head, which would
-    give CppFunctionObjectN1<bool>. The two are different shapes rather than
-    different names, so there is nothing for cppTypeName to pair.
+    The Nim binding and the C++ type are different SHAPES rather than different
+    names: the head carries the return type and the arity, and the arguments
+    move inside a second pair of parentheses. cppTypeSpelling in
+    june_cpp_utils.nim rewrites the whole expression back, so what is produced
+    here has to match the family exactly - N for a void return, R with the
+    return type first otherwise, the arity as a digit, and a Ref suffix when the
+    single argument is taken by const reference.
     """
-    return None
+    inner = bare[bare.index("<") + 1:-1].strip()
+
+    open_paren = inner.find("(")
+    if open_paren < 0 or not inner.rstrip().endswith(")"):
+        return None
+    return_spelling = inner[:open_paren].strip()
+    argument_text = inner[open_paren + 1:inner.rstrip().rindex(")")].strip()
+
+    arguments = [] if argument_text in ("", "void") \
+        else split_template_arguments(argument_text)
+    # The family stops at nine arguments, because a Nim importcpp pattern can
+    # name at most ten types ('0 to '9) and the return type takes one of them.
+    if len(arguments) > 9:
+        return None
+
+    # A const reference argument is spelled by a Ref member, and only the
+    # one-argument members of the family have one.
+    by_const_ref = False
+    stripped = []
+    for argument in arguments:
+        text = argument.strip()
+        if text.startswith("const ") and text.endswith("&"):
+            by_const_ref = True
+            text = text[len("const "):-1].strip()
+        elif by_const_ref:
+            # A mix of by-value and by-reference arguments has no member.
+            return None
+        stripped.append(text)
+    if by_const_ref:
+        if len(stripped) != 1:
+            return None
+        # Every argument had to be a const reference for the flag to be set on
+        # a single-argument function, so nothing more to check.
+
+    returns_void = return_spelling in ("void", "")
+    pieces = []
+    if not returns_void:
+        mapped = map_type(return_spelling, declared, is_return=False,
+                          aliases=aliases)
+        if mapped is None or mapped == "":
+            return None
+        pieces.append(mapped)
+    for argument in stripped:
+        mapped = map_type(argument, declared, is_return=False, aliases=aliases)
+        if mapped is None or mapped == "":
+            return None
+        pieces.append(mapped)
+
+    head = "CppFunctionObject" + ("N" if returns_void else "R") \
+        + str(len(stripped)) + ("Ref" if by_const_ref else "")
+    if not pieces:
+        return head
+    return f"{head}[{', '.join(pieces)}]"
 
 
 def map_template(bare, declared, aliases=None):
