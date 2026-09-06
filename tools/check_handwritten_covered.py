@@ -61,13 +61,7 @@ hand_written = [
 
 # Each needs a reason, and the reason has to be why a test cannot call it
 # rather than that nobody has yet.
-uncallable = {
-    "newApplication":
-        "builds a JUCEApplication, whose constructor asserts unless it is the "
-        "process's one instance",
-    "constructApplication":
-        "builds a JUCEApplication, same as newApplication",
-}
+uncallable = {}
 
 # `macro` belongs here with the rest. A macro is only checked where it is
 # expanded, exactly as an importcpp proc is only checked where it is called, so

@@ -15543,3 +15543,28 @@ proc testRelativeCoordinatePositioner() =
     shutdownJuce_GUI()
 
 testRelativeCoordinatePositioner()
+
+# Building the application object =============================================
+#
+# newApplication and constructApplication were both listed uncallable, on the
+# grounds that JUCEApplicationBase's constructor asserts unless the process has
+# a single instance. It does assert - juce_ApplicationBase.cpp:147 checks
+# isStandaloneApp() && appInstance == nullptr, and a test binary is not a
+# standalone app, so the first half is false whatever the instance count. The
+# object is still constructed, and constructing it is the whole point: an
+# importcpp binding nothing calls is never handed to the C++ compiler. The
+# assertion is recorded in check_juce_assertions.py as one the suite provokes
+# on purpose.
+
+proc testApplicationConstruction() =
+    initialiseJuce_GUI()
+    block:
+        let app = newApplication()
+        doAssert not app.isNil(), "newApplication returned nil"
+        cdelete app
+    block:
+        var byValue = constructApplication()
+        discard byValue
+    shutdownJuce_GUI()
+
+testApplicationConstruction()
