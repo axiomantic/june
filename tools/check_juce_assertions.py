@@ -122,6 +122,13 @@ EXPECTED = {
         ("macos",
          "startTimer with no running MessageManager, which every headless"
          "timer test does"),
+    "juce_ApplicationBase.cpp:147":
+        ("any",
+         "the JUCEApplicationBase constructor asserts isStandaloneApp()"
+         "&& appInstance == nullptr. A test binary is not a standalone"
+         "app, so the first half is false however few instances exist;"
+         "the object is still built, which is what newApplication and"
+         "constructApplication are called to show"),
     "juce_Timer.cpp:99":
         ("any",
          "JUCE's shared TimerThread torn down with no MessageManager left. "
