@@ -14,6 +14,16 @@ compiled cleanly for as long as nothing used it.
 
 What is checked is a NAME, not a declaration. Six procs are called isNil and
 eight iterators are called items, and one call of either satisfies all of them.
+
+Operators are outside this check, and cannot be brought inside it as it stands.
+The pattern captures a word, so a backtick-wrapped `==`, `[]` or `=destroy` never
+matches - about sixty declarations. Widening the pattern would not help: an
+operator is reached through SYNTAX rather than by name, so a test writes x[i]
+and never the word `[]`, and a lifetime hook like `=destroy` is called by the
+compiler and by nothing else. A text search cannot see either. What covers them
+instead is the compile harness, which instantiates the types, and the erroring
+`==` the generator emits where C++ declares none - both of which fail at
+compile time rather than here.
 That is the limit of a check built on a text search: it catches a binding
 nothing mentions, which is the case every defect above was found in, and it
 does not catch one overload of a name something else already calls.
@@ -23,6 +33,7 @@ Run from the repository root. Exits non-zero and names what is uncovered.
 import glob
 import pathlib
 import os
+import subprocess
 import re
 import sys
 
@@ -817,6 +828,42 @@ def check_iterator_promises():
     return not (broken or stale)
 
 
+def check_gitignore_order():
+    """Build output stays ignored under tests/ and examples/.
+
+    .gitignore puts directories back under those two, so a subdirectory of test
+    data is not dropped silently - git says nothing when an add matches an
+    ignored path. That negation is indiscriminate: it re-admits every directory
+    the general rules exclude, and .app, .dSYM, nimcache and the rest are all
+    directories. What keeps them out is ORDER - the general rules come after,
+    and a later rule wins.
+
+    Order is not something a reader can see is load-bearing, and this file's
+    own history records a 38MB binary committed past a rule that looked fine.
+    So it is checked rather than described: each case below is asked of git
+    itself, which is the only authority on what it would ignore.
+    """
+    must_ignore = ["tests/x.app/f", "tests/x.dSYM/f", "tests/nimcache/f",
+                   "tests/build/f", "tests/__pycache__/f", "tests/somebinary",
+                   "examples/x.app/f", "examples/nimcache/f"]
+    must_track = ["tests/fixtures/sample", "examples/fixtures/sample",
+                  "tests/test_juce_core.nim"]
+
+    def ignored(path):
+        return subprocess.run(["git", "check-ignore", "-q", path]).returncode == 0
+
+    wrong = [p for p in must_ignore if not ignored(p)]
+    wrong += [p for p in must_track if ignored(p)]
+    if wrong:
+        print("These paths are on the wrong side of .gitignore, which usually "
+              "means the general rules no longer come after the tests/ and "
+              "examples/ negations:", file=sys.stderr)
+        for path in wrong:
+            print(f"  {path}", file=sys.stderr)
+        return False
+    return True
+
+
 def check_licence_headers():
     """Every file under sources/ carries the project's copyright notice, once.
 
@@ -918,6 +965,7 @@ def main():
               "a test cannot.", file=sys.stderr)
 
     licences_ok = check_licence_headers()
+    gitignore_ok = check_gitignore_order()
     iterators_ok = check_iterator_promises()
     defaults_ok = check_implicit_defaults()
     subclasses_ok = check_subclasses()
@@ -932,6 +980,7 @@ def main():
     fields_ok = check_field_accessors()
 
     if (uncovered or stale
+            or not gitignore_ok
             or not licences_ok
             or not iterators_ok
             or not defaults_ok
