@@ -51,7 +51,7 @@ defineCppClassInternal CustomImagePixelData of ImagePixelData:
     cppTypeName ImageBitmapDataReadWriteMode, "Image::BitmapData::ReadWriteMode"
     cppTypeName ImageBitmapData, "Image::BitmapData"
     proc createLowLevelContext(): UniquePtr[LowLevelGraphicsContext] = discard
-    proc clone(): ReferenceCountedObjectPtr[DynamicObject] = discard
+    proc clone(): ReferenceCountedObjectPtr[ImagePixelData] = discard
     proc createType(): UniquePtr[ImageType] {.cppconst.} = discard
     proc initialiseBitmapData(arg0: varref[ImageBitmapData], x: cint, y: cint, arg3: ImageBitmapDataReadWriteMode) = discard
 
@@ -60,7 +60,7 @@ proc newCustomImagePixelData*(arg0: ImagePixelFormat, width: cint, height: cint)
 proc setCreateLowLevelContextHandler*(this: var CustomImagePixelData, handler: proc(): UniquePtr[LowLevelGraphicsContext] {.closure.}) =
     this.onCreateLowLevelContext = bindClosure(handler)
 
-proc setCloneHandler*(this: var CustomImagePixelData, handler: proc(): ReferenceCountedObjectPtr[DynamicObject] {.closure.}) =
+proc setCloneHandler*(this: var CustomImagePixelData, handler: proc(): ReferenceCountedObjectPtr[ImagePixelData] {.closure.}) =
     this.onClone = bindClosure(handler)
 
 proc setCreateTypeHandler*(this: var CustomImagePixelData, handler: proc(): UniquePtr[ImageType] {.closure.}) =
@@ -94,6 +94,20 @@ proc setNeedsBackupHandler*(this: var CustomImagePixelDataBackupExtensions, hand
 proc setCanBackupHandler*(this: var CustomImagePixelDataBackupExtensions, handler: proc(): bool {.closure.}) =
     this.onCanBackup = bindClosure(handler)
 
+defineCppClassInternal CustomImagePixelDataListener of ImagePixelDataListener:
+    include "juce_graphics/juce_graphics.h"
+    cppParent "juce::ImagePixelData::Listener"
+    proc imageDataChanged(arg0: ptr ImagePixelData) = discard
+    proc imageDataBeingDeleted(arg0: ptr ImagePixelData) = discard
+
+proc newCustomImagePixelDataListener*(): ptr CustomImagePixelDataListener {.importcpp: "(new june::CustomImagePixelDataListener)".}
+
+proc setImageDataChangedHandler*(this: var CustomImagePixelDataListener, handler: proc(arg0: ptr ImagePixelData) {.closure.}) =
+    this.onImageDataChanged = bindClosure(handler)
+
+proc setImageDataBeingDeletedHandler*(this: var CustomImagePixelDataListener, handler: proc(arg0: ptr ImagePixelData) {.closure.}) =
+    this.onImageDataBeingDeleted = bindClosure(handler)
+
 defineCppClassInternal CustomImageType of ImageType:
     include "juce_graphics/juce_graphics.h"
     cppTypeName ImagePixelFormat, "Image::PixelFormat"
@@ -123,4 +137,4 @@ proc setGetNativeDetailsHandler*(this: var CustomTypeface, handler: proc(): ptr 
     this.onGetNativeDetails = bindClosure(handler)
 
 # Withheld, with the reason:
-#   LowLevelGraphicsContext: const Font & returned by getFont has no Nim spelling
+#   LowLevelGraphicsContext: fillRect is overloaded, which one handler cannot express
