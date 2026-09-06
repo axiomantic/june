@@ -2485,6 +2485,16 @@ proc testFontOptionsBuilding() =
         doAssert fallbacks.size() == 2,
                  "the vector holds " & $fallbacks.size() & " entries"
 
+        # clear() was reached by nothing: the coverage gate matches by name, and
+        # String, StringArray and four other types have one, so a call to any of
+        # those satisfied it while std::vector::clear was never run.
+        var scratch = makeCppVector[String]()
+        scratch.add(makeString("Menlo"))
+        doAssert not scratch.isEmpty(), "a vector with an entry reports empty"
+        scratch.clear()
+        doAssert scratch.isEmpty(), "clear left " & $scratch.size() & " entries"
+        doAssert scratch.size() == 0, "clear left a non-zero size"
+
         let options = makeFontOptions(12.0'f32).withFallbacks(fallbacks)
         doAssert options.getFallbacks().size() == 2,
                  "the options carry " & $options.getFallbacks().size() &

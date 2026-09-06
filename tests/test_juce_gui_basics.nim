@@ -1,6 +1,5 @@
 
 import june
-import std/os
 
 {.emit: """/*INCLUDESECTION*/
 #include <june.h>
