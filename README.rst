@@ -748,6 +748,8 @@ against that whole shape, and it fails when any of these is not exercised::
   python3 tools/check_handwritten_covered.py
 
 - a hand-written binding name that no test calls
+- a receiver type carrying a hand-written binding that no test names, so the
+  check above is satisfied only by a same-named method on another type
 - a withheld ``begin()`` naming a Nim iterator that does not exist
 - an emitted implicit default constructor that no test builds
 - a generated subclass that no test builds
@@ -764,6 +766,8 @@ against that whole shape, and it fails when any of these is not exercised::
   in a generated module - not byte-identical to the hand-written ones
 - an exemption that covers more than one declaration, so its recorded reason
   excuses something it never named
+- a ``.gitignore`` rule ordered so that it swallows a path the tree must track,
+  or admits one it must ignore
 
 It reports what it covered rather than only what failed, so the figures are
 read off the run rather than out of this file.
