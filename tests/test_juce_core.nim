@@ -1583,6 +1583,62 @@ proc testStdWrappersAndInputSource() =
 
 testStdWrappersAndInputSource()
 
+# The generic std:: and juce:: wrappers ======================================
+#
+# Eight methods here were reached by nothing: CppMap's isEmpty,
+# CppUnorderedMap's `[]`, all three of CppArray's, and all three of Optional's.
+# The compile harness skips a generic receiver so it emits no call for them, and
+# the coverage gate matches by NAME - isEmpty, `[]`, items, len, hasValue, value
+# and reset are each declared on other types, and CppOptional carries the same
+# three names as Optional - so a call to any of those reported these covered.
+#
+# The rest of what these four expose was already exercised by
+# testStlContainers above; the whole set is asserted here so the distinction
+# does not have to be rediscovered.
+
+proc testGenericWrappers() =
+    block:
+        var m = makeCppMap[cint, cint]()
+        doAssert m.isEmpty(), "a new map is not empty"
+        doAssert m.size() == 0, "a new map holds " & $m.size()
+        doAssert not m.contains(1.cint), "an empty map contains a key"
+        m[1.cint] = 42.cint
+        doAssert not m.isEmpty(), "a map with an entry reports empty"
+        doAssert m.size() == 1, "the map holds " & $m.size() & " entries"
+        doAssert m.contains(1.cint), "the map does not contain the key just set"
+        doAssert m[1.cint] == 42.cint, "the map returned " & $m[1.cint]
+
+    block:
+        var u = makeCppUnorderedMap[cint, cint]()
+        doAssert u.isEmpty(), "a new unordered map is not empty"
+        doAssert u.size() == 0, "a new unordered map holds " & $u.size()
+        doAssert not u.contains(7.cint), "an empty unordered map contains a key"
+        u[7.cint] = 13.cint
+        doAssert not u.isEmpty(), "an unordered map with an entry reports empty"
+        doAssert u.size() == 1, "it holds " & $u.size() & " entries"
+        doAssert u.contains(7.cint), "it does not contain the key just set"
+        doAssert u[7.cint] == 13.cint, "it returned " & $u[7.cint]
+
+    block:
+        # std::array is a value type with no constructor: its length is part of
+        # the type, so len() is answered from N rather than from the object.
+        var a: CppArray[cint, 3]
+        doAssert a.len() == 3, "the array reports length " & $a.len()
+        doAssert a[0.csize_t] == 0.cint, "a default-initialised entry is not zero"
+        var seen: seq[cint] = @[]
+        for entry in a:
+            seen.add(entry)
+        doAssert seen.len == 3, "iterating yielded " & $seen.len & " entries"
+
+    block:
+        var present = makeOptional(5.cint)
+        doAssert present.hasValue(), "makeOptional produced an empty Optional"
+        doAssert present.value() == 5.cint, "it holds " & $present.value()
+        present.reset()
+        doAssert not present.hasValue(), "reset left a value behind"
+
+testGenericWrappers()
+
 # The last of the core subclass handlers ======================================
 
 proc testRemainingCoreHandlers() =
