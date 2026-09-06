@@ -937,10 +937,11 @@ def check_gitignore_order():
     directories. What keeps them out is ORDER - the general rules come after,
     and a later rule wins.
 
-    Order is not something a reader can see is load-bearing, and this file's
-    own history records a 38MB binary committed past a rule that looked fine.
-    So it is checked rather than described: each case below is asked of git
-    itself, which is the only authority on what it would ignore.
+    Order is not something a reader can see is load-bearing, and a rule that
+    looks fine can still let a build artifact through - which is how a compiled
+    binary reached a commit here once. So it is checked rather than described:
+    each case below is asked of git itself, which is the only authority on what
+    it would ignore.
     """
     must_ignore = ["tests/x.app/f", "tests/x.dSYM/f", "tests/nimcache/f",
                    "tests/build/f", "tests/__pycache__/f", "tests/somebinary",
