@@ -116,6 +116,14 @@ uncallable = {}
 # nothing at all. Fifty-two of the three hundred and eighteen exported
 # declarations here were invisible, and this gate printed "all N hand-written
 # binding names are called" without ever having looked at one of them.
+# A receiver type nothing can name, with the reason. Empty: every type
+# carrying a hand-written binding is named by a test today.
+unnameable_receivers = {}
+
+receiver = re.compile(
+    r'(?:proc|iterator|template|converter|macro) `?([\w=$\[\]]+)`?\*'
+    r'(?:\[[^\]]*\])?\(this: (?:var )?(\w+)')
+
 export = re.compile(
     r'(?:proc|iterator|template|converter|macro) (`[^`]+`|\w+)\*')
 
@@ -1019,6 +1027,72 @@ def check_gitignore_order():
     return True
 
 
+def check_receiver_types_named():
+    """Every hand-written binding has a receiver some test names.
+
+    The coverage check above matches a NAME, and a name is shared: `size`,
+    `isEmpty`, `contains`, `items`, `len`, `clear` and `reset` are each declared
+    on several types here and on generated JUCE classes besides. A call to any
+    one of them reported all of them covered, so a binding could be reported
+    exercised while its importcpp string had never reached a C++ compiler.
+
+    That is not hypothetical. It hid std::vector::clear behind six other
+    `clear`s, two iterators behind eighteen other `items`, OptionalScopedPointer
+    behind unique_ptr's `release`, and eight methods on CppMap,
+    CppUnorderedMap, CppArray and Optional - none of which the compile harness
+    reaches either, because it skips a generic receiver.
+
+    Checking the RECEIVER closes what the name cannot: a test that never
+    mentions the type cannot have called anything on it. Matching is textual,
+    so naming the type or its constructor both count.
+
+    This is a per-TYPE check, and that is its limit. It catches a type no test
+    names - CppArray and Optional were both invisible that way. It cannot catch
+    a method never called on a type some test DOES name: CppMap.isEmpty and
+    CppUnorderedMap.`[]` were two of the eight above, and testStlContainers
+    constructs both types, so nothing here would have flagged them. Six of the
+    eight, not all eight.
+    """
+    receivers = {}
+    for name in hand_written:
+        path = os.path.join("sources", "june", name)
+        if not os.path.exists(path):
+            continue
+        with open(path) as handle:
+            for line in handle:
+                match = receiver.match(line)
+                if match:
+                    receivers.setdefault(match.group(2), set()).add(match.group(1))
+
+    used = ""
+    for pattern in ("tests/test_juce_*.nim", "examples/*.nim"):
+        for path in glob.glob(pattern):
+            with open(path) as handle:
+                used += handle.read()
+
+    unnamed = sorted(t for t in receivers
+                     if t not in unnameable_receivers
+                     and not re.search(r"\b" + t + r"\b", used)
+                     and not re.search(r"\bmake" + t + r"\b", used))
+    stale = sorted(t for t in unnameable_receivers if t not in receivers)
+
+    if unnamed:
+        print("No test names these types, so nothing calls the bindings "
+              "declared on them - the name check above is satisfied by "
+              "same-named methods on other types:", file=sys.stderr)
+        for name in unnamed:
+            print(f"  {name}  ({len(receivers[name])} bindings)", file=sys.stderr)
+    if stale:
+        print("These are listed as unnameable receivers but no longer have "
+              "bindings:", file=sys.stderr)
+        for name in stale:
+            print(f"  {name}", file=sys.stderr)
+    if not (unnamed or stale):
+        print(f"all {len(receivers)} receiver types carrying a hand-written "
+              f"binding are named by a test")
+    return not (unnamed or stale)
+
+
 def check_licence_headers():
     """Every file under sources/ carries the project's copyright notice, once.
 
@@ -1189,6 +1263,7 @@ def main():
         print(problem, file=sys.stderr)
 
     licences_ok = check_licence_headers()
+    receivers_ok = check_receiver_types_named()
     gitignore_ok = check_gitignore_order()
     iterators_ok = check_iterator_promises()
     defaults_ok = check_implicit_defaults()
@@ -1209,7 +1284,8 @@ def main():
             or not handlers_ok or not constructors_ok or not constants_ok
             or not statics_ok or not classes_ok or not inherited_ok
             or not signatures_ok or not literals_ok or not fields_ok
-            or not gitignore_ok or not macos_ok or ambiguous):
+            or not gitignore_ok or not macos_ok or ambiguous
+            or not receivers_ok):
         sys.exit(1)
 
     shared = len(declarations) - len(declared)
