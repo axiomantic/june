@@ -296,7 +296,7 @@ def split_template_arguments(text):
     return arguments
 
 
-def map_std_function(bare, declared, aliases):
+def map_std_function():
     """Withheld.
 
     The Nim binding for std::function<void(bool)> is CppFunctionObjectN1[bool],
@@ -314,7 +314,7 @@ def map_template(bare, declared, aliases=None):
     inner = rest[:-1]
 
     if head in ("std::function", "function"):
-        return map_std_function(bare, declared, aliases)
+        return map_std_function()
 
     template_map = {"std::unique_ptr": "UniquePtr", "unique_ptr": "UniquePtr",
                     "std::shared_ptr": "SharedPtr", "shared_ptr": "SharedPtr",
