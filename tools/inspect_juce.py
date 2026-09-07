@@ -563,6 +563,19 @@ def type_is_declared(rendered, declared):
         return False
     return True
 
+
+def has_no_nim_spelling(rendered, declared):
+    """True when a rendered fragment cannot be written in Nim at all.
+
+    A C++ template or nested name that survived remapping, a function type, a C
+    array, or any identifier the bindings never declare. Applied to a whole
+    signature it decides whether the proc is emitted; applied to a return type
+    alone it says whether that one type resolved.
+    """
+    return ("<" in rendered or "::" in rendered or "(" in rendered
+            or is_c_array(rendered)
+            or not type_is_declared(rendered, declared))
+
 #==================================================================================================
 
 # Every Nim keyword, not the handful that happened to come up. A C++ parameter
@@ -1476,8 +1489,18 @@ def run_main(juce_module_name, juce_class_name_to_export):
             if m.result_type.spelling in ["CFStringRef", "OSType"]:
                 comment, reason = "# ", "a platform type with no Nim spelling"
 
+            # begin/end/cbegin/cend hand back an iterator by definition. A
+            # method merely NAMED *Iterator does not: the suffix is a fact
+            # about the spelling, and attaching "this is a C++ iterator" to it
+            # asserts something about the return type that nothing checked.
+            # So the suffix only carries the reason where the return type is
+            # one the bindings cannot name - which is what makes it an iterator
+            # a Nim caller has no use for. One that resolves goes through the
+            # ordinary path and is bound.
             if (m.spelling in ["begin", "end", "cbegin", "cend"]
-                    or m.spelling.endswith("Iterator")):
+                    or (m.spelling.endswith("Iterator")
+                        and has_no_nim_spelling(return_type,
+                                                declared_type_names))):
                 comment, reason = "# ", "a C++ iterator; loop with the Nim iterator instead"
             elif skip_class_method(class_name, m.spelling):
                 comment, reason = "# ", "excluded deliberately: see skip_class_method"
@@ -1505,9 +1528,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 return_type = ""
 
             rendered = ", ".join(argument_types) + return_type
-            if ("<" in rendered or "::" in rendered or "(" in rendered
-                    or is_c_array(rendered)
-                    or not type_is_declared(rendered, declared_type_names)):
+            if has_no_nim_spelling(rendered, declared_type_names):
                 comment = "# "
                 # Only when nothing more specific has been established: a
                 # begin() whose return type is also unspellable is still best
