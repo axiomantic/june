@@ -431,8 +431,20 @@ def pure_virtuals(cursor):
 
     A private one cannot be overridden from a generated subclass, so a class
     with one is withheld rather than emitted broken.
+
+    Two pure virtuals sharing a name are two entries here, not one. C++
+    overriding is by SIGNATURE, so a name is not an identity: collapsing the
+    overloads of a name into one entry hid them from render_class, whose
+    refusal to emit an overloaded handler could then never fire.
     """
     result, private, seen, implemented = [], False, set(), set()
+
+    def signature(member):
+        """What C++ matches an override on: name, parameters and constness."""
+        return (member.spelling,
+                tuple(argument.type.spelling
+                      for argument in member.get_arguments()),
+                member.is_const_method())
 
     def walk(class_cursor, depth=0):
         nonlocal private
@@ -451,8 +463,9 @@ def pure_virtuals(cursor):
             if member.is_pure_virtual_method():
                 if member.access_specifier == AccessSpecifier.PRIVATE:
                     private = True
-                elif member.spelling not in seen and member.spelling not in implemented:
-                    seen.add(member.spelling)
+                elif (signature(member) not in seen
+                        and member.spelling not in implemented):
+                    seen.add(signature(member))
                     result.append(member)
             else:
                 # A base's pure virtual that this class already implements.

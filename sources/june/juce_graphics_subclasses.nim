@@ -123,4 +123,4 @@ proc setGetNativeDetailsHandler*(this: var CustomTypeface, handler: proc(): ptr 
     this.onGetNativeDetails = bindClosure(handler)
 
 # Withheld, with the reason:
-#   LowLevelGraphicsContext: const Font & returned by getFont has no Nim spelling
+#   LowLevelGraphicsContext: fillRect is overloaded, which one handler cannot express
