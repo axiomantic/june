@@ -204,9 +204,6 @@ for module, text in src.items():
             if not name.startswith("`") and not re.fullmatch(r"\w+", name):
                 skipped["an operator"] += 1
                 continue
-            if name.startswith("`"):
-                skipped["an operator"] += 1
-                continue
         if name in UNCALLABLE:
             skipped[f"uncallable: {name} {UNCALLABLE[name]}"] += 1
             continue

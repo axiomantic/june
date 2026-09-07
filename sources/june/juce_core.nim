@@ -2747,7 +2747,6 @@ proc `shl`*(string1: var String, number: int64): var String {.header: juce_core,
 proc `shl`*(string1: var String, number: uint64): var String {.header: juce_core, importcpp: "juce::operator<<((juce::String &) #, (unsigned long) #)".}
 proc `shl`*(string1: var String, number: cfloat): var String {.header: juce_core, importcpp: "juce::operator<<((juce::String &) #, (float) #)".}
 proc `shl`*(string1: var String, number: float64): var String {.header: juce_core, importcpp: "juce::operator<<((juce::String &) #, (double) #)".}
-proc `shl`*(arg1: var String, arg2: bool): var String {.header: juce_core, importcpp: "juce::operator<<((juce::String &) #, (bool) #)".}
 proc `==`*(string1: String, string2: String): bool {.header: juce_core, importcpp: "juce::operator==(@)".}
 proc `==`*(string1: String, string2: constChar): bool {.header: juce_core, importcpp: "juce::operator==(@)".}
 proc `==`*(string1: String, string2: ptr WChar): bool {.header: juce_core, importcpp: "juce::operator==(@)".}

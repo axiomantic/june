@@ -7,7 +7,7 @@ import clang.cindex
 import argparse
 import glob
 import re
-from clang.cindex import TypeKind
+from clang.cindex import AvailabilityKind, TypeKind
 
 from clang_base_enumerations import CursorKind, AccessSpecifier
 
@@ -1493,10 +1493,24 @@ def run_main(juce_module_name, juce_class_name_to_export):
     # TODO - Extract base types (ints, floats, aliases)
 
     # Extract free functions
+    # A deleted free function is declared and cannot be called, the same way a
+    # deleted constructor is - and the constructor pass already refuses those.
+    # JUCE deletes `operator<< (String&, bool)` on purpose, with a comment saying
+    # a bool converting to String "opens up lots of nasty type conversion edge
+    # cases", and the generator bound it anyway. Nothing called it, so nothing
+    # noticed until the harness did.
+    # is_deleted_method() is for methods and answers False here whatever the
+    # declaration says; libclang reports a deleted free function as NOT_AVAILABLE
+    # instead. Checked against the cursor rather than assumed - the first attempt
+    # used is_deleted_method and silently changed nothing.
+    def function_is_deleted(node):
+        return node.availability == AvailabilityKind.NOT_AVAILABLE
+
     all_functions = []
     for entry in juce_namespace:
         all_functions += [node for node in filter(
-            lambda x: x.kind == CursorKind.FUNCTION_DECL, entry.get_children())]
+            lambda x: x.kind == CursorKind.FUNCTION_DECL
+            and not function_is_deleted(x), entry.get_children())]
 
     # And the ones a nested namespace holds. juce::Colours::findColourForName is
     # the only one today. Its Nim name and its C++ spelling both carry the
