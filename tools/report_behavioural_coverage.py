@@ -31,10 +31,28 @@ test_juce_compiles.nim is excluded, because counting it would mark everything
 covered and answer the harness's question instead of this one.
 
 OVERLOADS COLLAPSE. `setBounds(x, y, w, h)` and `setBounds(rect)` are one unit,
-because a behavioural test calling either one exercises the name. That is why
-the total here (4528) is smaller than the number of receiver-taking proc LINES
-in the same files (7169) - the two counts differ by exactly the overloads, and
-a figure close to 7169 would mean this script had started counting lines.
+because a behavioural test calling either one exercises the name.
+
+The sanity check on that used to be a sentence, and the sentence was false. It
+said the total was smaller than the number of receiver-taking proc LINES in the
+same files "by exactly the overloads". It is not. The extraction pattern
+matches only some of those lines, and only THOSE are then collapsed by class;
+the rest it never matched at all. So the gap between the two figures is mostly
+exclusion rather than collapse, and an invariant stated that loosely would not
+notice this script dropping an entire declaration shape.
+
+check_line_classification() replaces it, and is mechanical. It sorts every
+receiver-taking proc line into counted, operator or static - operators and
+statics being what this file says above that it does not count - and fails when
+a line falls into none of the three. A declaration shape excluded in silence is
+what is worth catching. The figures are printed rather than written down here,
+because a figure in a docstring is wrong at the next commit and nothing says so.
+
+WHAT MAKES THIS SCRIPT EXIT NON-ZERO. Not a coverage figure: this is a report,
+and no number it prints is a verdict. It exits non-zero only when the script
+itself is inconsistent with the tree - a receiver-taking declaration of a shape
+it counts under no heading. That is an error in this file, and a report that
+cannot be trusted to describe the tree is worse than no report.
 """
 
 import collections
@@ -45,6 +63,17 @@ import sys
 TESTS = pathlib.Path("tests")
 SOURCES = pathlib.Path("sources/june")
 HARNESS = "test_juce_compiles.nim"
+
+# Every proc line that takes a receiver, and the three shapes it can have.
+# COUNTED is the extraction this whole report is built on; the other two are
+# the shapes the docstring says are deliberately not counted. A receiver-taking
+# line matching none of them is a shape nobody decided about, which is what
+# check_line_classification() below exists to report.
+RECEIVER_LINE = re.compile(r"proc .*\(this: ")
+COUNTED = re.compile(r"proc (`?[A-Za-z_][A-Za-z0-9_]*`?)\*\("
+                     r"this: (?:var )?([A-Za-z_][A-Za-z0-9_]*)[,)]")
+OPERATOR = re.compile(r"proc `[^`]+`\*\(")
+STATIC = re.compile(r"proc [^(]*\*\(this: typedesc\[")
 
 # Classes whose remaining methods a headless behavioural test cannot reach.
 # Each name is here because a test was written against it and the reason was
@@ -96,17 +125,19 @@ def called_names():
     return names
 
 
+def binding_modules():
+    """The generated module files every count in this report is taken from."""
+    return [path for path in sorted(SOURCES.glob("juce_*.nim"))
+            if not path.name.endswith(("_lifting.nim", "_subclasses.nim"))]
+
+
 def methods_by_module():
     """{module: {class: {method}}}, from the generated bindings only."""
     per_module = {}
-    for path in sorted(SOURCES.glob("juce_*.nim")):
-        if path.name.endswith(("_lifting.nim", "_subclasses.nim")):
-            continue
+    for path in binding_modules():
         per = collections.defaultdict(set)
         for line in path.read_text().splitlines():
-            match = re.match(
-                r"proc (`?[A-Za-z_][A-Za-z0-9_]*`?)\*\("
-                r"this: (?:var )?([A-Za-z_][A-Za-z0-9_]*)[,)]", line)
+            match = COUNTED.match(line)
             if match:
                 per[match.group(2)].add(match.group(1).strip("`"))
         per_module[path.stem] = per
@@ -119,6 +150,56 @@ def methods_by_class():
         for cls, names in module.items():
             per[cls] |= names
     return per
+
+
+def check_line_classification():
+    """Every receiver-taking proc line is counted, an operator, or a static.
+
+    The total this report prints is built by one pattern, and a pattern that
+    stops matching a declaration shape does not fail - it drops those
+    declarations and the total simply gets smaller. Nothing in the output
+    distinguishes "the bindings shrank" from "this script stopped seeing part
+    of them", which is the failure the rest of this file is written against.
+
+    So the three shapes are made to account for the whole population. Counted,
+    operator and static are exhaustive over the receiver-taking proc lines
+    today; a line matching none of them is a fourth shape, and it is reported
+    here rather than silently left out of the total.
+    """
+    counts = collections.Counter()
+    unclassified = []
+    for path in binding_modules():
+        for number, line in enumerate(path.read_text().splitlines(), 1):
+            if not RECEIVER_LINE.match(line):
+                continue
+            if COUNTED.match(line):
+                counts["counted"] += 1
+            elif OPERATOR.match(line):
+                counts["operator"] += 1
+            elif STATIC.match(line):
+                counts["static"] += 1
+            else:
+                unclassified.append(f"{path}:{number}  {line.strip()[:90]}")
+
+    total = sum(counts.values()) + len(unclassified)
+    print(f"{'lines':>8}  receiver-taking proc lines in the bindings")
+    print(f"{total:>8}  in the five generated modules")
+    print(f"{counts['counted']:>8}  matched by the pattern this report counts")
+    print(f"{counts['operator']:>8}  operators, not counted (applied as syntax)")
+    print(f"{counts['static']:>8}  statics on typedesc, not counted (no "
+          f"receiver)")
+
+    if unclassified:
+        print(f"\nreceiver-taking declarations matching none of the three "
+              f"shapes above ({len(unclassified)}), and so missing from every "
+              f"figure this report prints without being excluded on purpose:",
+              file=sys.stderr)
+        for entry in unclassified[:20]:
+            print(f"  {entry}", file=sys.stderr)
+        if len(unclassified) > 20:
+            print(f"  ... and {len(unclassified) - 20} more", file=sys.stderr)
+        return False
+    return True
 
 
 def is_reachable(cls, method):
@@ -151,8 +232,15 @@ def print_remaining():
 
 
 def main():
+    # The integrity check runs in both modes and alone decides the exit
+    # status. No figure below is a verdict: a coverage number moving is news,
+    # not a failure, and only this script disagreeing with the tree is.
+    sound = check_line_classification()
+    print()
+
     if "--remaining" in sys.argv[1:]:
-        return print_remaining()
+        print_remaining()
+        return 0 if sound else 1
 
     called = called_names()
     per = methods_by_class()
@@ -205,7 +293,7 @@ def main():
     for band in ("10 or more", "5 to 9", "1 to 4"):
         print(f"{spread[band]:>8}  classes with {band} uncalled")
 
-    return 0
+    return 0 if sound else 1
 
 
 if __name__ == "__main__":

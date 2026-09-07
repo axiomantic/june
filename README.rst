@@ -496,6 +496,10 @@ test calling either exercises the name. The match is by name rather than by
 receiver, which makes the uncalled figure a LOWER bound - it never claims
 coverage that is not there.
 
+No figure it prints fails a run. It exits non-zero only where the script has
+fallen out of step with the tree: a receiver-taking declaration of a shape it
+counts under no heading.
+
 The same tool lists what is left, so that the list is never a stale copy in a
 document::
 
