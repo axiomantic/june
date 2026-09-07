@@ -654,6 +654,15 @@ def check_one_declaration_per_signature():
     Nothing catches this at generation time, and nothing catches it at compile
     time either unless a test happens to make the call on a deep enough
     receiver. It is a property of the emitted text, so it is checked here.
+
+    The scan below matches a `this` receiver only, and that is deliberate rather
+    than the narrowing that bit two other patterns in this file. The generated
+    modules do spell some first parameters otherwise - 167 procs take `a` - but
+    every one of those is a borrowed `==` over a distinct enum, a free function
+    with no receiver to inherit through. The ambiguity being checked is between a
+    method and the same method on a Nim ancestor, which only a receiver-taking
+    proc can be in. Widening this to any first parameter would add enum
+    operators, not coverage.
     """
     parents, procedures = {}, {}
     for module in ("juce_core", "juce_events", "juce_data_structures",
