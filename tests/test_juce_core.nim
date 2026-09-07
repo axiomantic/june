@@ -2248,6 +2248,15 @@ proc testSmallCoreClasses() =
             doAssert makeInt64Range(2'i64, 2'i64).isEmpty(),
                      "a zero-length range did not report empty"
 
+            # Two DIFFERENT ranges, on purpose. Without a bound ==, Nim falls
+            # back to structural equality on a fieldless importcpp object,
+            # which compares nothing and answers true - so an equal pair would
+            # pass whether == is bound or not, and prove nothing.
+            doAssert not (wanted == makeInt64Range(5'i64, 9'i64)),
+                     "two different Int64Ranges compared equal"
+            doAssert wanted == makeInt64Range(1'i64, 4'i64),
+                     "two identical Int64Ranges compared unequal"
+
             let part = makeMemoryMappedFile(
                 accepted, wanted, MemoryMappedFileAccessMode_readOnly, false)
             # JUCE snaps the start down to a page boundary, so the mapping only has
@@ -4651,9 +4660,11 @@ testVarTypes()
 proc testRemainingImplicitConstructors() =
   block:
     # The option structs. Each is a parameter of a proc that could not be
-    # called at all before.
+    # called at all before. Where a struct answers something, that answer is
+    # asserted; where it does not, the CONSTRUCTION is the whole test - an
+    # importcpp constructor nothing calls is never handed to the C++ compiler -
+    # and nothing is asserted, because nothing could fail.
     var jsonFormat = makeJSONFormatOptions()
-    doAssert (addr jsonFormat) != nil, "the JSON format options did not build"
     doAssert $JSON.toString(makejuce_var(makeString("x")), jsonFormat) == "\"x\"",
              "JSON.toString gave " &
              $JSON.toString(makejuce_var(makeString("x")), jsonFormat)
@@ -4664,10 +4675,8 @@ proc testRemainingImplicitConstructors() =
              "an unbound socket reports port " & $socket.getBoundPort()
 
     var realtime = makeThreadRealtimeOptions()
-    doAssert (addr realtime) != nil, "the realtime options did not build"
 
-    var toVarOptions = makeToVarOptions()
-    doAssert (addr toVarOptions) != nil, "the ToVar options did not build"
+    discard makeToVarOptions()
 
   block:
     # The static-function holders. JUCE writes these as classes with nothing
@@ -4675,16 +4684,10 @@ proc testRemainingImplicitConstructors() =
     # declares the type, and a declared type with no constructor is a type
     # whose importcpp is never compiled.
     var base64 = makeBase64()
-    doAssert (addr base64) != nil, "Base64 did not build"
-    var characterFunctions = makeCharacterFunctions()
-    doAssert (addr characterFunctions) != nil, "CharacterFunctions did not build"
-    var hashFunctions = makeDefaultHashFunctions()
-    doAssert (addr hashFunctions) != nil, "DefaultHashFunctions did not build"
-    var runtimePermissions = makeRuntimePermissions()
-    doAssert (addr runtimePermissions) != nil, "RuntimePermissions did not build"
-    var androidPermission = makeAndroidDocumentPermission()
-    doAssert (addr androidPermission) != nil,
-             "AndroidDocumentPermission did not build"
+    discard makeCharacterFunctions()
+    discard makeDefaultHashFunctions()
+    discard makeRuntimePermissions()
+    discard makeAndroidDocumentPermission()
 
     var console = makeConsoleApplication()
     doAssert console.getCommands().size() == 0'u64,
@@ -4695,26 +4698,19 @@ proc testRemainingImplicitConstructors() =
     doAssert entry.getFile().getFullPathName().isEmpty(),
              "a default DirectoryEntry names " & $entry.getFile().getFullPathName()
 
-    var newLine = makeNewLine()
-    doAssert (addr newLine) != nil, "NewLine did not build"
+    discard makeNewLine()
 
-    var fromVar = makeFromVar()
-    doAssert (addr fromVar) != nil, "FromVar did not build"
-    var toVar = makeToVar()
-    doAssert (addr toVar) != nil, "ToVar did not build"
-    var reservoir = makeReservoir()
-    doAssert (addr reservoir) != nil, "Reservoir did not build"
-    var nullChecked = makeNullCheckedInvocation()
-    doAssert (addr nullChecked) != nil, "NullCheckedInvocation did not build"
+    discard makeFromVar()
+    discard makeToVar()
+    discard makeReservoir()
+    discard makeNullCheckedInvocation()
     var timed = makeTimedDiagnostic()
-    doAssert (addr timed) != nil, "TimedDiagnostic did not build"
 
   block:
     # The listener bases. JUCE gives each method an empty body rather than
     # making it pure, so the generator emits no Custom* subclass and one of
     # these is the only way to get an instance at all.
-    var webListener = makeWebInputStreamListener()
-    doAssert (addr webListener) != nil, "the WebInputStream listener did not build"
+    discard makeWebInputStreamListener()
 
 testRemainingImplicitConstructors()
 
@@ -7803,17 +7799,15 @@ proc testFileOsIntegration() =
             .revealToUser()
 
     block:
-        # moveToTrash on a file that is not there reports success and does
-        # nothing (juce_Files_mac.mm: it returns true when the file does not
-        # exist), and on one that is there it really removes it.
+        # Only the no-op path is exercised. moveToTrash on a file that is not
+        # there returns true before touching the platform trash
+        # (juce_Files_mac.mm:296, juce_Files_linux.cpp:182), which is
+        # platform-clean. The path that REALLY trashes a file is left alone:
+        # on macOS it moves the file into the user's ~/.Trash, outside the
+        # temp directory this test cleans up, and on Linux it needs
+        # libgio-2.0 and reaches a jassertfalse (juce_Files_linux.cpp:195)
+        # without it - a site the assertion gate would fail the run on.
         doAssert root.getChildFile(makeStringRef("never-existed")).moveToTrash(),
                  "trashing a file that is not there reported failure"
-
-        let doomed = root.getChildFile(makeStringRef("doomed.txt"))
-        doAssert doomed.replaceWithText(makeString("x")),
-                 "could not write the file to trash"
-        doAssert doomed.moveToTrash(), "the file was not trashed"
-        doAssert not doomed.existsAsFile(),
-                 "the trashed file is still where it was"
 
 testFileOsIntegration()

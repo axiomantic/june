@@ -7440,7 +7440,7 @@ testLastFields()
 
 # Component, in behaviour =====================================================
 #
-# 156 of Component's 187 methods had no behavioural test. The compile harness
+# Most of Component's methods had no behavioural test. The compile harness
 # proves each links; what a component answers about its own geometry, its
 # children and its state is what these check. None of it needs a display: a
 # component that is never put on the desktop still has bounds, children and
@@ -10551,16 +10551,16 @@ proc testRemainingGuiImplicitConstructors() =
 
     block:
         # The namespace-shaped classes.
-        var standardStrings = makeRelativeCoordinateStandardStrings()
-        doAssert (addr standardStrings) != nil,
-                 "RelativeCoordinate::StandardStrings did not build"
-        var strings = makeRelativeCoordinateStrings()
-        doAssert (addr strings) != nil, "RelativeCoordinate::Strings did not build"
-        var clipboard = makeSystemClipboard()
-        doAssert (addr clipboard) != nil, "SystemClipboard did not build"
-        var extraBases = makeExtraLookAndFeelBaseClasses()
-        doAssert (addr extraBases) != nil,
-                 "ExtraLookAndFeelBaseClasses did not build"
+        # Construction IS the test: an importcpp constructor nothing calls
+        # is never handed to the C++ compiler, and these four types expose
+        # no state a constructor could get wrong. Nothing is asserted,
+        # because nothing could fail - the address of a stack local is
+        # never nil, so asserting that only disguises a construction-only
+        # test as a verified one.
+        discard makeRelativeCoordinateStandardStrings()
+        discard makeRelativeCoordinateStrings()
+        discard makeSystemClipboard()
+        discard makeExtraLookAndFeelBaseClasses()
 
     shutdownJuce_GUI()
 
@@ -10641,8 +10641,11 @@ proc testDesktop() =
         # as the same object.
         # Taken as an address, never as a value: LookAndFeel is abstract, and
         # binding the returned reference to a `let` asks C++ to copy one.
-        doAssert (addr Desktop.getInstance().getDefaultLookAndFeel()) != nil,
-                 "there is no default LookAndFeel"
+        # Not asserted: getDefaultLookAndFeel returns a REFERENCE, so its
+        # address is never nil. The identity check below, against the
+        # replacement that is set, is what actually verifies this.
+        discard Desktop.getInstance().getDefaultLookAndFeel().getTypefaceForFont(
+            makeFont(makeFontOptions()))
 
         var replacement = makeLookAndFeel_V4()
         Desktop.getInstance().setDefaultLookAndFeel(
@@ -10679,8 +10682,8 @@ proc testDesktop() =
         discard Desktop.getInstance().isDarkModeActive()
         discard Desktop.getInstance().getCurrentOrientation()
         discard Desktop.getInstance().supportsBorderlessNonClientResize()
-        doAssert (addr Desktop.getInstance().getAnimator()) != nil,
-                 "the desktop has no animator"
+        # A reference return again: nothing about its address can fail.
+        discard Desktop.getInstance().getAnimator().isAnimating()
 
     block:
         # The three listener lists each take a plain base, which is
@@ -11498,9 +11501,11 @@ proc testComponentPeer() =
         doAssert peer[].getPlatformScaleFactor() > 0.0,
                  "the platform scale factor is " &
                  $peer[].getPlatformScaleFactor()
-        doAssert peer[].getNumFramesPainted() >= 0,
-                 "the peer has painted " & $peer[].getNumFramesPainted() &
-                 " frames"
+        # getNumFramesPainted returns uint64, so `>= 0` cannot fail. What
+        # can fail is the count going BACKWARDS between two reads.
+        let painted = peer[].getNumFramesPainted()
+        doAssert peer[].getNumFramesPainted() >= painted,
+                 "the painted-frame count went backwards from " & $painted
 
         # The frame is what the window manager draws around the content, and
         # it is reported as an optional because not every platform knows it
@@ -13299,8 +13304,12 @@ proc testGridItemPlacement() =
 
         doAssert base.order() == 0,
                  "a new item has order " & $base.order()
-        doAssert base.width() != 0.0'f32 or base.width() == 0.0'f32,
-                 "the width did not read back at all"
+        # JUCE's GridItem::notAssigned is -1 (juce_GridItem.h:171) and
+        # `float width = notAssigned` is the default, so there is a real
+        # value to pin here, rather than a disjunction that is true for
+        # every float but NaN.
+        doAssert base.width() == -1.0'f32,
+                 "a new item's width is " & $base.width()
 
         let sized = base.withSize(120.0'f32, 40.0'f32)
         doAssert sized.width() == 120.0'f32 and sized.height() == 40.0'f32,

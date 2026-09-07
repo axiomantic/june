@@ -777,7 +777,6 @@ testFieldRoundTrips()
 # to get one. Building it is what compiles its importcpp.
 proc testValueTreeListenerConstructs() =
   var listener = makeValueTreeListener()
-  doAssert (addr listener) != nil, "the ValueTree listener did not build"
 
 testValueTreeListenerConstructs()
 
@@ -1135,11 +1134,15 @@ proc testPropertiesFileSaving() =
     # did (juce_PropertiesFile.cpp: saveIfNeeded).
     let unchanged = settings.getLastModificationTime().toMilliseconds()
     doAssert file.saveIfNeeded(), "saveIfNeeded reported failure"
+    # saveIfNeeded is `(! needsWriting) || save()` (juce_PropertiesFile.cpp:159),
+    # so it returns true whether or not it wrote. The modification time is what
+    # tells the two apart - which is what `unchanged` was captured for.
+    doAssert settings.getLastModificationTime().toMilliseconds() == unchanged,
+             "saveIfNeeded rewrote a file that had not changed"
     file.setValue("size", makejuce_var(12.cint))
     doAssert file.saveIfNeeded(), "saveIfNeeded did not save the change"
     doAssert "size" in $settings.loadFileAsString(),
              "the second key never reached the file"
-    discard unchanged
 
     # setNeedsToBeSaved forces the flag either way, which is how a caller
     # tells the file that something outside it changed.

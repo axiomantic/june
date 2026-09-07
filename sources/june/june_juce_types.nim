@@ -373,6 +373,11 @@ type
     Int64Range* {.header: "<juce_core/juce_core.h>", importcpp: "juce::Range<juce::int64>".} = object
 
 proc makeInt64Range*(startValue: int64, endValue: int64): Int64Range {.header: "<juce_core/juce_core.h>", importcpp: "juce::Range<juce::int64>(@)", constructor.}
+
+# Bound for the same reason as Range's, forty lines above: this is a fieldless
+# importcpp object, so without an explicit == Nim compares nothing and reports
+# every two values equal.
+proc `==`*(this: Int64Range, other: Int64Range): bool {.header: "<juce_core/juce_core.h>", importcpp: "# == #".}
 proc getStart*(this: Int64Range): int64 {.header: "<juce_core/juce_core.h>", importcpp: "#.getStart(@)".}
 proc getEnd*(this: Int64Range): int64 {.header: "<juce_core/juce_core.h>", importcpp: "#.getEnd(@)".}
 proc getLength*(this: Int64Range): int64 {.header: "<juce_core/juce_core.h>", importcpp: "#.getLength(@)".}

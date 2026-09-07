@@ -541,8 +541,7 @@ testFieldRoundTrips()
 # and static members. The binding still declares it, and a declared type whose
 # constructor is never called is a constructor the C++ compiler never sees.
 proc testNetworkServiceDiscoveryConstructs() =
-  var discovery = makeNetworkServiceDiscovery()
-  doAssert (addr discovery) != nil, "NetworkServiceDiscovery did not build"
+  discard makeNetworkServiceDiscovery()
 
 testNetworkServiceDiscoveryConstructs()
 

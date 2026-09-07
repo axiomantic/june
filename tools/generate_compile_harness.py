@@ -48,7 +48,7 @@ MODULES = ["juce_core", "juce_events", "juce_data_structures", "juce_graphics", 
 # copyable in Nim, so `let x = f()` is a Nim error that says nothing about the
 # C++. These stay discarded.
 MOVE_ONLY_RESULTS = {"UniquePtr", "ReferenceCountedObjectPtr", "OwnedArray",
-                     "CppUniquePtr", "OptionalScopedPointer",
+                     "OptionalScopedPointer",
                      # A JUCE aggregate is move-only when it holds a unique_ptr,
                      # which is not visible from the Nim spelling. Found by the
                      # C++ compiler rejecting the copy, one name at a time.
@@ -69,6 +69,16 @@ UNEXPORTED = {"DocumentWindowImpl", "JUCEApplicationImpl"}
 #
 # Measured by compiling the harness on Linux, one round per error the compiler
 # would report, since it stops after a few.
+# The ARGUMENT question is not the RESULT question. MOVE_ONLY_RESULTS names
+# types NIM refuses to bind to a `let`; this names types C++ cannot COPY from an
+# lvalue, which is what nowhere[T]()[] hands to a by-value parameter.
+# ReferenceCountedObjectPtr belongs to the first and not the second - it is a
+# copyable refcounted pointer - and conflating the two silently dropped
+# withTypeface, setCustomComponent and setDefaultSansSerifTypeface out of the
+# harness while they stayed declared in the bindings.
+UNCOPYABLE_ARGUMENTS = {"UniquePtr", "OwnedArray", "OptionalScopedPointer",
+                        "AccessibilityHandlerInterfaces"}
+
 macos_used = set()
 MACOS_ONLY_CLASSES = {
     "MountedVolumeListChangeDetector",
@@ -275,7 +285,7 @@ for module, text in src.items():
             # nowhere[T]()[] is one: C++ reports a deleted copy constructor. The
             # same set already keeps these from being bound as a result.
             bare = argument_type.split("[")[0].removeprefix("var ").strip()
-            if bare in MOVE_ONLY_RESULTS and "std::move" not in line:
+            if bare in UNCOPYABLE_ARGUMENTS and "std::move" not in line:
                 # Only where the C++ side does not move it for us. Where the
                 # importcpp already spells std::move - which inspect_juce emits
                 # for a move-only parameter - an lvalue is exactly what it wants.

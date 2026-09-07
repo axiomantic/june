@@ -66,7 +66,7 @@ By module:
 module                 methods    classes
 ====================  =========  =========
 juce_gui_basics             197        117
-juce_core                    79         52
+juce_core                    77         51
 juce_graphics                39         23
 juce_events                  16         13
 juce_data_structures          8          5
@@ -182,9 +182,12 @@ linker at least once - an ``importcpp`` proc reaches the compiler only at a
 call site.
 
 Not every one of them. The generator emits a call where it can build one and
-skips the rest with a reason apiece - a setter the field check covers, a free
-function or a method with no receiver, an operator, a type it does not export -
-printing both counts when it runs. Those skipped are the bindings still reaching
+skips the rest with a reason apiece - a setter the field check covers, a
+no-argument constructor its own check covers, a declaration the pattern cannot
+parse, a type it does not export, an argument it cannot spell or cannot copy -
+printing both counts when it runs. Free functions, constructors and operators
+are no longer among them: an importcpp string reaches the C++ compiler only
+where something calls it, whichever shape it has. Those skipped are the bindings still reaching
 no compiler through this layer, so the report is the thing to read rather than
 this sentence.
 

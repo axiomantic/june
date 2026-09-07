@@ -658,12 +658,13 @@ declared with readable and writable fields and no way to build one --
 ``ZipFile::ZipEntry``, ``MouseWheelDetails``,
 ``DirectoryContentsList::FileInfo``, ``ThreadPool::Options`` among them. The
 generator emits a default constructor for a non-abstract class that declares
-none and has a public field.
+none. Requiring a public field as well found only the aggregates and left every
+other such class unbuildable, so that condition is gone.
 
 libclang does not report that C++ *deleted* an implicit default because a
 member has none either, which is the case for ``ColourLayer`` (it holds an
 ``EdgeTable``) and ``GlyphLayer`` (a variant over it). Only a call tells the
-two apart, so those two are named in the generator with the reason, and
+two apart, so the classes in that position are named in the generator with the reason, and
 ``check_handwritten_covered.py`` fails unless a test builds every one of the
 constructors that is emitted.
 

@@ -3981,10 +3981,26 @@ proc testDrawablePlacement() =
         doAssert image.getPixelAt(38.cint, 38.cint).getAlpha() > 0'u8,
                  "the stretched drawable did not reach the far corner"
 
-        # A clip path limits what is drawn, so the far corner goes empty.
+        # A clip path limits what is drawn, so the far corner goes empty. The
+        # clip is a Drawable rather than a Path - setClipPath takes ownership of
+        # one - which is why the path goes into a DrawablePath first. Drawn into
+        # a SECOND image, because the first already holds the unclipped result.
         var clip = makePath()
         clip.addRectangle(0.0'f32, 0.0'f32, 2.0'f32, 2.0'f32)
-        drawable.setClipPath(makeUniquePtr[Drawable](nil))
+        # cnew wants a call expression, so the DrawablePath is heap-allocated
+        # first and given its path through the pointer.
+        let clipShape = cnew(makeDrawablePath())
+        clipShape[].setPath(clip)
+        drawable.setClipPath(makeUniquePtr[Drawable](cast[ptr Drawable](clipShape)))
+
+        let clipped = makeImage(ImagePixelFormat_ARGB, 40.cint, 40.cint, true)
+        var clippedG = makeGraphics(clipped)
+        drawable.drawWithin(
+            clippedG, makeRectangle(0.0'f32, 0.0'f32, 40.0'f32, 40.0'f32),
+            makeRectanglePlacement(RectanglePlacementFlags_stretchToFit.cint),
+            1.0'f32)
+        doAssert clipped.getPixelAt(38.cint, 38.cint).getAlpha() == 0'u8,
+                 "the clip path did not keep the far corner empty"
 
     shutdownJuce_GUI()
 
@@ -4445,11 +4461,22 @@ proc testImagePixelData() =
         doAssert other.getPixelAt(29.cint, 16.cint).getAlpha() == 0'u8,
                  "the blur ran outside its area"
 
-        var third = filled(32, 32, Colours_white)
+        # Striped, not filled: blurring a UNIFORM image leaves it uniform, so
+        # an assertion over a filled one holds whether the rectangle is
+        # honoured, ignored, or the call does nothing at all.
+        var third = makeImage(ImagePixelFormat_ARGB, 32.cint, 32.cint, true)
+        block:
+            var g = makeGraphics(third)
+            g.setColour(Colours_white)
+            g.fillRect(makeRectangle(0.cint, 0.cint, 8.cint, 32.cint))
+            g.fillRect(makeRectangle(20.cint, 0.cint, 8.cint, 32.cint))
+
         var thirdData = third.getPixelData()
         thirdData.get()[].applyGaussianBlurEffectInArea(
             makeRectangle(0.cint, 0.cint, 16.cint, 32.cint), 4.0'f32)
-        doAssert third.getPixelAt(29.cint, 16.cint).getAlpha() == 255'u8,
+        doAssert third.getPixelAt(9.cint, 16.cint).getAlpha() > 0'u8,
+                 "the gaussian blur did not run inside its area"
+        doAssert third.getPixelAt(29.cint, 16.cint).getAlpha() == 0'u8,
                  "the gaussian blur ran outside its area"
 
     block:

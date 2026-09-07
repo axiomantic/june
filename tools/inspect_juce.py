@@ -448,6 +448,26 @@ template_instantiation_renames = {
 
 #==================================================================================================
 
+def names_a_64_bit_integer(mapped):
+    """True when any mapped argument is a Nim 64-bit integer.
+
+    Nim renders int64 and uint64 as std::int64_t and std::uint64_t, which are
+    `long int` on Linux while JUCE's are `long long`. As a template ARGUMENT
+    that is a different type rather than a conversion, so the Linux compiler
+    refuses the call; as a scalar it converts and is fine. Pointer and
+    const-pointer forms are stripped first, because Array<juce::int64*> maps to
+    Array[ptr int64] and an exact match would not see it.
+    """
+    for m in mapped:
+        bare = m.removeprefix("var ").removeprefix("ptr ").strip()
+        if bare.startswith("ConstPtr[") and bare.endswith("]"):
+            bare = bare[len("ConstPtr["):-1].strip()
+        bare = bare.removeprefix("ptr ").strip()
+        if bare in ("int64", "uint64"):
+            return True
+    return False
+
+
 def remap_template(spelling, *args):
     """Convert a C++ template spelling to Nim, or return None if it cannot be.
 
@@ -485,6 +505,10 @@ def remap_template(spelling, *args):
         mapped = [remap_template_arg(p, *args) for p in params]
         if any(m is None for m in mapped):
             return None
+        # Checked here too: this branch returns before the guard below, so a
+        # std::function over a 64-bit integer would escape it entirely.
+        if names_a_64_bit_integer(mapped):
+            return None
         if returns == "void":
             name = f"CppFunctionObjectN{len(params)}"
             return name if not mapped else f"{name}[{', '.join(mapped)}]"
@@ -512,7 +536,7 @@ def remap_template(spelling, *args):
     # correctly-spelled type to fall back on, so withhold it rather than emit a
     # binding that compiles on macOS and not on Linux. Withheld is visible in the
     # module and in the harness accounting; a Linux-only compile error is not.
-    if any(m in ("int64", "uint64") for m in mapped):
+    if names_a_64_bit_integer(mapped):
         return None
 
     return f"{nim_head}[{', '.join(mapped)}]"
@@ -2030,9 +2054,6 @@ def run_main(juce_module_name, juce_class_name_to_export):
         # constructor is a different case and stays out, because it names one.
         all_constructors = [x for x in c.get_children()
                             if x.kind == CursorKind.CONSTRUCTOR]
-        has_public_field = any(x.kind == CursorKind.FIELD_DECL
-                               and x.access_specifier == AccessSpecifier.PUBLIC
-                               for x in c.get_children())
         # A class with no declared constructors and no pure virtuals is
         # default-constructible in C++ whether or not its fields are public;
         # requiring a public field only found the AGGREGATES. It left the

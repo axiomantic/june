@@ -1162,6 +1162,18 @@ def check_gitignore_order():
     return True
 
 
+def unrecognised_receiver(name):
+    """A capitalised receiver declared_types() does not know, and should.
+
+    A single letter is a generic parameter, not a type. A Custom* name is a
+    generated subclass, which the subclass MACRO declares rather than a `type`
+    block, so no pattern over the sources can see it. Anything else means the
+    extraction has stopped matching a declaration shape.
+    """
+    return (name[:1].isupper() and len(name) > 1
+            and not name.startswith("Custom"))
+
+
 def declared_types():
     """Every type name declared under sources/june.
 
@@ -1222,7 +1234,15 @@ def check_names_are_called_not_mentioned(declared_names):
     names = {name for name in declared_names if name.isidentifier()}
 
     prose = test_sources(count_harness=False)
-    code = re.sub(r"#.*", "", prose)
+    # Triple-quoted blocks FIRST. The single-line pattern below collapses `"""`
+    # to a bare quote and leaves the block body in `code`, where the
+    # command-style shape reads ordinary English as a call - `release the
+    # pointer when done` credits `release`, one of the three names this check
+    # exists to catch. The corpus already contains such blocks.
+    code = re.sub(r'"""(?:.|\n)*?"""', '""', prose)
+    # without_comment rather than `#.*`: a `#` inside a string literal is not a
+    # comment, and cutting there deletes the rest of a real call.
+    code = "\n".join(without_comment(line) for line in code.split("\n"))
     code = re.sub(r'"[^"\n]*"', '""', code)
 
     def called(name):
@@ -1302,6 +1322,7 @@ def check_receiver_types_named():
     """
     declared = declared_types()
     receivers = {}
+    unknown = {}
     for name in hand_written:
         path = os.path.join("sources", "june", name)
         if not os.path.exists(path):
@@ -1311,6 +1332,14 @@ def check_receiver_types_named():
                 match = receiver.match(line)
                 if match and match.group(2) in declared:
                     receivers.setdefault(match.group(2), set()).add(match.group(1))
+                elif match and unrecognised_receiver(match.group(2)):
+                    # declared_types() reads type names out of ANOTHER file by
+                    # pattern, and that fails in one direction only: a shape it
+                    # stops matching drops the type, every binding on it leaves
+                    # this check, and the all-clear below is printed over the
+                    # smaller set. A capitalised receiver it does not know is
+                    # the symptom, so it is reported rather than skipped.
+                    unknown.setdefault(match.group(2), set()).add(match.group(1))
 
     used = ""
     for pattern in ("tests/test_juce_*.nim", "examples/*.nim"):
@@ -1324,6 +1353,12 @@ def check_receiver_types_named():
                      and not re.search(r"\bmake" + t + r"\b", used))
     stale = sorted(t for t in unnameable_receivers if t not in receivers)
 
+    if unknown:
+        print("declared_types() does not recognise these receiver types, so "
+              "the bindings on them are outside this check without saying so:",
+              file=sys.stderr)
+        for name in sorted(unknown):
+            print(f"  {name}  ({len(unknown[name])} bindings)", file=sys.stderr)
     if unnamed:
         print("No test names these types, so nothing calls the bindings "
               "declared on them - the name check above is satisfied by "
@@ -1335,10 +1370,10 @@ def check_receiver_types_named():
               "bindings:", file=sys.stderr)
         for name in stale:
             print(f"  {name}", file=sys.stderr)
-    if not (unnamed or stale):
+    if not (unnamed or stale or unknown):
         print(f"all {len(receivers)} receiver types carrying a hand-written "
               f"binding are named by a test")
-    return not (unnamed or stale)
+    return not (unnamed or stale or unknown)
 
 
 def check_licence_headers():
