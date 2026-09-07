@@ -87,8 +87,15 @@ type
 # and $ so a value can appear in a message. $ prints the number
 # rather than the name: the binding holds the C++ enumerator and
 # there is no table of names on this side to look one up in.
+#
+# A scoped enum - `enum class` in C++ - does not convert to int
+# on its own, so a borrowed $ emits dollar_(int32) over a value
+# clang refuses to narrow, and the error appears at the call
+# site rather than here. Those get toCint, which does the
+# static_cast C++ requires, and a $ written over it.
 proc `==`*(a: TypefaceMetricsKind, b: TypefaceMetricsKind): bool {.borrow.}
-proc `$`*(value: TypefaceMetricsKind): string {.borrow.}
+proc toCint*(this: TypefaceMetricsKind): cint {.header: juce_graphics, importcpp: "static_cast<int>(#)".}
+proc `$`*(value: TypefaceMetricsKind): string = $value.toCint()
 proc `==`*(a: JustificationFlags, b: JustificationFlags): bool {.borrow.}
 proc `$`*(value: JustificationFlags): string {.borrow.}
 proc `==`*(a: PathIteratorPathElementType, b: PathIteratorPathElementType): bool {.borrow.}
@@ -534,7 +541,7 @@ proc makeEdgeTable*(rectanglesToAdd: RectangleList[cfloat]): EdgeTable {.header:
 proc clipToRectangle*(this: var EdgeTable, r: Rectangle[cint]) {.header: juce_graphics, importcpp: "#.clipToRectangle(@)".}
 proc excludeRectangle*(this: var EdgeTable, r: Rectangle[cint]) {.header: juce_graphics, importcpp: "#.excludeRectangle(@)".}
 proc clipToEdgeTable*(this: var EdgeTable, arg1: EdgeTable) {.header: juce_graphics, importcpp: "#.clipToEdgeTable(@)".}
-proc clipLineToMask*(this: var EdgeTable, x: cint, y: cint, mask: ptr uint8, maskStride: cint, numPixels: cint) {.header: juce_graphics, importcpp: "#.clipLineToMask(@)".}
+proc clipLineToMask*(this: var EdgeTable, x: cint, y: cint, mask: ConstPtr[uint8], maskStride: cint, numPixels: cint) {.header: juce_graphics, importcpp: "#.clipLineToMask(@)".}
 proc isEmpty*(this: var EdgeTable): bool {.header: juce_graphics, importcpp: "#.isEmpty()".}
 proc getMaximumBounds*(this: EdgeTable): Rectangle[cint] {.header: juce_graphics, importcpp: "#.getMaximumBounds()".}
 proc translate*(this: var EdgeTable, dx: cfloat, dy: cint) {.header: juce_graphics, importcpp: "#.translate(@)".}
@@ -631,6 +638,7 @@ proc `==`*(this: JPEGImageFormat, other: JPEGImageFormat): bool {.error: "juce::
 proc makeGIFImageFormat*(): GIFImageFormat {.header: juce_graphics, importcpp: "juce::GIFImageFormat(@)".}
 proc `==`*(this: GIFImageFormat, other: GIFImageFormat): bool {.error: "juce::GIFImageFormat defines no operator==; compare a property instead".}
 
+proc makeGlyphArrangementOptions*(): GlyphArrangementOptions {.header: juce_graphics, importcpp: "juce::GlyphArrangementOptions(@)".}  # implicit default constructor
 proc withLineSpacing*(this: GlyphArrangementOptions, x: cfloat): GlyphArrangementOptions {.header: juce_graphics, importcpp: "#.withLineSpacing(@)".}
 proc withLineHeightMultiple*(this: GlyphArrangementOptions, x: cfloat): GlyphArrangementOptions {.header: juce_graphics, importcpp: "#.withLineHeightMultiple(@)".}
 proc getLineSpacing*(this: GlyphArrangementOptions): cfloat {.header: juce_graphics, importcpp: "#.getLineSpacing()".}
@@ -829,7 +837,7 @@ proc multiplyAllAlphas*(this: var ImagePixelData, amount: cfloat) {.header: juce
 proc desaturateInArea*(this: var ImagePixelData, bounds: Rectangle[cint]) {.header: juce_graphics, importcpp: "#.desaturateInArea(@)".}
 proc desaturate*(this: var ImagePixelData) {.header: juce_graphics, importcpp: "#.desaturate()".}
 proc sendDataChangeMessage*(this: var ImagePixelData) {.header: juce_graphics, importcpp: "#.sendDataChangeMessage()".}
-# proc getNativeExtensions*(this: var ImagePixelData): ImagePixelDataNativeExtensions {.header: juce_graphics, importcpp: "#.getNativeExtensions()".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
+# proc getNativeExtensions*(this: var ImagePixelData): ImagePixelDataNativeExtensions {.header: juce_graphics, importcpp: "#.getNativeExtensions()".}  # declared in JUCE's header with no definition another translation unit can call, so calling it fails to link
 proc `==`*(this: ImagePixelData, other: ImagePixelData): bool {.error: "juce::ImagePixelData defines no operator==; compare a property instead".}
 
 proc imageDataChanged*(this: var ImagePixelDataListener, arg1: ptr ImagePixelData) {.header: juce_graphics, importcpp: "#.imageDataChanged(@)".}
@@ -899,8 +907,8 @@ proc `tag=`*(this: var FontFeatureSetting, value: FontFeatureTag) {.header: juce
 proc value*(this: FontFeatureSetting): uint32 {.header: juce_graphics, importcpp: "#.value".}
 proc value*(this: var FontFeatureSetting): var uint32 {.header: juce_graphics, importcpp: "#.value".}
 proc `value=`*(this: var FontFeatureSetting, value: uint32) {.header: juce_graphics, importcpp: "#.value = #".}
-proc `<`*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator<(@)".}
-proc `<=`*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator<=(@)".}
+# proc `<`*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator<(@)".}  # declared in JUCE's header with no definition another translation unit can call, so calling it fails to link
+# proc `<=`*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator<=(@)".}  # declared in JUCE's header with no definition another translation unit can call, so calling it fails to link
 # proc operator>*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator>(@)".}  # Nim derives > and >= from < and <=
 # proc operator>=*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator>=(@)".}  # Nim derives > and >= from < and <=
 proc `==`*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
@@ -1075,7 +1083,7 @@ proc findAllTypefaceStyles*(this: typedesc[Font], family: String): StringArray {
 proc findSuitableFontForText*(this: Font, text: String, language: String): Font {.header: juce_graphics, importcpp: "#.findSuitableFontForText(@)".}
 proc toString*(this: Font): String {.header: juce_graphics, importcpp: "#.toString()".}
 proc fromString*(this: typedesc[Font], fontDescription: String): Font {.header: juce_graphics, importcpp: "juce::Font::fromString(@)".}
-# proc getNativeDetails*(this: Font): FontNative {.header: juce_graphics, importcpp: "#.getNativeDetails()".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
+# proc getNativeDetails*(this: Font): FontNative {.header: juce_graphics, importcpp: "#.getNativeDetails()".}  # declared in JUCE's header with no definition another translation unit can call, so calling it fails to link
 proc getHeightToPointsFactor*(this: Font): cfloat {.header: juce_graphics, importcpp: "#.getHeightToPointsFactor()".}
 
 proc `==`*(this: FontNative, other: FontNative): bool {.error: "juce::Font::Native defines no operator==; compare a property instead".}

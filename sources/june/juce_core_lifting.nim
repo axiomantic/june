@@ -140,3 +140,13 @@ proc generateHash*(this: typedesc[DefaultHashFunctions], key: int,
 proc milliseconds*(this: typedesc[RelativeTime], milliseconds: int): RelativeTime =
     let widened: int64 = milliseconds
     RelativeTime.milliseconds(widened)
+
+# XmlDocument::setInputSource takes ownership of a heap InputSource, so a
+# caller needs one built with `new`. cnew cannot: it splices the constructor's
+# arguments and drops the separator between them, and FileInputSource takes
+# two. This is the heap form written out.
+proc newFileInputSource*(file: File,
+                         useFileTimeInHashGeneration: bool = false):
+                         ptr FileInputSource
+    {.header: juce_core,
+      importcpp: "(new juce::FileInputSource(@))".}

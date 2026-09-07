@@ -7,7 +7,7 @@ import clang.cindex
 import argparse
 import glob
 import re
-from clang.cindex import TypeKind
+from clang.cindex import AvailabilityKind, TypeKind
 
 from clang_base_enumerations import CursorKind, AccessSpecifier
 
@@ -69,8 +69,22 @@ nim_conversion_def = """{comment}proc to{target}*(this: {class_name}): {nim_type
 
 
 def conversion_target_name(nim_type):
-    """The to<Type> suffix for a conversion operator's result."""
-    bare = nim_type.replace("ptr ", "").replace("var ", "").strip()
+    """The to<Type> suffix for a conversion operator's result.
+
+    Named after what the result POINTS AT, not after the Nim spelling of the
+    pointer. `ConstPtr[int16]` would otherwise give `toConstPtr[int16]`, which
+    is not an identifier at all, and `constChar` would give `toConstChar` where
+    the readable name is `toChar`. Naming by the pointee also means correcting
+    a pointer's constness does not rename the proc.
+    """
+    bare = nim_type.strip()
+    if bare == "constChar":
+        bare = "char"
+    elif bare == "constPointer":
+        bare = "pointer"
+    elif bare.startswith("ConstPtr[") and bare.endswith("]"):
+        bare = bare[len("ConstPtr["):-1]
+    bare = bare.replace("ptr ", "").replace("var ", "").strip()
     # cint reads better as toInt than as toCint, and the c-prefixed names are
     # the only ones where the Nim spelling is not the natural word.
     if bare.startswith("c") and bare[1:] in ("int", "uint", "float", "double", "char", "short", "long"):
@@ -110,16 +124,16 @@ move_only_wrappers = ("UniquePtr[", "OptionalScopedPointer[")
 # A static method has no receiver, so it takes the class as a typedesc and is
 # called as Time.currentTimeMillis(). That is the spelling juce_events_lifting
 # already used for MessageManager.getInstance.
-nim_static_method_def = """{comment}proc {method_name}*(this: typedesc[{class_name}]{method_args}){method_return} {{.header: {juce_module_name}, importcpp: "{qualified_name}::{juce_spelling}({juce_args})".}}{reason}"""
+nim_static_method_def = """{comment}proc {method_name}*(this: typedesc[{class_name}]{method_args}){method_return} {{.header: {juce_module_name}, importcpp: "{address_open}{qualified_name}::{juce_spelling}({juce_args}){address_close}".}}{reason}"""
 
 # The same call with each argument cast to the type its overload declares, for
 # a static method whose overloads differ only in a scalar. The leading `#` is
 # the typedesc, which is compile-time only and expands to nothing: giving it a
 # placeholder of its own inside the parentheses lets the ones after it line up
 # with the real arguments, which is what a bare `#` per parameter could not do.
-nim_static_method_cast_def = """{comment}proc {method_name}*(this: typedesc[{class_name}]{method_args}){method_return} {{.header: {juce_module_name}, importcpp: "(#{qualified_name}::{juce_spelling}({juce_args}))".}}{reason}"""
+nim_static_method_cast_def = """{comment}proc {method_name}*(this: typedesc[{class_name}]{method_args}){method_return} {{.header: {juce_module_name}, importcpp: "{address_open}(#{qualified_name}::{juce_spelling}({juce_args})){address_close}".}}{reason}"""
 
-nim_method_def = """{comment}proc {method_name}*({method_args}){method_return} {{.header: {juce_module_name}, importcpp: "#.{juce_spelling}({juce_args})".}}{reason}"""
+nim_method_def = """{comment}proc {method_name}*({method_args}){method_return} {{.header: {juce_module_name}, importcpp: "{address_open}#.{juce_spelling}({juce_args}){address_close}".}}{reason}"""
 
 # Deliberately not {.constructor.}. That pragma makes Nim emit a C++ declaration,
 # `ValueTree vt(Identifier("x"))`, which C++ reads as a function declaration -
@@ -192,6 +206,26 @@ def remap_type(t, *args):
                   and not target.is_const_qualified() else "")
 
     declaration = target.get_declaration()
+
+    # A POINTER TO CONST keeps its constness here, where the typedef branch
+    # below would otherwise drop it. `const CharType *` - how the CharPointer
+    # classes spell `const char *` - reached that branch, resolved the typedef
+    # to `char`, and came back as a mutable `ptr char`. The literal
+    # substitutions further down never saw it, because they match the raw
+    # spelling and the typedef hides the word `char`.
+    #
+    # Five conversion operators were bound that way, and writing through one is
+    # what a caller does next: `toChar()` handed back a pointer C++ will not
+    # let anyone write through, spelled as one Nim will.
+    if (t.kind == TypeKind.POINTER and target.is_const_qualified()
+            and declaration is not None and declaration.kind in (
+                CursorKind.TYPEDEF_DECL, CursorKind.TYPE_ALIAS_DECL)):
+        pointee = remap_type(declaration.underlying_typedef_type, *args)
+        if pointee == "char":
+            return "constChar"
+        if (pointee and "<" not in pointee and "::" not in pointee
+                and "(" not in pointee and not is_c_array(pointee)):
+            return f"ConstPtr[{pointee}]"
 
     # A member typedef names a type rather than being one: X::Ptr is a
     # ReferenceCountedObjectPtr<X>. Resolve through it before anything else.
@@ -414,6 +448,26 @@ template_instantiation_renames = {
 
 #==================================================================================================
 
+def names_a_64_bit_integer(mapped):
+    """True when any mapped argument is a Nim 64-bit integer.
+
+    Nim renders int64 and uint64 as std::int64_t and std::uint64_t, which are
+    `long int` on Linux while JUCE's are `long long`. As a template ARGUMENT
+    that is a different type rather than a conversion, so the Linux compiler
+    refuses the call; as a scalar it converts and is fine. Pointer and
+    const-pointer forms are stripped first, because Array<juce::int64*> maps to
+    Array[ptr int64] and an exact match would not see it.
+    """
+    for m in mapped:
+        bare = m.removeprefix("var ").removeprefix("ptr ").strip()
+        if bare.startswith("ConstPtr[") and bare.endswith("]"):
+            bare = bare[len("ConstPtr["):-1].strip()
+        bare = bare.removeprefix("ptr ").strip()
+        if bare in ("int64", "uint64"):
+            return True
+    return False
+
+
 def remap_template(spelling, *args):
     """Convert a C++ template spelling to Nim, or return None if it cannot be.
 
@@ -446,10 +500,18 @@ def remap_template(spelling, *args):
             return None
         returns, params = signature.group(1).strip(), signature.group(2).strip()
         params = [] if params in ("", "void") else split_template_args(params)
-        if len(params) > 9:
+        # Ten for a void return, nine otherwise: that is what the N and R
+        # families in june_function_utils declare, and what
+        # generate_subclasses.py allows. A flat nine here withheld a
+        # ten-argument void closure whose type exists.
+        if len(params) > (10 if returns == "void" else 9):
             return None
         mapped = [remap_template_arg(p, *args) for p in params]
         if any(m is None for m in mapped):
+            return None
+        # Checked here too: this branch returns before the guard below, so a
+        # std::function over a 64-bit integer would escape it entirely.
+        if names_a_64_bit_integer(mapped):
             return None
         if returns == "void":
             name = f"CppFunctionObjectN{len(params)}"
@@ -465,6 +527,20 @@ def remap_template(spelling, *args):
 
     mapped = [remap_template_arg(a, *args) for a in split_template_args(inner)]
     if not mapped or any(m is None for m in mapped):
+        return None
+
+    # Nim's int64 renders as std::int64_t, which is `long int` on Linux while
+    # juce::int64 is `long long` everywhere. Range[int64] therefore names
+    # juce::Range<long int>, a type JUCE's own signatures never declare, and the
+    # Linux compiler refuses the call. Int64Range spells the C++ type in full.
+    if nim_head == "Range" and mapped == ["int64"]:
+        return "Int64Range"
+
+    # Any OTHER instantiation over a 64-bit integer has the same defect and no
+    # correctly-spelled type to fall back on, so withhold it rather than emit a
+    # binding that compiles on macOS and not on Linux. Withheld is visible in the
+    # module and in the harness accounting; a Linux-only compile error is not.
+    if names_a_64_bit_integer(mapped):
         return None
 
     return f"{nim_head}[{', '.join(mapped)}]"
@@ -578,17 +654,91 @@ known_builtin_types = {
     "UniquePtr", "CppOptional", "CppVector", "CppFunctionObjectR1Ref",
     "CppFunctionObjectN1Ref",
     "CppString", "CppMap", "CppUnorderedMap", "CppArray", "CppException", "CppTypeIndex", "CppByte",
-    "Rectangle", "Point", "Line", "BorderSize", "Range",
+    "Rectangle", "Point", "Line", "BorderSize", "Range", "Int64Range",
     "Array", "OwnedArray", "ReferenceCountedObjectPtr",
     "Span", "RectangleList", "Parallelogram", "SparseSet", "Optional", "HeapBlock",
     "WeakReference", "OptionalScopedPointer",
     "NormalisableRange",
 }
-known_builtin_types.update(f"CppFunctionObjectN{n}" for n in range(10))
+# The ranges match what june_function_utils DECLARES, not a round number: the
+# N family goes to ten arguments and the R family to nine, and registering
+# fewer would withhold a binding as an unexported type when the type exists.
+known_builtin_types.update(f"CppFunctionObjectN{n}" for n in range(11))
 known_builtin_types.update(f"CppFunctionObjectR{n}" for n in range(10))
 
 # Not types: Nim type-construction keywords that appear in a rendered signature.
 type_syntax_words = {"var", "ptr", "lent", "typedesc", "proc", "of"}
+
+def drop_unreachable_defaults(args):
+    """Strip a default that stands before a parameter without one.
+
+    Nim accepts `a: T = 1, b: U` and resolves f(x, 1, y) and f(x, b = y) alike,
+    so this is not an error - but the default cannot be reached positionally,
+    and it advertises a shorter form the caller does not have. It arises where
+    JUCE defaults BOTH parameters and only the later default has no Nim
+    spelling: makePerformanceCounter is the case, whose one-argument JUCE form
+    needs File(), which is not representable here.
+    """
+    seen_required, out = False, []
+    for argument in reversed(args):
+        if " = " not in argument:
+            seen_required = True
+        elif seen_required:
+            argument = argument.split(" = ")[0]
+        out.append(argument)
+    return list(reversed(out))
+
+
+
+def default_value_for(arg, argument_type, known_builtin_types):
+    """The Nim ` = literal` for a C++ default argument, or "" for none.
+
+    Shared by methods and constructors. A constructor used to get none at all,
+    so `FileInputSource (const File&, bool = false)` bound as a two-argument
+    proc and every caller had to pass the second one.
+    """
+    if not any(t.spelling == "=" for t in arg.get_tokens()):
+        return ""
+
+    tokens = [t.spelling for t in arg.get_tokens()]
+    default_value = "".join(tokens[tokens.index("=") + 1:])
+    default_value = f" = {default_value.replace('nullptr', 'nil')}"
+
+    # `nil` is a value only for a nilable type. A std::function binds to an
+    # object, and the CppFunctionObject types are in the builtin set, so the
+    # check below would let `= nil` through on one - which is what a static
+    # method taking an optional callback turned up.
+    if default_value.strip() == "= nil" and not (
+            argument_type.startswith("ptr ")
+            or argument_type in ("pointer", "cstring")):
+        return ""
+
+    # A default is only kept where the literal is already a value of the
+    # parameter's type here. The converters that would make, say, "*" into a
+    # juce::String live in the _lifting file, which is included after this one,
+    # so such a default does not compile.
+    if argument_type not in known_builtin_types:
+        if not (argument_type.startswith("ptr ")
+                and default_value.strip() == "= nil"):
+            return ""
+
+    # And only when the default is a literal. C++ freely defaults a parameter
+    # to an enumerator or a constant that this binding never declares, which
+    # reads as an undeclared identifier.
+    literal = default_value.split("=", 1)[1].strip()
+    if not re.fullmatch(
+            r"(nil|true|false|-?[0-9][0-9a-fA-FxX.eE+_-]*[fFlLuU]?|'.'|\".*\")",
+            literal):
+        return ""
+
+    # A C++ character literal defaults an integer parameter freely; Nim will
+    # not convert one.
+    if literal.startswith("'") and argument_type not in ("char", "cchar"):
+        return ""
+
+    return default_value
+
+#==================================================================================================
 
 def is_c_array(rendered):
     """A C array spells as uint8[6] or char[]; Nim generic brackets never hold
@@ -604,6 +754,18 @@ no_implicit_default = {
     "ColourLayer": "holds an EdgeTable, which has no default constructor",
     "GlyphLayer": ("holds a std::variant whose first alternative is "
                    "ColourLayer, so its own default is deleted too"),
+    # Seven of these are FORWARD DECLARATIONS whose definition lives in a
+    # platform source file, so the header libclang reads declares the name and
+    # nothing else. The reason recorded beside each is the one clang gave when
+    # the constructor was actually called, not a guess.
+    "AccessibilityNativeHandle": "an incomplete type; defined per platform",
+    "AndroidDocumentInfoArgs": "an incomplete type; defined on Android only",
+    "AndroidDocumentNativeInfo": "an incomplete type; defined on Android only",
+    "FileChooserNative": "an incomplete type; defined per platform",
+    "FontNative": "an incomplete type; defined per platform",
+    "ImagePixelDataNativeExtensions": "an incomplete type; defined per platform",
+    "TypefaceNative": "an incomplete type; defined per platform",
+    "URLDownloadTask": "its operator= is deleted, so Nim cannot assign one",
 }
 
 def unbound_type_reason(rendered, member=False):
@@ -881,7 +1043,13 @@ def scalar_overloaded_names(methods):
     return ambiguous
 
 
-# Declared in JUCE's headers and defined nowhere in JUCE 8.0.15. The binding
+# Declared in JUCE's headers with no definition another translation unit can
+# call. Two mechanisms reach that: a definition that exists only in a
+# per-platform source this build does not compile, and a constexpr member
+# defined in a .cpp - implicitly inline, so it emits no out-of-line symbol.
+# FontFeatureSetting's comparisons are the second kind, and its == is NOT among
+# them: the harness calls it and links, which is the only way to tell. The
+# binding
 # compiles and the call fails to link, which no amount of parsing the headers
 # can predict - each of these was found by linking one. One entry per class,
 # holding a set, for the reason skip_class_method's own comment gives.
@@ -902,6 +1070,13 @@ undefined_in_juce = {
     "Font": {"getNativeDetails"},
     "ImagePixelData": {"getNativeExtensions"},
     "RelativeCoordinate": {"references"},
+    # JUCE declares these four as constexpr in juce_FontFeatures.h and defines
+    # them, still constexpr, in juce_FontFeatures.cpp. A constexpr member is
+    # implicitly inline, so that definition emits no out-of-line symbol and no
+    # other translation unit can call it: the binding compiles and the link
+    # fails with "symbol(s) not found". Found by linking one, which is the only
+    # way this class of defect shows itself.
+    "FontFeatureSetting": {"operator<", "operator<=", "operator>", "operator>="},
     # JUCE keeps the removed shape of these as a [[deprecated]] declaration
     # with no definition, so a call compiles and the link fails. An entry can
     # name one overload rather than the method, because the replacement sits
@@ -1397,10 +1572,24 @@ def run_main(juce_module_name, juce_class_name_to_export):
     # TODO - Extract base types (ints, floats, aliases)
 
     # Extract free functions
+    # A deleted free function is declared and cannot be called, the same way a
+    # deleted constructor is - and the constructor pass already refuses those.
+    # JUCE deletes `operator<< (String&, bool)` on purpose, with a comment saying
+    # a bool converting to String "opens up lots of nasty type conversion edge
+    # cases", and the generator bound it anyway. Nothing called it, so nothing
+    # noticed until the harness did.
+    # is_deleted_method() is for methods and answers False here whatever the
+    # declaration says; libclang reports a deleted free function as NOT_AVAILABLE
+    # instead. Checked against the cursor rather than assumed - the first attempt
+    # used is_deleted_method and silently changed nothing.
+    def function_is_deleted(node):
+        return node.availability == AvailabilityKind.NOT_AVAILABLE
+
     all_functions = []
     for entry in juce_namespace:
         all_functions += [node for node in filter(
-            lambda x: x.kind == CursorKind.FUNCTION_DECL, entry.get_children())]
+            lambda x: x.kind == CursorKind.FUNCTION_DECL
+            and not function_is_deleted(x), entry.get_children())]
 
     # And the ones a nested namespace holds. juce::Colours::findColourForName is
     # the only one today. Its Nim name and its C++ spelling both carry the
@@ -1569,6 +1758,11 @@ def run_main(juce_module_name, juce_class_name_to_export):
     # satisfies every such pair.
     all_class_decls = []
     emitted_enum_names = []
+    # A C++ SCOPED enum (`enum class`) does not convert to int on its own, so a
+    # borrowed `$` emits dollar_(int32) over a value clang will not narrow and
+    # fails at the call site - the same only-when-called shape as every other
+    # defect on this branch. These get an explicit static_cast instead.
+    scoped_enum_names = set()
     for c in module_classes:
         if juce_class_name_to_export is not None and c.spelling != juce_class_name_to_export:
             continue
@@ -1627,6 +1821,8 @@ def run_main(juce_module_name, juce_class_name_to_export):
     for enum_name, enum_cursor, owner in module_enums:
         qualified = f"juce::{owner}::{enum_cursor.spelling}" if owner else f"juce::{enum_cursor.spelling}"
         emitted_enum_names.append(enum_name)
+        if enum_cursor.is_scoped_enum():
+            scoped_enum_names.add(enum_name)
         all_class_decls.append(nim_enum_def.format(**{
             "enum_name": enum_name,
             "spelling": qualified,
@@ -1659,9 +1855,25 @@ def run_main(juce_module_name, juce_class_name_to_export):
         print("# and $ so a value can appear in a message. $ prints the number")
         print("# rather than the name: the binding holds the C++ enumerator and")
         print("# there is no table of names on this side to look one up in.")
+        print("#")
+        print("# A scoped enum - `enum class` in C++ - does not convert to int")
+        print("# on its own, so a borrowed $ emits dollar_(int32) over a value")
+        print("# clang refuses to narrow, and the error appears at the call")
+        print("# site rather than here. Those get toCint, which does the")
+        print("# static_cast C++ requires, and a $ written over it.")
         for enum_name in emitted_enum_names:
             print(f"proc `==`*(a: {enum_name}, b: {enum_name}): bool {{.borrow.}}")
-            print(f"proc `$`*(value: {enum_name}): string {{.borrow.}}")
+            if enum_name in scoped_enum_names:
+                # The parameter is called `this` so the compile harness treats
+                # toCint as a method and calls it. Named anything else it is a
+                # free function to the harness, which skips those - and an
+                # importcpp nothing calls is an importcpp nothing compiles.
+                print(f"proc toCint*(this: {enum_name}): cint "
+                      f"{{.header: {juce_module_name}, "
+                      f'importcpp: "static_cast<int>(#)".}}')
+                print(f"proc `$`*(value: {enum_name}): string = $value.toCint()")
+            else:
+                print(f"proc `$`*(value: {enum_name}): string {{.borrow.}}")
         print()
 
         # JUCE spells a flag set as a nested enum called Flags, which this
@@ -1876,10 +2088,20 @@ def run_main(juce_module_name, juce_class_name_to_export):
         # constructor is a different case and stays out, because it names one.
         all_constructors = [x for x in c.get_children()
                             if x.kind == CursorKind.CONSTRUCTOR]
-        has_public_field = any(x.kind == CursorKind.FIELD_DECL
-                               and x.access_specifier == AccessSpecifier.PUBLIC
-                               for x in c.get_children())
-        if (not all_constructors and not class_is_abstract and has_public_field
+        # A class with no declared constructors and no pure virtuals is
+        # default-constructible in C++ whether or not its fields are public;
+        # requiring a public field only found the AGGREGATES. It left the
+        # option structs out, and an option struct nothing can build makes
+        # every proc that takes one unreachable - drawFittedText,
+        # JSON's toString, startRealtimeThread and DatagramSocket's
+        # constructor were all in that position.
+        #
+        # Some of these C++ still deletes, usually because a member is not
+        # default-constructible. That only shows at the `new`, so each is
+        # listed in no_implicit_default once the build finds it, and the
+        # coverage gate requires a test to construct every one that stays.
+        if (not all_constructors and not class_is_abstract
+                and class_name not in no_implicit_default
                 and c.spelling not in no_implicit_default):
             declaration = nim_constructor_def.format(**{
                 "comment": "", "class_name": class_name, "method_args": "",
@@ -1901,9 +2123,14 @@ def run_main(juce_module_name, juce_class_name_to_export):
             ctor_cpp_types = []
             for count, arg in enumerate(ctor.get_arguments()):
                 argument_type = remap_type(arg.type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap, unambiguous_nested_remap)
-                ctor_args.append(f"{remap_argument_name(arg.spelling, count)}: {argument_type}")
+                default_value = default_value_for(
+                    arg, argument_type, known_builtin_types)
+                ctor_args.append(
+                    f"{remap_argument_name(arg.spelling, count)}: "
+                    f"{argument_type}{default_value}")
                 ctor_types.append(argument_type)
                 ctor_cpp_types.append(arg.type.get_canonical().spelling)
+            ctor_args = drop_unreachable_defaults(ctor_args)
 
             # A constructor has no receiver, so `@` is the whole argument list
             # and only a single-argument one can be cast as a unit.
@@ -1914,6 +2141,16 @@ def run_main(juce_module_name, juce_class_name_to_export):
             if ctor_cpp_types and ctor.spelling in scalar_overloaded_ctors:
                 ctor_juce_args = ", ".join(f"({cpp_type}) #"
                                            for cpp_type in ctor_cpp_types)
+            elif any(c.rstrip().endswith("&&") for c in ctor_cpp_types):
+                # An rvalue reference will not bind to an lvalue, and Nim hands
+                # over an lvalue, so a parameter declared `T&&` needs the move
+                # here for the same reason the method path gives it one. Without
+                # it the binding is emitted, compiles as a declaration, and
+                # fails at every call site - which is where
+                # MemoryInputStream(MemoryBlock&&) sat until something called it.
+                ctor_juce_args = ", ".join(
+                    "std::move(#)" if c.rstrip().endswith("&&") else "#"
+                    for c in ctor_cpp_types)
             else:
                 ctor_juce_args = "@"
 
@@ -2043,6 +2280,22 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 field_comment = "# "
                 field_reason = unbound_type_reason(field_type, member=True)
 
+            # A field that is a POINTER TO CONST keeps its constness in the
+            # GETTERS, for the reason the return-type rule below states: C++
+            # does not convert `const T*` to `T*`, so a getter that drops the
+            # const does not compile where anything reads it.
+            # var::NativeFunctionArgs holds its arguments as `const var*`, and
+            # both of its getters named `var*`.
+            #
+            # The setter keeps `ptr T`, because THAT conversion is the one C++
+            # does make: assigning a `T*` into a `const T*` field is legal, and
+            # a caller almost always has the mutable pointer in hand.
+            setter_field_type = field_type
+            if (field.type.kind == TypeKind.POINTER
+                    and field.type.get_pointee().is_const_qualified()
+                    and field_type.startswith("ptr ")):
+                field_type = f"ConstPtr[{field_type[len('ptr '):]}]"
+
             field_name = remap_identifier(field.spelling)
             # Also keyed the way a method is: a class with a field and a
             # method of the same name would otherwise emit both.
@@ -2110,7 +2363,8 @@ def run_main(juce_module_name, juce_class_name_to_export):
                                          if field_type.startswith(move_only_wrappers)
                                          else "#"),
                     "comment": value_comment, "raw_name": field.spelling,
-                    "class_name": class_name, "field_type": field_type.replace("var ", ""),
+                    "class_name": class_name,
+                    "field_type": setter_field_type.replace("var ", ""),
                     "juce_module_name": juce_module_name, "juce_spelling": field.spelling,
                     "reason": f"  # {value_reason}" if value_comment else "" }))
 
@@ -2173,47 +2427,10 @@ def run_main(juce_module_name, juce_class_name_to_export):
             argument_types = []
             cpp_argument_types = []
             for count, arg in enumerate(m.get_arguments()):
-                default_value = ""
-
-                contains_default = any(filter(lambda t: t == "=", [t.spelling for t in arg.get_tokens()]))
-                if contains_default:
-                    arg_children = [t.spelling for t in arg.get_tokens()]
-                    default_value = "".join(arg_children[arg_children.index("=") + 1:])
-                    default_value = default_value.replace("nullptr", "nil")
-                    default_value = f" = {default_value}"
-
                 spelling = remap_argument_name(arg.spelling, count)
                 argument_type = remap_type(arg.type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap, unambiguous_nested_remap)
-
-                # `nil` is a value only for a nilable type. A std::function
-                # binds to an object, and the CppFunctionObject types are in the
-                # builtin set, so the check below would let `= nil` through on
-                # one - which is what a static method taking an optional
-                # callback turned up.
-                if default_value.strip() == "= nil" and not (
-                        argument_type.startswith("ptr ")
-                        or argument_type in ("pointer", "cstring")):
-                    default_value = ""
-
-                # A default is only kept where the literal is already a value of
-                # the parameter's type here. The converters that would make, say,
-                # "*" into a juce::String live in the _lifting file, which is
-                # included after this one, so such a default does not compile.
-                if default_value and argument_type not in known_builtin_types:
-                    if not (argument_type.startswith("ptr ") and default_value.strip() == "= nil"):
-                        default_value = ""
-
-                # And only when the default is a literal. C++ freely defaults a
-                # parameter to an enumerator or a constant that this binding
-                # never declares, which reads as an undeclared identifier.
-                if default_value:
-                    literal = default_value.split("=", 1)[1].strip()
-                    if not re.fullmatch(r"(nil|true|false|-?[0-9][0-9a-fA-FxX.eE+_-]*[fFlLuU]?|'.'|\".*\")", literal):
-                        default_value = ""
-                    # A C++ character literal defaults an integer parameter
-                    # freely; Nim will not convert one.
-                    elif literal.startswith("'") and argument_type not in ("char", "cchar"):
-                        default_value = ""
+                default_value = default_value_for(
+                    arg, argument_type, known_builtin_types)
 
                 args.append(f"{spelling}: {argument_type}{default_value}")
                 argument_types.append(argument_type)
@@ -2223,6 +2440,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
 
             reason = deleted_reason
             return_type = ""
+            returns_address = False
             if m.result_type.spelling != "void":
                 rendered_return = remap_type(
                     m.result_type, remap_inner_classes, enum_remap,
@@ -2247,6 +2465,41 @@ def run_main(juce_module_name, juce_class_name_to_export):
                         and rendered_return.startswith("ptr ")):
                     rendered_return = (
                         f"ConstPtr[{rendered_return[len('ptr '):]}]")
+
+                # A CONST REFERENCE to something that cannot be copied is a
+                # pointer. A non-const `T&` already renders as `var T`, which
+                # is a real reference: a caller reaches through it without
+                # copying anything. A const one renders as a plain `T`, which
+                # means "a copy of the referent" - a fine thing to want only
+                # when T can be copied. For an abstract class, or one whose
+                # copy constructor is deleted (every class carrying
+                # JUCE_DECLARE_NON_COPYABLE), that copy is a compile error at
+                # every call site, and `discard` hides it: a discarded call
+                # constructs nothing, so the compile harness passed while the
+                # binding could not be used for anything at all.
+                #
+                # The var getter for a field already had this treatment
+                # (type_is_copyable); the return type of a method did not.
+                if (m.result_type.kind == TypeKind.LVALUEREFERENCE
+                        and not rendered_return.startswith("var ")):
+                    referent = m.result_type.get_pointee()
+                    referent_declaration = referent.get_declaration()
+                    if (referent_declaration is not None
+                            and referent_declaration.spelling
+                            and (not type_is_copyable(referent, non_copyable)
+                                 or (referent_declaration.is_definition()
+                                     and referent_declaration.kind in (
+                                         CursorKind.CLASS_DECL,
+                                         CursorKind.STRUCT_DECL)
+                                     and referent_declaration
+                                         .is_abstract_record()))):
+                        rendered_return = f"ConstPtr[{rendered_return}]"
+                        # C++ hands back a reference; the Nim type is now a
+                        # pointer, so the emitted expression has to take its
+                        # address. Nim does not do that on its own, and
+                        # without it the call is a conversion error at every
+                        # call site rather than a copy error.
+                        returns_address = True
                 return_type = f": {rendered_return}"
 
             if m.result_type.spelling in ["CFStringRef", "OSType"]:
@@ -2270,8 +2523,9 @@ def run_main(juce_module_name, juce_class_name_to_export):
                                           for a in m.get_arguments()))
                         in undefined_in_juce.get(class_name, ())):
                 comment = "# "
-                reason = ("declared in JUCE's header and defined nowhere in "
-                          "JUCE 8.0.15, so calling it fails to link")
+                reason = ("declared in JUCE's header with no definition "
+                           "another translation unit can call, so calling it "
+                           "fails to link")
             elif skip_class_method(class_name, m.spelling):
                 comment, reason = "# ", "excluded deliberately: see skip_class_method"
 
@@ -2374,6 +2628,8 @@ def run_main(juce_module_name, juce_class_name_to_export):
                     "qualified_name": qualified_name,
                     "juce_spelling": method_spelling,
                     "juce_args": emitted_args,
+                    "address_open": "(&(" if returns_address else "",
+                    "address_close": "))" if returns_address else "",
                     "reason": f"  # {reason}" if comment and reason else "",
                 })
             else:
@@ -2385,6 +2641,8 @@ def run_main(juce_module_name, juce_class_name_to_export):
                     "juce_module_name": juce_module_name,
                     "juce_spelling": method_spelling,
                     "juce_args": emitted_args,
+                    "address_open": "(&(" if returns_address else "",
+                    "address_close": "))" if returns_address else "",
                     "reason": f"  # {reason}" if comment and reason else "",
                 })
 

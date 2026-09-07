@@ -350,10 +350,40 @@ type
     NormalisableRange*[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::NormalisableRange".} = object
 
 proc makeNormalisableRange*[T](rangeStart: T, rangeEnd: T): NormalisableRange[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::NormalisableRange<'*0>(@)".}
+proc makeNormalisableRange*[T](rangeStart: T, rangeEnd: T, intervalValue: T,
+                               skewFactor: T, useSymmetricSkew: bool = false):
+    NormalisableRange[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::NormalisableRange<'*0>(@)".}
+proc getStart*[T](this: NormalisableRange[T]): T {.importcpp: "#.start".}
+proc getEnd*[T](this: NormalisableRange[T]): T {.importcpp: "#.end".}
+proc getInterval*[T](this: NormalisableRange[T]): T {.importcpp: "#.interval".}
+proc getSkew*[T](this: NormalisableRange[T]): T {.importcpp: "#.skew".}
 proc convertTo0to1*[T](this: NormalisableRange[T], v: T): T {.importcpp: "#.convertTo0to1(@)".}
 proc convertFrom0to1*[T](this: NormalisableRange[T], v: T): T {.importcpp: "#.convertFrom0to1(@)".}
 proc snapToLegalValue*[T](this: NormalisableRange[T], v: T): T {.importcpp: "#.snapToLegalValue(@)".}
 proc getRange*[T](this: NormalisableRange[T]): Range[T] {.importcpp: "#.getRange()".}
+
+# juce::int64 is `long long` on every platform JUCE supports, but Nim's int64
+# renders as std::int64_t, which is `long int` on Linux. Range[int64] therefore
+# names juce::Range<long int> there: a valid instantiation, but not the one
+# JUCE's own signatures declare, so MemoryMappedFile refuses it. Naming the C++
+# type in full is the only spelling Nim does not fold back into NI64 - an alias
+# and a distinct type were both measured to collapse into it. For the generic
+# surface, makeRange[int64](r.getStart(), r.getEnd()) converts - but that
+# lands back in Range[int64], the spelling this type exists to avoid, so it
+# is for values that do not re-enter a JUCE signature.
+type
+    Int64Range* {.header: "<juce_core/juce_core.h>", importcpp: "juce::Range<juce::int64>".} = object
+
+proc makeInt64Range*(startValue: int64, endValue: int64): Int64Range {.header: "<juce_core/juce_core.h>", importcpp: "juce::Range<juce::int64>(@)", constructor.}
+
+# Bound for the same reason as Range's, forty lines above: this is a fieldless
+# importcpp object, so without an explicit == Nim compares nothing and reports
+# every two values equal.
+proc `==`*(this: Int64Range, other: Int64Range): bool {.header: "<juce_core/juce_core.h>", importcpp: "# == #".}
+proc getStart*(this: Int64Range): int64 {.header: "<juce_core/juce_core.h>", importcpp: "#.getStart(@)".}
+proc getEnd*(this: Int64Range): int64 {.header: "<juce_core/juce_core.h>", importcpp: "#.getEnd(@)".}
+proc getLength*(this: Int64Range): int64 {.header: "<juce_core/juce_core.h>", importcpp: "#.getLength(@)".}
+proc isEmpty*(this: Int64Range): bool {.header: "<juce_core/juce_core.h>", importcpp: "#.isEmpty()".}
 
 # JUCE's own Optional, distinct from std::optional in june_stl.
 type

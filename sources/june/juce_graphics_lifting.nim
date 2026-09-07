@@ -45,3 +45,17 @@ iterator items*(this: var GlyphArrangement): var PositionedGlyph =
 iterator items*(this: var TextLayout): var TextLayoutLine =
     for index in 0 ..< this.getNumLines():
         yield this.getLine(index)
+
+# A transform is APPLIED through the point or the rectangle, not through the
+# transform: AffineTransform's own transformPoint takes its arguments by
+# reference and writes back through them, which has no Nim spelling that reads
+# well. These are the const forms JUCE gives Point and Rectangle for that job.
+#
+# They live here rather than beside the other Point methods in
+# june_juce_types.nim because AffineTransform is declared in the generated
+# juce_graphics bindings, which that file is compiled before.
+proc transformedBy*[T](this: Point[T], transform: AffineTransform): Point[T]
+    {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.transformedBy(@)".}
+proc transformedBy*[T](this: Rectangle[T],
+                       transform: AffineTransform): Rectangle[T]
+    {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.transformedBy(@)".}

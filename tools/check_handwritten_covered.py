@@ -1,4 +1,17 @@
-"""Fail if a hand-written binding is never called.
+"""Fail if something this repository requires of itself is not true.
+
+Each check returns a bool that feeds this script's exit status. Together
+they cover what a test suite cannot state for itself: that every
+hand-written binding is called, and called rather than merely mentioned;
+that the type carrying it is named by a test at all; that generated
+subclasses, handler setters, constructors, constants, statics, fields and
+inherited methods are exercised; that a withheld begin() names an iterator
+that exists; that a macOS-only method is called only under a platform
+guard; that .gitignore is ordered so it does not swallow a tracked path;
+and that every file carries the project's copyright notice exactly once.
+The README lists every condition; this is the shape of them.
+
+The first of those is the one this file is named for.
 
 The generated modules are checked by the generator itself: it reproduces them
 byte for byte, and CI compares. The hand-written layer - june_juce_types,
@@ -15,18 +28,23 @@ compiled cleanly for as long as nothing used it.
 What is checked is a NAME, not a declaration. Six procs are called isNil and
 eight iterators are called items, and one call of either satisfies all of them.
 
-Operators are outside this check, and cannot be brought inside it as it stands.
-The pattern captures a word, so a backtick-wrapped `==`, `[]` or `=destroy` never
-matches - about sixty declarations. Widening the pattern would not help: an
-operator is reached through SYNTAX rather than by name, so a test writes x[i]
-and never the word `[]`, and a lifetime hook like `=destroy` is called by the
-compiler and by nothing else. A text search cannot see either. What covers them
-instead is the compile harness, which instantiates the types, and the erroring
-`==` the generator emits where C++ declares none - both of which fail at
-compile time rather than here.
-That is the limit of a check built on a text search: it catches a binding
-nothing mentions, which is the case every defect above was found in, and it
-does not catch one overload of a name something else already calls.
+Operators are held to a different rule, because the name search cannot reach
+them. An operator is applied through SYNTAX: a test writes x[i] and never the
+word `[]`, and a lifetime hook like `=destroy` is called by the compiler and by
+nothing else. The pattern does capture a backtick-wrapped name, so the fifty-odd
+operator declarations are counted rather than invisible, but each one is checked
+against `operator_uses` instead - a table saying, per name, either the fragment
+of the tests that applies it or that no declaration of it carries an importcpp
+at all. Both directions fail: an exported operator with no entry, and an entry
+whose operator or fragment has gone.
+
+A mention has to look like a call, too. A name is an ordinary word, and `what`,
+`between` and `release` were each reported covered by English prose rather than
+by anything calling them.
+
+What remains is the limit of a check built on a text search: it catches a
+binding nothing mentions, which is the case every defect above was found in, and
+it does not catch one overload of a name something else already calls.
 
 Run from the repository root. Exits non-zero and names what is uncovered.
 """
@@ -93,16 +111,7 @@ hand_written = [
 
 # Each needs a reason, and the reason has to be why a test cannot call it
 # rather than that nobody has yet.
-uncallable = {
-    "newApplication":
-        "builds a JUCEApplication, whose constructor asserts unless it is the "
-        "process's one instance",
-    "constructApplication":
-        "builds a JUCEApplication, same as newApplication",
-    "release":
-        "OptionalScopedPointer::release hands back ownership, and a test that "
-        "called it would have to invent a leak or a double free to finish",
-}
+uncallable = {}
 
 # `macro` belongs here with the rest. A macro is only checked where it is
 # expanded, exactly as an importcpp proc is only checked where it is called, so
@@ -115,6 +124,38 @@ uncallable = {
 # nothing at all. Fifty-two of the three hundred and eighteen exported
 # declarations here were invisible, and this gate printed "all N hand-written
 # binding names are called" without ever having looked at one of them.
+# A receiver type nothing can name, with the reason. Empty: every type
+# carrying a hand-written binding is named by a test today.
+unnameable_receivers = {}
+
+# The first parameter, whatever it is called.
+#
+# This required the literal name `this`, which is what the generated modules
+# spell a receiver and what most of the hand-written layer copies. It is not
+# what all of it spells: june_function_utils.nim names every one of its
+# receivers `f`, so none of the CppFunctionObject types entered the check at
+# all. The gate then printed "all 45 receiver types ... are named by a test"
+# while the widened pattern finds 81 - and among the 36 it had never looked at
+# were the eighteen CppFunctionObject types whose `invoke` overloads no test
+# called, so seventeen importcpp strings had never been handed to a C++
+# compiler. A check that cannot fail is worse than no check.
+#
+# The type is taken after any var/ptr/ref/sink/lent, and counts only if
+# sources/june DECLARES it. That is what keeps a first parameter from being
+# read as a receiver when it is not one. `varargs[untyped]` on a macro and the
+# `T` of a generic are not types a test could name, and `int`, `string` and
+# `cstring` are Nim's rather than this library's - a test "naming" int is a
+# word search that cannot fail. Declared-in-sources is the property that
+# separates those from a real receiver, and it needs no list to maintain.
+receiver = re.compile(
+    r'(?:proc|iterator|template|converter|macro) `?([\w=$\[\]]+)`?\*'
+    r'(?:\[[^\]]*\])?\(\w+: (?:(?:var|ptr|ref|sink|lent) )*([A-Za-z_]\w*)')
+
+# `type X* = ...` on one line, and an indented entry in a `type` block.
+type_declaration = re.compile(r'^type (\w+)')
+type_block_entry = re.compile(r'^\s+(\w+)\*?\s*(?:\[[^\]]*\])?\s*'
+                              r'(?:\{\.[^}]*\.\})?\s*=')
+
 export = re.compile(
     r'(?:proc|iterator|template|converter|macro) (`[^`]+`|\w+)\*')
 
@@ -299,11 +340,24 @@ def check_no_argument_constructors():
     uncalled = sorted(name for name in emitted
                       if name not in platform_specific_constructors
                       and not re.search(r"\b" + name + r"\b", used))
+
+    # An exemption naming a constructor the generator no longer emits excuses
+    # nothing, and its reason stops being checked against anything. Every other
+    # exemption list in this file is held to that; this one was not.
+    stale = sorted(name for name in platform_specific_constructors
+                   if name not in emitted)
+
     if uncalled:
         print("These no-argument constructors are never called, so nothing "
               "compiles them:", file=sys.stderr)
         for name in uncalled:
             print(f"  {name}", file=sys.stderr)
+    if stale:
+        print("These are listed as platform specific but are no longer "
+              "emitted:", file=sys.stderr)
+        for name in stale:
+            print(f"  {name}", file=sys.stderr)
+    if uncalled or stale:
         return False
 
     print(f"all {len(emitted) - len(platform_specific_constructors)} "
@@ -608,6 +662,15 @@ def check_one_declaration_per_signature():
     Nothing catches this at generation time, and nothing catches it at compile
     time either unless a test happens to make the call on a deep enough
     receiver. It is a property of the emitted text, so it is checked here.
+
+    The scan below matches a `this` receiver only, and that is deliberate rather
+    than the narrowing that bit two other patterns in this file. The generated
+    modules do spell some first parameters otherwise - 167 procs take `a` - but
+    every one of those is a borrowed `==` over a distinct enum, a free function
+    with no receiver to inherit through. The ambiguity being checked is between a
+    method and the same method on a Nim ancestor, which only a receiver-taking
+    proc can be in. Widening this to any first parameter would add enum
+    operators, not coverage.
     """
     parents, procedures = {}, {}
     for module in ("juce_core", "juce_events", "juce_data_structures",
@@ -730,13 +793,192 @@ def check_inherited_methods():
     return True
 
 
+def without_comment(line):
+    """`line` up to its comment, if it has one.
+
+    A `#` counts as the start of a comment when an even number of double quotes
+    precede it, so a `#` inside a string literal stays, and `\'#\'` is skipped
+    because a character literal is not a comment either.
+
+    Single quotes are deliberately NOT tracked as literal delimiters. Nim spells
+    a numeric suffix with one - `0\'f32`, `5\'u8` - and this suite is full of
+    them, so a scanner that opened a character literal on every `\'` would think
+    most of the file was inside one and stop finding comments at all. That is a
+    worse failure than the case it would fix, and the two-character form above
+    covers the case that actually arises.
+    """
+    index = 0
+    while index < len(line):
+        if (line[index] == "#"
+                    # An escaped quote is not a delimiter. Counting it as
+                    # one makes the parity wrong, truncates the line inside
+                    # its own literal, and hides whatever followed - a
+                    # macOS-only call among the possibilities.
+                    and line[:index].replace('\\"', "").count('"') % 2 == 0
+                and not (index and line[index - 1] == "'"
+                         and line[index + 1:index + 2] == "'")):
+            return line[:index]
+        index += 1
+    return line
+
+
+def check_macos_only_calls():
+    """A behavioural test calling a macOS-only method does so under a guard.
+
+    The bindings are generated ON macOS, so a method JUCE declares nowhere
+    else still gets a proc here. Nim compiles the call; g++ on Linux does not,
+    and the failure arrives a full CI cycle later. The compile harness already
+    knows which methods these are - MACOS_ONLY_METHODS in its generator - and
+    puts its own calls behind `when defined(macosx)`. This is the same rule
+    for the behavioural tests, which had no check at all: File.isBundle was
+    called unguarded and only Linux CI said so.
+
+    A call counts as guarded when some enclosing line, at a smaller
+    indentation, is `when defined(macosx)`. That is what the suite's own
+    guards look like, and a false ALARM here is cheap to fix while a false
+    all-clear is what this exists to prevent.
+
+    The corpus is the tests AND the examples, which is what test_sources
+    covers and what CI builds on ubuntu. This cannot call test_sources itself,
+    because the guard is found by walking BACK through a file's lines and
+    test_sources returns the files concatenated; it uses the same two patterns
+    instead. Leaving examples out was not a smaller corpus but a hole in this
+    exact shape: an unguarded macOS-only call in an example breaks the ubuntu
+    build, which is the failure this check exists to move earlier.
+
+    The generated harness is the one file left out. Its calls are placed under
+    a guard by the generator, from the same list read here, so it would only
+    ever confirm the generator against itself.
+
+    A call is matched by the dot and the name, with no parenthesis required.
+    Nim calls a no-argument method as `file.isBundle`, and requiring `(` meant
+    that spelling was not seen - for File.isBundle among others, which is the
+    very call that put this list in the harness.
+
+    Dropping the parenthesis made comments matter. The required `(` had been
+    excluding them by accident, and a comment in test_juce_core.nim explains
+    why String.convertToPrecomposedUnicode is left out of a sweep - prose that
+    named the method and then read as an unguarded call to it. So the comment
+    is cut off each line first, at the first `#` with an even number of quotes
+    before it, which is a comment rather than a `#` inside a string.
+
+    What this does NOT catch: a macOS-only method that is not on that list.
+    The list was built by compiling the harness on Linux, one round per error
+    the compiler reported, so it holds the methods the harness had to call.
+    A method covered behaviourally from the start never entered the harness
+    and so never entered the list. Linux CI is still the backstop for those -
+    it is what found isBundle - and a name added to MACOS_ONLY_METHODS when
+    that happens brings the method under this check too.
+    """
+    harness = open("tools/generate_compile_harness.py").read()
+    block = re.search(r"MACOS_ONLY_METHODS = \{(.*?)\n\}", harness, re.S)
+    if block is None:
+        print("MACOS_ONLY_METHODS is not where this expected it",
+              file=sys.stderr)
+        return False
+    # Extracted as PAIRS and counted as pairs below. `methods` is a set of
+    # method NAMES, so two classes sharing one - setCurrentDragImage is on three
+    # in the sibling file - collapse to a single name against two lines, and the
+    # count reports a missed extraction that did not happen.
+    pairs = re.findall(r'\(\s*"([A-Za-z_]\w*)"\s*,\s*"([A-Za-z_]\w*)"\s*\)',
+                       block.group(1))
+    methods = {method for _, method in pairs}
+
+    # Every tuple in the block has to yield a name. Reading a list out of
+    # another file with a regex is fragile in one direction only: a pattern
+    # that stops matching an entry does not fail, it silently drops that
+    # method from the check, and the gate then reports every call guarded
+    # while no longer looking at one of them.
+    # Counted by a DIFFERENT shape on purpose. An "independent" count written
+    # with the same pattern as the extraction is not independent: a change that
+    # stops one matching stops the other too, both fall by one, and the
+    # comparison still passes. Non-comment lines holding a comma is a property
+    # of the block's layout rather than of the pattern above.
+    entries = [line for line in block.group(1).split("\n")
+               if line.strip() and not line.strip().startswith("#")
+               and "," in line]
+    if len(entries) != len(pairs):
+        print(f"MACOS_ONLY_METHODS holds {len(entries)} entries but this "
+              f"extracted {len(methods)} names, so the ones it missed are "
+              f"exempt from this check without saying so", file=sys.stderr)
+        return False
+
+    # The same list in its free-function form. A free function has no receiver,
+    # so the pattern below cannot reach it: `juce_assert_noreturn()` carries no
+    # leading dot and would be exempt from this check while reading as covered
+    # by it. Extracted and counted the same two ways as the methods above.
+    fn_block = re.search(r"MACOS_ONLY_FUNCTIONS = \{(.*?)\n\}", harness, re.S)
+    if fn_block is None:
+        print("MACOS_ONLY_FUNCTIONS is not where this expected it",
+              file=sys.stderr)
+        return False
+    functions = set(re.findall(r'"([A-Za-z_]\w*)"', fn_block.group(1)))
+    fn_entries = [line for line in fn_block.group(1).split("\n")
+                  if line.strip() and not line.strip().startswith("#")
+                  and "," in line]
+    if len(fn_entries) != len(functions):
+        print(f"MACOS_ONLY_FUNCTIONS holds {len(fn_entries)} entries but this "
+              f"extracted {len(functions)} names, so the ones it missed are "
+              f"exempt from this check without saying so", file=sys.stderr)
+        return False
+
+    unguarded = []
+    paths = []
+    for pattern in ("tests/test_juce_*.nim", "examples/*.nim"):
+        paths += sorted(glob.glob(pattern))
+    call_pattern = re.compile(
+        r"\.(" + "|".join(sorted(methods)) + r")(?![A-Za-z0-9_])")
+    # Not preceded by a dot or a word character, so a METHOD sharing the name is
+    # not mistaken for the free function and reported at the wrong site.
+    fn_pattern = (re.compile(r"(?<![.\w])(" + "|".join(sorted(functions))
+                             + r")\s*\(") if functions else None)
+    for path in paths:
+        if path == GENERATED_HARNESS:
+            continue
+        lines = open(path).read().splitlines()
+        for number, line in enumerate(lines):
+            stripped = without_comment(line)
+            call = call_pattern.search(stripped)
+            if call is None and fn_pattern is not None:
+                call = fn_pattern.search(stripped)
+            if not call:
+                continue
+            indent = len(line) - len(line.lstrip())
+            guarded = False
+            for earlier in reversed(lines[:number]):
+                if not earlier.strip():
+                    continue
+                earlier_indent = len(earlier) - len(earlier.lstrip())
+                if earlier_indent < indent:
+                    if re.match(r"when defined\(macosx\):", earlier.strip()):
+                        guarded = True
+                        break
+                    indent = earlier_indent
+            if not guarded:
+                unguarded.append(f"{path}:{number + 1}  {call.group(1)}")
+
+    if unguarded:
+        print("These behavioural tests call a macOS-only method without a "
+              "`when defined(macosx)` guard, so they will not compile on "
+              "Linux:", file=sys.stderr)
+        for entry in unguarded:
+            print(f"  {entry}", file=sys.stderr)
+        return False
+
+    print(f"every behavioural call to one of the {len(methods)} macOS-only "
+          f"methods and {len(functions)} macOS-only free "
+          f"function{'' if len(functions) == 1 else 's'} is guarded")
+    return True
+
+
 def check_constants():
     """Every bound constant is read by a test.
 
     A `let` with an importcpp is not checked against C++ unless something
     reads it. A constant naming juce::NoSuchClass::nope compiles clean while
-    nothing touches it, which was measured rather than assumed, so 591 of the
-    635 had never had their spelling checked.
+    nothing touches it, which was measured rather than assumed: when this was
+    first checked, most of the bound constants had never had their spelling
+    put to the compiler. The count this prints is the live one.
     """
     emitted = set()
     for module in ("juce_core", "juce_events", "juce_data_structures",
@@ -902,10 +1144,11 @@ def check_gitignore_order():
     directories. What keeps them out is ORDER - the general rules come after,
     and a later rule wins.
 
-    Order is not something a reader can see is load-bearing, and this file's
-    own history records a 38MB binary committed past a rule that looked fine.
-    So it is checked rather than described: each case below is asked of git
-    itself, which is the only authority on what it would ignore.
+    Order is not something a reader can see is load-bearing, and a rule that
+    looks fine can still let a build artifact through - which is how a compiled
+    binary reached a commit here once. So it is checked rather than described:
+    each case below is asked of git itself, which is the only authority on what
+    it would ignore.
     """
     must_ignore = ["tests/x.app/f", "tests/x.dSYM/f", "tests/nimcache/f",
                    "tests/build/f", "tests/__pycache__/f", "tests/somebinary",
@@ -926,6 +1169,225 @@ def check_gitignore_order():
             print(f"  {path}", file=sys.stderr)
         return False
     return True
+
+
+def unrecognised_receiver(name):
+    """A capitalised receiver declared_types() does not know, and should.
+
+    A single letter is a generic parameter, not a type. A Custom* name is a
+    generated subclass, which the subclass MACRO declares rather than a `type`
+    block, so no pattern over the sources can see it. Anything else means the
+    extraction has stopped matching a declaration shape.
+    """
+    return (name[:1].isupper() and len(name) > 1
+            and not name.startswith("Custom"))
+
+
+def declared_types():
+    """Every type name declared under sources/june.
+
+    This is what tells a receiver from a first parameter that is not one. It
+    reads the generated modules as well as the hand-written layer, because a
+    lifting file declares bindings on JUCE classes the generator declares.
+    """
+    names = set()
+    for path in sorted(glob.glob("sources/june/*.nim")):
+        in_block = False
+        with open(path) as handle:
+            for line in handle:
+                match = type_declaration.match(line)
+                if match:
+                    names.add(match.group(1))
+                    in_block = True
+                    continue
+                if line.strip() and not line[0].isspace():
+                    in_block = line.rstrip() == "type"
+                    continue
+                if in_block:
+                    entry = type_block_entry.match(line)
+                    if entry:
+                        names.add(entry.group(1))
+    return names
+
+
+# A hand-written binding whose name the corpus contains only as prose. The
+# reason has to be why a call cannot appear in a test or an example.
+mentioned_not_called = {
+    "defineCppClassInternal":
+        "the library-side variant, invoked by the generated *_subclasses "
+        "modules rather than by a test. The suite compiles those, so the macro "
+        "is expanded - just not from this corpus.",
+}
+
+
+def check_names_are_called_not_mentioned(declared_names):
+    """A hand-written binding name appears in a call, not only in prose.
+
+    The check above asks whether the NAME occurs in the tests, and a name is an
+    ordinary word. `what` on CppException was reported covered by the English
+    "what" in this suite's comments, `between` on Range by "the difference
+    between them", and `release` on UniquePtr by "after one release the count
+    is". None of the three had ever reached a C++ compiler, which is the one
+    thing this file exists to prevent.
+
+    So the occurrence has to look like a call. Three shapes count, because Nim
+    spells a call three ways: with parentheses or brackets whatever precedes it
+    (`$makeStringFromUTF8(...)` counts, and the `$` is not a word boundary), by
+    UFCS without them (`obj.reset`), and command-style for a macro or template
+    (`defineCppClass Foo of Bar:`). Comments and string literals are removed
+    first - that is the whole point.
+
+    This is narrower than the name search and does not replace it: a name that
+    is called is also mentioned, so anything this catches the other lets pass.
+    """
+    names = {name for name in declared_names if name.isidentifier()}
+
+    prose = test_sources(count_harness=False)
+    # Triple-quoted blocks FIRST. The single-line pattern below collapses `"""`
+    # to a bare quote and leaves the block body in `code`, where the
+    # command-style shape reads ordinary English as a call - `release the
+    # pointer when done` credits `release`, one of the three names this check
+    # exists to catch. The corpus already contains such blocks.
+    code = re.sub(r'"""(?:.|\n)*?"""', '""', prose)
+    # without_comment rather than `#.*`: a `#` inside a string literal is not a
+    # comment, and cutting there deletes the rest of a real call.
+    code = "\n".join(without_comment(line) for line in code.split("\n"))
+    code = re.sub(r'"[^"\n]*"', '""', code)
+
+    def called(name):
+        spelled = re.escape(name)
+        return (re.search(r"(?<![A-Za-z0-9_])" + spelled + r"\s*[(\[]", code)
+                or re.search(r"\." + spelled + r"(?![A-Za-z0-9_])", code)
+                or re.search(r"(?m)^\s*" + spelled + r"\s+[A-Za-z_]", code))
+
+    # The mentioned set is computed once and reported from, so the success
+    # line names the population it actually measured. `names` is every declared
+    # identifier, not the mentioned subset, and using it there described a set
+    # this check never looked at.
+    seen_in_tests = {name for name in names
+                     if re.search(r"\b" + re.escape(name) + r"\b", prose)}
+    mentioned = sorted(name for name in seen_in_tests
+                       if name not in mentioned_not_called
+                       and not called(name))
+    stale = sorted(name for name in mentioned_not_called if name not in names)
+
+    if mentioned:
+        print("These names occur in the tests only as prose, so the name check "
+              "above passes while nothing calls them:", file=sys.stderr)
+        for name in mentioned:
+            print(f"  {name}", file=sys.stderr)
+    if stale:
+        print("These are listed as mentioned-not-called but are no longer "
+              "declared:", file=sys.stderr)
+        for name in stale:
+            print(f"  {name}", file=sys.stderr)
+    if mentioned or stale:
+        return False
+
+    print(f"all {len(seen_in_tests) - len(mentioned_not_called)} hand-written "
+          f"names that a test mentions are spelled as a call "
+          f"({len(mentioned_not_called)} is invoked outside this corpus)")
+    return True
+
+
+def check_receiver_types_named():
+    """Every hand-written binding has a receiver some test names.
+
+    The coverage check above matches a NAME, and a name is shared: `size`,
+    `isEmpty`, `contains`, `items`, `len`, `clear` and `reset` are each declared
+    on several types here and on generated JUCE classes besides. A call to any
+    one of them reported all of them covered, so a binding could be reported
+    exercised while its importcpp string had never reached a C++ compiler.
+
+    That is not hypothetical. It hid std::vector::clear behind six other
+    `clear`s, two iterators behind eighteen other `items`, OptionalScopedPointer
+    behind unique_ptr's `release`, and eight methods on CppMap,
+    CppUnorderedMap, CppArray and Optional - none of which the compile harness
+    reaches either, because it skips a generic receiver.
+
+    Checking the RECEIVER closes what the name cannot: a test that never
+    mentions the type cannot have called anything on it. Matching is textual,
+    so naming the type or its constructor both count.
+
+    This is a per-TYPE check, and that is one of its two limits. It catches a
+    type no test names - CppArray and Optional were both invisible that way. It
+    cannot catch a method never called on a type some test DOES name:
+    CppMap.isEmpty and CppUnorderedMap.`[]` were two of the eight above, and
+    testStlContainers constructs both types, so nothing here would have flagged
+    them. Six of the eight, not all eight.
+
+    The other limit is what a receiver is TAKEN TO BE, and it used to be a
+    first parameter literally named `this`. That is what the generated modules
+    spell and what most of the hand-written layer copies, and it silently
+    excluded the file that does not: june_function_utils.nim names every
+    receiver `f`. Thirty-six types were outside the check, eighteen of them
+    CppFunctionObject types, and seventeen `invoke` overloads had consequently
+    never been handed to a C++ compiler while this printed "all 45 receiver
+    types ... are named by a test" - a gate satisfied by having looked at
+    nothing. The receiver is now the first parameter under any name.
+
+    Taking any first parameter needs a rule for the ones that are not
+    receivers, and the rule is that sources/june has to DECLARE the type.
+    `varargs[untyped]` on a macro and the `T` of a generic are not types a test
+    could name; `int`, `string` and `cstring` are Nim's own, and asking a test
+    to "name int" is a word search that cannot fail. Declared-in-sources
+    separates a real receiver from all of those and needs no list to keep up to
+    date.
+    """
+    declared = declared_types()
+    receivers = {}
+    unknown = {}
+    for name in hand_written:
+        path = os.path.join("sources", "june", name)
+        if not os.path.exists(path):
+            continue
+        with open(path) as handle:
+            for line in handle:
+                match = receiver.match(line)
+                if match and match.group(2) in declared:
+                    receivers.setdefault(match.group(2), set()).add(match.group(1))
+                elif match and unrecognised_receiver(match.group(2)):
+                    # declared_types() reads type names out of ANOTHER file by
+                    # pattern, and that fails in one direction only: a shape it
+                    # stops matching drops the type, every binding on it leaves
+                    # this check, and the all-clear below is printed over the
+                    # smaller set. A capitalised receiver it does not know is
+                    # the symptom, so it is reported rather than skipped.
+                    unknown.setdefault(match.group(2), set()).add(match.group(1))
+
+    used = ""
+    for pattern in ("tests/test_juce_*.nim", "examples/*.nim"):
+        for path in glob.glob(pattern):
+            with open(path) as handle:
+                used += handle.read()
+
+    unnamed = sorted(t for t in receivers
+                     if t not in unnameable_receivers
+                     and not re.search(r"\b" + t + r"\b", used)
+                     and not re.search(r"\bmake" + t + r"\b", used))
+    stale = sorted(t for t in unnameable_receivers if t not in receivers)
+
+    if unknown:
+        print("declared_types() does not recognise these receiver types, so "
+              "the bindings on them are outside this check without saying so:",
+              file=sys.stderr)
+        for name in sorted(unknown):
+            print(f"  {name}  ({len(unknown[name])} bindings)", file=sys.stderr)
+    if unnamed:
+        print("No test names these types, so nothing calls the bindings "
+              "declared on them - the name check above is satisfied by "
+              "same-named methods on other types:", file=sys.stderr)
+        for name in unnamed:
+            print(f"  {name}  ({len(receivers[name])} bindings)", file=sys.stderr)
+    if stale:
+        print("These are listed as unnameable receivers but no longer have "
+              "bindings:", file=sys.stderr)
+        for name in stale:
+            print(f"  {name}", file=sys.stderr)
+    if not (unnamed or stale or unknown):
+        print(f"all {len(receivers)} receiver types carrying a hand-written "
+              f"binding are named by a test")
+    return not (unnamed or stale or unknown)
 
 
 def check_licence_headers():
@@ -1054,6 +1516,12 @@ def main():
     # and a name-shaped search for one would answer a question nobody asked.
     by_name = {name for name in declared if name.isidentifier()}
 
+    # Which files each name is declared in, derived from the list above so
+    # there is one accumulation rather than two that can fall out of step.
+    declared_in = {}
+    for declared_name, declared_file in declarations:
+        declared_in.setdefault(declared_name, []).append(declared_file)
+
     uncovered = sorted(
         name for name in by_name
         if name not in uncallable
@@ -1062,6 +1530,19 @@ def main():
     stale = sorted(name for name in uncallable if name not in declared)
 
     operator_problems = check_operators(declared, lines_by_name, used)
+    called_ok = check_names_are_called_not_mentioned(declared)
+
+    # An exemption that covers more than one declaration is excusing something
+    # its reason never mentioned.
+    ambiguous = sorted(name for name in uncallable
+                       if len(set(declared_in.get(name, []))) > 1)
+    if ambiguous:
+        print("These `uncallable` entries name more than one declaration, so "
+              "the reason recorded for one of them excuses the others too:",
+              file=sys.stderr)
+        for name in ambiguous:
+            where = ", ".join(sorted(set(declared_in[name])))
+            print(f"  {name}  (declared in {where})", file=sys.stderr)
 
     if stale:
         print("These are listed as uncallable but no longer exist:", file=sys.stderr)
@@ -1080,6 +1561,7 @@ def main():
         print(problem, file=sys.stderr)
 
     licences_ok = check_licence_headers()
+    receivers_ok = check_receiver_types_named()
     gitignore_ok = check_gitignore_order()
     iterators_ok = check_iterator_promises()
     defaults_ok = check_implicit_defaults()
@@ -1093,13 +1575,15 @@ def main():
     signatures_ok = check_one_declaration_per_signature()
     literals_ok = check_integer_literal_overloads()
     fields_ok = check_field_accessors()
+    macos_ok = check_macos_only_calls()
 
-    if (uncovered or stale or operator_problems or not licences_ok
+    if (uncovered or stale or operator_problems or not called_ok or not licences_ok
             or not iterators_ok or not defaults_ok or not subclasses_ok
             or not handlers_ok or not constructors_ok or not constants_ok
             or not statics_ok or not classes_ok or not inherited_ok
             or not signatures_ok or not literals_ok or not fields_ok
-            or not gitignore_ok):
+            or not gitignore_ok or not macos_ok or ambiguous
+            or not receivers_ok):
         sys.exit(1)
 
     shared = len(declarations) - len(declared)

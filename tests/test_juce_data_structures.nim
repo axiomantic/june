@@ -387,6 +387,169 @@ proc testEveryClosureArity() =
 
 testEveryClosureArity()
 
+# Every closure arity, through invoke =========================================
+#
+# `invoke` is a SECOND binding for each of the arities above, with an importcpp
+# string of its own. The call operator does not compile it - `f(1, 2)` and
+# `f.invoke(1, 2)` are two declarations, and an importcpp string reaches the C++
+# compiler only where its own proc is called. Seventeen of them, N2 to N10 and
+# R2 to R9, had no call site anywhere in the suite and had therefore never been
+# compiled at all.
+#
+# What was supposed to notice is check_handwritten_covered.py, whose receiver
+# check reads every type carrying a hand-written binding and fails on one no
+# test names. It matched a receiver spelled `this`, and june_function_utils
+# spells every one of them `f`, so the CppFunctionObject types were not among
+# the types it checked - and it reported all of them covered.
+
+proc testEveryClosureArityInvoked() =
+    block:
+        var seen: seq[cint] = @[]
+        seen = @[]
+        var invoked0: CppFunctionObjectN0 = bindClosure(proc() =
+                seen.add(0.cint))
+        invoked0.invoke()
+        doAssert seen == @[0.cint],
+                 "the 0-argument void closure invoked saw " & $seen
+        seen = @[]
+        var invoked1: CppFunctionObjectN1[cint] = bindClosure(proc(a1: cint) =
+                seen.add(a1))
+        invoked1.invoke(1.cint)
+        doAssert seen == @[1.cint],
+                 "the 1-argument void closure invoked saw " & $seen
+        seen = @[]
+        var invoked2: CppFunctionObjectN2[cint, cint] = bindClosure(proc(a1: cint, a2: cint) =
+                seen.add(a1)
+                seen.add(a2))
+        invoked2.invoke(1.cint, 2.cint)
+        doAssert seen == @[1.cint, 2.cint],
+                 "the 2-argument void closure invoked saw " & $seen
+        seen = @[]
+        var invoked3: CppFunctionObjectN3[cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint) =
+                seen.add(a1)
+                seen.add(a2)
+                seen.add(a3))
+        invoked3.invoke(1.cint, 2.cint, 3.cint)
+        doAssert seen == @[1.cint, 2.cint, 3.cint],
+                 "the 3-argument void closure invoked saw " & $seen
+        seen = @[]
+        var invoked4: CppFunctionObjectN4[cint, cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint) =
+                seen.add(a1)
+                seen.add(a2)
+                seen.add(a3)
+                seen.add(a4))
+        invoked4.invoke(1.cint, 2.cint, 3.cint, 4.cint)
+        doAssert seen == @[1.cint, 2.cint, 3.cint, 4.cint],
+                 "the 4-argument void closure invoked saw " & $seen
+        seen = @[]
+        var invoked5: CppFunctionObjectN5[cint, cint, cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint) =
+                seen.add(a1)
+                seen.add(a2)
+                seen.add(a3)
+                seen.add(a4)
+                seen.add(a5))
+        invoked5.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint)
+        doAssert seen == @[1.cint, 2.cint, 3.cint, 4.cint, 5.cint],
+                 "the 5-argument void closure invoked saw " & $seen
+        seen = @[]
+        var invoked6: CppFunctionObjectN6[cint, cint, cint, cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint, a6: cint) =
+                seen.add(a1)
+                seen.add(a2)
+                seen.add(a3)
+                seen.add(a4)
+                seen.add(a5)
+                seen.add(a6))
+        invoked6.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint)
+        doAssert seen == @[1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint],
+                 "the 6-argument void closure invoked saw " & $seen
+        seen = @[]
+        var invoked7: CppFunctionObjectN7[cint, cint, cint, cint, cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint, a6: cint, a7: cint) =
+                seen.add(a1)
+                seen.add(a2)
+                seen.add(a3)
+                seen.add(a4)
+                seen.add(a5)
+                seen.add(a6)
+                seen.add(a7))
+        invoked7.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint)
+        doAssert seen == @[1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint],
+                 "the 7-argument void closure invoked saw " & $seen
+        seen = @[]
+        var invoked8: CppFunctionObjectN8[cint, cint, cint, cint, cint, cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint, a6: cint, a7: cint, a8: cint) =
+                seen.add(a1)
+                seen.add(a2)
+                seen.add(a3)
+                seen.add(a4)
+                seen.add(a5)
+                seen.add(a6)
+                seen.add(a7)
+                seen.add(a8))
+        invoked8.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint)
+        doAssert seen == @[1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint],
+                 "the 8-argument void closure invoked saw " & $seen
+        seen = @[]
+        var invoked9: CppFunctionObjectN9[cint, cint, cint, cint, cint, cint, cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint, a6: cint, a7: cint, a8: cint, a9: cint) =
+                seen.add(a1)
+                seen.add(a2)
+                seen.add(a3)
+                seen.add(a4)
+                seen.add(a5)
+                seen.add(a6)
+                seen.add(a7)
+                seen.add(a8)
+                seen.add(a9))
+        invoked9.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint, 9.cint)
+        doAssert seen == @[1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint, 9.cint],
+                 "the 9-argument void closure invoked saw " & $seen
+        seen = @[]
+        var invoked10: CppFunctionObjectN10[cint, cint, cint, cint, cint, cint, cint, cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint, a6: cint, a7: cint, a8: cint, a9: cint, a10: cint) =
+                seen.add(a1)
+                seen.add(a2)
+                seen.add(a3)
+                seen.add(a4)
+                seen.add(a5)
+                seen.add(a6)
+                seen.add(a7)
+                seen.add(a8)
+                seen.add(a9)
+                seen.add(a10))
+        invoked10.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint, 9.cint, 10.cint)
+        doAssert seen == @[1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint, 9.cint, 10.cint],
+                 "the 10-argument void closure invoked saw " & $seen
+        var returned0: CppFunctionObjectR0[cint] = bindClosure(proc(): cint = 7.cint)
+        doAssert returned0.invoke() == 7.cint,
+                 "the 0-argument closure invoked returned " & $returned0.invoke()
+        var returned1: CppFunctionObjectR1[cint, cint] = bindClosure(proc(a1: cint): cint = a1)
+        doAssert returned1.invoke(1.cint) == 1.cint,
+                 "the 1-argument closure invoked returned " & $returned1.invoke(1.cint)
+        var returned2: CppFunctionObjectR2[cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint): cint = a1 + a2)
+        doAssert returned2.invoke(1.cint, 2.cint) == 3.cint,
+                 "the 2-argument closure invoked returned " & $returned2.invoke(1.cint, 2.cint)
+        var returned3: CppFunctionObjectR3[cint, cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint): cint = a1 + a2 + a3)
+        doAssert returned3.invoke(1.cint, 2.cint, 3.cint) == 6.cint,
+                 "the 3-argument closure invoked returned " & $returned3.invoke(1.cint, 2.cint, 3.cint)
+        var returned4: CppFunctionObjectR4[cint, cint, cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint): cint = a1 + a2 + a3 + a4)
+        doAssert returned4.invoke(1.cint, 2.cint, 3.cint, 4.cint) == 10.cint,
+                 "the 4-argument closure invoked returned " & $returned4.invoke(1.cint, 2.cint, 3.cint, 4.cint)
+        var returned5: CppFunctionObjectR5[cint, cint, cint, cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint): cint = a1 + a2 + a3 + a4 + a5)
+        doAssert returned5.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint) == 15.cint,
+                 "the 5-argument closure invoked returned " & $returned5.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint)
+        var returned6: CppFunctionObjectR6[cint, cint, cint, cint, cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint, a6: cint): cint = a1 + a2 + a3 + a4 + a5 + a6)
+        doAssert returned6.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint) == 21.cint,
+                 "the 6-argument closure invoked returned " & $returned6.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint)
+        var returned7: CppFunctionObjectR7[cint, cint, cint, cint, cint, cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint, a6: cint, a7: cint): cint = a1 + a2 + a3 + a4 + a5 + a6 + a7)
+        doAssert returned7.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint) == 28.cint,
+                 "the 7-argument closure invoked returned " & $returned7.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint)
+        var returned8: CppFunctionObjectR8[cint, cint, cint, cint, cint, cint, cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint, a6: cint, a7: cint, a8: cint): cint = a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8)
+        doAssert returned8.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint) == 36.cint,
+                 "the 8-argument closure invoked returned " & $returned8.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint)
+        var returned9: CppFunctionObjectR9[cint, cint, cint, cint, cint, cint, cint, cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint, a6: cint, a7: cint, a8: cint, a9: cint): cint = a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9)
+        doAssert returned9.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint, 9.cint) == 45.cint,
+                 "the 9-argument closure invoked returned " & $returned9.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint, 9.cint)
+
+
+testEveryClosureArityInvoked()
+
 # The nested abstract classes =================================================
 #
 # The subclass generator keyed an abstract class on its own spelling, which
@@ -608,3 +771,524 @@ proc testFieldRoundTrips() =
         discard value.onDefaultChange()
 
 testFieldRoundTrips()
+
+# ValueTree::Listener gives every method an empty body rather than making it
+# pure, so no Custom subclass is generated and this constructor is the only way
+# to get one. Building it is what compiles its importcpp.
+proc testValueTreeListenerConstructs() =
+  var listener = makeValueTreeListener()
+
+testValueTreeListenerConstructs()
+
+# UndoManager groups actions into TRANSACTIONS, and that grouping is the whole
+# of what it does beyond a stack: one undo reverses a transaction, not an
+# action. Each action here counts its own calls, so the grouping is measured
+# rather than assumed.
+proc testUndoManagerTransactions() =
+  proc countingAction(performed, undone: ptr int): ptr CustomUndoableAction =
+    result = newCustomUndoableAction()
+    let p = performed
+    let u = undone
+    result[].setPerformHandler(proc(): bool =
+      p[] += 1
+      true)
+    result[].setUndoHandler(proc(): bool =
+      u[] += 1
+      true)
+
+  block:
+    var performed, undone = 0
+    var manager = makeUndoManager(30000.cint, 30.cint)
+
+    doAssert not manager.canUndo(), "a new manager can undo"
+    doAssert not manager.canRedo(), "a new manager can redo"
+    doAssert manager.getUndoDescription().isEmpty(),
+             "a new manager describes an undo as " & $manager.getUndoDescription()
+    doAssert not manager.isPerformingUndoRedo(),
+             "a manager reports an undo in progress before anything ran"
+
+    # Two actions in ONE transaction: one undo reverses both.
+    manager.beginNewTransaction(makeString("edit"))
+    doAssert manager.perform(cast[ptr UndoableAction](
+                 countingAction(addr performed, addr undone))),
+             "the first perform reported failure"
+    doAssert manager.perform(cast[ptr UndoableAction](
+                 countingAction(addr performed, addr undone))),
+             "the second perform reported failure"
+    doAssert performed == 2, "two actions ran " & $performed & " times"
+    doAssert manager.getNumActionsInCurrentTransaction() == 2,
+             "the transaction holds " &
+             $manager.getNumActionsInCurrentTransaction() & " actions"
+
+    doAssert manager.canUndo(), "the manager cannot undo after two actions"
+    doAssert $manager.getUndoDescription() == "edit",
+             "the undo describes itself as " & $manager.getUndoDescription()
+    doAssert manager.getUndoDescriptions().size() == 1,
+             "there are " & $manager.getUndoDescriptions().size() &
+             " transactions to undo, not one"
+
+    doAssert manager.undo(), "undo reported failure"
+    doAssert undone == 2,
+             "one undo reversed " & $undone & " of the two actions"
+    doAssert not manager.canUndo(), "the manager can still undo"
+    doAssert manager.canRedo(), "the manager cannot redo what it just undid"
+    doAssert $manager.getRedoDescription() == "edit",
+             "the redo describes itself as " & $manager.getRedoDescription()
+    doAssert manager.getRedoDescriptions().size() == 1,
+             "there are " & $manager.getRedoDescriptions().size() &
+             " transactions to redo"
+
+    doAssert manager.redo(), "redo reported failure"
+    doAssert performed == 4, "the redo re-ran " & $(performed - 2) & " actions"
+
+  block:
+    var performed, undone = 0
+    var manager = makeUndoManager(30000.cint, 30.cint)
+
+    # Two SEPARATE transactions: each undo reverses one.
+    manager.beginNewTransaction(makeString("first"))
+    discard manager.perform(cast[ptr UndoableAction](
+        countingAction(addr performed, addr undone)))
+    manager.beginNewTransaction(makeString("second"))
+    discard manager.perform(cast[ptr UndoableAction](
+        countingAction(addr performed, addr undone)))
+
+    doAssert manager.getUndoDescriptions().size() == 2,
+             "there are " & $manager.getUndoDescriptions().size() &
+             " transactions, not two"
+    doAssert $manager.getUndoDescription() == "second",
+             "the newest transaction is " & $manager.getUndoDescription()
+
+    doAssert manager.undo(), "the first undo reported failure"
+    doAssert undone == 1,
+             "one undo reversed " & $undone & " actions across two transactions"
+    doAssert $manager.getUndoDescription() == "first",
+             "after one undo the next is " & $manager.getUndoDescription()
+    doAssert manager.undo(), "the second undo reported failure"
+    doAssert undone == 2, "two undos reversed " & $undone & " actions"
+    doAssert not manager.canUndo(), "there is a third transaction"
+
+  block:
+    var performed, undone = 0
+    var manager = makeUndoManager(30000.cint, 30.cint)
+
+    # The transaction can be named after the fact, and undone on its own
+    # without ending it.
+    manager.beginNewTransaction()
+    discard manager.perform(cast[ptr UndoableAction](
+        countingAction(addr performed, addr undone)))
+    manager.setCurrentTransactionName(makeString("renamed"))
+    doAssert $manager.getCurrentTransactionName() == "renamed",
+             "the transaction is called " & $manager.getCurrentTransactionName()
+
+    doAssert manager.undoCurrentTransactionOnly(),
+             "undoCurrentTransactionOnly reported failure"
+    doAssert undone == 1,
+             "undoCurrentTransactionOnly reversed " & $undone & " actions"
+    doAssert manager.getNumActionsInCurrentTransaction() == 0,
+             "the transaction still holds " &
+             $manager.getNumActionsInCurrentTransaction() & " actions"
+
+  block:
+    var performed, undone = 0
+    var manager = makeUndoManager(30000.cint, 30.cint)
+    manager.beginNewTransaction(makeString("edit"))
+    discard manager.perform(cast[ptr UndoableAction](
+        countingAction(addr performed, addr undone)))
+
+    doAssert manager.getNumberOfUnitsTakenUpByStoredCommands() > 0,
+             "the stored commands take up " &
+             $manager.getNumberOfUnitsTakenUpByStoredCommands() & " units"
+    doAssert manager.getTimeOfUndoTransaction().toMilliseconds() > 0,
+             "the transaction has no timestamp"
+
+    # Clearing throws the history away without undoing anything.
+    manager.clearUndoHistory()
+    doAssert not manager.canUndo(), "the history survived clearUndoHistory"
+    doAssert undone == 0,
+             "clearUndoHistory undid " & $undone & " actions"
+
+    # And a new limit is accepted at any time.
+    manager.setMaxNumberOfStoredUnits(100.cint, 2.cint)
+
+testUndoManagerTransactions()
+
+# ValueTree's navigation and its copying. A tree is a handle onto shared state,
+# so an assignment shares and createCopy does not - the same distinction Image
+# has, and the one a caller gets wrong.
+proc testValueTreeNavigationAndCopies() =
+  block:
+    var root = makeValueTree(makeIdentifier("root"))
+    doAssert root.hasType(makeIdentifier("root")),
+             "the tree does not have the type it was made with"
+    doAssert not root.hasType(makeIdentifier("other")),
+             "the tree has a type it was never given"
+
+    var first = makeValueTree(makeIdentifier("child"))
+    discard first.setProperty(makeIdentifier("name"), makejuce_var(makeString("first")),
+                      nil)
+    var second = makeValueTree(makeIdentifier("child"))
+    discard second.setProperty(makeIdentifier("name"),
+                       makejuce_var(makeString("second")), nil)
+    var other = makeValueTree(makeIdentifier("different"))
+
+    root.appendChild(first, nil)
+    root.appendChild(second, nil)
+    root.appendChild(other, nil)
+    doAssert root.getNumChildren() == 3,
+             "the root holds " & $root.getNumChildren() & " children"
+
+    # getParent walks back up, and the root has none.
+    doAssert first.getParent() == root,
+             "the child's parent is not the root"
+    doAssert not root.getParent().isValid(),
+             "the root has a parent"
+
+    # getSibling walks the child list by an offset from this child.
+    doAssert first.getSibling(1.cint) == second,
+             "the next sibling of the first child is not the second"
+    doAssert second.getSibling(-1.cint) == first,
+             "the previous sibling of the second child is not the first"
+    doAssert not first.getSibling(-1.cint).isValid(),
+             "the first child has a previous sibling"
+    doAssert not other.getSibling(1.cint).isValid(),
+             "the last child has a next sibling"
+
+    # getChildWithName finds the FIRST child of that type, and
+    # getChildWithProperty finds by a value rather than a type.
+    doAssert root.getChildWithName(makeIdentifier("child")) == first,
+             "getChildWithName found a different child"
+    doAssert not root.getChildWithName(makeIdentifier("absent")).isValid(),
+             "getChildWithName invented a child"
+    doAssert root.getChildWithProperty(makeIdentifier("name"),
+                                       makejuce_var(makeString("second"))) ==
+             second,
+             "getChildWithProperty found a different child"
+    doAssert not root.getChildWithProperty(
+                 makeIdentifier("name"),
+                 makejuce_var(makeString("absent"))).isValid(),
+             "getChildWithProperty invented a child"
+
+    # getOrCreateChildWithName returns the existing one rather than adding a
+    # second, and adds one when there is none.
+    doAssert root.getOrCreateChildWithName(makeIdentifier("child"), nil) == first,
+             "getOrCreateChildWithName added a second child of an existing type"
+    doAssert root.getNumChildren() == 3,
+             "the root holds " & $root.getNumChildren() & " children after the " &
+             "existing one was asked for"
+    let created = root.getOrCreateChildWithName(makeIdentifier("fresh"), nil)
+    doAssert created.isValid(), "getOrCreateChildWithName created nothing"
+    doAssert root.getNumChildren() == 4,
+             "the root holds " & $root.getNumChildren() & " children after one " &
+             "was created"
+
+    # moveChild reorders without adding or removing.
+    root.moveChild(0.cint, 2.cint, nil)
+    doAssert root.getChild(2.cint) == first,
+             "the moved child is at index " & $root.indexOf(first)
+    doAssert root.getNumChildren() == 4,
+             "moving a child changed the count to " & $root.getNumChildren()
+
+  block:
+    # A tree is a handle onto shared state. An assignment shares it.
+    var original = makeValueTree(makeIdentifier("root"))
+    discard original.setProperty(makeIdentifier("value"), makejuce_var(1.cint), nil)
+
+    var shared = original
+    discard shared.setProperty(makeIdentifier("value"), makejuce_var(2.cint), nil)
+    doAssert original.getProperty(makeIdentifier("value")).toInt() == 2,
+             "writing through the shared handle did not reach the original"
+
+    # createCopy is a deep copy: neither the properties nor the children are
+    # shared afterwards.
+    original.appendChild(makeValueTree(makeIdentifier("child")), nil)
+    var copied = original.createCopy()
+    doAssert copied.getNumChildren() == 1,
+             "the copy holds " & $copied.getNumChildren() & " children"
+    discard copied.setProperty(makeIdentifier("value"), makejuce_var(9.cint), nil)
+    doAssert original.getProperty(makeIdentifier("value")).toInt() == 2,
+             "writing to the copy reached the original"
+
+    var copiedChild = copied.getChild(0.cint)
+    discard copiedChild.setProperty(makeIdentifier("deep"),
+                                    makejuce_var(1.cint), nil)
+    doAssert not original.getChild(0.cint).hasProperty(makeIdentifier("deep")),
+             "writing to the copy's child reached the original's child"
+
+  block:
+    # The property-copying methods differ in whether they bring the children.
+    var source = makeValueTree(makeIdentifier("source"))
+    discard source.setProperty(makeIdentifier("a"), makejuce_var(1.cint), nil)
+    source.appendChild(makeValueTree(makeIdentifier("child")), nil)
+
+    var propertiesOnly = makeValueTree(makeIdentifier("target"))
+    propertiesOnly.copyPropertiesFrom(source, nil)
+    doAssert propertiesOnly.getProperty(makeIdentifier("a")).toInt() == 1,
+             "copyPropertiesFrom did not bring the property"
+    doAssert propertiesOnly.getNumChildren() == 0,
+             "copyPropertiesFrom brought " & $propertiesOnly.getNumChildren() &
+             " children"
+
+    var everything = makeValueTree(makeIdentifier("target"))
+    everything.copyPropertiesAndChildrenFrom(source, nil)
+    doAssert everything.getProperty(makeIdentifier("a")).toInt() == 1,
+             "copyPropertiesAndChildrenFrom did not bring the property"
+    doAssert everything.getNumChildren() == 1,
+             "copyPropertiesAndChildrenFrom brought " &
+             $everything.getNumChildren() & " children"
+
+    # And removeAllProperties leaves the children alone, which is the mirror
+    # of copyPropertiesFrom.
+    everything.removeAllProperties(nil)
+    doAssert everything.getNumProperties() == 0,
+             "removeAllProperties left " & $everything.getNumProperties()
+    doAssert everything.getNumChildren() == 1,
+             "removeAllProperties removed a child too"
+
+  block:
+    # A property is also reachable as a Value, which is a view of the same
+    # storage rather than a copy of it.
+    var tree = makeValueTree(makeIdentifier("root"))
+    discard tree.setProperty(makeIdentifier("value"), makejuce_var(5.cint), nil)
+
+    var asValue = tree.getPropertyAsValue(makeIdentifier("value"), nil, false)
+    doAssert asValue.getValue().toInt() == 5,
+             "the value reads " & $asValue.getValue().toInt()
+    asValue.setValue(makejuce_var(7.cint))
+    doAssert tree.getProperty(makeIdentifier("value")).toInt() == 7,
+             "writing through the Value did not reach the tree; it holds " &
+             $tree.getProperty(makeIdentifier("value")).toInt()
+
+    # setPropertyExcludingListener writes the same way; the exclusion only
+    # decides who is told.
+    discard tree.setPropertyExcludingListener(nil, makeIdentifier("value"),
+                                      makejuce_var(11.cint), nil)
+    doAssert tree.getProperty(makeIdentifier("value")).toInt() == 11,
+             "the excluding setter left " &
+             $tree.getProperty(makeIdentifier("value")).toInt()
+    tree.sendPropertyChangeMessage(makeIdentifier("value"))
+
+  block:
+    # A tree round trips through its own XML string.
+    var tree = makeValueTree(makeIdentifier("settings"))
+    discard tree.setProperty(makeIdentifier("volume"), makejuce_var(11.cint), nil)
+    tree.appendChild(makeValueTree(makeIdentifier("window")), nil)
+
+    let text = tree.toXmlString(makeXmlElementTextFormat())
+    doAssert text.isNotEmpty(), "toXmlString gave nothing"
+    doAssert ($text).contains("settings"),
+             "the XML does not name the tree: " & $text
+
+    let rebuilt = ValueTree.fromXml(makeString($text))
+    doAssert rebuilt.hasType(makeIdentifier("settings")),
+             "the round trip changed the type"
+    doAssert rebuilt.getProperty(makeIdentifier("volume")).toInt() == 11,
+             "the round trip lost the property"
+    doAssert rebuilt.getNumChildren() == 1,
+             "the round trip left " & $rebuilt.getNumChildren() & " children"
+
+testValueTreeNavigationAndCopies()
+
+# PropertiesFile's saving and reloading =======================================
+
+proc testPropertiesFileSaving() =
+  initialiseJuce_GUI()
+
+  let root = june.File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                 .getNonexistentChildFile(makeString("june-props-save"),
+                                          makeString(""))
+  doAssert root.createDirectory().wasOk(), "could not make the temp directory"
+  defer: discard root.deleteRecursively(false)
+
+  block:
+    let settings = root.getChildFile(makeStringRef("settings.xml"))
+    var options = makePropertiesFileOptions()
+    options.storageFormat = PropertiesFileStorageFormat_storeAsXML
+    var file = makePropertiesFile(settings, options)
+
+    doAssert file.getFile() == settings,
+             "the properties file writes to " &
+             $file.getFile().getFullPathName()
+
+    # A file that does not exist yet still loaded fine: reload treats a
+    # missing file as an empty one (juce_PropertiesFile.cpp: reload).
+    doAssert file.isValidFile(), "a properties file over a new path is invalid"
+    doAssert not file.needsToBeSaved(),
+             "a fresh properties file already needs saving"
+
+    # Setting a value marks it dirty, and saving clears that and writes the
+    # file out.
+    file.setValue("colour", makejuce_var(makeString("red")))
+    doAssert file.needsToBeSaved(),
+             "setting a value did not mark the file dirty"
+    doAssert not settings.existsAsFile(),
+             "the file was written before anything asked it to be"
+
+    doAssert file.save(), "the properties file did not save"
+    doAssert settings.existsAsFile(), "saving wrote no file"
+    doAssert not file.needsToBeSaved(), "saving left the file dirty"
+    doAssert "colour" in $settings.loadFileAsString(),
+             "the saved file does not mention the key"
+
+    # saveIfNeeded is a no-op when nothing changed, and saves when something
+    # did (juce_PropertiesFile.cpp: saveIfNeeded).
+    let unchanged = settings.getLastModificationTime().toMilliseconds()
+    doAssert file.saveIfNeeded(), "saveIfNeeded reported failure"
+    # saveIfNeeded is `(! needsWriting) || save()` (juce_PropertiesFile.cpp:159),
+    # so it returns true whether or not it wrote. The modification time is what
+    # tells the two apart - which is what `unchanged` was captured for.
+    doAssert settings.getLastModificationTime().toMilliseconds() == unchanged,
+             "saveIfNeeded rewrote a file that had not changed"
+    file.setValue("size", makejuce_var(12.cint))
+    doAssert file.saveIfNeeded(), "saveIfNeeded did not save the change"
+    doAssert "size" in $settings.loadFileAsString(),
+             "the second key never reached the file"
+
+    # setNeedsToBeSaved forces the flag either way, which is how a caller
+    # tells the file that something outside it changed.
+    file.setNeedsToBeSaved(true)
+    doAssert file.needsToBeSaved(), "setNeedsToBeSaved(true) did not stick"
+    file.setNeedsToBeSaved(false)
+    doAssert not file.needsToBeSaved(), "setNeedsToBeSaved(false) did not stick"
+
+    # And reload reads the file back, so a value removed in memory comes back.
+    file.removeValue("colour")
+    doAssert not file.containsKey("colour"), "removeValue left the key"
+    doAssert file.reload(), "the properties file did not reload"
+    doAssert file.containsKey("colour"),
+             "reloading did not bring the saved key back"
+    doAssert $file.getValue("colour", makeString("none")) == "red",
+             "the reloaded colour is " &
+             $file.getValue("colour", makeString("none"))
+
+  block:
+    # A file whose options say never to save reports failure from save
+    # (juce_PropertiesFile.cpp: save returns false on doNotSave), and so does
+    # one whose path is a directory.
+    let settings = root.getChildFile(makeStringRef("unsaved.xml"))
+    var options = makePropertiesFileOptions()
+    options.doNotSave = true
+    var file = makePropertiesFile(settings, options)
+    file.setValue("key", makejuce_var(1.cint))
+    doAssert not file.save(), "a file told not to save saved anyway"
+    doAssert not settings.existsAsFile(), "a file told not to save wrote one"
+
+    var directoryOptions = makePropertiesFileOptions()
+    var overADirectory = makePropertiesFile(root, directoryOptions)
+    doAssert not overADirectory.save(),
+             "a properties file over a directory saved"
+
+  block:
+    # The binary formats round-trip as well as the XML one does.
+    for format in [PropertiesFileStorageFormat_storeAsBinary,
+                   PropertiesFileStorageFormat_storeAsCompressedBinary]:
+      let settings = root.getNonexistentChildFile(makeString("binary"),
+                                                  makeString(".settings"))
+      var options = makePropertiesFileOptions()
+      options.storageFormat = format
+      var file = makePropertiesFile(settings, options)
+      file.setValue("name", makejuce_var(makeString("june")))
+      doAssert file.save(), "the binary properties file did not save"
+
+      var reopened = makePropertiesFile(settings, options)
+      doAssert reopened.isValidFile(), "the saved binary file is not valid"
+      doAssert $reopened.getValue("name", makeString("none")) == "june",
+               "the reopened file holds " &
+               $reopened.getValue("name", makeString("none"))
+
+  shutdownJuce_GUI()
+
+testPropertiesFileSaving()
+
+# ValueTree::Listener's default bodies =======================================
+#
+# Every method has an empty body in JUCE, so the generator writes no Custom
+# subclass and nothing can be overridden from Nim. The base IS constructible,
+# though, so the six defaults can be reached - and what they are is that they
+# do nothing at all, which is what a listener that only cares about one of them
+# relies on.
+
+proc testValueTreeListenerDefaults() =
+  var listener = makeValueTreeListener()
+
+  var tree = makeValueTree(makeIdentifier(makeString("ROOT")))
+  var child = makeValueTree(makeIdentifier(makeString("CHILD")))
+  tree.addChild(child, -1.cint, nil)
+  discard tree.setProperty(makeIdentifier(makeString("name")),
+                   makejuce_var(makeString("june")), nil)
+
+  listener.valueTreePropertyChanged(tree, makeIdentifier(makeString("name")))
+  listener.valueTreeChildAdded(tree, child)
+  listener.valueTreeChildRemoved(tree, child, 0.cint)
+  listener.valueTreeChildOrderChanged(tree, 0.cint, 1.cint)
+  listener.valueTreeParentChanged(child)
+  listener.valueTreeRedirected(tree)
+
+  # Nothing the listener was told changed anything about the tree.
+  doAssert tree.getNumChildren() == 1,
+           "the tree now holds " & $tree.getNumChildren() & " children"
+  doAssert $tree.getProperty(makeIdentifier(makeString("name"))).toString() ==
+           "june",
+           "the property now reads " &
+           $tree.getProperty(makeIdentifier(makeString("name"))).toString()
+
+  # addListener and removeListener are exercised, but NOT observed: every
+  # ValueTree::Listener method has an empty body in JUCE, so no Custom subclass
+  # is generated and no override can count a callback. What is asserted is only
+  # that attaching a listener does not disturb the write.
+  tree.addListener(addr listener)
+  discard tree.setProperty(makeIdentifier(makeString("name")),
+                   makejuce_var(makeString("changed")), nil)
+  tree.removeListener(addr listener)
+  doAssert $tree.getProperty(makeIdentifier(makeString("name"))).toString() ==
+           "changed",
+           "the property did not change"
+
+  # setPropertyExcludingListener names a listener to skip, which is how a
+  # listener avoids hearing its own write back. The skipping itself is NOT
+  # observable here, for the reason above; what is asserted is that the write
+  # still lands.
+  tree.addListener(addr listener)
+  discard tree.setPropertyExcludingListener(
+      addr listener, makeIdentifier(makeString("name")),
+      makejuce_var(makeString("quiet")), nil)
+  tree.removeListener(addr listener)
+  doAssert $tree.getProperty(makeIdentifier(makeString("name"))).toString() ==
+           "quiet",
+           "the excluded write did not land"
+
+# ValueTreePropertyWithDefault's accessors ===================================
+
+proc testValueTreePropertyWithDefaultAccessors() =
+  var tree = makeValueTree(makeIdentifier(makeString("ROOT")))
+  var undo = makeUndoManager()
+  let property = makeIdentifier(makeString("size"))
+
+  var wrapped = makeValueTreePropertyWithDefault(
+      tree, property, addr undo, makejuce_var(12.cint))
+
+  doAssert wrapped.getPropertyID() == property,
+           "the wrapper names the property " & $wrapped.getPropertyID()
+  doAssert wrapped.getValueTree() == tree,
+           "the wrapper points at another tree"
+  doAssert wrapped.getUndoManager() == addr undo,
+           "the wrapper points at another undo manager"
+  doAssert wrapped.getDefault().toInt() == 12,
+           "the default is " & $wrapped.getDefault().toInt()
+
+  # With nothing set, the value IS the default and the tree holds nothing.
+  doAssert wrapped.get().toInt() == 12,
+           "an unset wrapper reads " & $wrapped.get().toInt()
+  doAssert not tree.hasProperty(property),
+           "reading the default wrote it into the tree"
+
+  # Setting writes through to the tree; the default stays where it was.
+  wrapped.setValue(makejuce_var(20.cint), addr undo)
+  doAssert tree.getProperty(property).toInt() == 20,
+           "the tree holds " & $tree.getProperty(property).toInt()
+  doAssert wrapped.getDefault().toInt() == 12,
+           "setting a value changed the default to " &
+           $wrapped.getDefault().toInt()
+
+testValueTreeListenerDefaults()
+testValueTreePropertyWithDefaultAccessors()

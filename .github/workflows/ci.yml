@@ -6,6 +6,18 @@ on:
   pull_request:
   workflow_dispatch:
 
+# One run per branch. Without this a branch pushed several times in a row
+# queues a run for every commit and they all wait on the same runners, so the
+# answer for the newest commit arrives last and slowest. Only the newest is
+# worth having: an older commit going green says nothing about what is now on
+# the branch.
+#
+# main is exempt. A run there is the record for a commit that has landed, and
+# cancelling it would leave that commit with no result at all.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   generated:
     name: generated files are current
@@ -155,6 +167,16 @@ jobs:
             nimble install -y nim@${{ matrix.nim-version }} || true
             test -x "$(pinned)"
           }
+          # `nimble install nim@X` prints "No nim version matching any
+          # version" and then "Downloading Nim <newest>" even when it goes on
+          # to put the PINNED compiler where the glob below finds it. That
+          # message is about nimble resolving this package's own requirement,
+          # not about the install, and reading it as a failure sends you
+          # hunting for one that is not there. What decides the matter is the
+          # `test -x` on the exact pinned path, and the `--version` line at
+          # the end: on a cold cache nimble really does fetch and build the
+          # pinned version, to the same path hash the cache carries.
+          #
           # Three attempts with a widening gap. Two 15s apart both lost to one
           # SSL failure fetching packages.json, which is the same outage twice
           # rather than two tries.
@@ -224,15 +246,44 @@ jobs:
           # setImages takes ownership when it stores a copy, and a closure
           # capturing a ValueTree, whose environment Nim never destructs. Both
           # were wrong beliefs about ownership rather than untidy tests.
+          # Linux runs the suite under a virtual X server. Without one the
+          # tests that construct a window crash rather than fail - an
+          # AlertWindow's CONSTRUCTOR reaches juce_XWindowSystem_linux.cpp and
+          # segfaults - so those would have to be gated off, and the classes
+          # behind a desktop peer would never be exercised at all. xvfb is
+          # already installed above; this is what uses it. On macOS the runner
+          # has a real window server, so `run` is empty there.
+          #
+          # -a picks a free display number rather than assuming :99 is unused,
+          # and --server-args gives a screen large enough that a window is not
+          # clamped by the display size.
+          # An ARRAY, not a string. --server-args carries a value with spaces
+          # in it, and an unquoted string expansion would split that into three
+          # words and hand two of them to nim.
+          run=()
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            command -v xvfb-run > /dev/null || {
+              echo "::error::xvfb-run is not installed, so the suite would run headless without saying so"
+              exit 1
+            }
+            run=(xvfb-run -a --server-args="-screen 0 1920x1080x24")
+          fi
+
           leaked=0
+          rm -rf /tmp/test_logs && mkdir -p /tmp/test_logs
           for test_file in tests/test_juce_*.nim; do
             echo "::group::$test_file"
             # Redirected rather than piped through tee: a pipe hands the
             # step tee's exit status, so whether a failing test is noticed
             # would depend on pipefail being set.
-            "$nim_bin" cpp -r --hints:off "$test_file" > /tmp/test_output 2>&1 \
+            "${run[@]}" "$nim_bin" cpp -r --hints:off "$test_file" > /tmp/test_output 2>&1 \
               || { cat /tmp/test_output; exit 1; }
             cat /tmp/test_output
+            # Kept, because the assertion check below reads every one of them
+            # together: a site listed as deliberately provoked and no longer
+            # reached by ANY suite is stale, and that can only be seen across
+            # the whole set.
+            cp /tmp/test_output "/tmp/test_logs/$(basename "$test_file").log"
             if grep -q "Leaked objects detected" /tmp/test_output; then
               echo "::error::$test_file leaked:"
               grep "Leaked objects detected" /tmp/test_output
@@ -242,9 +293,18 @@ jobs:
           done
           [ "$leaked" = 0 ] || exit 1
 
+          # A jassert PRINTS and carries on, exactly as the leak detector does,
+          # so JUCE telling us something is wrong reached the log above and the
+          # job stayed green. That is how a MenuBarComponent outliving its
+          # model - a use-after-free JUCE names in so many words - survived
+          # until a Linux run happened to segfault on it. Every site the suite
+          # provokes on purpose is listed with its reason; anything else fails.
+          python3 tools/check_juce_assertions.py /tmp/test_logs/*.log || exit 1
+
           # The examples are reproduced in the README, so an API change that
           # breaks one breaks the documentation too. Built but not run: they
-          # open a window, and a runner has no display.
+          # open a window and wait for it to be closed, which never happens
+          # unattended - a display would not help.
           #
           # Not -c. That stops after emitting C++ and never invokes the C++
           # compiler, so an example that generates invalid C++ passes it.

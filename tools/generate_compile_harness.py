@@ -17,21 +17,19 @@ is false at run time, so the C++ is generated and never executed. What it
 proves is that the signature compiles and the symbol exists; what it does not
 prove is anything about behaviour.
 
-A result is discarded rather than bound to a name. For a return by value that
-proves exactly as much: nim.cfg compiles with -std=c++17, where `T x = f()`
-initializes from a prvalue and the copy is elided, so a class with both its copy
-and its move constructor deleted compiles either way - measured with a probe
-declaring such a class, not reasoned about. Both forms do require the returned
-type to be complete and destructible, which is what caught the two methods
-returning a forward-declared type.
+A result whose type is a plain class name is BOUND to a name; everything else is
+discarded. The two forms ask different questions and the split is deliberate -
+see the comment above the emission for the reasoning, which is what found two
+methods returning a forward-declared type.
 
-A `var T` return would differ, because binding one copies from an lvalue and so
-demands a copy constructor. That is why it is not bound either: several of these
-deliberately have none, and TextLayout::Line::runs is bound as a `var` return
-for exactly that reason, so the harness would fail on a correct binding. The
-same argument rules out assigning a result, which is the only form that checks
-copy-assignment. Copy and assignment of returned types therefore stay unchecked
-here, by choice rather than by oversight.
+Not every result can be bound. A `var T` return is a reference, and binding one
+copies from an lvalue, which demands a copy constructor that several of these
+deliberately do not have - TextLayout::Line::runs is bound as a `var` return for
+exactly that reason, so binding it would fail on a correct binding. A `ptr T` is
+a pointer, and the move-only handles cannot be bound to a `let` in Nim at all.
+Those stay discarded, and assigning a result - the only form that would check
+copy-assignment - is ruled out by the same argument. Copy-assignment of returned
+types therefore stays unchecked here, by choice rather than by oversight.
 
 It found eight defect classes on its first run: methods passing a move-only
 wrapper by copy, two static methods whose typedesc swallowed a cast
@@ -45,6 +43,17 @@ instantiated over a distinct enum collapsing onto its base type, and eleven
 import re, glob, collections, sys
 
 MODULES = ["juce_core", "juce_events", "juce_data_structures", "juce_graphics", "juce_gui_basics"]
+
+# Results Nim itself refuses to bind to a `let`: a move-only wrapper is not
+# copyable in Nim, so `let x = f()` is a Nim error that says nothing about the
+# C++. These stay discarded.
+MOVE_ONLY_RESULTS = {"UniquePtr", "ReferenceCountedObjectPtr", "OwnedArray",
+                     "OptionalScopedPointer",
+                     # A JUCE aggregate is move-only when it holds a unique_ptr,
+                     # which is not visible from the Nim spelling. Found by the
+                     # C++ compiler rejecting the copy, one name at a time.
+                     "AccessibilityHandlerInterfaces"}
+
 src = {m: open(f"sources/june/{m}.nim").read() for m in MODULES}
 
 # Two types the generator emits without an export marker, so nothing outside
@@ -59,8 +68,28 @@ UNEXPORTED = {"DocumentWindowImpl", "JUCEApplicationImpl"}
 #
 # Measured by compiling the harness on Linux, one round per error the compiler
 # would report, since it stops after a few.
+# The ARGUMENT question is not the RESULT question. MOVE_ONLY_RESULTS names
+# types NIM refuses to bind to a `let`; this names types C++ cannot COPY from an
+# lvalue, which is what nowhere[T]()[] hands to a by-value parameter.
+# ReferenceCountedObjectPtr belongs to the first and not the second - it is a
+# copyable refcounted pointer - and conflating the two silently dropped
+# withTypeface, setCustomComponent and setDefaultSansSerifTypeface out of the
+# harness while they stayed declared in the bindings.
+UNCOPYABLE_ARGUMENTS = {"UniquePtr", "OwnedArray", "OptionalScopedPointer",
+                        "AccessibilityHandlerInterfaces"}
+
+macos_used = set()
 MACOS_ONLY_CLASSES = {
     "MountedVolumeListChangeDetector",
+}
+# A free function has no receiver, so it cannot be reached through the class set
+# above. juce_assert_noreturn is declared behind
+# `#if JUCE_CLANG && __has_feature (attribute_analyzer_noreturn)`, which is a
+# COMPILER test rather than a platform one: it exists under clang on macOS,
+# where these modules are generated, and not under gcc on Linux. Found by the
+# Linux job saying "'juce_assert_noreturn' is not a member of 'juce'".
+MACOS_ONLY_FUNCTIONS = {
+    "juce_assert_noreturn",
 }
 MACOS_ONLY_METHODS = {
     ("String", "convertToPrecomposedUnicode"),
@@ -157,6 +186,7 @@ def split_parameters(body):
 
 
 calls = []
+values = 0
 mac_only = []
 skipped = collections.Counter()
 declarations = 0
@@ -174,43 +204,101 @@ for module, text in src.items():
             skipped["a declaration this pattern cannot parse"] += 1
             continue
         name, body, returns = m.group(1), m.group(2), (m.group(3) or "")
-        if name.endswith("=`") or name.endswith("="):
-            skipped["a setter, covered by the field check"] += 1
-            continue
-        if not name.startswith("`") and not re.fullmatch(r"\w+", name):
-            skipped["an operator"] += 1
-            continue
-        if name.startswith("`"):
-            skipped["an operator"] += 1
-            continue
+        # `name=` is two different things. A field setter writes the field -
+        # importcpp `#.x = ` - and the field check already requires a test to
+        # assign it. An assignment operator is spelled the same way but its
+        # importcpp is `#.operator=(...)`, which the field check never looks at
+        # and no other check covers, so skipping it here left it compiled by
+        # nothing. `==`, `<=`, `+=` and the rest also end in `=` and are neither.
+        setter_like = re.fullmatch(r"`?\w+=`?", name)
+        if setter_like:
+            bare = name.strip("`")[:-1]
+            if re.search(r'importcpp: "#\.' + re.escape(bare) + r' = ', line):
+                skipped["a field setter, covered by the field check"] += 1
+                continue
+        if not setter_like:
+            if not name.startswith("`") and not re.fullmatch(r"\w+", name):
+                skipped["an operator"] += 1
+                continue
         if any(name in line for name in UNEXPORTED):
             skipped["a type the generator does not export"] += 1
             continue
 
         parts = split_parameters(body)
         if not parts:
-            skipped["no receiver"] += 1
+            # A no-argument constructor is already required to be called by a
+            # test, so calling it here would only duplicate that. Anything else
+            # taking no arguments is a free function with nothing covering it -
+            # juce_assert_noreturn and juce_isRunningUnderDebugger were the two,
+            # and neither had ever been handed to a C++ compiler.
+            if name.startswith("make"):
+                skipped["a no-argument constructor, covered by its own check"] += 1
+                continue
+            call = f"{name}()"
+            # The same binds decision the receiver path makes below. A
+            # discarded call CONSTRUCTS nothing, so a by-value return of a
+            # class C++ will not copy compiles here while failing at every
+            # real call site - the whole reason this harness binds results.
+            bare = returns.strip()[1:].strip() if returns.strip() else ""
+            if (bare and bare != "void" and re.fullmatch(r"\w+", bare)
+                    and bare not in MOVE_ONLY_RESULTS):
+                values += 1
+                rendered = f"let harnessValue{values} = {call}"
+            elif bare and bare != "void":
+                rendered = f"discard {call}"
+            else:
+                rendered = call
+            if name in MACOS_ONLY_FUNCTIONS:
+                macos_used.add(name)
+                mac_only.append(f"            {rendered}")
+            else:
+                calls.append(f"        {rendered}")
             continue
         first_name, first_type = parts[0].split(":", 1)
         first_type = first_type.strip()
-        if first_name.strip() != "this":
-            skipped["a free function"] += 1
-            continue
+        # A free function has no receiver to hang the call on, but it is a
+        # binding like any other and an importcpp string still reaches the C++
+        # compiler only where something calls it. Called by name, with every
+        # parameter an argument.
+        free_function = first_name.strip() != "this"
 
-        static_match = re.fullmatch(r"typedesc\[(\w+)\]", first_type)
-        if static_match:
+        static_match = None if free_function else re.fullmatch(
+            r"typedesc\[(\w+)\]", first_type)
+        if free_function:
+            receiver = ""
+        elif static_match:
             receiver = f"{qualify(static_match.group(1))}."
         else:
             cls = first_type[4:].strip() if first_type.startswith("var ") else first_type
             if not re.fullmatch(r"\w+", cls):
                 skipped["a generic receiver"] += 1
                 continue
-            receiver = f"nowhere[{qualify(cls)}]()[]."
+            if cls in ENUM_CONSTANT:
+                # An enum receiver uses a real enumerator, not nowhere[]. Nim
+                # erases `distinct` when it instantiates a generic, so
+                # nowhere[SomeEnum] and nowhere[cint] render ONE C++ function
+                # and every nowhere[cint] elsewhere in the harness then passes
+                # the enum's type. The enumerator has no such problem, and it
+                # is what a caller would actually write.
+                receiver = f"{ENUM_CONSTANT[cls]}."
+            else:
+                receiver = f"nowhere[{qualify(cls)}]()[]."
 
         arguments, ok = [], True
-        for part in parts[1:]:
+        for part in (parts if free_function else parts[1:]):
             _, argument_type = part.split(":", 1)
             argument_type = argument_type.split(" = ")[0].strip()
+            # A move-only type cannot be passed by value from an lvalue, and
+            # nowhere[T]()[] is one: C++ reports a deleted copy constructor. The
+            # same set already keeps these from being bound as a result.
+            bare = argument_type.split("[")[0].removeprefix("var ").strip()
+            if bare in UNCOPYABLE_ARGUMENTS and "std::move" not in line:
+                # Only where the C++ side does not move it for us. Where the
+                # importcpp already spells std::move - which inspect_juce emits
+                # for a move-only parameter - an lvalue is exactly what it wants.
+                skipped["an argument that cannot be copied"] += 1
+                ok = False
+                break
             value = value_for(argument_type)
             if value is None:
                 skipped[f"an argument of type {argument_type}"] += 1
@@ -220,14 +308,57 @@ for module, text in src.items():
         if not ok:
             continue
 
-        prefix = "discard " if returns.strip() and returns.strip() != ": void" else ""
+        # A result that is a plain class name is BOUND to a variable rather
+        # than discarded, because that is the only thing that makes the C++
+        # compiler construct it. `discard f()` constructs nothing, so a
+        # by-value binding of a reference to a class C++ will not copy - an
+        # abstract one, or one carrying JUCE_DECLARE_NON_COPYABLE - compiled
+        # here and failed at every real call site. Two were found that way.
+        #
+        # Only a plain class name. `var T` is a reference and copies nothing;
+        # `ptr T` is a pointer; and the move-only handles below cannot be
+        # bound to a `let` in Nim at all, which is a Nim error rather than the
+        # C++ question this is asking.
+        rendered = returns.strip()[1:].strip() if returns.strip() else ""
+        binds = (rendered and rendered != "void"
+                 and re.fullmatch(r"\w+", rendered)
+                 and rendered not in MOVE_ONLY_RESULTS)
+        if binds:
+            values += 1
+            prefix = f"let harnessValue{values} = "
+        else:
+            prefix = "discard " if rendered and rendered != "void" else ""
         call = f"{prefix}{receiver}{name}({', '.join(arguments)})"
         owner = static_match.group(1) if static_match else (
             first_type[4:].strip() if first_type.startswith("var ") else first_type)
-        if owner in MACOS_ONLY_CLASSES or (owner, name) in MACOS_ONLY_METHODS:
+        if (owner in MACOS_ONLY_CLASSES or (owner, name) in MACOS_ONLY_METHODS
+                or name in MACOS_ONLY_FUNCTIONS):
+            # Recorded in the form the entry is WRITTEN in, so the staleness
+            # report below names what to delete rather than what it matched.
+            if owner in MACOS_ONLY_CLASSES:
+                macos_used.add(owner)
+            if (owner, name) in MACOS_ONLY_METHODS:
+                macos_used.add((owner, name))
+            if name in MACOS_ONLY_FUNCTIONS:
+                macos_used.add(name)
             mac_only.append(f"            {call}")
         else:
             calls.append(f"        {call}")
+
+# An entry naming something JUCE no longer declares withholds nothing and says
+# nothing: the call it was meant to guard is simply not generated, so the list
+# keeps a name that has stopped meaning anything and the next reader trusts it.
+# Every entry is reached by the emit loop today, so anything unreached is stale.
+stale_macos = (sorted(c for c in MACOS_ONLY_CLASSES if c not in macos_used)
+               + sorted(f"{c}.{m}" for c, m in MACOS_ONLY_METHODS
+                        if (c, m) not in macos_used)
+               + sorted(n for n in MACOS_ONLY_FUNCTIONS if n not in macos_used))
+if stale_macos:
+    print("These are listed as macOS-only but the generator never reached a "
+          "call for them, so the entry guards nothing:", file=sys.stderr)
+    for entry in stale_macos:
+        print(f"  {entry}", file=sys.stderr)
+    sys.exit(1)
 
 emitted = len(calls) + len(mac_only)
 print(f"# calls generated: {emitted} ({len(mac_only)} of them macOS-only)",
@@ -262,10 +393,11 @@ HEADER = """# Generated by tools/generate_compile_harness.py. Do not edit.
 # Every call is on a pointer the compiler cannot see through, behind a guard
 # that is false at run time, so the C++ is generated and never executed.
 # `nowhere[T]()` hides a zero behind a runtime variable, which is what lets the
-# call type-check without a constructor for T. A result is discarded: under
-# C++17 binding a return by value elides the copy and proves nothing more, and
-# binding a `var` return would demand a copy constructor that several of them
-# deliberately do not have.
+# call type-check without a constructor for T. A result whose type is a plain
+# class name is bound to a name, because that is what makes the C++ compiler
+# construct it; everything else is discarded. A `var` return is not bound, since
+# binding one demands a copy constructor that several of them deliberately do
+# not have.
 #
 # It proves signatures compile and symbols exist. It proves nothing about what
 # any of them does - that is what the other test files are for.
