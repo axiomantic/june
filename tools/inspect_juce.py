@@ -447,11 +447,6 @@ wrapped_by_lifting = {
     ("String", "toRawUTF8"): "toRawUTF8Impl",
 }
 
-# Types whose equality JUCE declares as a free function rather than a member.
-# The generator only sees members, so it would emit its no-equality guard and
-# collide with the operator the _lifting file binds.
-equality_bound_by_lifting = {"String", "juce_var"}
-
 def remap_wrapped_method_name(class_name, method_name):
     return wrapped_by_lifting.get((class_name, method_name), method_name)
 
@@ -1608,8 +1603,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
             # which prints "()" because these declare no fields.
             dollar_definitions.append(nim_dollar_def.format(**{"class_name": class_name}))
 
-        if (not class_bound_equality and class_name not in equality_bound_by_lifting
-                and class_name not in classes_with_free_equality):
+        if not class_bound_equality and class_name not in classes_with_free_equality:
             print(nim_no_equality_def.format(**{
                 "class_name": class_name,
                 "spelling": qualified_name }))
