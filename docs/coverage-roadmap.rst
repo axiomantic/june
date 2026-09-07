@@ -160,6 +160,15 @@ Adding to either list is a real decision, not a way to make a number smaller.
 Write the reason as something a reader could check, and cite the JUCE file and
 line where it holds.
 
+An entry also cannot outlive the thing it was written about. Membership is the
+only test either list gets, so an entry naming a renamed or removed class goes
+on matching nothing while its reason is checked against nothing. Two entries
+were already in that state, one of them a class the generator now spells
+``JUCEApplicationImpl``. The report compares both lists against the classes and
+methods it parses out of the bindings and exits non-zero on an entry that names
+neither. That exit status is about the script rather than about coverage: no
+figure it prints fails a run.
+
 
 The other layer
 ===============

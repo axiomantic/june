@@ -498,7 +498,8 @@ coverage that is not there.
 
 No figure it prints fails a run. It exits non-zero only where the script has
 fallen out of step with the tree: a receiver-taking declaration of a shape it
-counts under no heading.
+counts under no heading, or an entry in its two unreachable lists naming a
+class or method the bindings no longer declare.
 
 The same tool lists what is left, so that the list is never a stale copy in a
 document::

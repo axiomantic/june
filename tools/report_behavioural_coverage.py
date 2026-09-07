@@ -83,9 +83,7 @@ UNREACHABLE = {
     "MouseInputSource": "needs a real input device",
     "MouseEvent": "needs a real input device",
     "AccessibilityHandler": "needs a native window handle",
-    "AccessibilityNativeHandle": "defined per platform",
     "JUCEApplicationBase": "the process's single application instance",
-    "JUCEApplication": "the process's single application instance",
     "JUCEApplicationImpl": "the process's single application instance",
     # Abstract, and no subclass is generated for it: getRowSpan returns an
     # Optional<Span> the generator cannot spell, which
@@ -202,6 +200,43 @@ def check_line_classification():
     return True
 
 
+def check_lists_current():
+    """No entry in the two unreachable lists names something that is gone.
+
+    Membership is all `is_reachable` tests, so an entry for a renamed or
+    removed class keeps working: it matches nothing, excludes nothing, and the
+    number it was written to justify goes on being printed as though the
+    reasoning still applied. docs/coverage-roadmap.rst says adding to either
+    list is a real decision - a decision cannot stay real if the thing it was
+    made about no longer exists.
+
+    tools/check_handwritten_covered.py does this for each of its own lists.
+    This is the same check for these two.
+    """
+    per = methods_by_class()
+    known = {f"{cls}.{name}" for cls, names in per.items() for name in names}
+
+    stale_classes = sorted(cls for cls in UNREACHABLE if cls not in per)
+    stale_methods = sorted(key for key in UNREACHABLE_METHODS
+                           if key not in known)
+    if not (stale_classes or stale_methods):
+        return True
+
+    if stale_classes:
+        print("These are listed as unreachable classes, but the bindings "
+              "declare no method on them any more, so the entry excludes "
+              "nothing and its reason is checked against nothing:",
+              file=sys.stderr)
+        for cls in stale_classes:
+            print(f"  {cls}  ({UNREACHABLE[cls]})", file=sys.stderr)
+    if stale_methods:
+        print("These are listed as unreachable methods, but the bindings no "
+              "longer declare them:", file=sys.stderr)
+        for key in stale_methods:
+            print(f"  {key}  ({UNREACHABLE_METHODS[key]})", file=sys.stderr)
+    return False
+
+
 def is_reachable(cls, method):
     return (cls not in UNREACHABLE
             and f"{cls}.{method}" not in UNREACHABLE_METHODS)
@@ -232,10 +267,10 @@ def print_remaining():
 
 
 def main():
-    # The integrity check runs in both modes and alone decides the exit
+    # The two integrity checks run in both modes and alone decide the exit
     # status. No figure below is a verdict: a coverage number moving is news,
     # not a failure, and only this script disagreeing with the tree is.
-    sound = check_line_classification()
+    sound = check_lists_current() & check_line_classification()
     print()
 
     if "--remaining" in sys.argv[1:]:
