@@ -15,8 +15,18 @@ proc toRawUTF8*(this: String): string =
 
 proc `$`*(text: String): string = text.toRawUTF8
 
+# JUCE has no operator< or operator<= taking two Strings: StringRef declares one
+# taking a String, and there is a free one taking a String and a StringRef.
+# Comparing two Strings reaches both through the same converter, so Nim calls it
+# ambiguous. These are exact matches and outrank both. > and >= come from them,
+# so fixing these two fixes all four.
+proc `<`*(this: String, other: String): bool {.header: juce_core, importcpp: "# < #".}
+proc `<=`*(this: String, other: String): bool {.header: juce_core, importcpp: "# <= #".}
+
 converter toJuceString*(text: string): String = makeString(text)
-converter toNimString*(text: String): string = text.toRawUTF8
+# No implicit String -> string. With toJuceString going the other way, any
+# mixed comparison had two equally good paths and Nim 1.6 and 2.0 call it
+# ambiguous. Use $ to get a Nim string.
 
 # StringRef
 converter toStringRef*(text: String): StringRef = makeStringRef(text)
@@ -33,3 +43,50 @@ converter toStringRef*(text: string): StringRef = makeStringRef(toConstChar(text
     constexpr bool operator== (Range other) const noexcept
     constexpr bool operator!= (Range other) const noexcept
 ]#
+
+# The containers a caller loops over. JUCE exposes begin() and end() for some of
+# these, which have no Nim spelling; the indexed accessors express the same loop.
+iterator items*(this: StringArray): String =
+    for index in 0 ..< this.size():
+        yield this[index]
+
+iterator items*(this: XmlElement): ptr XmlElement =
+    for index in 0 ..< this.getNumChildElements():
+        yield this.getChildElement(index)
+
+# XmlElement's own attribute iterator is Iterator<AttributeIteratorTraits>, an
+# alias over a class template with no Nim spelling. The indexed accessors give
+# the same loop.
+iterator attributes*(this: XmlElement): tuple[name: String, value: String] =
+    for index in 0 ..< this.getNumAttributes():
+        yield (this.getAttributeName(index), this.getAttributeValue(index))
+
+iterator pairs*(this: NamedValueSet): tuple[name: Identifier, value: juce_var] =
+    for index in 0 ..< this.size():
+        yield (this.getName(index), this.getValueAt(index))
+
+
+# SystemStats::CrashHandlerFunction is a plain C++ function pointer, which the
+# generator cannot spell, so setApplicationCrashHandler is a comment there.
+type CrashHandlerFunction* = proc(platformSpecificData: pointer) {.cdecl.}
+
+proc setApplicationCrashHandler*(this: typedesc[SystemStats], handler: CrashHandlerFunction)
+    {.header: juce_core, importcpp: "juce::SystemStats::setApplicationCrashHandler(@)".}
+
+# Subclasses for the abstract classes of this module. Generated; see
+# tools/generate_subclasses.py.
+include juce_core_subclasses
+
+# String and MemoryBlock both expose a C++ iterator, which has no Nim spelling,
+# and neither had a Nim one to loop with instead.
+
+iterator items*(this: String): uint32 =
+    for index in 0 ..< this.length():
+        yield this[index]
+
+iterator items*(this: MemoryBlock): uint8 =
+    # getData is the only access to the bytes: MemoryBlock has no indexed
+    # accessor of its own.
+    let data = cast[ptr UncheckedArray[uint8]](this.getData())
+    for index in 0 ..< this.getSize().int:
+        yield data[index]

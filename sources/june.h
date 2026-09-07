@@ -144,4 +144,21 @@ auto bind(F func, void* env) noexcept(noexcept(function_traits<F>::map(std::decl
     return function_traits<F>::map(func, env);
 }
 
+/**
+ * Builds a std::function whose argument is a const reference.
+ *
+ * bind() deduces the std::function from the Nim proc's own arguments, so a Nim
+ * proc taking `ptr T` produces std::function<R(T*)>. That does not convert to
+ * the std::function<R(const T&)> JUCE asks for, and for a type that holds a
+ * reference member - var::NativeFunctionArgs - the by-value form does not
+ * compile at all.
+ *
+ * Nim has no const pointer, so the callback receives a mutable one.
+ */
+template <class R, class T>
+std::function<R(const T&)> bindConstRef(R (*func)(T*, void*), void* env)
+{
+    return [func, env](const T& arg) -> R { return func(const_cast<T*>(&arg), env); };
+}
+
 } // namespace june

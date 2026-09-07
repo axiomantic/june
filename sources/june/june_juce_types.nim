@@ -25,17 +25,25 @@ proc withStartAndLength*[T](this: typedesc[Range[T]], startValue: T, length: T):
 proc emptyRange*[T](this: typedesc[Range[T]], start: T): Range[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::Range<'*0>::emptyRange(@)".}
 proc findMinAndMax*[T](this: typedesc[Range[T]], values: ptr T, numValues: cint): Range[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::Range<'*0>::findMinAndMax(@)".}
 
+# Bind == explicitly. Without it Nim falls back to structural equality, and an
+# importcpp object declares no fields, so it compares nothing and reports every
+# two values equal. != follows from == by derivation.
+proc `==`*[T](this: Range[T], other: Range[T]): bool {.header: "<juce_core/juce_core.h>", importcpp: "# == #".}
+
 proc getStart*[T](this: Range[T]): T {.header: "<juce_core/juce_core.h>", importcpp: "#.getStart(@)".}
 proc getLength*[T](this: Range[T]): T {.header: "<juce_core/juce_core.h>", importcpp: "#.getLength(@)".}
 proc getEnd*[T](this: Range[T]): T {.header: "<juce_core/juce_core.h>", importcpp: "#.getEnd(@)".}
 proc isEmpty*[T](this: Range[T]): bool {.header: "<juce_core/juce_core.h>", importcpp: "#.isEmpty()".}
-proc setStart*[T](this: Range[T], newStart: T) {.header: "<juce_core/juce_core.h>", importcpp: "#.setStart(@)".}
+# var receivers: an importcpp object reaches C++ by reference whatever Nim says,
+# so these mutated through a `let` binding without complaint until the receiver
+# said var. Point's setters already did.
+proc setStart*[T](this: var Range[T], newStart: T) {.header: "<juce_core/juce_core.h>", importcpp: "#.setStart(@)".}
 proc withStart*[T](this: Range[T], newStart: T): Range[T] {.header: "<juce_core/juce_core.h>", importcpp: "#.withStart(@)".}
 proc movedToStartAt*[T](this: Range[T], newStart: T): Range[T] {.header: "<juce_core/juce_core.h>", importcpp: "#.movedToStartAt(@)".}
-proc setEnd*[T](this: Range[T], newEnd: T) {.header: "<juce_core/juce_core.h>", importcpp: "#.setEnd(@)".}
+proc setEnd*[T](this: var Range[T], newEnd: T) {.header: "<juce_core/juce_core.h>", importcpp: "#.setEnd(@)".}
 proc withEnd*[T](this: Range[T], newEnd: T): Range[T] {.header: "<juce_core/juce_core.h>", importcpp: "#.withEnd(@)".}
 proc movedToEndAt*[T](this: Range[T], newEnd: T): Range[T] {.header: "<juce_core/juce_core.h>", importcpp: "#.movedToEndAt(@)".}
-proc setLength*[T](this: Range[T], newLength: T) {.header: "<juce_core/juce_core.h>", importcpp: "#.setLength(@)".}
+proc setLength*[T](this: var Range[T], newLength: T) {.header: "<juce_core/juce_core.h>", importcpp: "#.setLength(@)".}
 proc withLength*[T](this: Range[T], newLength: T): Range[T] {.header: "<juce_core/juce_core.h>", importcpp: "#.withLength(@)".}
 proc expanded*[T](this: Range[T], amount: T): Range[T] {.header: "<juce_core/juce_core.h>", importcpp: "#.expanded(@)".}
 proc contains*[T](this: Range[T], position: T): bool {.header: "<juce_core/juce_core.h>", importcpp: "#.contains(@)".}
@@ -65,6 +73,8 @@ type
 proc makePoint*[T](): Point[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::Point<'*0>()", constructor.}
 proc makePoint*[T](x: T, y: T): Point[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::Point<'*0>(@)", constructor.}
 
+proc `==`*[T](this: Point[T], other: Point[T]): bool {.header: "<juce_graphics/juce_graphics.h>", importcpp: "# == #".}
+
 proc getX*[T](this: Point[T]): T {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getX()".}
 proc getY*[T](this: Point[T]): T {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getY()".}
 proc setX*[T](this: var Point[T], newX: T) {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.setX(@)".}
@@ -81,6 +91,8 @@ proc toInt*[T](this: Point[T]): Point[cint] {.header: "<juce_graphics/juce_graph
 proc makeRectangle*[T](): Rectangle[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::Rectangle<'*0>()", constructor.}
 proc makeRectangle*[T](width: T, height: T): Rectangle[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::Rectangle<'*0>(@)", constructor.}
 proc makeRectangle*[T](x: T, y: T, width: T, height: T): Rectangle[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::Rectangle<'*0>(@)", constructor.}
+
+proc `==`*[T](this: Rectangle[T], other: Rectangle[T]): bool {.header: "<juce_graphics/juce_graphics.h>", importcpp: "# == #".}
 
 proc getX*[T](this: Rectangle[T]): T {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getX()".}
 proc getY*[T](this: Rectangle[T]): T {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getY()".}
@@ -117,12 +129,21 @@ proc removeFromRight*[T](this: var Rectangle[T], amount: T): Rectangle[T] {.head
 
 # Line
 proc makeLine*[T](startX: T, startY: T, endX: T, endY: T): Line[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::Line<'*0>(@)", constructor.}
+proc `==`*[T](this: Line[T], other: Line[T]): bool {.header: "<juce_graphics/juce_graphics.h>", importcpp: "# == #".}
+
 proc getStart*[T](this: Line[T]): Point[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getStart()".}
 proc getEnd*[T](this: Line[T]): Point[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getEnd()".}
 proc getLength*[T](this: Line[T]): T {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getLength()".}
 
 # BorderSize
-proc makeBorderSize*[T](topAndBottom: T, leftAndRight: T): BorderSize[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::BorderSize<'*0>(@)", constructor.}
+#
+# JUCE declares a four-gap constructor and a one-gap one, and nothing between.
+# The binding here used to take two - a top-and-bottom and a left-and-right -
+# which named a constructor that does not exist, so it never compiled for
+# anyone who called it.
+proc makeBorderSize*[T](): BorderSize[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::BorderSize<'*0>()", constructor.}
+proc makeBorderSize*[T](allGaps: T): BorderSize[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::BorderSize<'*0>(@)", constructor.}
+proc makeBorderSize*[T](top: T, left: T, bottom: T, right: T): BorderSize[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::BorderSize<'*0>(@)", constructor.}
 proc getTop*[T](this: BorderSize[T]): T {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getTop()".}
 proc getBottom*[T](this: BorderSize[T]): T {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getBottom()".}
 proc getLeft*[T](this: BorderSize[T]): T {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getLeft()".}
@@ -135,10 +156,46 @@ type
     OwnedArray*[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::OwnedArray".} = object
     ReferenceCountedObjectPtr*[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::ReferenceCountedObjectPtr".} = object
     Span*[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::Span".} = object
+    HeapBlock*[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::HeapBlock".} = object
+    WeakReference*[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::WeakReference".} = object
+    OptionalScopedPointer*[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::OptionalScopedPointer".} = object
     RectangleList*[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::RectangleList".} = object
     Parallelogram*[T] {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::Parallelogram".} = object
 
 # Array
+# HeapBlock is JUCE's owning raw buffer. It is move-only, so it takes the same
+# treatment as UniquePtr: copying is a compile error, and the destructor is
+# left to C++.
+proc `=copy`*[T](dst: var HeapBlock[T], src: HeapBlock[T]) {.error: "a HeapBlock cannot be copied".}
+proc `=destroy`*[T](this: var HeapBlock[T]) = discard
+
+proc makeHeapBlock*[T](): HeapBlock[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::HeapBlock<'*0>()".}
+proc makeHeapBlock*[T](numElements: csize_t): HeapBlock[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::HeapBlock<'*0>(@)".}
+proc `[]`*[T](this: HeapBlock[T], index: cint): T {.importcpp: "#[#]".}
+proc `[]=`*[T](this: var HeapBlock[T], index: cint, value: T) {.importcpp: "#[#] = #".}
+proc get*[T](this: HeapBlock[T]): ptr T {.importcpp: "#.get()".}
+proc isNil*[T](this: HeapBlock[T]): bool {.importcpp: "(#.get() == nullptr)".}
+proc calloc*[T](this: var HeapBlock[T], numElements: csize_t) {.importcpp: "#.calloc(@)".}
+
+# A weak reference goes nil when what it points at is deleted, which is the
+# whole reason to hold one.
+proc get*[T](this: WeakReference[T]): ptr T {.importcpp: "#.get()".}
+proc wasObjectDeleted*[T](this: WeakReference[T]): bool {.importcpp: "#.wasObjectDeleted()".}
+proc isNil*[T](this: WeakReference[T]): bool {.importcpp: "(#.get() == nullptr)".}
+
+# OptionalScopedPointer may or may not own what it points at, so like the other
+# owning wrappers it cannot be copied.
+proc `=copy`*[T](dst: var OptionalScopedPointer[T], src: OptionalScopedPointer[T]) {.error: "an OptionalScopedPointer cannot be copied".}
+proc `=destroy`*[T](this: var OptionalScopedPointer[T]) = discard
+proc get*[T](this: OptionalScopedPointer[T]): ptr T {.importcpp: "#.get()".}
+proc release*[T](this: var OptionalScopedPointer[T]): ptr T {.importcpp: "#.release()".}
+proc isNil*[T](this: OptionalScopedPointer[T]): bool {.importcpp: "(#.get() == nullptr)".}
+
+# These containers had accessors and no constructor, so each could be named as
+# a parameter type and never built. JUCE gives all three a default one.
+proc makeArray*[T](): Array[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::Array<'*0>()", constructor.}
+proc makeOwnedArray*[T](): OwnedArray[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::OwnedArray<'*0>()", constructor.}
+
 proc size*[T](this: Array[T]): cint {.importcpp: "#.size()".}
 proc isEmpty*[T](this: Array[T]): bool {.importcpp: "#.isEmpty()".}
 proc `[]`*[T](this: Array[T], index: cint): T {.importcpp: "#[#]".}
@@ -176,6 +233,12 @@ iterator items*[T](this: Span[T]): T =
     yield this[index]
 
 # RectangleList
+#
+# The accessors were here without a constructor, so the type could be named -
+# fillRectList and reduceClipRegion both take one - and never built.
+proc makeRectangleList*[T](): RectangleList[T] {.importcpp: "juce::RectangleList<'*0>()", constructor.}
+proc makeRectangleList*[T](rect: Rectangle[T]): RectangleList[T] {.importcpp: "juce::RectangleList<'*0>(@)", constructor.}
+
 proc getNumRectangles*[T](this: RectangleList[T]): cint {.importcpp: "#.getNumRectangles()".}
 proc getRectangle*[T](this: RectangleList[T], index: cint): Rectangle[T] {.importcpp: "#.getRectangle(@)".}
 proc isEmpty*[T](this: RectangleList[T]): bool {.importcpp: "#.isEmpty()".}
@@ -191,12 +254,19 @@ iterator items*[T](this: RectangleList[T]): Rectangle[T] =
 type
     SparseSet*[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::SparseSet".} = object
 
+proc makeSparseSet*[T](): SparseSet[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::SparseSet<'*0>()", constructor.}
 proc isEmpty*[T](this: SparseSet[T]): bool {.importcpp: "#.isEmpty()".}
 proc size*[T](this: SparseSet[T]): T {.importcpp: "#.size()".}
 proc `[]`*[T](this: SparseSet[T], index: T): T {.importcpp: "#[#]".}
 proc contains*[T](this: SparseSet[T], valueToLookFor: T): bool {.importcpp: "#.contains(@)".}
 proc getNumRanges*[T](this: SparseSet[T]): cint {.importcpp: "#.getNumRanges()".}
 proc getRange*[T](this: SparseSet[T], rangeIndex: cint): Range[T] {.importcpp: "#.getRange(@)".}
+
+# The set was bound with only its readers, so one could be built and never
+# filled. These are what make it usable.
+proc addRange*[T](this: var SparseSet[T], range: Range[T]) {.header: "<juce_core/juce_core.h>", importcpp: "#.addRange(@)".}
+proc removeRange*[T](this: var SparseSet[T], range: Range[T]) {.header: "<juce_core/juce_core.h>", importcpp: "#.removeRange(@)".}
+proc clear*[T](this: var SparseSet[T]) {.header: "<juce_core/juce_core.h>", importcpp: "#.clear()".}
 proc getTotalRange*[T](this: SparseSet[T]): Range[T] {.importcpp: "#.getTotalRange()".}
 
 # NormalisableRange maps a value onto 0..1, which is how a Slider describes its
@@ -209,4 +279,12 @@ proc convertTo0to1*[T](this: NormalisableRange[T], v: T): T {.importcpp: "#.conv
 proc convertFrom0to1*[T](this: NormalisableRange[T], v: T): T {.importcpp: "#.convertFrom0to1(@)".}
 proc snapToLegalValue*[T](this: NormalisableRange[T], v: T): T {.importcpp: "#.snapToLegalValue(@)".}
 proc getRange*[T](this: NormalisableRange[T]): Range[T] {.importcpp: "#.getRange()".}
+
+# JUCE's own Optional, distinct from std::optional in june_stl.
+type
+    Optional*[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::Optional".} = object
+
+proc hasValue*[T](this: Optional[T]): bool {.importcpp: "#.hasValue()".}
+proc value*[T](this: Optional[T]): T {.importcpp: "(*#)".}
+proc reset*[T](this: var Optional[T]) {.importcpp: "#.reset()".}
 
