@@ -386,6 +386,19 @@ proc testDynamicObjectMethod() =
   let returned = asVar.call(makeIdentifier("answer"))
   doAssert $returned.toString() == "7", "the method returned " & $returned.toString()
 
+  # And the std::function itself is callable from Nim. CppFunctionObjectR1Ref
+  # had no `()` at all, so getNativeFunction and the four other bindings that
+  # hand one back returned a value Nim could hold and never invoke. Spelled as
+  # a plain call rather than `native(args)`, because the call-operator sugar is
+  # enabled in june_function_utils and not in this module.
+  let asFunction = makejuce_var(answer)
+  doAssert asFunction.isMethod(), "a var built from a std::function is not a method"
+  var native = asFunction.getNativeFunction()
+  let noArguments = makejuce_varNativeFunctionArgs(asFunction, nil, 0.cint)
+  let direct = `()`(native, noArguments)
+  doAssert $direct.toString() == "7",
+           "calling the std::function directly gave " & $direct.toString()
+
 testDynamicObjectMethod()
 
 # JUCE declares String's + and == as free functions, and free functions were

@@ -214,6 +214,9 @@ proc `()`*(f: var CppFunctionObjectN0) {.importcpp: "std::invoke(@)", header: "<
 proc `()`*[R](f: var CppFunctionObjectR0[R]): R {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc `()`*[T](f: var CppFunctionObjectN1[T], a: T) {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc `()`*[R, T](f: var CppFunctionObjectR1[R, T], a: T): R {.importcpp: "std::invoke(@)", header: "<functional>".}
+# The const-reference form had none, so five generated bindings handed back a
+# value with no way to call it - juce::var::getNativeFunction among them.
+proc `()`*[R, T](f: var CppFunctionObjectR1Ref[R, T], a: T): R {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc `()`*[T1, T2](f: var CppFunctionObjectN2[T1, T2], a1: T1, a2: T2) {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc `()`*[R, T1, T2](f: var CppFunctionObjectR2[R, T1, T2], a1: T1, a2: T2): R {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc `()`*[T1, T2, T3](f: var CppFunctionObjectN3[T1, T2, T3], a1: T1, a2: T2, a3: T3) {.importcpp: "std::invoke(@)", header: "<functional>".}
