@@ -54,14 +54,7 @@ MOVE_ONLY_RESULTS = {"UniquePtr", "ReferenceCountedObjectPtr", "OwnedArray",
                      # C++ compiler rejecting the copy, one name at a time.
                      "AccessibilityHandlerInterfaces"}
 
-# A binding the C++ compiler rejects at every call site. JUCE declares
-# MemoryInputStream(MemoryBlock&&), and an rvalue reference has no Nim spelling,
-# so the generator binds the parameter by value - which no lvalue can satisfy.
-# The two-argument (const MemoryBlock&, bool) form beside it is callable and
-# bound, so nothing is lost by not calling this one. Named here rather than
-# skipped by shape, because the shape is indistinguishable from a working
-# by-value parameter and a silent skip would hide the defect.
-UNCALLABLE = {"makeMemoryInputStream": "binds MemoryBlock&& by value"}
+UNCALLABLE = {}
 src = {m: open(f"sources/june/{m}.nim").read() for m in MODULES}
 
 # Two types the generator emits without an export marker, so nothing outside

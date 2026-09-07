@@ -957,7 +957,7 @@ proc isValidIdentifier*(this: typedesc[Identifier], possibleIdentifier: String):
 proc makeStringArray*(): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
 proc makeStringArray*(firstValue: String): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
 # proc makeStringArray*(strings: std::initializer_list<constChar>): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}  # a std::initializer_list parameter, which Nim cannot spell; build the value with the incremental API instead
-proc makeStringArray*(arg1: Array[String]): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
+proc makeStringArray*(arg1: Array[String]): StringArray {.header: juce_core, importcpp: "juce::StringArray(std::move(#))".}
 proc makeStringArray*(strings: ptr String, numberOfStrings: cint): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
 proc makeStringArray*(strings: ptr constChar, numberOfStrings: cint): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
 proc makeStringArray*(strings: ptr constChar): StringArray {.header: juce_core, importcpp: "juce::StringArray(@)".}
@@ -1545,7 +1545,7 @@ proc `==`*(this: BufferedInputStream, other: BufferedInputStream): bool {.error:
 
 proc makeMemoryInputStream*(sourceData: constPointer, sourceDataSize: uint64, keepInternalCopyOfData: bool): MemoryInputStream {.header: juce_core, importcpp: "juce::MemoryInputStream(@)".}
 proc makeMemoryInputStream*(data: MemoryBlock, keepInternalCopyOfData: bool): MemoryInputStream {.header: juce_core, importcpp: "juce::MemoryInputStream(@)".}
-proc makeMemoryInputStream*(blockToTake: MemoryBlock): MemoryInputStream {.header: juce_core, importcpp: "juce::MemoryInputStream(@)".}
+proc makeMemoryInputStream*(blockToTake: MemoryBlock): MemoryInputStream {.header: juce_core, importcpp: "juce::MemoryInputStream(std::move(#))".}
 proc getData*(this: MemoryInputStream): constPointer {.header: juce_core, importcpp: "#.getData()".}
 proc getDataSize*(this: MemoryInputStream): uint64 {.header: juce_core, importcpp: "#.getDataSize()".}
 proc `==`*(this: MemoryInputStream, other: MemoryInputStream): bool {.error: "juce::MemoryInputStream defines no operator==; compare a property instead".}

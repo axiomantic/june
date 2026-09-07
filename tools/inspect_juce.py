@@ -2050,6 +2050,16 @@ def run_main(juce_module_name, juce_class_name_to_export):
             if ctor_cpp_types and ctor.spelling in scalar_overloaded_ctors:
                 ctor_juce_args = ", ".join(f"({cpp_type}) #"
                                            for cpp_type in ctor_cpp_types)
+            elif any(c.rstrip().endswith("&&") for c in ctor_cpp_types):
+                # An rvalue reference will not bind to an lvalue, and Nim hands
+                # over an lvalue, so a parameter declared `T&&` needs the move
+                # here for the same reason the method path gives it one. Without
+                # it the binding is emitted, compiles as a declaration, and
+                # fails at every call site - which is where
+                # MemoryInputStream(MemoryBlock&&) sat until something called it.
+                ctor_juce_args = ", ".join(
+                    "std::move(#)" if c.rstrip().endswith("&&") else "#"
+                    for c in ctor_cpp_types)
             else:
                 ctor_juce_args = "@"
 
