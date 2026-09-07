@@ -830,6 +830,16 @@ proc testGeneratedSubclassesConstruct() =
         cdelete value
 
     block:
+        # ImagePixelData::clone returns ImagePixelData::Ptr. The override has
+        # to name that exact type, so constructing this is what proves the
+        # generator resolved the nested typedef to the right class: any other
+        # ReferenceCountedObjectPtr leaves clone overriding nothing, and the
+        # emitted `override` rejects it.
+        let value = newCustomImagePixelData(ImagePixelFormat_ARGB, 4.cint, 4.cint)
+        doAssert not value.isNil, "newCustomImagePixelData returned nil"
+        cdelete value
+
+    block:
         let value = newCustomImageType()
         doAssert not value.isNil, "newCustomImageType returned nil"
         cdelete value

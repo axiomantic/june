@@ -251,12 +251,19 @@ def map_type(type_spelling, declared, is_return, declaration=None, aliases=None)
     if bare.endswith(">") and "<" in bare:
         return map_template(bare, declared, aliases)
 
-    simple = strip_namespace(bare).strip()
-    if simple in typedef_names and typedef_names[simple] != bare:
-        resolved = map_type(typedef_names[simple], declared, is_return,
-                            aliases=aliases)
-        if resolved is not None:
-            return resolved
+    # By the typedef's qualified name, which is what collect_typedefs records.
+    # A bare spelling only matches a top-level typedef; a nested one - Ptr,
+    # which dozens of JUCE classes declare - matches only where the declaration
+    # cursor says which class's it is.
+    keys = [strip_namespace(bare).strip()]
+    if declaration is not None and declaration.spelling:
+        keys.append(strip_namespace(qualified_name(declaration)))
+    for key in keys:
+        if key in typedef_names and typedef_names[key] != bare:
+            resolved = map_type(typedef_names[key], declared, is_return,
+                                aliases=aliases)
+            if resolved is not None:
+                return resolved
 
     name = nim_name(bare, declared, declaration, aliases)
     if name:
@@ -384,11 +391,20 @@ def parse(module, base_path):
 
 
 def collect_typedefs(unit):
-    """Every typedef in the module, by name.
+    """Every typedef in the module, by QUALIFIED name.
 
     A template argument arrives as a bare spelling with no declaration cursor
     behind it - Array<CommandID> - so the only way to learn that CommandID is
     an int is to have recorded it while walking.
+
+    Qualified, because an unqualified key is not unique. Ptr is declared by
+    dozens of JUCE classes; keyed on the bare spelling, first one wins and
+    every other class's Ptr silently resolves to it. ImagePixelData::Ptr became
+    DynamicObject's, so ImagePixelData::clone was emitted returning
+    ReferenceCountedObjectPtr[DynamicObject] - a wrong type where the contract
+    is to withhold the class. A nested typedef now simply does not match a bare
+    lookup, and map_type falls through to the declaration cursor, which knows
+    which one it is.
     """
 
     def walk(cursor):
@@ -396,7 +412,8 @@ def collect_typedefs(unit):
             if child.kind in (CursorKind.TYPEDEF_DECL, CursorKind.TYPE_ALIAS_DECL):
                 underlying = child.underlying_typedef_type
                 if underlying is not None and underlying.spelling != child.spelling:
-                    typedef_names.setdefault(child.spelling, underlying.spelling)
+                    typedef_names.setdefault(qualified_name(child),
+                                             underlying.spelling)
             walk(child)
 
     walk(unit.cursor)
