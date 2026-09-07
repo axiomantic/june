@@ -1399,6 +1399,14 @@ proc testValueReturningHelpers() =
   doAssert Range[cint].withStartAndLength(5.cint, 10.cint).getEnd() == 15,
            "withStartAndLength gave the wrong end"
 
+  # Given in the wrong order on purpose: between() sorts its two positions, and
+  # passing them already sorted would pass whether or not it does. Nothing called
+  # this binding at all - the coverage gate matched the English word "between" in
+  # the comments of this suite and reported it exercised.
+  let spanned = Range[cint].between(10.cint, 3.cint)
+  doAssert spanned.getStart() == 3, "between gave start " & $spanned.getStart()
+  doAssert spanned.getEnd() == 10, "between gave end " & $spanned.getEnd()
+
   let point = makePoint(1.cint, 2.cint)
   doAssert point.withY(9.cint).getY() == 9, "withY"
   doAssert point.translated(3.cint, 4.cint).getX() == 4, "translated"
@@ -1577,6 +1585,20 @@ proc testRemainingCoreSubclasses() =
         doAssert not owned.isNil(), "a unique_ptr over a pointer is nil"
         doAssert $owned.get()[].getTagName() == "tag",
                  "the element is " & $owned.get()[].getTagName()
+
+        # release() hands the pointer over and leaves the unique_ptr empty. The
+        # word "release" appears in this suite's prose, and the coverage gate
+        # matches by name, so this binding read as covered while nothing called
+        # it - the same shape as the `what` on CppException. Re-adopted right
+        # after, because release() gives up ownership and the leak detector is
+        # the thing that would notice if nobody took it back.
+        let handedOver = owned.release()
+        doAssert not handedOver.isNil(), "release gave back nothing"
+        doAssert owned.isNil(), "release left the unique_ptr still holding"
+        doAssert $handedOver[].getTagName() == "tag",
+                 "the released element is " & $handedOver[].getTagName()
+        var readopted = makeUniquePtr[XmlElement](handedOver)
+        doAssert not readopted.isNil(), "the re-adopted unique_ptr is nil"
 
 testRemainingCoreSubclasses()
 
