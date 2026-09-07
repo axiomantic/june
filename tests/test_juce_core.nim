@@ -7534,8 +7534,17 @@ proc testSmallOptionsBuilders() =
         doAssert $plain.threadName() != "june-pool",
                  "withThreadName changed the original"
 
-        # And a pool really built from them takes the thread count.
-        var pool = makeThreadPool(configured)
+        # And a pool really built from them takes the thread count. Built at
+        # DEFAULT priority: a background-priority pool has nothing to shut it
+        # down, and under load the OS does not schedule its idle threads in
+        # time to meet JUCE's stop timeout, so they are force-killed and
+        # juce_Thread.cpp:268 reaches the log - which the assertion checker
+        # fails on. Measured with a probe holding this pool and nothing else:
+        # 5 force-kills in 90 loaded runs at background priority, 0 in 90 at
+        # default under the same load. The priority itself is asserted above,
+        # on the options rather than on a live pool.
+        var pool = makeThreadPool(
+            configured.withDesiredThreadPriority(ThreadPriority_normal))
         doAssert pool.getNumThreads() == 3,
                  "the pool started " & $pool.getNumThreads() & " threads"
 
