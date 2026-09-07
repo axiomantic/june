@@ -1145,9 +1145,9 @@ def declared_types():
 # reason has to be why a call cannot appear in a test or an example.
 mentioned_not_called = {
     "defineCppClassInternal":
-        "the library-side variant, invoked 113 times by the generated "
-        "*_subclasses modules rather than by a test. The suite compiles those, "
-        "so the macro is expanded - just not from this corpus.",
+        "the library-side variant, invoked by the generated *_subclasses "
+        "modules rather than by a test. The suite compiles those, so the macro "
+        "is expanded - just not from this corpus.",
 }
 
 
@@ -1156,10 +1156,10 @@ def check_names_are_called_not_mentioned(declared_names):
 
     The check above asks whether the NAME occurs in the tests, and a name is an
     ordinary word. `what` on CppException was reported covered by the English
-    "what" in 347 comments; `between` on Range by "the difference between them";
-    `release` on UniquePtr by "after one release the count is". None of the
-    three had ever reached a C++ compiler, which is the one thing this file
-    exists to prevent.
+    "what" in this suite's comments, `between` on Range by "the difference
+    between them", and `release` on UniquePtr by "after one release the count
+    is". None of the three had ever reached a C++ compiler, which is the one
+    thing this file exists to prevent.
 
     So the occurrence has to look like a call. Three shapes count, because Nim
     spells a call three ways: with parentheses or brackets whatever precedes it
