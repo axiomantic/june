@@ -498,6 +498,18 @@ It is run the same way::
     PYTHONPATH=tools .venv/bin/python tools/generate_subclasses.py --module "$module" > "sources/june/${module}_subclasses.nim"
   done
 
+``tests/test_juce_compiles.nim`` is generated from the modules that were just
+written, so it has to be rewritten in the same pass. It calls every binding the
+tool can spell, which is how an ``importcpp`` reaches the C++ compiler at all,
+and a binding that has just appeared or changed is called nowhere else. Unlike
+the two generators above it writes its file itself rather than printing to
+standard output; the skip report goes to standard error. CI regenerates all
+three and fails on any difference, so skipping this step fails the build.
+
+.. code-block:: bash
+
+  PYTHONPATH=tools .venv/bin/python tools/generate_compile_harness.py
+
 A struct JUCE declares with no constructor of its own still has C++'s implicit
 default one, and libclang reports no constructor at all. 21 aggregates were
 declared with readable and writable fields and no way to build one --
