@@ -771,6 +771,10 @@ against that whole shape, and it fails when any of these is not exercised::
   python3 tools/check_handwritten_covered.py
 
 - a hand-written binding name that no test calls
+- an exported operator with no entry saying how it is checked, or an entry whose
+  recorded fragment is no longer in the tests. An operator is applied as syntax -
+  ``a == b``, ``$x``, ``s[i]`` - so the name search above cannot find its call
+  sites, and a blanket exemption would report all of them covered
 - a receiver type carrying a hand-written binding that no test names, so the
   check above is satisfied only by a same-named method on another type. The
   receiver is the first parameter whatever it is called, and counts as one when
