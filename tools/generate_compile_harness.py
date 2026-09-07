@@ -260,7 +260,10 @@ for module, text in src.items():
             # nowhere[T]()[] is one: C++ reports a deleted copy constructor. The
             # same set already keeps these from being bound as a result.
             bare = argument_type.split("[")[0].removeprefix("var ").strip()
-            if bare in MOVE_ONLY_RESULTS:
+            if bare in MOVE_ONLY_RESULTS and "std::move" not in line:
+                # Only where the C++ side does not move it for us. Where the
+                # importcpp already spells std::move - which inspect_juce emits
+                # for a move-only parameter - an lvalue is exactly what it wants.
                 skipped["an argument that cannot be copied"] += 1
                 ok = False
                 break
