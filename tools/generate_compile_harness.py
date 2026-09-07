@@ -69,6 +69,7 @@ UNEXPORTED = {"DocumentWindowImpl", "JUCEApplicationImpl"}
 #
 # Measured by compiling the harness on Linux, one round per error the compiler
 # would report, since it stops after a few.
+macos_used = set()
 MACOS_ONLY_CLASSES = {
     "MountedVolumeListChangeDetector",
 }
@@ -231,6 +232,7 @@ for module, text in src.items():
             rendered = (f"discard {call}" if returns.strip()
                         and returns.strip() != ": void" else call)
             if name in MACOS_ONLY_FUNCTIONS:
+                macos_used.add(name)
                 mac_only.append(f"            {rendered}")
             else:
                 calls.append(f"        {rendered}")
@@ -314,9 +316,32 @@ for module, text in src.items():
             first_type[4:].strip() if first_type.startswith("var ") else first_type)
         if (owner in MACOS_ONLY_CLASSES or (owner, name) in MACOS_ONLY_METHODS
                 or name in MACOS_ONLY_FUNCTIONS):
+            # Recorded in the form the entry is WRITTEN in, so the staleness
+            # report below names what to delete rather than what it matched.
+            if owner in MACOS_ONLY_CLASSES:
+                macos_used.add(owner)
+            if (owner, name) in MACOS_ONLY_METHODS:
+                macos_used.add((owner, name))
+            if name in MACOS_ONLY_FUNCTIONS:
+                macos_used.add(name)
             mac_only.append(f"            {call}")
         else:
             calls.append(f"        {call}")
+
+# An entry naming something JUCE no longer declares withholds nothing and says
+# nothing: the call it was meant to guard is simply not generated, so the list
+# keeps a name that has stopped meaning anything and the next reader trusts it.
+# Every entry is reached by the emit loop today, so anything unreached is stale.
+stale_macos = (sorted(c for c in MACOS_ONLY_CLASSES if c not in macos_used)
+               + sorted(f"{c}.{m}" for c, m in MACOS_ONLY_METHODS
+                        if (c, m) not in macos_used)
+               + sorted(n for n in MACOS_ONLY_FUNCTIONS if n not in macos_used))
+if stale_macos:
+    print("These are listed as macOS-only but the generator never reached a "
+          "call for them, so the entry guards nothing:", file=sys.stderr)
+    for entry in stale_macos:
+        print(f"  {entry}", file=sys.stderr)
+    sys.exit(1)
 
 emitted = len(calls) + len(mac_only)
 print(f"# calls generated: {emitted} ({len(mac_only)} of them macOS-only)",
