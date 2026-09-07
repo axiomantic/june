@@ -24,10 +24,10 @@ was written it read:
 methods  what
 =======  =========================================================
    4528  bound methods with a receiver
-   4108  called by a behavioural test
+   4109  called by a behavioural test
      82  uncalled, and unreachable without a window, an input device
          or the app instance
-    338  uncalled, and reachable
+    337  uncalled, and reachable
 =======  =========================================================
 
 One unit is one bound method on one class, and overloads collapse into one. The
@@ -41,14 +41,14 @@ section states the rest of the counting rules.
 The shape of the remainder
 ==========================
 
-The 338 are spread across 209 classes:
+The 337 are spread across 209 classes:
 
 =======  =================
 classes   uncalled methods
 =======  =================
       6                  4
-     32                  3
-     47                  2
+     31                  3
+     48                  2
     124                  1
 =======  =================
 

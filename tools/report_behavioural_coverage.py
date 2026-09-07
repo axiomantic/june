@@ -120,6 +120,19 @@ def called_names():
         names |= {m.group(1)
                   for m in re.finditer(
                       r"\.`?([A-Za-z_][A-Za-z0-9_]*)`?\s*[(.]", text)}
+        # A method whose name is a Nim keyword operator is applied as syntax,
+        # never as `x.not()`, so the dotted pattern above cannot see it and the
+        # method reads as uncalled while a test really does make the call.
+        # `Result.operator!` was in exactly that position, applied as
+        # `not Result.ok()`. Counting the prefix spelling is the same by-name
+        # trade this report makes everywhere else: it can credit the JUCE
+        # overload when only Nim's own bool `not` was used, which overstates
+        # coverage in the direction the header already warns about, rather than
+        # inventing a gap that is not there.
+        names |= {m.group(1)
+                  for m in re.finditer(
+                      r"(?:^|[\s(\[,])(not|div|mod|shl|shr|xor|notin|isnot)\s",
+                      text)}
     return names
 
 
