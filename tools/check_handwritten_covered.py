@@ -2,11 +2,14 @@
 
 Each check returns a bool that feeds this script's exit status. Together
 they cover what a test suite cannot state for itself: that every
-hand-written binding is called, that generated subclasses, handler setters,
-constructors, constants, statics, fields and inherited methods are
-exercised, that a withheld begin() names an iterator that exists, that a
-macOS-only method is called only under a platform guard, and that every
-file carries the project's copyright notice exactly once.
+hand-written binding is called, and called rather than merely mentioned;
+that the type carrying it is named by a test at all; that generated
+subclasses, handler setters, constructors, constants, statics, fields and
+inherited methods are exercised; that a withheld begin() names an iterator
+that exists; that a macOS-only method is called only under a platform
+guard; that .gitignore is ordered so it does not swallow a tracked path;
+and that every file carries the project's copyright notice exactly once.
+The README lists every condition; this is the shape of them.
 
 The first of those is the one this file is named for.
 
@@ -25,18 +28,23 @@ compiled cleanly for as long as nothing used it.
 What is checked is a NAME, not a declaration. Six procs are called isNil and
 eight iterators are called items, and one call of either satisfies all of them.
 
-Operators are outside this check, and cannot be brought inside it as it stands.
-The pattern captures a word, so a backtick-wrapped `==`, `[]` or `=destroy` never
-matches - about sixty declarations. Widening the pattern would not help: an
-operator is reached through SYNTAX rather than by name, so a test writes x[i]
-and never the word `[]`, and a lifetime hook like `=destroy` is called by the
-compiler and by nothing else. A text search cannot see either. What covers them
-instead is the compile harness, which instantiates the types, and the erroring
-`==` the generator emits where C++ declares none - both of which fail at
-compile time rather than here.
-That is the limit of a check built on a text search: it catches a binding
-nothing mentions, which is the case every defect above was found in, and it
-does not catch one overload of a name something else already calls.
+Operators are held to a different rule, because the name search cannot reach
+them. An operator is applied through SYNTAX: a test writes x[i] and never the
+word `[]`, and a lifetime hook like `=destroy` is called by the compiler and by
+nothing else. The pattern does capture a backtick-wrapped name, so the fifty-odd
+operator declarations are counted rather than invisible, but each one is checked
+against `operator_uses` instead - a table saying, per name, either the fragment
+of the tests that applies it or that no declaration of it carries an importcpp
+at all. Both directions fail: an exported operator with no entry, and an entry
+whose operator or fragment has gone.
+
+A mention has to look like a call, too. A name is an ordinary word, and `what`,
+`between` and `release` were each reported covered by English prose rather than
+by anything calling them.
+
+What remains is the limit of a check built on a text search: it catches a
+binding nothing mentions, which is the case every defect above was found in, and
+it does not catch one overload of a name something else already calls.
 
 Run from the repository root. Exits non-zero and names what is uncovered.
 """
