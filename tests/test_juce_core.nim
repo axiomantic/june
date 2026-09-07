@@ -2236,6 +2236,31 @@ proc testSmallCoreClasses() =
             doAssert bytes[0] == 'h' and bytes[4] == 'o',
                      "the mapped bytes are not the ones written"
 
+        # The range overload. juce::Range<juce::int64> is `Range<long long>`, which
+        # is NOT what Nim's Range[int64] spells on Linux, so Int64Range names the
+        # C++ type in full. Found by the Linux compiler refusing this constructor.
+        block:
+            let wanted = makeInt64Range(1'i64, 4'i64)
+            doAssert wanted.getStart() == 1 and wanted.getEnd() == 4,
+                     "Int64Range lost the ends it was built with"
+            doAssert wanted.getLength() == 3, "length is " & $wanted.getLength()
+            doAssert not wanted.isEmpty(), "a three-byte range reported empty"
+            doAssert makeInt64Range(2'i64, 2'i64).isEmpty(),
+                     "a zero-length range did not report empty"
+
+            let part = makeMemoryMappedFile(
+                accepted, wanted, MemoryMappedFileAccessMode_readOnly, false)
+            # JUCE snaps the start down to a page boundary, so the mapping only has
+            # to COVER what was asked for, and the byte asked for sits at the
+            # difference between the two starts.
+            let got = part.getRange()
+            doAssert got.getStart() <= 1 and got.getEnd() >= 4,
+                     "the mapping covers " & $got.getStart() & ".." & $got.getEnd()
+            let some = cast[ptr UncheckedArray[char]](part.getData())
+            let offset = int(1'i64 - got.getStart())
+            doAssert some[offset] == 'e' and some[offset + 2] == 'l',
+                     "the mapped range is not the bytes that were asked for"
+
         doAssert root.deleteRecursively(), "could not remove the temp directory"
 
     block:

@@ -1739,10 +1739,10 @@ proc isFileInPath*(this: FileSearchPath, fileToCheck: File, checkRecursively: bo
 proc `==`*(this: FileSearchPath, other: FileSearchPath): bool {.error: "juce::FileSearchPath defines no operator==; compare a property instead".}
 
 proc makeMemoryMappedFile*(file: File, mode: MemoryMappedFileAccessMode, exclusive: bool = false): MemoryMappedFile {.header: juce_core, importcpp: "juce::MemoryMappedFile(@)".}
-proc makeMemoryMappedFile*(file: File, fileRange: Range[int64], mode: MemoryMappedFileAccessMode, exclusive: bool = false): MemoryMappedFile {.header: juce_core, importcpp: "juce::MemoryMappedFile(@)".}
+proc makeMemoryMappedFile*(file: File, fileRange: Int64Range, mode: MemoryMappedFileAccessMode, exclusive: bool = false): MemoryMappedFile {.header: juce_core, importcpp: "juce::MemoryMappedFile(@)".}
 proc getData*(this: MemoryMappedFile): pointer {.header: juce_core, importcpp: "#.getData()".}
 proc getSize*(this: MemoryMappedFile): uint64 {.header: juce_core, importcpp: "#.getSize()".}
-proc getRange*(this: MemoryMappedFile): Range[int64] {.header: juce_core, importcpp: "#.getRange()".}
+proc getRange*(this: MemoryMappedFile): Int64Range {.header: juce_core, importcpp: "#.getRange()".}
 proc `==`*(this: MemoryMappedFile, other: MemoryMappedFile): bool {.error: "juce::MemoryMappedFile defines no operator==; compare a property instead".}
 
 proc makeTemporaryFile*(): TemporaryFile {.header: juce_core, importcpp: "juce::TemporaryFile(@)".}

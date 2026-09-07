@@ -362,6 +362,22 @@ proc convertFrom0to1*[T](this: NormalisableRange[T], v: T): T {.importcpp: "#.co
 proc snapToLegalValue*[T](this: NormalisableRange[T], v: T): T {.importcpp: "#.snapToLegalValue(@)".}
 proc getRange*[T](this: NormalisableRange[T]): Range[T] {.importcpp: "#.getRange()".}
 
+# juce::int64 is `long long` on every platform JUCE supports, but Nim's int64
+# renders as std::int64_t, which is `long int` on Linux. Range[int64] therefore
+# names juce::Range<long int> there: a valid instantiation, but not the one
+# JUCE's own signatures declare, so MemoryMappedFile refuses it. Naming the C++
+# type in full is the only spelling Nim does not fold back into NI64 - an alias
+# and a distinct type were both measured to collapse into it. For the generic
+# surface, makeRange[int64](r.getStart(), r.getEnd()) converts.
+type
+    Int64Range* {.header: "<juce_core/juce_core.h>", importcpp: "juce::Range<juce::int64>".} = object
+
+proc makeInt64Range*(startValue: int64, endValue: int64): Int64Range {.header: "<juce_core/juce_core.h>", importcpp: "juce::Range<juce::int64>(@)", constructor.}
+proc getStart*(this: Int64Range): int64 {.header: "<juce_core/juce_core.h>", importcpp: "#.getStart(@)".}
+proc getEnd*(this: Int64Range): int64 {.header: "<juce_core/juce_core.h>", importcpp: "#.getEnd(@)".}
+proc getLength*(this: Int64Range): int64 {.header: "<juce_core/juce_core.h>", importcpp: "#.getLength(@)".}
+proc isEmpty*(this: Int64Range): bool {.header: "<juce_core/juce_core.h>", importcpp: "#.isEmpty()".}
+
 # JUCE's own Optional, distinct from std::optional in june_stl.
 type
     Optional*[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::Optional".} = object

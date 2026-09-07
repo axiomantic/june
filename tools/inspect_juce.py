@@ -501,6 +501,13 @@ def remap_template(spelling, *args):
     if not mapped or any(m is None for m in mapped):
         return None
 
+    # Nim's int64 renders as std::int64_t, which is `long int` on Linux while
+    # juce::int64 is `long long` everywhere. Range[int64] therefore names
+    # juce::Range<long int>, a type JUCE's own signatures never declare, and the
+    # Linux compiler refuses the call. Int64Range spells the C++ type in full.
+    if nim_head == "Range" and mapped == ["int64"]:
+        return "Int64Range"
+
     return f"{nim_head}[{', '.join(mapped)}]"
 
 def remap_template_arg(spelling, *args):
@@ -612,7 +619,7 @@ known_builtin_types = {
     "UniquePtr", "CppOptional", "CppVector", "CppFunctionObjectR1Ref",
     "CppFunctionObjectN1Ref",
     "CppString", "CppMap", "CppUnorderedMap", "CppArray", "CppException", "CppTypeIndex", "CppByte",
-    "Rectangle", "Point", "Line", "BorderSize", "Range",
+    "Rectangle", "Point", "Line", "BorderSize", "Range", "Int64Range",
     "Array", "OwnedArray", "ReferenceCountedObjectPtr",
     "Span", "RectangleList", "Parallelogram", "SparseSet", "Optional", "HeapBlock",
     "WeakReference", "OptionalScopedPointer",

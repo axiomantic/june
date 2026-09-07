@@ -72,6 +72,15 @@ UNEXPORTED = {"DocumentWindowImpl", "JUCEApplicationImpl"}
 MACOS_ONLY_CLASSES = {
     "MountedVolumeListChangeDetector",
 }
+# A free function has no receiver, so it cannot be reached through the class set
+# above. juce_assert_noreturn is declared behind
+# `#if JUCE_CLANG && __has_feature (attribute_analyzer_noreturn)`, which is a
+# COMPILER test rather than a platform one: it exists under clang on macOS,
+# where these modules are generated, and not under gcc on Linux. Found by the
+# Linux job saying "'juce_assert_noreturn' is not a member of 'juce'".
+MACOS_ONLY_FUNCTIONS = {
+    "juce_assert_noreturn",
+}
 MACOS_ONLY_METHODS = {
     ("String", "convertToPrecomposedUnicode"),
     ("SystemStats", "isAppSandboxEnabled"),
@@ -219,8 +228,12 @@ for module, text in src.items():
                 skipped["a no-argument constructor, covered by its own check"] += 1
                 continue
             call = f"{name}()"
-            calls.append(f"        discard {call}" if returns.strip()
-                         and returns.strip() != ": void" else f"        {call}")
+            rendered = (f"discard {call}" if returns.strip()
+                        and returns.strip() != ": void" else call)
+            if name in MACOS_ONLY_FUNCTIONS:
+                mac_only.append(f"            {rendered}")
+            else:
+                calls.append(f"        {rendered}")
             continue
         first_name, first_type = parts[0].split(":", 1)
         first_type = first_type.strip()
@@ -299,7 +312,8 @@ for module, text in src.items():
         call = f"{prefix}{receiver}{name}({', '.join(arguments)})"
         owner = static_match.group(1) if static_match else (
             first_type[4:].strip() if first_type.startswith("var ") else first_type)
-        if owner in MACOS_ONLY_CLASSES or (owner, name) in MACOS_ONLY_METHODS:
+        if (owner in MACOS_ONLY_CLASSES or (owner, name) in MACOS_ONLY_METHODS
+                or name in MACOS_ONLY_FUNCTIONS):
             mac_only.append(f"            {call}")
         else:
             calls.append(f"        {call}")
