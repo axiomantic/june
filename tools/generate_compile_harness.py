@@ -48,7 +48,20 @@ MODULES = ["juce_core", "juce_events", "juce_data_structures", "juce_graphics", 
 # copyable in Nim, so `let x = f()` is a Nim error that says nothing about the
 # C++. These stay discarded.
 MOVE_ONLY_RESULTS = {"UniquePtr", "ReferenceCountedObjectPtr", "OwnedArray",
-                     "CppUniquePtr", "OptionalScopedPointer"}
+                     "CppUniquePtr", "OptionalScopedPointer",
+                     # A JUCE aggregate is move-only when it holds a unique_ptr,
+                     # which is not visible from the Nim spelling. Found by the
+                     # C++ compiler rejecting the copy, one name at a time.
+                     "AccessibilityHandlerInterfaces"}
+
+# A binding the C++ compiler rejects at every call site. JUCE declares
+# MemoryInputStream(MemoryBlock&&), and an rvalue reference has no Nim spelling,
+# so the generator binds the parameter by value - which no lvalue can satisfy.
+# The two-argument (const MemoryBlock&, bool) form beside it is callable and
+# bound, so nothing is lost by not calling this one. Named here rather than
+# skipped by shape, because the shape is indistinguishable from a working
+# by-value parameter and a silent skip would hide the defect.
+UNCALLABLE = {"makeMemoryInputStream": "binds MemoryBlock&& by value"}
 src = {m: open(f"sources/june/{m}.nim").read() for m in MODULES}
 
 # Two types the generator emits without an export marker, so nothing outside
@@ -201,6 +214,9 @@ for module, text in src.items():
             if name.startswith("`"):
                 skipped["an operator"] += 1
                 continue
+        if name in UNCALLABLE:
+            skipped[f"uncallable: {name} {UNCALLABLE[name]}"] += 1
+            continue
         if any(name in line for name in UNEXPORTED):
             skipped["a type the generator does not export"] += 1
             continue
@@ -211,12 +227,17 @@ for module, text in src.items():
             continue
         first_name, first_type = parts[0].split(":", 1)
         first_type = first_type.strip()
-        if first_name.strip() != "this":
-            skipped["a free function"] += 1
-            continue
+        # A free function has no receiver to hang the call on, but it is a
+        # binding like any other and an importcpp string still reaches the C++
+        # compiler only where something calls it. Called by name, with every
+        # parameter an argument.
+        free_function = first_name.strip() != "this"
 
-        static_match = re.fullmatch(r"typedesc\[(\w+)\]", first_type)
-        if static_match:
+        static_match = None if free_function else re.fullmatch(
+            r"typedesc\[(\w+)\]", first_type)
+        if free_function:
+            receiver = ""
+        elif static_match:
             receiver = f"{qualify(static_match.group(1))}."
         else:
             cls = first_type[4:].strip() if first_type.startswith("var ") else first_type
@@ -235,9 +256,17 @@ for module, text in src.items():
                 receiver = f"nowhere[{qualify(cls)}]()[]."
 
         arguments, ok = [], True
-        for part in parts[1:]:
+        for part in (parts if free_function else parts[1:]):
             _, argument_type = part.split(":", 1)
             argument_type = argument_type.split(" = ")[0].strip()
+            # A move-only type cannot be passed by value from an lvalue, and
+            # nowhere[T]()[] is one: C++ reports a deleted copy constructor. The
+            # same set already keeps these from being bound as a result.
+            bare = argument_type.split("[")[0].removeprefix("var ").strip()
+            if bare in MOVE_ONLY_RESULTS:
+                skipped["an argument that cannot be copied"] += 1
+                ok = False
+                break
             value = value_for(argument_type)
             if value is None:
                 skipped[f"an argument of type {argument_type}"] += 1
