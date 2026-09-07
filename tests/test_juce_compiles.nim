@@ -9,10 +9,11 @@
 # Every call is on a pointer the compiler cannot see through, behind a guard
 # that is false at run time, so the C++ is generated and never executed.
 # `nowhere[T]()` hides a zero behind a runtime variable, which is what lets the
-# call type-check without a constructor for T. A result is discarded: under
-# C++17 binding a return by value elides the copy and proves nothing more, and
-# binding a `var` return would demand a copy constructor that several of them
-# deliberately do not have.
+# call type-check without a constructor for T. A result whose type is a plain
+# class name is bound to a name, because that is what makes the C++ compiler
+# construct it; everything else is discarded. A `var` return is not bound, since
+# binding one demands a copy constructor that several of them deliberately do
+# not have.
 #
 # It proves signatures compile and symbols exist. It proves nothing about what
 # any of them does - that is what the other test files are for.
