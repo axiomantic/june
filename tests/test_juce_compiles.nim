@@ -490,6 +490,8 @@ proc compileChunk1() =
         discard nowhere[StringPairArray]()[].getIgnoresCase()
         discard nowhere[StringPairArray]()[].getDescription()
         nowhere[StringPairArray]()[].minimiseStorageOverheads()
+        nowhere[StringPairArray]()[].addMap(nowhere[CppMap[String, String]]()[])
+        nowhere[StringPairArray]()[].addUnorderedMap(nowhere[CppUnorderedMap[String, String]]()[])
         discard nowhere[TextDiff]()[].changes()
         discard nowhere[TextDiff]()[].changes()
         discard nowhere[TextDiff]()[].appliedTo(nowhere[String]()[])
@@ -686,6 +688,7 @@ proc compileChunk1() =
         nowhere[DynamicObject]()[].removeProperty(nowhere[Identifier]()[])
         discard nowhere[DynamicObject]()[].hasMethod(nowhere[Identifier]()[])
         discard nowhere[DynamicObject]()[].invokeMethod(nowhere[Identifier]()[], nowhere[juce_varNativeFunctionArgs]()[])
+        nowhere[DynamicObject]()[].setMethod(nowhere[Identifier]()[], nowhere[CppFunctionObjectR1Ref[juce_var, juce_varNativeFunctionArgs]]()[])
         nowhere[DynamicObject]()[].clear()
         discard nowhere[DynamicObject]()[].getProperties()
         discard nowhere[DynamicObject]()[].getProperties()
@@ -821,12 +824,12 @@ proc compileChunk1() =
         discard nowhere[june.File]()[].getSize()
         discard june.File.descriptionOfSizeInBytes(0'i64)
         discard nowhere[june.File]()[].getFullPathName()
-        discard nowhere[june.File]()[].getFileName()
-        discard nowhere[june.File]()[].getRelativePathFrom(nowhere[june.File]()[])
-        discard nowhere[june.File]()[].getFileExtension()
 
 proc compileChunk2() =
     if address != 0:
+        discard nowhere[june.File]()[].getFileName()
+        discard nowhere[june.File]()[].getRelativePathFrom(nowhere[june.File]()[])
+        discard nowhere[june.File]()[].getFileExtension()
         discard nowhere[june.File]()[].hasFileExtension(nowhere[StringRef]()[])
         discard nowhere[june.File]()[].withFileExtension(nowhere[StringRef]()[])
         discard nowhere[june.File]()[].getFileNameWithoutExtension()
@@ -956,6 +959,8 @@ proc compileChunk2() =
         FileLogger.trimFileSize(nowhere[june.File]()[], 0'i64)
         discard JSONUtils.getPointer(nowhere[juce_var]()[], nowhere[String]()[])
         discard JSONUtils.setPointer(nowhere[juce_var]()[], nowhere[String]()[], nowhere[juce_var]()[])
+        discard JSONUtils.makeObject(nowhere[CppMap[Identifier, juce_var]]()[])
+        discard JSONUtils.makeObjectWithKeyFirst(nowhere[CppMap[Identifier, juce_var]]()[], nowhere[Identifier]()[])
         discard JSONUtils.deepEqual(nowhere[juce_var]()[], nowhere[juce_var]()[])
         discard nowhere[ToVarOptions]()[].withExplicitVersion(nowhere[CppOptional[cint]]()[])
         discard nowhere[ToVarOptions]()[].withVersionIncluded(false)
@@ -1222,14 +1227,14 @@ proc compileChunk2() =
         discard nowhere[DatagramSocket]()[].waitUntilReady(false, 0.cint)
         discard nowhere[DatagramSocket]()[].read(cast[pointer](address), 0.cint, false)
         discard nowhere[DatagramSocket]()[].read(cast[pointer](address), 0.cint, false, nowhere[String]()[], nowhere[cint]()[])
+
+proc compileChunk3() =
+    if address != 0:
         discard nowhere[DatagramSocket]()[].write(nowhere[String]()[], 0.cint, cast[constPointer](address), 0.cint)
         nowhere[DatagramSocket]()[].shutdown()
         discard nowhere[DatagramSocket]()[].joinMulticast(nowhere[String]()[])
         discard nowhere[DatagramSocket]()[].leaveMulticast(nowhere[String]()[])
         discard nowhere[DatagramSocket]()[].setMulticastLoopbackEnabled(false)
-
-proc compileChunk3() =
-    if address != 0:
         discard nowhere[DatagramSocket]()[].setEnablePortReuse(false)
         discard nowhere[URL]()[].toString(false)
         discard nowhere[URL]()[].isEmpty()
@@ -1272,6 +1277,7 @@ proc compileChunk3() =
         discard URL.addEscapeChars(nowhere[String]()[], false, false)
         discard URL.removeEscapeChars(nowhere[String]()[])
         discard URL.createWithoutParsing(nowhere[String]()[])
+        discard nowhere[URLInputStreamOptions]()[].withProgressCallback(nowhere[CppFunctionObjectR2[bool, cint, cint]]()[])
         discard nowhere[URLInputStreamOptions]()[].withExtraHeaders(nowhere[String]()[])
         discard nowhere[URLInputStreamOptions]()[].withConnectionTimeoutMs(0.cint)
         discard nowhere[URLInputStreamOptions]()[].withResponseHeaders(cast[ptr StringPairArray](address))
@@ -1624,15 +1630,15 @@ proc compileChunk3() =
         discard nowhere[Timer]()[].isTimerRunning()
         discard nowhere[Timer]()[].getTimerInterval()
         Timer.callAfterDelay(0.cint, nowhere[CppFunctionObjectN0]()[])
+
+proc compileChunk4() =
+    if address != 0:
         Timer.callPendingTimersSynchronously()
         nowhere[TimedCallback]()[].startTimer(0.cint)
         nowhere[TimedCallback]()[].startTimerHz(0.cint)
         nowhere[TimedCallback]()[].stopTimer()
         discard nowhere[TimedCallback]()[].isTimerRunning()
         discard nowhere[TimedCallback]()[].getTimerInterval()
-
-proc compileChunk4() =
-    if address != 0:
         nowhere[MultiTimer]()[].timerCallback(0.cint)
         nowhere[MultiTimer]()[].startTimer(0.cint, 0.cint)
         nowhere[MultiTimer]()[].stopTimer(0.cint)
@@ -2027,15 +2033,15 @@ proc compileChunk4() =
         discard nowhere[Colour]()[].getAlpha()
         discard nowhere[Colour]()[].getFloatAlpha()
         discard nowhere[Colour]()[].isOpaque()
+
+proc compileChunk5() =
+    if address != 0:
         discard nowhere[Colour]()[].isTransparent()
         discard nowhere[Colour]()[].withAlpha(0'u8)
         discard nowhere[Colour]()[].withAlpha(0.0'f32)
         discard nowhere[Colour]()[].withMultipliedAlpha(0.0'f32)
         discard nowhere[Colour]()[].overlaidWith(nowhere[Colour]()[])
         discard nowhere[Colour]()[].interpolatedWith(nowhere[Colour]()[], 0.0'f32)
-
-proc compileChunk5() =
-    if address != 0:
         discard nowhere[Colour]()[].getHue()
         discard nowhere[Colour]()[].getSaturation()
         discard nowhere[Colour]()[].getSaturationHSL()
@@ -2430,15 +2436,15 @@ proc compileChunk5() =
         nowhere[Font]()[].setUnderline(false)
         discard nowhere[Font]()[].isUnderlined()
         discard nowhere[Font]()[].getMetricsKind()
+
+proc compileChunk6() =
+    if address != 0:
         discard nowhere[Font]()[].getFeatureSettings()
         nowhere[Font]()[].setFeatureSetting(nowhere[FontFeatureSetting]()[])
         nowhere[Font]()[].removeFeatureSetting(nowhere[FontFeatureTag]()[])
         discard nowhere[Font]()[].getHorizontalScale()
         discard nowhere[Font]()[].withHorizontalScale(0.0'f32)
         nowhere[Font]()[].setHorizontalScale(0.0'f32)
-
-proc compileChunk6() =
-    if address != 0:
         discard Font.getDefaultMinimumHorizontalScaleFactor()
         Font.setDefaultMinimumHorizontalScaleFactor(0.0'f32)
         discard nowhere[Font]()[].getExtraKerningFactor()
@@ -2833,15 +2839,15 @@ proc compileChunk6() =
         discard KeyPress.rewindKey()
         discard nowhere[KeyPress]()[].isValid()
         discard nowhere[KeyPress]()[].getKeyCode()
+
+proc compileChunk7() =
+    if address != 0:
         discard nowhere[KeyPress]()[].getModifiers()
         discard nowhere[KeyPress]()[].getTextCharacter()
         discard nowhere[KeyPress]()[].isKeyCode(0.cint)
         discard KeyPress.createFromDescription(nowhere[String]()[])
         discard nowhere[KeyPress]()[].getTextDescription()
         discard nowhere[KeyPress]()[].getTextDescriptionWithIcons()
-
-proc compileChunk7() =
-    if address != 0:
         discard nowhere[KeyPress]()[].isCurrentlyDown()
         discard KeyPress.isKeyCurrentlyDown(0.cint)
         discard nowhere[KeyListener]()[].keyPressed(nowhere[KeyPress]()[], cast[ptr Component](address))
@@ -3236,15 +3242,15 @@ proc compileChunk7() =
         nowhere[DragAndDropTarget]()[].itemDropped(nowhere[DragAndDropTargetSourceDetails]()[])
         discard nowhere[DragAndDropTarget]()[].shouldDrawDragImageWhenOver()
         discard nowhere[DragAndDropTargetSourceDetails]()[].description()
+
+proc compileChunk8() =
+    if address != 0:
         discard nowhere[DragAndDropTargetSourceDetails]()[].description()
         discard nowhere[DragAndDropTargetSourceDetails]()[].sourceComponent()
         discard nowhere[DragAndDropTargetSourceDetails]()[].sourceComponent()
         discard nowhere[DragAndDropTargetSourceDetails]()[].localPosition()
         discard nowhere[DragAndDropTargetSourceDetails]()[].localPosition()
         nowhere[DragAndDropContainer]()[].startDragging(nowhere[juce_var]()[], cast[ptr Component](address), nowhere[ScaledImage]()[], false, cast[ptr Point[cint]](address), cast[ptr MouseInputSource](address))
-
-proc compileChunk8() =
-    if address != 0:
         nowhere[DragAndDropContainer]()[].startDragging(nowhere[juce_var]()[], cast[ptr Component](address), nowhere[Image]()[], false, cast[ptr Point[cint]](address), cast[ptr MouseInputSource](address))
         discard nowhere[DragAndDropContainer]()[].isDragAndDropActive()
         discard nowhere[DragAndDropContainer]()[].getNumCurrentDrags()
@@ -3639,15 +3645,15 @@ proc compileChunk8() =
         discard nowhere[AccessibilityTableInterface]()[].getRowHandler(0.cint)
         discard nowhere[AccessibilityTableInterface]()[].getHeaderHandler()
         discard nowhere[AccessibilityTableInterface]()[].getRowSpan(nowhere[AccessibilityHandler]()[])
+
+proc compileChunk9() =
+    if address != 0:
         discard nowhere[AccessibilityTableInterface]()[].getColumnSpan(nowhere[AccessibilityHandler]()[])
         nowhere[AccessibilityTableInterface]()[].showCell(nowhere[AccessibilityHandler]()[])
         discard nowhere[AccessibilityTableInterfaceSpan]()[].begin()
         discard nowhere[AccessibilityTableInterfaceSpan]()[].begin()
         discard nowhere[AccessibilityTableInterfaceSpan]()[].num()
         discard nowhere[AccessibilityTableInterfaceSpan]()[].num()
-
-proc compileChunk9() =
-    if address != 0:
         discard nowhere[AccessibilityTextInterface]()[].isDisplayingProtectedText()
         discard nowhere[AccessibilityTextInterface]()[].isReadOnly()
         discard nowhere[AccessibilityTextInterface]()[].getTotalNumCharacters()
@@ -4042,15 +4048,15 @@ proc compileChunk9() =
         discard nowhere[RelativePointPathStartSubPath]()[].startPos()
         nowhere[RelativePointPathStartSubPath]()[].addToPath(nowhere[Path]()[], cast[ptr ExpressionScope](address))
         discard nowhere[RelativePointPathStartSubPath]()[].getControlPoints(nowhere[cint]()[])
+
+proc compileChunk10() =
+    if address != 0:
         discard nowhere[RelativePointPathStartSubPath]()[].clone()
         discard nowhere[RelativePointPathStartSubPath]()[].isDynamic()
         nowhere[RelativePointPathCloseSubPath]()[].addToPath(nowhere[Path]()[], cast[ptr ExpressionScope](address))
         discard nowhere[RelativePointPathCloseSubPath]()[].getControlPoints(nowhere[cint]()[])
         discard nowhere[RelativePointPathCloseSubPath]()[].clone()
         discard nowhere[RelativePointPathCloseSubPath]()[].isDynamic()
-
-proc compileChunk10() =
-    if address != 0:
         discard nowhere[RelativePointPathLineTo]()[].endPoint()
         discard nowhere[RelativePointPathLineTo]()[].endPoint()
         nowhere[RelativePointPathLineTo]()[].addToPath(nowhere[Path]()[], cast[ptr ExpressionScope](address))
@@ -4445,15 +4451,15 @@ proc compileChunk10() =
         nowhere[Slider]()[].setNormalisableRange(nowhere[NormalisableRange[cdouble]]()[])
         discard nowhere[Slider]()[].getNormalisableRange()
         discard nowhere[Slider]()[].getRange()
+
+proc compileChunk11() =
+    if address != 0:
         discard nowhere[Slider]()[].getMaximum()
         discard nowhere[Slider]()[].getMinimum()
         discard nowhere[Slider]()[].getInterval()
         discard nowhere[Slider]()[].getMinValue()
         discard nowhere[Slider]()[].getMinValueObject()
         nowhere[Slider]()[].setMinValue(0.0, NotificationType_dontSendNotification, false)
-
-proc compileChunk11() =
-    if address != 0:
         discard nowhere[Slider]()[].getMaxValue()
         discard nowhere[Slider]()[].getMaxValueObject()
         nowhere[Slider]()[].setMaxValue(0.0, NotificationType_dontSendNotification, false)
@@ -4848,15 +4854,15 @@ proc compileChunk11() =
         nowhere[ComponentPeer]()[].setTitle(nowhere[String]()[])
         discard nowhere[ComponentPeer]()[].setDocumentEditedStatus(false)
         nowhere[ComponentPeer]()[].setRepresentedFile(nowhere[june.File]()[])
+
+proc compileChunk12() =
+    if address != 0:
         nowhere[ComponentPeer]()[].setBounds(nowhere[Rectangle[cint]]()[], false)
         nowhere[ComponentPeer]()[].updateBounds()
         discard nowhere[ComponentPeer]()[].getBounds()
         discard nowhere[ComponentPeer]()[].localToGlobal(nowhere[Point[cfloat]]()[])
         discard nowhere[ComponentPeer]()[].globalToLocal(nowhere[Point[cfloat]]()[])
         discard nowhere[ComponentPeer]()[].localToGlobal(nowhere[Point[cint]]()[])
-
-proc compileChunk12() =
-    if address != 0:
         discard nowhere[ComponentPeer]()[].globalToLocal(nowhere[Point[cint]]()[])
         discard nowhere[ComponentPeer]()[].localToGlobal(nowhere[Rectangle[cint]]()[])
         discard nowhere[ComponentPeer]()[].globalToLocal(nowhere[Rectangle[cint]]()[])
@@ -5198,6 +5204,10 @@ proc compileChunk12() =
         nowhere[FileTreeComponent]()[].sendMouseClickMessage(nowhere[june.File]()[], nowhere[MouseEvent]()[])
         nowhere[FileTreeComponent]()[].sendSelectionChangeMessage()
         nowhere[ImagePreviewComponent]()[].timerCallback()
+        discard ContentSharer.shareFilesScoped(nowhere[Array[URL]]()[], nowhere[CppFunctionObjectN2[bool, String]]()[], cast[ptr Component](address))
+        discard ContentSharer.shareTextScoped(nowhere[String]()[], nowhere[CppFunctionObjectN2[bool, String]]()[], cast[ptr Component](address))
+        discard ContentSharer.shareImagesScoped(nowhere[Array[Image]]()[], nowhere[UniquePtr[ImageFileFormat]]()[], nowhere[CppFunctionObjectN2[bool, String]]()[], cast[ptr Component](address))
+        discard ContentSharer.shareDataScoped(nowhere[MemoryBlock]()[], nowhere[CppFunctionObjectN2[bool, String]]()[], cast[ptr Component](address))
         discard nowhere[PropertyComponent]()[].getPreferredHeight()
         nowhere[PropertyComponent]()[].setPreferredHeight(0.cint)
         nowhere[PropertyComponent]()[].refresh()
@@ -5247,6 +5257,9 @@ proc compileChunk12() =
         discard nowhere[MultiChoicePropertyComponent]()[].onHeightChange()
         discard nowhere[MultiChoicePropertyComponent]()[].isExpanded()
         discard nowhere[MultiChoicePropertyComponent]()[].isExpandable()
+
+proc compileChunk13() =
+    if address != 0:
         nowhere[MultiChoicePropertyComponent]()[].setExpanded(false)
         nowhere[BubbleComponent]()[].setAllowedPlacement(0.cint)
         nowhere[BubbleComponent]()[].setPosition(cast[ptr Component](address), 0.cint, 0.cint)
@@ -5257,9 +5270,6 @@ proc compileChunk12() =
         nowhere[ExtraLookAndFeelBaseClassesLassoComponentMethods]()[].drawLasso(nowhere[Graphics]()[], nowhere[Component]()[])
         nowhere[ExtraLookAndFeelBaseClassesKeyMappingEditorComponentMethods]()[].drawKeymapChangeButton(nowhere[Graphics]()[], 0.cint, 0.cint, nowhere[Button]()[], nowhere[String]()[])
         nowhere[ExtraLookAndFeelBaseClassesAudioDeviceSelectorComponentMethods]()[].drawLevelMeter(nowhere[Graphics]()[], 0.cint, 0.cint, 0.0'f32)
-
-proc compileChunk13() =
-    if address != 0:
         discard LookAndFeel.getDefaultLookAndFeel()
         LookAndFeel.setDefaultLookAndFeel(cast[ptr LookAndFeel](address))
         discard nowhere[LookAndFeel]()[].findColour(0.cint)

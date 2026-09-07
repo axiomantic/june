@@ -110,6 +110,30 @@ def value_for(nim_type):
         return f"nowhere[{qualify(t)}]()[]"
     return None
 
+def split_parameters(body):
+    """The parameters, split at top-level commas.
+
+    A plain split on ", " cuts inside a generic argument list too, so
+    CppMap[Identifier, juce_var] arrived as two fragments and the skip report
+    named a type that does not exist. The report is what a maintainer reads to
+    decide whether a gap is worth closing, so the fragment misdirects twice
+    over: no such type, and no such gap.
+    """
+    parts, depth, current = [], 0, ""
+    for character in body:
+        if character in "([{":
+            depth += 1
+        elif character in ")]}":
+            depth -= 1
+        if character == "," and depth == 0:
+            parts.append(current)
+            current = ""
+        else:
+            current += character
+    parts.append(current)
+    return [part.strip() for part in parts if ":" in part]
+
+
 calls = []
 mac_only = []
 skipped = collections.Counter()
@@ -141,7 +165,7 @@ for module, text in src.items():
             skipped["a type the generator does not export"] += 1
             continue
 
-        parts = [p for p in body.split(", ") if ":" in p]
+        parts = split_parameters(body)
         if not parts:
             skipped["no receiver"] += 1
             continue
