@@ -2355,7 +2355,7 @@ proc `==`*(this: WebInputStreamListener, other: WebInputStreamListener): bool {.
 proc makeURLInputSource*(url: URL): URLInputSource {.header: juce_core, importcpp: "juce::URLInputSource(@)".}
 proc `==`*(this: URLInputSource, other: URLInputSource): bool {.error: "juce::URLInputSource defines no operator==; compare a property instead".}
 
-proc makePerformanceCounter*(counterName: String, runsPerPrintout: cint = 100, loggingFile: File): PerformanceCounter {.header: juce_core, importcpp: "juce::PerformanceCounter(@)".}
+proc makePerformanceCounter*(counterName: String, runsPerPrintout: cint, loggingFile: File): PerformanceCounter {.header: juce_core, importcpp: "juce::PerformanceCounter(@)".}
 proc start*(this: var PerformanceCounter) {.header: juce_core, importcpp: "#.start()".}
 proc stop*(this: var PerformanceCounter): bool {.header: juce_core, importcpp: "#.stop()".}
 proc printStatistics*(this: var PerformanceCounter) {.header: juce_core, importcpp: "#.printStatistics()".}

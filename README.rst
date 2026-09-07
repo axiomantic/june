@@ -549,7 +549,7 @@ What the behavioural layer does NOT reach, and why:
   fails. ``AlertWindow`` and ``ComponentPeer`` are therefore covered
   behaviourally on macOS only, and each skip prints a line saying so.
 - Platform-only methods. The harness marks these and calls them on macOS only;
-  ``MACOS_ONLY_METHODS`` in the harness generator lists them.
+  The harness generator lists them, in ``MACOS_ONLY_CLASSES``, ``MACOS_ONLY_METHODS`` and ``MACOS_ONLY_FUNCTIONS`` according to what has a receiver.
 - A handful of individual methods whose only effect is outside the process:
   ``File.addToDock`` rewrites the user's Dock preferences and restarts the
   Dock, ``Toolbar.showCustomisationDialog`` opens a modal dialog, and
@@ -563,7 +563,7 @@ JUCE's leak detector reports what is still alive at exit, and it PRINTS rather
 than failing, so CI greps for it and fails the job. Two real defects were found
 that way, both wrong beliefs about ownership rather than untidy tests.
 
-A `jassert` behaves the same way: outside a debugger it writes one line to
+A ``jassert`` behaves the same way: outside a debugger it writes one line to
 stderr and the process carries on at exit code 0. So JUCE telling the suite
 something is wrong reached the log and the job stayed green - which is how a
 ``MenuBarComponent`` outliving the model it was built over, a use-after-free

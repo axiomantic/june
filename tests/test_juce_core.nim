@@ -3852,7 +3852,8 @@ proc testFileMetadataAndVolumes() =
                  "the file was modified in the future"
         doAssert document.getCreationTime() <= now,
                  "the file was created in the future"
-        discard document.getLastAccessTime()
+        doAssert document.getLastAccessTime() <= now,
+                 "the file was accessed in the future"
 
         # Set a timestamp and read it back. A second is the resolution every
         # filesystem this runs on can hold.
@@ -4221,7 +4222,7 @@ proc testBigIntegerArithmetic() =
     var remainder = makeBigInteger(0.cint)
     value.divideBy(makeBigInteger(5.cint), remainder)
     doAssert value.toInteger() == 9, "47 / 5 gave " & $value.toInteger()
-    doAssert remainder.toInteger() == 2, "47 %% 5 gave " & $remainder.toInteger()
+    doAssert remainder.toInteger() == 2, "47 mod 5 gave " & $remainder.toInteger()
 
     # The greatest common divisor of 48 and 18 is 6.
     doAssert makeBigInteger(48.cint).findGreatestCommonDivisor(
@@ -4419,7 +4420,9 @@ proc testStreamPrimitives() =
   block:
     # The big-endian writers put the same numbers down in the other order, so
     # the little-endian reader gives a different answer for all but a
-    # palindrome.
+    # palindrome. That rests on a little-endian HOST: on a big-endian one
+    # the two orders coincide and this would fail. Every platform the
+    # suite is built for is little-endian.
     var buffer = makeMemoryBlock(0'u64, false)
     block:
       var output = makeMemoryOutputStream(buffer, false)
@@ -5633,7 +5636,10 @@ proc testThreadPoolJobList() =
     doAssert pool.getNumJobs() == 2,
              "the pool holds " & $pool.getNumJobs() & " jobs"
 
-    # moveJobToFront only moves a job that has not started.
+    # moveJobToFront only moves a job that has not started. With two
+        # threads and two jobs both are already running, so the call is
+        # exercised and NOT observed - it returns void, and asserting the
+        # order through getJob would be a race.
     pool.moveJobToFront(cast[ptr ThreadPoolJob](queued))
 
     # Releasing the gate lets both finish. The event is manual-reset, so one
@@ -7833,7 +7839,8 @@ proc testFileOsIntegration() =
         # revealToUser opens a file manager, so the only call that leaves the
         # machine alone is one on a path whose PARENT does not exist either:
         # JUCE walks up to the parent and stops when that is missing too
-        # (juce_Files_mac.mm:461).
+        # (juce_Files_mac.mm:461, and juce_Files_linux.cpp:272 where
+        # isDirectory() and the parent's exists() are both false).
         root.getChildFile(makeStringRef("gone"))
             .getChildFile(makeStringRef("also-gone"))
             .revealToUser()

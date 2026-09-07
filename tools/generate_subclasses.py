@@ -355,6 +355,10 @@ def map_std_function(bare, declared, aliases):
             text = text[len("const "):-1].strip()
         elif by_const_ref:
             # A mix of by-value and by-reference arguments has no member.
+            # The single-argument check below rejects this shape too, so
+            # this is redundant rather than load-bearing - kept because it
+            # refuses at the argument that is wrong, and would stop being
+            # redundant the moment that check changed.
             return None
         stripped.append(text)
     if by_const_ref:

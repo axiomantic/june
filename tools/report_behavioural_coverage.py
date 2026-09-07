@@ -5,7 +5,7 @@ call can be built for, so it answers "does this binding reach the C++
 compiler". This answers the other question: "does
 anything assert what the method DOES".
 
-ONE UNIT is one bound method declaration whose first parameter is `this` - that
+ONE UNIT is one method NAME on one class - not one declaration; see OVERLOADS
 is, one method on one class. A free function, an operator and a static are not
 counted, because the harness classifies those separately and they have no
 receiver to group them under.
@@ -189,7 +189,12 @@ def methods_by_class():
 
 
 def check_line_classification():
-    """Every receiver-taking proc line is counted, an operator, or a static.
+    """Every proc line spelling its receiver `this:` is counted, an
+    operator, or a static. That is the population, and it is narrower
+    than "every receiver-taking line": a proc naming its receiver
+    otherwise is outside it entirely. The generated modules are the
+    corpus here and they are uniform in this, which is what makes the
+    narrowing safe rather than merely convenient
 
     The total this report prints is built by one pattern, and a pattern that
     stops matching a declaration shape does not fail - it drops those

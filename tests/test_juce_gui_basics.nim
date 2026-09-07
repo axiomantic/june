@@ -10248,6 +10248,10 @@ proc testAlertWindowContents() =
 
         alert.setEscapeKeyCancels(false)
         alert.triggerButtonClick(makeString("OK"))
+        # Both are void, so what is asserted is that neither disturbed the
+        # buttons: a crash would otherwise be the only failure this could report.
+        doAssert alert.getNumButtons() == 2,
+                 "the alert has " & $alert.getNumButtons() & " buttons"
 
     shutdownJuce_GUI()
 
@@ -14252,10 +14256,10 @@ proc testModifierKeys() =
         doAssert right.getNumMouseButtonsDown() == 1,
                  $right.getNumMouseButtonsDown() & " buttons are down"
 
-        for flag in [ModifierKeysFlags_middleButtonModifier]:
-            let held = none.withFlags(flag.cint)
-            doAssert held.isMiddleButtonDown(),
-                     "the middle button flag did not stick"
+        let held = none.withFlags(
+            ModifierKeysFlags_middleButtonModifier.cint)
+        doAssert held.isMiddleButtonDown(),
+                 "the middle button flag did not stick"
 
         # The back and forward buttons are the two extra mouse buttons.
         doAssert none.withFlags(0x8000.cint).getRawFlags() == 0x8000,
@@ -15020,7 +15024,7 @@ proc testComboBoxPopupAndHeaderMenu() =
         var box = makeComboBox(makeString("choices"))
         box.addItem(makeString("First"), 1.cint)
         box.addItem(makeString("Second"), 2.cint)
-        box.setSelectedId(2.cint, NotificationTypeDontSendNotification)
+        box.setSelectedId(2.cint, NotificationType_dontSendNotification)
 
         # The root menu is the box's own list, so the two counts agree.
         doAssert not box.getRootMenu().isNil, "the box has no root menu"
@@ -15033,7 +15037,7 @@ proc testComboBoxPopupAndHeaderMenu() =
         doAssert box.getSelectedIdAsValue().getValue().toInt() == 2,
                  "the selected id reads " &
                  $box.getSelectedIdAsValue().getValue().toInt()
-        box.setSelectedId(1.cint, NotificationTypeDontSendNotification)
+        box.setSelectedId(1.cint, NotificationType_dontSendNotification)
         doAssert box.getSelectedIdAsValue().getValue().toInt() == 1,
                  "the selected id did not follow the selection"
 
@@ -15634,8 +15638,9 @@ proc testApplicationConstruction() =
         doAssert not app.isNil(), "newApplication returned nil"
         cdelete app
     block:
-        var byValue = constructApplication()
-        discard byValue
+        # Constructing it IS the test: an importcpp constructor nothing calls
+        # is never handed to the C++ compiler. There is no state to read back.
+        discard constructApplication()
     shutdownJuce_GUI()
 
 testApplicationConstruction()

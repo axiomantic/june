@@ -500,7 +500,11 @@ def remap_template(spelling, *args):
             return None
         returns, params = signature.group(1).strip(), signature.group(2).strip()
         params = [] if params in ("", "void") else split_template_args(params)
-        if len(params) > 9:
+        # Ten for a void return, nine otherwise: that is what the N and R
+        # families in june_function_utils declare, and what
+        # generate_subclasses.py allows. A flat nine here withheld a
+        # ten-argument void closure whose type exists.
+        if len(params) > (10 if returns == "void" else 9):
             return None
         mapped = [remap_template_arg(p, *args) for p in params]
         if any(m is None for m in mapped):
@@ -656,11 +660,35 @@ known_builtin_types = {
     "WeakReference", "OptionalScopedPointer",
     "NormalisableRange",
 }
-known_builtin_types.update(f"CppFunctionObjectN{n}" for n in range(10))
+# The ranges match what june_function_utils DECLARES, not a round number: the
+# N family goes to ten arguments and the R family to nine, and registering
+# fewer would withhold a binding as an unexported type when the type exists.
+known_builtin_types.update(f"CppFunctionObjectN{n}" for n in range(11))
 known_builtin_types.update(f"CppFunctionObjectR{n}" for n in range(10))
 
 # Not types: Nim type-construction keywords that appear in a rendered signature.
 type_syntax_words = {"var", "ptr", "lent", "typedesc", "proc", "of"}
+
+def drop_unreachable_defaults(args):
+    """Strip a default that stands before a parameter without one.
+
+    Nim accepts `a: T = 1, b: U` and resolves f(x, 1, y) and f(x, b = y) alike,
+    so this is not an error - but the default cannot be reached positionally,
+    and it advertises a shorter form the caller does not have. It arises where
+    JUCE defaults BOTH parameters and only the later default has no Nim
+    spelling: makePerformanceCounter is the case, whose one-argument JUCE form
+    needs File(), which is not representable here.
+    """
+    seen_required, out = False, []
+    for argument in reversed(args):
+        if " = " not in argument:
+            seen_required = True
+        elif seen_required:
+            argument = argument.split(" = ")[0]
+        out.append(argument)
+    return list(reversed(out))
+
+
 
 def default_value_for(arg, argument_type, known_builtin_types):
     """The Nim ` = literal` for a C++ default argument, or "" for none.
@@ -2102,6 +2130,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
                     f"{argument_type}{default_value}")
                 ctor_types.append(argument_type)
                 ctor_cpp_types.append(arg.type.get_canonical().spelling)
+            ctor_args = drop_unreachable_defaults(ctor_args)
 
             # A constructor has no receiver, so `@` is the whole argument list
             # and only a single-argument one can be cast as a unit.

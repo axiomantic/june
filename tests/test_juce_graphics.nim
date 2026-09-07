@@ -2556,7 +2556,7 @@ proc testFontOptionsBuilding() =
 
         doAssert first == same, "two identical options objects are not equal"
         doAssert not (first == other), "options with different names are equal"
-        doAssert (first < other) or (other < first),
+        doAssert (first < other) != (other < first),
                  "two different options objects do not order"
 
 testFontOptionsBuilding()
@@ -3276,7 +3276,7 @@ proc testImageFormatsAndCopies() =
         var solid = makeRectangleList[cint]()
         image.createSolidAreaMask(solid, 0.5'f32)
         doAssert not solid.isEmpty(), "the solid area mask found nothing"
-        doAssert solid.getBounds().getWidth() <= 10,
+        doAssert solid.getBounds().getWidth() == 10,
                  "the mask covers " & $solid.getBounds().getWidth() &
                  " columns of a half-filled image"
         doAssert solid.getBounds().getHeight() == 20,
@@ -3287,6 +3287,8 @@ proc testImageFormatsAndCopies() =
         var context = image.createLowLevelContext()
         doAssert not context.isNil(), "the image made no low level context"
 
+        # The answer depends on whether a backup was in place, so neither
+        # value is wrong; what is checked is that it answers at all.
         discard image.setBackupEnabled(false)
 
     shutdownJuce_GUI()
@@ -3815,8 +3817,10 @@ proc testPixelARGB() =
                  "unpremultiply in place gave red " & $mutated.getRed() &
                  " from " & $before
         mutated.premultiply()
-        doAssert mutated.getRed() <= before + 2'u8 and
-                 mutated.getRed() + 2'u8 >= before,
+        # Widened to int on BOTH sides: uint8 arithmetic wraps silently, so
+        # `before + 2` is 1 when before is 255.
+        doAssert int(mutated.getRed()) <= int(before) + 2 and
+                 int(mutated.getRed()) + 2 >= int(before),
                  "premultiplying back gave red " & $mutated.getRed() &
                  " from " & $before
 
@@ -3907,7 +3911,6 @@ proc testDrawablePlacement() =
                  $drawable.getDrawableBounds().getHeight() & " tall"
 
         # The outline is the path, so it covers the same area.
-        var outline = makePath()
         doAssert drawable.getOutlineAsPath().getBounds().getWidth() ==
                  drawable.getDrawableBounds().getWidth(),
                  "the outline is " &
@@ -4701,10 +4704,18 @@ proc testImageFileFormats() =
                                             written.getDataSize(), false)
         let decoded = base[].decodeImage(reading)
         doAssert decoded.isValid(), "the JPEG did not decode"
+        # BOTH halves: the fixture is red on the left and blue on the right,
+        # so reading only the left passes for a decoder that returned an
+        # all-red image. JPEG is lossy, hence a comparison rather than an
+        # exact channel value.
         let left = decoded.getPixelAt(1.cint, 1.cint)
         doAssert left.getRed() > left.getBlue(),
                  "the left half decoded to " & $left.getRed() & " red and " &
                  $left.getBlue() & " blue"
+        let right = decoded.getPixelAt(6.cint, 1.cint)
+        doAssert right.getBlue() > right.getRed(),
+                 "the right half decoded to " & $right.getRed() & " red and " &
+                 $right.getBlue() & " blue"
 
     block:
         # GIF is read-only in JUCE: writeImageToStream is a stub that reports

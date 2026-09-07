@@ -271,21 +271,21 @@ proc setPaintListBoxItemHandler*(this: var CustomListBoxModel,
 # AlertWindow.addProgressBarComponent unreachable. These are those
 # constructors.
 proc makeProgressBarStyle*(style: ProgressBarStyle): ProgressBarStyleOptional
-    {.header: "<optional>", importcpp: "std::optional<juce::ProgressBar::Style>(#)".}
+    {.header: juce_gui_basics, importcpp: "std::optional<juce::ProgressBar::Style>(#)".}
 proc makeProgressBarStyleUnset*(): ProgressBarStyleOptional
-    {.header: "<optional>", importcpp: "std::optional<juce::ProgressBar::Style>()".}
+    {.header: juce_gui_basics, importcpp: "std::optional<juce::ProgressBar::Style>()".}
 proc hasStyle*(this: ProgressBarStyleOptional): bool
-    {.header: "<optional>", importcpp: "#.has_value()".}
+    {.header: juce_gui_basics, importcpp: "#.has_value()".}
+# Dereferences: hasStyle must answer true first, or this is undefined.
 proc style*(this: ProgressBarStyleOptional): ProgressBarStyle
-    {.header: "<optional>", importcpp: "(*#)".}
+    {.header: juce_gui_basics, importcpp: "(*#)".}
 # Bound for the same reason as Range's and Int64Range's: a fieldless
 # importcpp object falls back to Nim's structural equality, which compares
 # nothing and answers true for every pair. ProgressBar::Style is an enum
 # class, so std::optional's own == is well formed over it.
 proc `==`*(this: ProgressBarStyleOptional,
            other: ProgressBarStyleOptional): bool
-    {.header: "<optional>", importcpp: "# == #".}
-
+    {.header: juce_gui_basics, importcpp: "# == #".}
 
 # Subclasses for the abstract classes of this module. Generated; see
 # tools/generate_subclasses.py.

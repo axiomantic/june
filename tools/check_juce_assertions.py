@@ -182,6 +182,18 @@ PATTERN = re.compile(r"JUCE Assertion failure in (\S+:\d+)")
 ANNOUNCEMENT = "JUCE Assertion failure in "
 
 
+def read_log(path):
+    """The log's text.
+
+    Closes the handle - this runs over every log in a CI job, and an unclosed
+    one leaks under any runtime that is not refcounting. OSError is deliberately
+    NOT caught here: the caller turns it into exit 2, which is what stops an
+    empty or mistyped log glob passing silently.
+    """
+    with open(path, errors="replace") as handle:
+        return handle.read()
+
+
 def this_platform():
     return "macos" if sys.platform == "darwin" else "linux"
 
@@ -213,7 +225,7 @@ def main(argv):
     announced = 0
     for path in paths:
         try:
-            text = open(path, errors="replace").read()
+            text = read_log(path)
         except OSError as error:
             print(f"could not read {path}: {error}", file=sys.stderr)
             return 2
@@ -228,11 +240,21 @@ def main(argv):
               f"of {parsed} of them. The rest are exempt from every check "
               f"below without saying so, which is what PATTERN is written to "
               f"prevent - widen it rather than the lists:", file=sys.stderr)
+        shown = 0
         for path in paths:
-            text = open(path, errors="replace").read()
+            text = read_log(path)
             for line in text.splitlines():
                 if ANNOUNCEMENT in line and not PATTERN.search(line):
                     print(f"  {path}: {line.strip()}", file=sys.stderr)
+                    shown += 1
+        if not shown:
+            # The count is over the whole text and this scan is per line, so
+            # interleaved output can split an announcement across a line
+            # boundary - counted, and invisible here. Print what is known
+            # rather than a header with nothing under it.
+            print(f"  no single line carries an unparsed announcement; "
+                  f"the {announced - parsed} missing are split across "
+                  f"lines", file=sys.stderr)
         return 1
 
     # The tag is checked in BOTH directions. A site listed for macOS that

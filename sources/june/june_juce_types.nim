@@ -368,7 +368,9 @@ proc getRange*[T](this: NormalisableRange[T]): Range[T] {.importcpp: "#.getRange
 # JUCE's own signatures declare, so MemoryMappedFile refuses it. Naming the C++
 # type in full is the only spelling Nim does not fold back into NI64 - an alias
 # and a distinct type were both measured to collapse into it. For the generic
-# surface, makeRange[int64](r.getStart(), r.getEnd()) converts.
+# surface, makeRange[int64](r.getStart(), r.getEnd()) converts - but that
+# lands back in Range[int64], the spelling this type exists to avoid, so it
+# is for values that do not re-enter a JUCE signature.
 type
     Int64Range* {.header: "<juce_core/juce_core.h>", importcpp: "juce::Range<juce::int64>".} = object
 

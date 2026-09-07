@@ -1260,9 +1260,14 @@ def check_names_are_called_not_mentioned(declared_names):
                 or re.search(r"\." + spelled + r"(?![A-Za-z0-9_])", code)
                 or re.search(r"(?m)^\s*" + spelled + r"\s+[A-Za-z_]", code))
 
-    mentioned = sorted(name for name in names
+    # The mentioned set is computed once and reported from, so the success
+    # line names the population it actually measured. `names` is every declared
+    # identifier, not the mentioned subset, and using it there described a set
+    # this check never looked at.
+    seen_in_tests = {name for name in names
+                     if re.search(r"\b" + re.escape(name) + r"\b", prose)}
+    mentioned = sorted(name for name in seen_in_tests
                        if name not in mentioned_not_called
-                       and re.search(r"\b" + re.escape(name) + r"\b", prose)
                        and not called(name))
     stale = sorted(name for name in mentioned_not_called if name not in names)
 
@@ -1279,8 +1284,8 @@ def check_names_are_called_not_mentioned(declared_names):
     if mentioned or stale:
         return False
 
-    print(f"all {len(names) - len(mentioned_not_called)} hand-written names "
-          f"that a test mentions are spelled as a call "
+    print(f"all {len(seen_in_tests) - len(mentioned_not_called)} hand-written "
+          f"names that a test mentions are spelled as a call "
           f"({len(mentioned_not_called)} is invoked outside this corpus)")
     return True
 

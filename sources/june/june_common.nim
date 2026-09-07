@@ -52,7 +52,7 @@ proc `==`*[T](a: ptr T, b: ConstPtr[T]): bool {.importcpp: "(# == #)", nodecl.}
 # `#@` splices the CONSTRUCTOR'S arguments into `new T ...`, and it puts no
 # separator between the first and the rest: a two-argument constructor reaches
 # clang as `new juce::FileInputSource(fileNIM_FALSE)`. So cnew is good for a
-# construction of at most one argument, which is every use the library has.
+# construction of at most one argument.
 #
 # The alternative, `(new '*0(@))`, wraps the whole expression instead - and
 # C++17 elides the temporary, so it costs nothing and works for any arity. It

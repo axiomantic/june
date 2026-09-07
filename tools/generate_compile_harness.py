@@ -54,7 +54,6 @@ MOVE_ONLY_RESULTS = {"UniquePtr", "ReferenceCountedObjectPtr", "OwnedArray",
                      # C++ compiler rejecting the copy, one name at a time.
                      "AccessibilityHandlerInterfaces"}
 
-UNCALLABLE = {}
 src = {m: open(f"sources/june/{m}.nim").read() for m in MODULES}
 
 # Two types the generator emits without an export marker, so nothing outside
@@ -221,9 +220,6 @@ for module, text in src.items():
             if not name.startswith("`") and not re.fullmatch(r"\w+", name):
                 skipped["an operator"] += 1
                 continue
-        if name in UNCALLABLE:
-            skipped[f"uncallable: {name} {UNCALLABLE[name]}"] += 1
-            continue
         if any(name in line for name in UNEXPORTED):
             skipped["a type the generator does not export"] += 1
             continue
