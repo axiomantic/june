@@ -493,8 +493,10 @@ earlier one::
 
 One unit is one bound method on one class; overloads collapse into one, since a
 test calling either exercises the name. The match is by name rather than by
-receiver, which makes the uncalled figure a LOWER bound - it never claims
-coverage that is not there.
+receiver, which makes the uncalled figure a LOWER bound: it may credit a method
+because a same-named one on another class was called, so the real gap is at
+least this big. What it will not do is the reverse - a method it reports
+uncalled is uncalled.
 
 No figure it prints fails a run. It exits non-zero only where the script has
 fallen out of step with the tree: a receiver-taking declaration of a shape it

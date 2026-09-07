@@ -32,8 +32,9 @@ methods  what
 
 One unit is one bound method on one class, and overloads collapse into one. The
 match is by NAME rather than by receiver, which makes the uncalled figure a
-lower bound: it never claims coverage that is not there, and it may credit a
-method because a same-named one elsewhere was called. README's "What Is Tested"
+lower bound: it may credit a method because a same-named one elsewhere was
+called, so the real gap is at least this big. What it will not do is the reverse
+- a method it reports uncalled is uncalled. README's "What Is Tested"
 section states the rest of the counting rules.
 
 
