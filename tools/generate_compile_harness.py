@@ -181,15 +181,28 @@ for module, text in src.items():
             skipped["a declaration this pattern cannot parse"] += 1
             continue
         name, body, returns = m.group(1), m.group(2), (m.group(3) or "")
-        if name.endswith("=`") or name.endswith("="):
-            skipped["a setter, covered by the field check"] += 1
-            continue
-        if not name.startswith("`") and not re.fullmatch(r"\w+", name):
+        # `name=` is two different things. A field setter writes the field -
+        # importcpp `#.x = ` - and the field check already requires a test to
+        # assign it. An assignment operator is spelled the same way but its
+        # importcpp is `#.operator=(...)`, which the field check never looks at
+        # and no other check covers, so skipping it here left it compiled by
+        # nothing. `==`, `<=`, `+=` and the rest also end in `=` and are neither.
+        setter_like = re.fullmatch(r"`?\w+=`?", name)
+        if setter_like:
+            bare = name.strip("`")[:-1]
+            if re.search(r'importcpp: "#\.' + re.escape(bare) + r' = ', line):
+                skipped["a field setter, covered by the field check"] += 1
+                continue
+        elif name.endswith("=`") or name.endswith("="):
             skipped["an operator"] += 1
             continue
-        if name.startswith("`"):
-            skipped["an operator"] += 1
-            continue
+        if not setter_like:
+            if not name.startswith("`") and not re.fullmatch(r"\w+", name):
+                skipped["an operator"] += 1
+                continue
+            if name.startswith("`"):
+                skipped["an operator"] += 1
+                continue
         if any(name in line for name in UNEXPORTED):
             skipped["a type the generator does not export"] += 1
             continue

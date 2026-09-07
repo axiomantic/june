@@ -82,6 +82,8 @@ proc compileChunk0() =
         let harnessValue53 = CharacterFunctions.compare(WChar(0), WChar(0))
         let harnessValue54 = CharacterFunctions.compareIgnoreCase(WChar(0), WChar(0))
         let harnessValue55 = nowhere[CharPointer_UTF8]()[].toChar()
+        discard nowhere[CharPointer_UTF8]()[].`CharPointer_UTF8=`(nowhere[CharPointer_UTF8]()[])
+        discard nowhere[CharPointer_UTF8]()[].`CharPointer_UTF8=`(cast[constChar](cstring("")))
         discard nowhere[CharPointer_UTF8]()[].getAddress()
         let harnessValue56 = nowhere[CharPointer_UTF8]()[].isEmpty()
         let harnessValue57 = nowhere[CharPointer_UTF8]()[].isNotEmpty()
@@ -116,6 +118,8 @@ proc compileChunk0() =
         let harnessValue82 = nowhere[CharPointer_UTF8]()[].atomicSwap(nowhere[CharPointer_UTF8]()[])
         let harnessValue83 = CharPointer_UTF8.isByteOrderMark(cast[constPointer](address))
         discard nowhere[CharPointer_UTF16]()[].toInt16()
+        discard nowhere[CharPointer_UTF16]()[].`CharPointer_UTF16=`(nowhere[CharPointer_UTF16]()[])
+        discard nowhere[CharPointer_UTF16]()[].`CharPointer_UTF16=`(nowhere[ConstPtr[int16]]()[])
         discard nowhere[CharPointer_UTF16]()[].getAddress()
         let harnessValue84 = nowhere[CharPointer_UTF16]()[].isEmpty()
         let harnessValue85 = nowhere[CharPointer_UTF16]()[].isNotEmpty()
@@ -150,6 +154,8 @@ proc compileChunk0() =
         let harnessValue110 = CharPointer_UTF16.isByteOrderMarkBigEndian(cast[constPointer](address))
         let harnessValue111 = CharPointer_UTF16.isByteOrderMarkLittleEndian(cast[constPointer](address))
         discard nowhere[CharPointer_UTF32]()[].toWChar()
+        discard nowhere[CharPointer_UTF32]()[].`CharPointer_UTF32=`(nowhere[CharPointer_UTF32]()[])
+        discard nowhere[CharPointer_UTF32]()[].`CharPointer_UTF32=`(nowhere[ConstPtr[WChar]]()[])
         discard nowhere[CharPointer_UTF32]()[].getAddress()
         let harnessValue112 = nowhere[CharPointer_UTF32]()[].isEmpty()
         let harnessValue113 = nowhere[CharPointer_UTF32]()[].isNotEmpty()
@@ -184,6 +190,8 @@ proc compileChunk0() =
         let harnessValue137 = CharPointer_UTF32.isValidString(nowhere[ConstPtr[WChar]]()[], 0.cint)
         let harnessValue138 = nowhere[CharPointer_UTF32]()[].atomicSwap(nowhere[CharPointer_UTF32]()[])
         let harnessValue139 = nowhere[CharPointer_ASCII]()[].toChar()
+        discard nowhere[CharPointer_ASCII]()[].`CharPointer_ASCII=`(nowhere[CharPointer_ASCII]()[])
+        discard nowhere[CharPointer_ASCII]()[].`CharPointer_ASCII=`(cast[constChar](cstring("")))
         discard nowhere[CharPointer_ASCII]()[].getAddress()
         let harnessValue140 = nowhere[CharPointer_ASCII]()[].isEmpty()
         let harnessValue141 = nowhere[CharPointer_ASCII]()[].isNotEmpty()
@@ -222,6 +230,7 @@ proc compileChunk0() =
         let harnessValue170 = nowhere[String]()[].hashCode64()
         let harnessValue171 = nowhere[String]()[].hash()
         let harnessValue172 = nowhere[String]()[].length()
+        discard nowhere[String]()[].`String=`(nowhere[String]()[])
         nowhere[String]()[].append(nowhere[String]()[], 0'u64)
         nowhere[String]()[].appendCharPointer(nowhere[CharPointer_UTF8]()[], nowhere[CharPointer_UTF8]()[])
         nowhere[String]()[].appendCharPointer(nowhere[CharPointer_UTF8]()[])
@@ -331,6 +340,7 @@ proc compileChunk0() =
         discard Logger.getCurrentLogger()
         Logger.writeToLog(nowhere[String]()[])
         Logger.outputDebugString(nowhere[String]()[])
+        discard nowhere[MemoryBlock]()[].`MemoryBlock=`(nowhere[MemoryBlock]()[])
         let harnessValue271 = nowhere[MemoryBlock]()[].matches(cast[constPointer](address), 0'u64)
         let harnessValue272 = nowhere[MemoryBlock]()[].getData()
         let harnessValue273 = nowhere[MemoryBlock]()[].getData()
@@ -368,6 +378,7 @@ proc compileChunk0() =
         nowhere[DummyCriticalSection]()[].enter()
         let harnessValue285 = nowhere[DummyCriticalSection]()[].tryEnter()
         nowhere[DummyCriticalSection]()[].exit()
+        discard nowhere[ErasedScopeGuard]()[].`ErasedScopeGuard=`(nowhere[ErasedScopeGuard]()[])
         nowhere[ErasedScopeGuard]()[].reset()
         nowhere[ErasedScopeGuard]()[].release()
         let harnessValue286 = nowhere[AbstractFifo]()[].getTotalSize()
@@ -396,6 +407,7 @@ proc compileChunk0() =
         let harnessValue299 = nowhere[Identifier]()[].toCharPointer_UTF8()
         let harnessValue300 = nowhere[Identifier]()[].toStringRef()
         let harnessValue301 = Identifier.null()
+        discard nowhere[Identifier]()[].`Identifier=`(nowhere[Identifier]()[])
         let harnessValue302 = nowhere[Identifier]()[].toString()
         let harnessValue303 = nowhere[Identifier]()[].getCharPointer()
         let harnessValue304 = nowhere[Identifier]()[].isValid()
@@ -403,6 +415,7 @@ proc compileChunk0() =
         let harnessValue306 = Identifier.isValidIdentifier(nowhere[String]()[])
         discard nowhere[StringArray]()[].strings()
         discard nowhere[StringArray]()[].strings()
+        discard nowhere[StringArray]()[].`StringArray=`(nowhere[StringArray]()[])
         nowhere[StringArray]()[].swapWith(nowhere[StringArray]()[])
         let harnessValue307 = nowhere[StringArray]()[].size()
         let harnessValue308 = nowhere[StringArray]()[].isEmpty()
@@ -412,6 +425,9 @@ proc compileChunk0() =
         let harnessValue311 = nowhere[StringArray]()[].indexOf(nowhere[StringRef]()[], false, 0.cint)
         nowhere[StringArray]()[].add(nowhere[String]()[])
         nowhere[StringArray]()[].insert(0.cint, nowhere[String]()[])
+
+proc compileChunk1() =
+    if address != 0:
         let harnessValue312 = nowhere[StringArray]()[].addIfNotAlreadyThere(nowhere[String]()[], false)
         nowhere[StringArray]()[].set(0.cint, nowhere[String]()[])
         nowhere[StringArray]()[].addArray(nowhere[StringArray]()[], 0.cint, 0.cint)
@@ -425,9 +441,6 @@ proc compileChunk0() =
         nowhere[StringArray]()[].clear()
         nowhere[StringArray]()[].clearQuick()
         nowhere[StringArray]()[].remove(0.cint)
-
-proc compileChunk1() =
-    if address != 0:
         nowhere[StringArray]()[].removeString(nowhere[StringRef]()[], false)
         nowhere[StringArray]()[].removeRange(0.cint, 0.cint)
         nowhere[StringArray]()[].removeDuplicates(false)
@@ -489,6 +502,7 @@ proc compileChunk1() =
         let harnessValue366 = SystemStats.getStackBacktrace()
         let harnessValue367 = SystemStats.isRunningInAppExtensionSandbox()
         let harnessValue369 = SystemStats.getCpuSpeedInMegaherz()
+        discard nowhere[StringPairArray]()[].`StringPairArray=`(nowhere[StringPairArray]()[])
         let harnessValue370 = nowhere[StringPairArray]()[].getValue(nowhere[StringRef]()[], nowhere[String]()[])
         let harnessValue371 = nowhere[StringPairArray]()[].containsKey(nowhere[StringRef]()[])
         let harnessValue372 = nowhere[StringPairArray]()[].getAllKeys()
@@ -516,6 +530,7 @@ proc compileChunk1() =
         discard nowhere[TextDiffChange]()[].length()
         let harnessValue381 = nowhere[TextDiffChange]()[].isDeletion()
         let harnessValue382 = nowhere[TextDiffChange]()[].appliedTo(nowhere[String]()[])
+        discard nowhere[LocalisedStrings]()[].`LocalisedStrings=`(nowhere[LocalisedStrings]()[])
         LocalisedStrings.setCurrentMappings(cast[ptr LocalisedStrings](address))
         discard LocalisedStrings.getCurrentMappings()
         let harnessValue383 = LocalisedStrings.translateWithCurrentMappings(nowhere[String]()[])
@@ -537,10 +552,13 @@ proc compileChunk1() =
         let harnessValue397 = nowhere[Result]()[].wasOk()
         let harnessValue398 = nowhere[Result]()[].failed()
         let harnessValue399 = nowhere[Result]()[].getErrorMessage()
+        discard nowhere[Result]()[].`Result=`(nowhere[Result]()[])
+        discard nowhere[Uuid]()[].`Uuid=`(nowhere[Uuid]()[])
         let harnessValue400 = nowhere[Uuid]()[].isNull()
         let harnessValue401 = Uuid.null()
         let harnessValue402 = nowhere[Uuid]()[].toString()
         let harnessValue403 = nowhere[Uuid]()[].toDashedString()
+        discard nowhere[Uuid]()[].`Uuid=`(nowhere[String]()[])
         let harnessValue404 = nowhere[Uuid]()[].getTimeLow()
         let harnessValue405 = nowhere[Uuid]()[].getTimeMid()
         let harnessValue406 = nowhere[Uuid]()[].getTimeHighAndVersion()
@@ -550,10 +568,12 @@ proc compileChunk1() =
         let harnessValue410 = nowhere[Uuid]()[].hash()
         discard nowhere[Uuid]()[].getRawData()
         let harnessValue411 = Uuid.size()
+        discard nowhere[Uuid]()[].`Uuid=`(nowhere[ConstPtr[uint8]]()[])
         let harnessValue412 = nowhere[ArgumentList]()[].executableName()
         discard nowhere[ArgumentList]()[].executableName()
         discard nowhere[ArgumentList]()[].arguments()
         discard nowhere[ArgumentList]()[].arguments()
+        discard nowhere[ArgumentList]()[].`ArgumentList=`(nowhere[ArgumentList]()[])
         let harnessValue413 = nowhere[ArgumentList]()[].size()
         nowhere[ArgumentList]()[].checkMinNumArguments(0.cint)
         let harnessValue414 = nowhere[ArgumentList]()[].containsOption(nowhere[StringRef]()[])
@@ -605,6 +625,18 @@ proc compileChunk1() =
         let harnessValue443 = nowhere[juce_var]()[].toBool()
         let harnessValue444 = nowhere[juce_var]()[].toFloat()
         let harnessValue445 = nowhere[juce_var]()[].toFloat64()
+        discard nowhere[juce_var]()[].`juce_var=`(nowhere[juce_var]()[])
+        discard nowhere[juce_var]()[].`juce_var=`(0.cint)
+        discard nowhere[juce_var]()[].`juce_var=`(0'i64)
+        discard nowhere[juce_var]()[].`juce_var=`(false)
+        discard nowhere[juce_var]()[].`juce_var=`(0.0)
+        discard nowhere[juce_var]()[].`juce_var=`(cast[constChar](cstring("")))
+        discard nowhere[juce_var]()[].`juce_var=`(cast[ptr WChar](address))
+        discard nowhere[juce_var]()[].`juce_var=`(nowhere[String]()[])
+        discard nowhere[juce_var]()[].`juce_var=`(nowhere[MemoryBlock]()[])
+        discard nowhere[juce_var]()[].`juce_var=`(nowhere[Array[juce_var]]()[])
+        discard nowhere[juce_var]()[].`juce_var=`(cast[ptr ReferenceCountedObject](address))
+        discard nowhere[juce_var]()[].`juce_var=`(nowhere[CppFunctionObjectR1Ref[juce_var, juce_varNativeFunctionArgs]]()[])
         nowhere[juce_var]()[].swapWith(nowhere[juce_var]()[])
         let harnessValue446 = juce_var.undefined()
         let harnessValue447 = nowhere[juce_var]()[].toString()
@@ -717,6 +749,7 @@ proc compileChunk1() =
         let harnessValue516 = DefaultHashFunctions.generateHash(nowhere[juce_var]()[], 0.cint)
         let harnessValue517 = DefaultHashFunctions.generateHash(cast[constPointer](address), 0.cint)
         let harnessValue518 = DefaultHashFunctions.generateHash(nowhere[Uuid]()[], 0.cint)
+        discard nowhere[RelativeTime]()[].`RelativeTime=`(nowhere[RelativeTime]()[])
         let harnessValue519 = RelativeTime.milliseconds(0.cint)
         let harnessValue520 = RelativeTime.milliseconds(0'i64)
         let harnessValue521 = RelativeTime.seconds(0.0)
@@ -732,6 +765,7 @@ proc compileChunk1() =
         let harnessValue531 = nowhere[RelativeTime]()[].inWeeks()
         let harnessValue532 = nowhere[RelativeTime]()[].getDescription(nowhere[String]()[])
         let harnessValue533 = nowhere[RelativeTime]()[].getApproximateDescription()
+        discard nowhere[june.Time]()[].`Time=`(nowhere[june.Time]()[])
         let harnessValue534 = june.Time.getCurrentTime()
         let harnessValue535 = nowhere[june.Time]()[].toMilliseconds()
         let harnessValue536 = nowhere[june.Time]()[].getYear()
@@ -794,6 +828,9 @@ proc compileChunk1() =
         let harnessValue592 = nowhere[InputStream]()[].setPosition(0'i64)
         nowhere[InputStream]()[].skipNextBytes(0'i64)
         nowhere[OutputStream]()[].flush()
+
+proc compileChunk2() =
+    if address != 0:
         let harnessValue593 = nowhere[OutputStream]()[].setPosition(0'i64)
         let harnessValue594 = nowhere[OutputStream]()[].getPosition()
         let harnessValue595 = nowhere[OutputStream]()[].write(cast[constPointer](address), 0'u64)
@@ -828,11 +865,10 @@ proc compileChunk1() =
         let harnessValue621 = nowhere[MemoryOutputStream]()[].toString()
         let harnessValue622 = nowhere[MemoryOutputStream]()[].getMemoryBlock()
         discard nowhere[InputSource]()[].createInputStream()
-
-proc compileChunk2() =
-    if address != 0:
         discard nowhere[InputSource]()[].createInputStreamFor(nowhere[String]()[])
         let harnessValue623 = nowhere[InputSource]()[].hashCode()
+        discard nowhere[june.File]()[].`File=`(nowhere[String]()[])
+        discard nowhere[june.File]()[].`File=`(nowhere[june.File]()[])
         let harnessValue624 = nowhere[june.File]()[].exists()
         let harnessValue625 = nowhere[june.File]()[].existsAsFile()
         let harnessValue626 = nowhere[june.File]()[].isDirectory()
@@ -941,6 +977,8 @@ proc compileChunk2() =
         let harnessValue724 = nowhere[FileOutputStream]()[].failedToOpen()
         let harnessValue725 = nowhere[FileOutputStream]()[].openedOk()
         let harnessValue726 = nowhere[FileOutputStream]()[].truncate()
+        discard nowhere[FileSearchPath]()[].`FileSearchPath=`(nowhere[FileSearchPath]()[])
+        discard nowhere[FileSearchPath]()[].`FileSearchPath=`(nowhere[String]()[])
         let harnessValue727 = nowhere[FileSearchPath]()[].getNumPaths()
         let harnessValue728 = nowhere[FileSearchPath]()[].getRawString(0.cint)
         let harnessValue729 = nowhere[FileSearchPath]()[].toString()
@@ -979,6 +1017,7 @@ proc compileChunk2() =
         let harnessValue749 = nowhere[ToVarOptions]()[].withVersionIncluded(false)
         discard nowhere[ToVarOptions]()[].getExplicitVersion()
         let harnessValue750 = nowhere[ToVarOptions]()[].getVersionIncluded()
+        discard nowhere[BigInteger]()[].`BigInteger=`(nowhere[BigInteger]()[])
         nowhere[BigInteger]()[].swapWith(nowhere[BigInteger]()[])
         let harnessValue751 = nowhere[BigInteger]()[].isZero()
         let harnessValue752 = nowhere[BigInteger]()[].isOne()
@@ -1013,6 +1052,7 @@ proc compileChunk2() =
         nowhere[BigInteger]()[].parseString(nowhere[StringRef]()[], 0.cint)
         let harnessValue766 = nowhere[BigInteger]()[].toMemoryBlock()
         nowhere[BigInteger]()[].loadFromMemoryBlock(nowhere[MemoryBlock]()[])
+        discard nowhere[Expression]()[].`Expression=`(nowhere[Expression]()[])
         let harnessValue767 = nowhere[Expression]()[].toString()
         let harnessValue768 = Expression.symbol(nowhere[String]()[])
         let harnessValue769 = Expression.function(nowhere[String]()[], nowhere[Array[Expression]]()[])
@@ -1191,6 +1231,9 @@ proc compileChunk2() =
         let harnessValue877 = IPAddress.local(false)
         IPAddress.findAllAddresses(nowhere[Array[IPAddress]]()[], false)
         discard IPAddress.getAllAddresses(false)
+
+proc compileChunk3() =
+    if address != 0:
         let harnessValue878 = IPAddress.getLocalAddress(false)
         let harnessValue879 = nowhere[IPAddress]()[].isNull()
         let harnessValue880 = nowhere[IPAddress]()[].toString()
@@ -1202,6 +1245,7 @@ proc compileChunk2() =
         let harnessValue886 = IPAddress.getInterfaceBroadcastAddress(nowhere[IPAddress]()[])
         discard MACAddress.getAllAddresses()
         MACAddress.findAllAddresses(nowhere[Array[MACAddress]]()[])
+        discard nowhere[MACAddress]()[].`MACAddress=`(nowhere[MACAddress]()[])
         discard nowhere[MACAddress]()[].getBytes()
         let harnessValue887 = nowhere[MACAddress]()[].toString()
         let harnessValue888 = nowhere[MACAddress]()[].toString(nowhere[StringRef]()[])
@@ -1231,9 +1275,6 @@ proc compileChunk2() =
         let harnessValue908 = nowhere[StreamingSocket]()[].waitUntilReady(false, 0.cint)
         let harnessValue909 = nowhere[StreamingSocket]()[].read(cast[pointer](address), 0.cint, false)
         let harnessValue910 = nowhere[StreamingSocket]()[].write(cast[constPointer](address), 0.cint)
-
-proc compileChunk3() =
-    if address != 0:
         let harnessValue911 = nowhere[StreamingSocket]()[].createListener(0.cint, nowhere[String]()[])
         discard nowhere[StreamingSocket]()[].waitForNextConnection()
         let harnessValue912 = nowhere[DatagramSocket]()[].bindToPort(0.cint)
@@ -1400,6 +1441,7 @@ proc compileChunk3() =
         discard nowhere[XmlAttribute]()[].value()
         let harnessValue1011 = nowhere[XmlAttribute]()[].equals(nowhere[StringRef]()[], nowhere[StringRef]()[], false)
         let harnessValue1012 = nowhere[XmlAttribute]()[].equals(nowhere[XmlAttribute]()[], false)
+        discard nowhere[XmlElement]()[].`XmlElement=`(nowhere[XmlElement]()[])
         let harnessValue1013 = nowhere[XmlElement]()[].isEquivalentTo(cast[ptr XmlElement](address), false)
         let harnessValue1014 = nowhere[XmlElement]()[].toString(nowhere[XmlElementTextFormat]()[])
         nowhere[XmlElement]()[].writeTo(nowhere[OutputStream]()[], nowhere[XmlElementTextFormat]()[])
@@ -1494,6 +1536,7 @@ proc compileChunk3() =
         nowhere[ZipFileBuilder]()[].addEntry(cast[ptr InputStream](address), 0.cint, nowhere[String]()[], nowhere[june.Time]()[])
         nowhere[ZipFileBuilder]()[].addEntry(nowhere[UniquePtr[InputStream]]()[], 0.cint, nowhere[String]()[], nowhere[june.Time]()[])
         let harnessValue1060 = nowhere[ZipFileBuilder]()[].writeToStream(nowhere[OutputStream]()[], cast[ptr float64](address))
+        discard nowhere[PropertySet]()[].`PropertySet=`(nowhere[PropertySet]()[])
         let harnessValue1061 = nowhere[PropertySet]()[].getValue(nowhere[StringRef]()[], nowhere[String]()[])
         let harnessValue1062 = nowhere[PropertySet]()[].getIntValue(nowhere[StringRef]()[], 0.cint)
         let harnessValue1063 = nowhere[PropertySet]()[].getDoubleValue(nowhere[StringRef]()[], 0.0)
@@ -1539,6 +1582,7 @@ proc compileChunk3() =
         let harnessValue1088 = AndroidDocument.fromFile(nowhere[june.File]()[])
         let harnessValue1089 = AndroidDocument.fromDocument(nowhere[URL]()[])
         let harnessValue1090 = AndroidDocument.fromTree(nowhere[URL]()[])
+        discard nowhere[AndroidDocument]()[].`AndroidDocument=`(nowhere[AndroidDocument]()[])
         let harnessValue1091 = nowhere[AndroidDocument]()[].deleteDocument()
         let harnessValue1092 = nowhere[AndroidDocument]()[].renameTo(nowhere[String]()[])
         let harnessValue1093 = nowhere[AndroidDocument]()[].createChildDocumentWithTypeAndName(nowhere[String]()[], nowhere[String]()[])
@@ -1590,6 +1634,9 @@ proc compileChunk3() =
         nowhere[CallbackMessage]()[].incReferenceCount()
         let harnessValue1117 = nowhere[CallbackMessage]()[].post()
         DeletedAtShutdown.deleteAll()
+
+proc compileChunk4() =
+    if address != 0:
         discard JUCEApplicationBase.getInstance()
         let harnessValue1118 = nowhere[JUCEApplicationBase]()[].getApplicationName()
         let harnessValue1119 = nowhere[JUCEApplicationBase]()[].getApplicationVersion()
@@ -1626,6 +1673,7 @@ proc compileChunk3() =
         nowhere[AsyncUpdater]()[].handleUpdateNowIfNeeded()
         let harnessValue1131 = nowhere[AsyncUpdater]()[].isUpdatePending()
         nowhere[AsyncUpdater]()[].handleAsyncUpdate()
+        discard nowhere[LockingAsyncUpdater]()[].`LockingAsyncUpdater=`(nowhere[LockingAsyncUpdater]()[])
         nowhere[LockingAsyncUpdater]()[].triggerAsyncUpdate()
         nowhere[LockingAsyncUpdater]()[].cancelPendingUpdate()
         nowhere[LockingAsyncUpdater]()[].handleUpdateNowIfNeeded()
@@ -1634,9 +1682,6 @@ proc compileChunk3() =
         nowhere[ChangeBroadcaster]()[].addChangeListener(cast[ptr ChangeListener](address))
         nowhere[ChangeBroadcaster]()[].removeChangeListener(cast[ptr ChangeListener](address))
         nowhere[ChangeBroadcaster]()[].removeAllChangeListeners()
-
-proc compileChunk4() =
-    if address != 0:
         nowhere[ChangeBroadcaster]()[].sendChangeMessage()
         nowhere[ChangeBroadcaster]()[].sendSynchronousChangeMessage()
         nowhere[ChangeBroadcaster]()[].dispatchPendingMessages()
@@ -1738,6 +1783,8 @@ proc compileChunk4() =
         let harnessValue1183 = nowhere[Value]()[].getValue()
         let harnessValue1184 = nowhere[Value]()[].toString()
         nowhere[Value]()[].setValue(nowhere[juce_var]()[])
+        discard nowhere[Value]()[].`Value=`(nowhere[juce_var]()[])
+        discard nowhere[Value]()[].`Value=`(nowhere[Value]()[])
         nowhere[Value]()[].referTo(nowhere[Value]()[])
         let harnessValue1185 = nowhere[Value]()[].refersToSameSourceAs(nowhere[Value]()[])
         nowhere[Value]()[].addListener(cast[ptr ValueListener](address))
@@ -1747,6 +1794,7 @@ proc compileChunk4() =
         let harnessValue1186 = nowhere[ValueValueSource]()[].getValue()
         nowhere[ValueValueSource]()[].setValue(nowhere[juce_var]()[])
         nowhere[ValueValueSource]()[].sendChangeMessage(false)
+        discard nowhere[ValueTree]()[].`ValueTree=`(nowhere[ValueTree]()[])
         let harnessValue1187 = nowhere[ValueTree]()[].isEquivalentTo(nowhere[ValueTree]()[])
         let harnessValue1188 = nowhere[ValueTree]()[].isValid()
         let harnessValue1189 = nowhere[ValueTree]()[].createCopy()
@@ -1811,6 +1859,7 @@ proc compileChunk4() =
         nowhere[ValueTreePropertyWithDefault]()[].setDefault(nowhere[juce_var]()[])
         let harnessValue1221 = nowhere[ValueTreePropertyWithDefault]()[].isUsingDefault()
         nowhere[ValueTreePropertyWithDefault]()[].resetToDefault()
+        discard nowhere[ValueTreePropertyWithDefault]()[].`ValueTreePropertyWithDefault=`(nowhere[juce_var]()[])
         nowhere[ValueTreePropertyWithDefault]()[].setValue(nowhere[juce_var]()[], cast[ptr UndoManager](address))
         nowhere[ValueTreePropertyWithDefault]()[].referTo(nowhere[ValueTree]()[], nowhere[Identifier]()[], cast[ptr UndoManager](address))
         nowhere[ValueTreePropertyWithDefault]()[].referTo(nowhere[ValueTree]()[], nowhere[Identifier]()[], cast[ptr UndoManager](address), nowhere[juce_var]()[])
@@ -1819,6 +1868,7 @@ proc compileChunk4() =
         discard nowhere[ValueTreePropertyWithDefault]()[].getPropertyID()
         let harnessValue1222 = nowhere[ValueTreePropertyWithDefault]()[].getPropertyID()
         discard nowhere[ValueTreePropertyWithDefault]()[].getUndoManager()
+        discard nowhere[ValueTreePropertyWithDefault]()[].`ValueTreePropertyWithDefault=`(nowhere[ValueTreePropertyWithDefault]()[])
         let harnessValue1223 = nowhere[PropertiesFile]()[].isValidFile()
         let harnessValue1224 = nowhere[PropertiesFile]()[].saveIfNeeded()
         let harnessValue1225 = nowhere[PropertiesFile]()[].save()
@@ -1873,6 +1923,7 @@ proc compileChunk4() =
         discard nowhere[AffineTransform]()[].mat11()
         let harnessValue1248 = nowhere[AffineTransform]()[].mat12()
         discard nowhere[AffineTransform]()[].mat12()
+        discard nowhere[AffineTransform]()[].`AffineTransform=`(nowhere[AffineTransform]()[])
         let harnessValue1249 = nowhere[AffineTransform]()[].translated(0.0'f32, 0.0'f32)
         let harnessValue1250 = AffineTransform.translation(0.0'f32, 0.0'f32)
         let harnessValue1251 = nowhere[AffineTransform]()[].withAbsoluteTranslation(0.0'f32, 0.0'f32)
@@ -1902,12 +1953,14 @@ proc compileChunk4() =
         let harnessValue1275 = nowhere[AffineTransform]()[].getTranslationY()
         let harnessValue1276 = nowhere[AffineTransform]()[].getDeterminant()
         let harnessValue1277 = nowhere[AffineTransform]()[].getScaleFactor()
+        discard nowhere[Justification]()[].`Justification=`(nowhere[Justification]()[])
         let harnessValue1278 = nowhere[Justification]()[].getFlags()
         let harnessValue1279 = nowhere[Justification]()[].testFlags(0.cint)
         let harnessValue1280 = nowhere[Justification]()[].getOnlyVerticalFlags()
         let harnessValue1281 = nowhere[Justification]()[].getOnlyHorizontalFlags()
         let harnessValue1282 = Path.defaultToleranceForTesting()
         let harnessValue1283 = Path.defaultToleranceForMeasurement()
+        discard nowhere[Path]()[].`Path=`(nowhere[Path]()[])
         let harnessValue1284 = nowhere[Path]()[].isEmpty()
         discard nowhere[Path]()[].getBounds()
         discard nowhere[Path]()[].getBoundsTransformed(nowhere[AffineTransform]()[])
@@ -1984,6 +2037,9 @@ proc compileChunk4() =
         let harnessValue1306 = nowhere[PixelARGB]()[].getEvenBytes()
         let harnessValue1307 = nowhere[PixelARGB]()[].getOddBytes()
         let harnessValue1308 = nowhere[PixelARGB]()[].getAlpha()
+
+proc compileChunk5() =
+    if address != 0:
         let harnessValue1309 = nowhere[PixelARGB]()[].getRed()
         let harnessValue1310 = nowhere[PixelARGB]()[].getGreen()
         let harnessValue1311 = nowhere[PixelARGB]()[].getBlue()
@@ -2036,10 +2092,8 @@ proc compileChunk4() =
         let harnessValue1335 = Colour.fromHSV(0.0'f32, 0.0'f32, 0.0'f32, 0'u8)
         let harnessValue1336 = Colour.fromHSL(0.0'f32, 0.0'f32, 0.0'f32, 0.0'f32)
         let harnessValue1337 = Colour.fromHSL(0.0'f32, 0.0'f32, 0.0'f32, 0'u8)
+        discard nowhere[Colour]()[].`Colour=`(nowhere[Colour]()[])
         let harnessValue1338 = nowhere[Colour]()[].getRed()
-
-proc compileChunk5() =
-    if address != 0:
         let harnessValue1339 = nowhere[Colour]()[].getGreen()
         let harnessValue1340 = nowhere[Colour]()[].getBlue()
         let harnessValue1341 = nowhere[Colour]()[].getFloatRed()
@@ -2090,6 +2144,7 @@ proc compileChunk5() =
         discard nowhere[ColourGradient]()[].point2()
         let harnessValue1381 = nowhere[ColourGradient]()[].isRadial()
         discard nowhere[ColourGradient]()[].isRadial()
+        discard nowhere[ColourGradient]()[].`ColourGradient=`(nowhere[ColourGradient]()[])
         let harnessValue1382 = ColourGradient.vertical(nowhere[Colour]()[], 0.0'f32, nowhere[Colour]()[], 0.0'f32)
         let harnessValue1383 = ColourGradient.horizontal(nowhere[Colour]()[], 0.0'f32, nowhere[Colour]()[], 0.0'f32)
         nowhere[ColourGradient]()[].clearColours()
@@ -2128,6 +2183,7 @@ proc compileChunk5() =
         discard nowhere[PathFlatteningIterator]()[].subPathIndex()
         let harnessValue1399 = nowhere[PathFlatteningIterator]()[].next()
         let harnessValue1400 = nowhere[PathFlatteningIterator]()[].isLastInSubpath()
+        discard nowhere[PathStrokeType]()[].`PathStrokeType=`(nowhere[PathStrokeType]()[])
         nowhere[PathStrokeType]()[].createStrokedPath(nowhere[Path]()[], nowhere[Path]()[], nowhere[AffineTransform]()[], 0.0'f32)
         nowhere[PathStrokeType]()[].createDashedStroke(nowhere[Path]()[], nowhere[Path]()[], cast[ptr cfloat](address), 0.cint, nowhere[AffineTransform]()[], 0.0'f32)
         nowhere[PathStrokeType]()[].createStrokeWithArrowheads(nowhere[Path]()[], nowhere[Path]()[], 0.0'f32, 0.0'f32, 0.0'f32, 0.0'f32, nowhere[AffineTransform]()[], 0.0'f32)
@@ -2137,6 +2193,7 @@ proc compileChunk5() =
         nowhere[PathStrokeType]()[].setJointStyle(PathStrokeTypeJointStyle_mitered)
         let harnessValue1403 = nowhere[PathStrokeType]()[].getEndStyle()
         nowhere[PathStrokeType]()[].setEndStyle(PathStrokeTypeEndCapStyle_butt)
+        discard nowhere[RectanglePlacement]()[].`RectanglePlacement=`(nowhere[RectanglePlacement]()[])
         let harnessValue1404 = nowhere[RectanglePlacement]()[].getFlags()
         let harnessValue1405 = nowhere[RectanglePlacement]()[].testFlags(0.cint)
         nowhere[RectanglePlacement]()[].applyTo(nowhere[float64]()[], nowhere[float64]()[], nowhere[float64]()[], nowhere[float64]()[], 0.0, 0.0, 0.0, 0.0)
@@ -2242,6 +2299,7 @@ proc compileChunk5() =
         nowhere[Graphics]()[].resetToDefaultState()
         let harnessValue1432 = nowhere[Graphics]()[].isVectorDevice()
         discard nowhere[Graphics]()[].getInternalContext()
+        discard nowhere[Image]()[].`Image=`(nowhere[Image]()[])
         let harnessValue1433 = nowhere[Image]()[].isValid()
         let harnessValue1434 = nowhere[Image]()[].isNull()
         let harnessValue1435 = nowhere[Image]()[].getWidth()
@@ -2332,6 +2390,7 @@ proc compileChunk5() =
         discard nowhere[FillType]()[].image()
         let harnessValue1470 = nowhere[FillType]()[].transform()
         discard nowhere[FillType]()[].transform()
+        discard nowhere[FillType]()[].`FillType=`(nowhere[FillType]()[])
         let harnessValue1471 = nowhere[FillType]()[].isColour()
         let harnessValue1472 = nowhere[FillType]()[].isGradient()
         let harnessValue1473 = nowhere[FillType]()[].isTiledImage()
@@ -2381,6 +2440,9 @@ proc compileChunk5() =
         discard Typeface.findSystemTypeface()
         discard nowhere[Typeface]()[].getSupportedFeatures()
         discard nowhere[Typeface]()[].getNativeDetails()
+
+proc compileChunk6() =
+    if address != 0:
         let harnessValue1493 = nowhere[FontOptions]()[].withName(nowhere[String]()[])
         let harnessValue1494 = nowhere[FontOptions]()[].withStyle(nowhere[String]()[])
         let harnessValue1495 = nowhere[FontOptions]()[].withTypeface(nowhere[ReferenceCountedObjectPtr[Typeface]]()[])
@@ -2412,6 +2474,7 @@ proc compileChunk5() =
         discard nowhere[FontOptions]()[].getAscentOverride()
         discard nowhere[FontOptions]()[].getDescentOverride()
         discard nowhere[FontOptions]()[].getFeatureSettings()
+        discard nowhere[Font]()[].`Font=`(nowhere[Font]()[])
         nowhere[Font]()[].setTypefaceName(nowhere[String]()[])
         let harnessValue1519 = nowhere[Font]()[].getTypefaceName()
         let harnessValue1520 = nowhere[Font]()[].getTypefaceStyle()
@@ -2440,9 +2503,6 @@ proc compileChunk5() =
         let harnessValue1536 = nowhere[Font]()[].getDescent()
         let harnessValue1537 = nowhere[Font]()[].getDescentInPoints()
         let harnessValue1538 = nowhere[Font]()[].getStyleFlags()
-
-proc compileChunk6() =
-    if address != 0:
         let harnessValue1539 = nowhere[Font]()[].withStyle(0.cint)
         nowhere[Font]()[].setStyleFlags(0.cint)
         nowhere[Font]()[].setBold(false)
@@ -2479,6 +2539,7 @@ proc compileChunk6() =
         let harnessValue1554 = nowhere[Font]()[].toString()
         let harnessValue1555 = Font.fromString(nowhere[String]()[])
         let harnessValue1556 = nowhere[Font]()[].getHeightToPointsFactor()
+        discard nowhere[AttributedString]()[].`AttributedString=`(nowhere[AttributedString]()[])
         let harnessValue1557 = nowhere[AttributedString]()[].getText()
         nowhere[AttributedString]()[].setText(nowhere[String]()[])
         nowhere[AttributedString]()[].append(nowhere[String]()[])
@@ -2508,6 +2569,7 @@ proc compileChunk6() =
         discard nowhere[AttributedStringAttribute]()[].font()
         let harnessValue1565 = nowhere[AttributedStringAttribute]()[].colour()
         discard nowhere[AttributedStringAttribute]()[].colour()
+        discard nowhere[AttributedStringAttribute]()[].`AttributedStringAttribute=`(nowhere[AttributedStringAttribute]()[])
         let harnessValue1566 = nowhere[PositionedGlyph]()[].getCharacter()
         let harnessValue1567 = nowhere[PositionedGlyph]()[].isWhitespace()
         let harnessValue1568 = nowhere[PositionedGlyph]()[].getLeft()
@@ -2522,6 +2584,7 @@ proc compileChunk6() =
         nowhere[PositionedGlyph]()[].draw(nowhere[Graphics]()[], nowhere[AffineTransform]()[])
         nowhere[PositionedGlyph]()[].createPath(nowhere[Path]()[])
         let harnessValue1574 = nowhere[PositionedGlyph]()[].hitTest(0.0'f32, 0.0'f32)
+        discard nowhere[GlyphArrangement]()[].`GlyphArrangement=`(nowhere[GlyphArrangement]()[])
         let harnessValue1575 = nowhere[GlyphArrangement]()[].getNumGlyphs()
         discard nowhere[GlyphArrangement]()[].getGlyph(0.cint)
         nowhere[GlyphArrangement]()[].clear()
@@ -2543,6 +2606,7 @@ proc compileChunk6() =
         discard GlyphArrangement.getStringBounds(nowhere[Font]()[], nowhere[StringRef]()[])
         let harnessValue1577 = GlyphArrangement.getStringWidth(nowhere[Font]()[], nowhere[StringRef]()[])
         let harnessValue1578 = GlyphArrangement.getStringWidthInt(nowhere[Font]()[], nowhere[StringRef]()[])
+        discard nowhere[TextLayout]()[].`TextLayout=`(nowhere[TextLayout]()[])
         nowhere[TextLayout]()[].createLayout(nowhere[AttributedString]()[], 0.0'f32)
         nowhere[TextLayout]()[].createLayout(nowhere[AttributedString]()[], 0.0'f32, 0.0'f32)
         nowhere[TextLayout]()[].createLayoutWithBalancedLineLengths(nowhere[AttributedString]()[], 0.0'f32)
@@ -2585,6 +2649,7 @@ proc compileChunk6() =
         discard nowhere[TextLayoutLine]()[].descent()
         let harnessValue1590 = nowhere[TextLayoutLine]()[].leading()
         discard nowhere[TextLayoutLine]()[].leading()
+        discard nowhere[TextLayoutLine]()[].`TextLayoutLine=`(nowhere[TextLayoutLine]()[])
         discard nowhere[TextLayoutLine]()[].getLineBoundsX()
         discard nowhere[TextLayoutLine]()[].getLineBoundsY()
         discard nowhere[TextLayoutLine]()[].getLineBounds()
@@ -2669,6 +2734,7 @@ proc compileChunk6() =
         let harnessValue1628 = GridJustifyContent_start.toCint()
         let harnessValue1629 = GridAlignContent_start.toCint()
         let harnessValue1630 = GridAutoFlow_row.toCint()
+        discard nowhere[MouseCursor]()[].`MouseCursor=`(nowhere[MouseCursor]()[])
         MouseCursor.showWaitCursor()
         MouseCursor.hideWaitCursor()
         nowhere[MouseListener]()[].mouseMove(nowhere[MouseEvent]()[])
@@ -2681,6 +2747,7 @@ proc compileChunk6() =
         nowhere[MouseListener]()[].mouseWheelMove(nowhere[MouseEvent]()[], nowhere[MouseWheelDetails]()[])
         nowhere[MouseListener]()[].mouseMagnify(nowhere[MouseEvent]()[], 0.0'f32)
         let harnessValue1631 = ModifierKeys.currentModifiers()
+        discard nowhere[ModifierKeys]()[].`ModifierKeys=`(nowhere[ModifierKeys]()[])
         let harnessValue1632 = nowhere[ModifierKeys]()[].isCommandDown()
         let harnessValue1633 = nowhere[ModifierKeys]()[].isPopupMenu()
         let harnessValue1634 = nowhere[ModifierKeys]()[].isLeftButtonDown()
@@ -2713,6 +2780,7 @@ proc compileChunk6() =
         let harnessValue1661 = MouseInputSource.invalidTiltX()
         let harnessValue1662 = MouseInputSource.invalidTiltY()
         discard MouseInputSource.offscreenMousePos()
+        discard nowhere[MouseInputSource]()[].`MouseInputSource=`(nowhere[MouseInputSource]()[])
         let harnessValue1663 = nowhere[MouseInputSource]()[].getType()
         let harnessValue1664 = nowhere[MouseInputSource]()[].isMouse()
         let harnessValue1665 = nowhere[MouseInputSource]()[].isTouch()
@@ -2775,6 +2843,9 @@ proc compileChunk6() =
         let harnessValue1704 = nowhere[MouseEvent]()[].mouseWasDraggedSinceMouseDown()
         let harnessValue1705 = nowhere[MouseEvent]()[].mouseWasClicked()
         let harnessValue1706 = nowhere[MouseEvent]()[].getNumberOfClicks()
+
+proc compileChunk7() =
+    if address != 0:
         let harnessValue1707 = nowhere[MouseEvent]()[].getLengthOfMousePress()
         let harnessValue1708 = nowhere[MouseEvent]()[].isPressureValid()
         let harnessValue1709 = nowhere[MouseEvent]()[].isOrientationValid()
@@ -2843,9 +2914,6 @@ proc compileChunk6() =
         let harnessValue1760 = KeyPress.F18Key()
         let harnessValue1761 = KeyPress.F19Key()
         let harnessValue1762 = KeyPress.F20Key()
-
-proc compileChunk7() =
-    if address != 0:
         let harnessValue1763 = KeyPress.F21Key()
         let harnessValue1764 = KeyPress.F22Key()
         let harnessValue1765 = KeyPress.F23Key()
@@ -2883,6 +2951,7 @@ proc compileChunk7() =
         let harnessValue1797 = KeyPress.stopKey()
         let harnessValue1798 = KeyPress.fastForwardKey()
         let harnessValue1799 = KeyPress.rewindKey()
+        discard nowhere[KeyPress]()[].`KeyPress=`(nowhere[KeyPress]()[])
         let harnessValue1800 = nowhere[KeyPress]()[].isValid()
         let harnessValue1801 = nowhere[KeyPress]()[].getKeyCode()
         let harnessValue1802 = nowhere[KeyPress]()[].getModifiers()
@@ -3177,6 +3246,9 @@ proc compileChunk7() =
         nowhere[Desktop]()[].removeGlobalMouseListener(cast[ptr MouseListener](address))
         nowhere[Desktop]()[].addFocusChangeListener(cast[ptr FocusChangeListener](address))
         nowhere[Desktop]()[].removeFocusChangeListener(cast[ptr FocusChangeListener](address))
+
+proc compileChunk8() =
+    if address != 0:
         nowhere[Desktop]()[].addDarkModeSettingListener(cast[ptr DarkModeSettingListener](address))
         nowhere[Desktop]()[].removeDarkModeSettingListener(cast[ptr DarkModeSettingListener](address))
         let harnessValue1895 = nowhere[Desktop]()[].isDarkModeActive()
@@ -3246,13 +3318,11 @@ proc compileChunk7() =
         discard nowhere[DisplaysDisplay]()[].physicalBounds()
         let harnessValue1914 = nowhere[DisplaysDisplay]()[].scale()
         discard nowhere[DisplaysDisplay]()[].scale()
-
-proc compileChunk8() =
-    if address != 0:
         let harnessValue1915 = nowhere[DisplaysDisplay]()[].dpi()
         discard nowhere[DisplaysDisplay]()[].dpi()
         discard nowhere[DisplaysDisplay]()[].verticalFrequencyHz()
         discard nowhere[DisplaysDisplay]()[].verticalFrequencyHz()
+        discard nowhere[DisplaysDisplay]()[].`DisplaysDisplay=`(nowhere[DisplaysDisplay]()[])
         nowhere[ComponentBoundsConstrainer]()[].setMinimumWidth(0.cint)
         let harnessValue1916 = nowhere[ComponentBoundsConstrainer]()[].getMinimumWidth()
         nowhere[ComponentBoundsConstrainer]()[].setMaximumWidth(0.cint)
@@ -3545,6 +3615,7 @@ proc compileChunk8() =
         nowhere[ResizableBorderComponent]()[].setBorderThickness(nowhere[BorderSize[cint]]()[])
         discard nowhere[ResizableBorderComponent]()[].getBorderThickness()
         let harnessValue2010 = nowhere[ResizableBorderComponent]()[].getCurrentZone()
+        discard nowhere[ResizableBorderComponentZone]()[].`ResizableBorderComponentZone=`(nowhere[ResizableBorderComponentZone]()[])
         let harnessValue2011 = ResizableBorderComponentZone.fromPositionOnBorder(nowhere[Rectangle[cint]]()[], nowhere[BorderSize[cint]]()[], nowhere[Point[cint]]()[])
         let harnessValue2012 = nowhere[ResizableBorderComponentZone]()[].getMouseCursor()
         let harnessValue2013 = nowhere[ResizableBorderComponentZone]()[].isDraggingWholeObject()
@@ -3578,6 +3649,9 @@ proc compileChunk8() =
         nowhere[ScrollBar]()[].setButtonRepeatSpeed(0.cint, 0.cint, 0.cint)
         nowhere[ScrollBar]()[].addListener(cast[ptr ScrollBarListener](address))
         nowhere[ScrollBar]()[].removeListener(cast[ptr ScrollBarListener](address))
+
+proc compileChunk9() =
+    if address != 0:
         nowhere[ScrollBar]()[].cancelPendingUpdate()
         nowhere[ScrollBar]()[].handleUpdateNowIfNeeded()
         let harnessValue2032 = nowhere[ScrollBar]()[].isUpdatePending()
@@ -3649,9 +3723,6 @@ proc compileChunk8() =
         let harnessValue2059 = nowhere[TabbedButtonBarLookAndFeelMethods]()[].getTabButtonBestWidth(nowhere[TabBarButton]()[], 0.cint)
         discard nowhere[TabbedButtonBarLookAndFeelMethods]()[].getTabButtonExtraComponentBounds(nowhere[TabBarButton]()[], nowhere[Rectangle[cint]]()[], nowhere[Component]()[])
         nowhere[TabbedButtonBarLookAndFeelMethods]()[].drawTabButton(nowhere[TabBarButton]()[], nowhere[Graphics]()[], false, false)
-
-proc compileChunk9() =
-    if address != 0:
         let harnessValue2060 = nowhere[TabbedButtonBarLookAndFeelMethods]()[].getTabButtonFont(nowhere[TabBarButton]()[], 0.0'f32)
         nowhere[TabbedButtonBarLookAndFeelMethods]()[].drawTabButtonText(nowhere[TabBarButton]()[], nowhere[Graphics]()[], false, false)
         nowhere[TabbedButtonBarLookAndFeelMethods]()[].drawTabbedButtonBarBackground(nowhere[TabbedButtonBar]()[], nowhere[Graphics]()[])
@@ -3845,6 +3916,7 @@ proc compileChunk9() =
         nowhere[Viewport]()[].componentMovedOrResized(nowhere[Component]()[], false, false)
         let harnessValue2148 = nowhere[Viewport]()[].useMouseWheelMoveIfNeeded(nowhere[MouseEvent]()[], nowhere[MouseWheelDetails]()[])
         let harnessValue2149 = Viewport.respondsToKey(nowhere[KeyPress]()[])
+        discard nowhere[PopupMenu]()[].`PopupMenu=`(nowhere[PopupMenu]()[])
         nowhere[PopupMenu]()[].clear()
         nowhere[PopupMenu]()[].addItem(nowhere[PopupMenuItem]()[])
         nowhere[PopupMenu]()[].addItem(nowhere[String]()[], nowhere[CppFunctionObjectN0]()[])
@@ -3902,6 +3974,7 @@ proc compileChunk9() =
         discard nowhere[PopupMenuItem]()[].isSectionHeader()
         let harnessValue2164 = nowhere[PopupMenuItem]()[].shouldBreakAfter()
         discard nowhere[PopupMenuItem]()[].shouldBreakAfter()
+        discard nowhere[PopupMenuItem]()[].`PopupMenuItem=`(nowhere[PopupMenuItem]()[])
         discard nowhere[PopupMenuItem]()[].setTicked(false)
         discard nowhere[PopupMenuItem]()[].setEnabled(false)
         discard nowhere[PopupMenuItem]()[].setAction(nowhere[CppFunctionObjectN0]()[])
@@ -3909,6 +3982,7 @@ proc compileChunk9() =
         discard nowhere[PopupMenuItem]()[].setColour(nowhere[Colour]()[])
         discard nowhere[PopupMenuItem]()[].setCustomComponent(nowhere[ReferenceCountedObjectPtr[PopupMenuCustomComponent]]()[])
         discard nowhere[PopupMenuItem]()[].setImage(nowhere[UniquePtr[Drawable]]()[])
+        discard nowhere[PopupMenuOptions]()[].`PopupMenuOptions=`(nowhere[PopupMenuOptions]()[])
         let harnessValue2165 = nowhere[PopupMenuOptions]()[].withTargetComponent(cast[ptr Component](address))
         let harnessValue2166 = nowhere[PopupMenuOptions]()[].withTargetComponent(nowhere[Component]()[])
         let harnessValue2167 = nowhere[PopupMenuOptions]()[].withTargetScreenArea(nowhere[Rectangle[cint]]()[])
@@ -3978,10 +4052,14 @@ proc compileChunk9() =
         nowhere[MenuBarModelListener]()[].menuCommandInvoked(cast[ptr MenuBarModel](address), nowhere[ApplicationCommandTargetInvocationInfo]()[])
         nowhere[MenuBarModelListener]()[].menuBarActivated(cast[ptr MenuBarModel](address), false)
         nowhere[MenuBarComponent]()[].setModel(cast[ptr MenuBarModel](address))
+
+proc compileChunk10() =
+    if address != 0:
         discard nowhere[MenuBarComponent]()[].getModel()
         nowhere[MenuBarComponent]()[].showMenu(0.cint)
         nowhere[MenuBarComponent]()[].menuBarItemsChanged(cast[ptr MenuBarModel](address))
         nowhere[MenuBarComponent]()[].menuCommandInvoked(cast[ptr MenuBarModel](address), nowhere[ApplicationCommandTargetInvocationInfo]()[])
+        discard nowhere[RelativeCoordinate]()[].`RelativeCoordinate=`(nowhere[RelativeCoordinate]()[])
         let harnessValue2199 = nowhere[RelativeCoordinate]()[].resolve(cast[ptr ExpressionScope](address))
         let harnessValue2200 = nowhere[RelativeCoordinate]()[].isRecursive(cast[ptr ExpressionScope](address))
         let harnessValue2201 = nowhere[RelativeCoordinate]()[].isDynamic()
@@ -3998,6 +4076,7 @@ proc compileChunk9() =
         let harnessValue2211 = RelativeCoordinateStrings.width()
         let harnessValue2212 = RelativeCoordinateStrings.height()
         let harnessValue2213 = RelativeCoordinateStandardStrings.getTypeOf(nowhere[String]()[])
+        discard nowhere[MarkerList]()[].`MarkerList=`(nowhere[MarkerList]()[])
         let harnessValue2214 = nowhere[MarkerList]()[].getNumMarkers()
         discard nowhere[MarkerList]()[].getMarker(0.cint)
         discard nowhere[MarkerList]()[].getMarker(nowhere[String]()[])
@@ -4052,9 +4131,6 @@ proc compileChunk9() =
         nowhere[RelativeRectangle]()[].applyToComponent(nowhere[Component]()[])
         nowhere[RelativeCoordinatePositionerBase]()[].markersChanged(cast[ptr MarkerList](address))
         nowhere[RelativeCoordinatePositionerBase]()[].markerListBeingDeleted(cast[ptr MarkerList](address))
-
-proc compileChunk10() =
-    if address != 0:
         nowhere[RelativeCoordinatePositionerBase]()[].apply()
         let harnessValue2236 = nowhere[RelativeCoordinatePositionerBase]()[].addCoordinate(nowhere[RelativeCoordinate]()[])
         let harnessValue2237 = nowhere[RelativeCoordinatePositionerBase]()[].addPoint(nowhere[RelativePoint]()[])
@@ -4379,6 +4455,9 @@ proc compileChunk10() =
         nowhere[ImageComponent]()[].setTooltip(nowhere[String]()[])
         let harnessValue2362 = nowhere[ListBoxModel]()[].getNumRows()
         nowhere[ListBoxModel]()[].paintListBoxItem(0.cint, nowhere[Graphics]()[], 0.cint, 0.cint, false)
+
+proc compileChunk11() =
+    if address != 0:
         discard nowhere[ListBoxModel]()[].refreshComponentForRow(0.cint, false, cast[ptr Component](address))
         let harnessValue2363 = nowhere[ListBoxModel]()[].getNameForRow(0.cint)
         nowhere[ListBoxModel]()[].listBoxItemClicked(0.cint, nowhere[MouseEvent]()[])
@@ -4455,9 +4534,6 @@ proc compileChunk10() =
         discard nowhere[Slider]()[].onDragStart()
         let harnessValue2391 = nowhere[Slider]()[].onDragEnd()
         discard nowhere[Slider]()[].onDragEnd()
-
-proc compileChunk11() =
-    if address != 0:
         discard nowhere[Slider]()[].valueFromTextFunction()
         discard nowhere[Slider]()[].valueFromTextFunction()
         discard nowhere[Slider]()[].textFromValueFunction()
@@ -4782,6 +4858,9 @@ proc compileChunk11() =
         nowhere[TreeView]()[].setMultiSelectEnabled(false)
         let harnessValue2510 = nowhere[TreeView]()[].isMultiSelectEnabled()
         nowhere[TreeView]()[].setOpenCloseButtonsVisible(false)
+
+proc compileChunk12() =
+    if address != 0:
         let harnessValue2511 = nowhere[TreeView]()[].areOpenCloseButtonsVisible()
         nowhere[TreeView]()[].clearSelectedItems()
         let harnessValue2512 = nowhere[TreeView]()[].getNumSelectedItems(0.cint)
@@ -4824,6 +4903,7 @@ proc compileChunk11() =
         discard TopLevelWindow.getTopLevelWindow(0.cint)
         discard TopLevelWindow.getActiveTopLevelWindow()
         nowhere[TopLevelWindow]()[].addToDesktop()
+        discard nowhere[MessageBoxOptions]()[].`MessageBoxOptions=`(nowhere[MessageBoxOptions]()[])
         let harnessValue2525 = nowhere[MessageBoxOptions]()[].withIconType(MessageBoxIconType_NoIcon)
         let harnessValue2526 = nowhere[MessageBoxOptions]()[].withTitle(nowhere[String]()[])
         let harnessValue2527 = nowhere[MessageBoxOptions]()[].withMessage(nowhere[String]()[])
@@ -4841,6 +4921,7 @@ proc compileChunk11() =
         let harnessValue2537 = MessageBoxOptions.makeOptionsOkCancel(MessageBoxIconType_NoIcon, nowhere[String]()[], nowhere[String]()[], nowhere[String]()[], nowhere[String]()[], cast[ptr Component](address))
         let harnessValue2538 = MessageBoxOptions.makeOptionsYesNo(MessageBoxIconType_NoIcon, nowhere[String]()[], nowhere[String]()[], nowhere[String]()[], nowhere[String]()[], cast[ptr Component](address))
         let harnessValue2539 = MessageBoxOptions.makeOptionsYesNoCancel(MessageBoxIconType_NoIcon, nowhere[String]()[], nowhere[String]()[], nowhere[String]()[], nowhere[String]()[], nowhere[String]()[], cast[ptr Component](address))
+        discard nowhere[ScopedMessageBox]()[].`ScopedMessageBox=`(nowhere[ScopedMessageBox]()[])
         nowhere[ScopedMessageBox]()[].close()
         let harnessValue2540 = AlertWindow.NoIcon()
         let harnessValue2541 = AlertWindow.QuestionIcon()
@@ -4858,9 +4939,6 @@ proc compileChunk11() =
         let harnessValue2546 = nowhere[AlertWindow]()[].getTextEditorContents(nowhere[String]()[])
         discard nowhere[AlertWindow]()[].getTextEditor(nowhere[String]()[])
         nowhere[AlertWindow]()[].addComboBox(nowhere[String]()[], nowhere[StringArray]()[], nowhere[String]()[])
-
-proc compileChunk12() =
-    if address != 0:
         discard nowhere[AlertWindow]()[].getComboBoxComponent(nowhere[String]()[])
         nowhere[AlertWindow]()[].addTextBlock(nowhere[String]()[])
         nowhere[AlertWindow]()[].addProgressBarComponent(nowhere[float64]()[], nowhere[ProgressBarStyleOptional]()[])
@@ -5057,6 +5135,7 @@ proc compileChunk12() =
         let harnessValue2609 = nowhere[TooltipWindow]()[].getTipFor(nowhere[Component]()[])
         discard nowhere[TooltipWindowLookAndFeelMethods]()[].getTooltipBounds(nowhere[String]()[], nowhere[Point[cint]]()[], nowhere[Rectangle[cint]]()[])
         nowhere[TooltipWindowLookAndFeelMethods]()[].drawTooltip(nowhere[Graphics]()[], nowhere[String]()[], 0.cint, 0.cint)
+        discard nowhere[VBlankAttachment]()[].`VBlankAttachment=`(nowhere[VBlankAttachment]()[])
         let harnessValue2610 = nowhere[VBlankAttachment]()[].isEmpty()
         let harnessValue2611 = WindowUtils.areThereAnyAlwaysOnTopWindows()
         nowhere[MultiDocumentPanel]()[].closeAllDocumentsAsync(false, nowhere[CppFunctionObjectN1[bool]]()[])
@@ -5182,6 +5261,9 @@ proc compileChunk12() =
         FileChooser.registerCustomMimeTypeForFileExtension(nowhere[String]()[], nowhere[String]()[])
         nowhere[FileChooserDialogBox]()[].centreWithDefaultSize(cast[ptr Component](address))
         let harnessValue2657 = nowhere[FileListComponent]()[].getNumSelectedFiles()
+
+proc compileChunk13() =
+    if address != 0:
         let harnessValue2658 = nowhere[FileListComponent]()[].getSelectedFile(0.cint)
         nowhere[FileListComponent]()[].deselectAllFiles()
         nowhere[FileListComponent]()[].scrollToTop()
@@ -5261,9 +5343,6 @@ proc compileChunk12() =
         nowhere[PropertyComponentLookAndFeelMethods]()[].drawPropertyComponentLabel(nowhere[Graphics]()[], 0.cint, 0.cint, nowhere[PropertyComponent]()[])
         discard nowhere[PropertyComponentLookAndFeelMethods]()[].getPropertyComponentContentPosition(nowhere[PropertyComponent]()[])
         let harnessValue2679 = nowhere[PropertyComponentLookAndFeelMethods]()[].getPropertyPanelSectionHeaderHeight(nowhere[String]()[])
-
-proc compileChunk13() =
-    if address != 0:
         nowhere[BooleanPropertyComponent]()[].setState(false)
         let harnessValue2680 = nowhere[BooleanPropertyComponent]()[].getState()
         nowhere[ButtonPropertyComponent]()[].buttonClicked()
@@ -5476,6 +5555,7 @@ proc compileChunk13() =
         let harnessValue2747 = LookAndFeel_V4.getGreyColourScheme()
         let harnessValue2748 = LookAndFeel_V4.getLightColourScheme()
         nowhere[LookAndFeel_V4]()[].drawPointer(nowhere[Graphics]()[], 0.0'f32, 0.0'f32, 0.0'f32, nowhere[Colour]()[], 0.cint)
+        discard nowhere[LookAndFeel_V4ColourScheme]()[].`LookAndFeel_V4ColourScheme=`(nowhere[LookAndFeel_V4ColourScheme]()[])
         let harnessValue2749 = nowhere[LookAndFeel_V4ColourScheme]()[].getUIColour(LookAndFeel_V4ColourSchemeUIColour_windowBackground)
         nowhere[LookAndFeel_V4ColourScheme]()[].setUIColour(LookAndFeel_V4ColourSchemeUIColour_windowBackground, nowhere[Colour]()[])
         let harnessValue2750 = FlexItem.autoValue()
@@ -5584,6 +5664,9 @@ proc compileChunk13() =
         let harnessValue2802 = nowhere[GridItem]()[].withColumn(nowhere[GridItemStartAndEndProperty]()[])
         let harnessValue2803 = nowhere[GridItem]()[].withAlignSelf(GridItemAlignSelf_start)
         let harnessValue2804 = nowhere[GridItem]()[].withJustifySelf(GridItemJustifySelf_start)
+
+proc compileChunk14() =
+    if address != 0:
         let harnessValue2805 = nowhere[GridItem]()[].withWidth(0.0'f32)
         let harnessValue2806 = nowhere[GridItem]()[].withHeight(0.0'f32)
         let harnessValue2807 = nowhere[GridItem]()[].withSize(0.0'f32, 0.0'f32)
@@ -5677,4 +5760,5 @@ compileChunk10()
 compileChunk11()
 compileChunk12()
 compileChunk13()
+compileChunk14()
 compileMacOnly()
