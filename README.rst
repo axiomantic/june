@@ -367,6 +367,18 @@ Hand-written additions live in the ``*_lifting.nim`` files and in
   equivalent, such as ``HashMap`` and ``SortedSet``. ``GenericScopedLock`` is
   the one whose absence shows: lock a ``CriticalSection`` with ``enter`` and
   ``exit`` in a ``try``/``finally``, which is the Nim shape of the same thing.
+- One concrete instantiation, ``Int64Range``. Nim's ``int64`` renders as
+  ``std::int64_t``, which is ``long int`` on Linux, while JUCE's ``int64`` is
+  ``long long`` everywhere JUCE supports. As a template ARGUMENT that is a
+  different type rather than a conversion, so ``Range[int64]`` named
+  ``juce::Range<long int>`` and the ``MemoryMappedFile`` constructor that takes
+  a range did not compile there. Naming the C++ type in full is the only
+  spelling Nim does not fold back into its own: an alias and a distinct type
+  were each measured to collapse into ``NI64``. A scalar ``int64`` parameter is
+  unaffected, because it converts. ``makeRange[int64](r.getStart(),
+  r.getEnd())`` reaches the generic surface. Any OTHER instantiation over a
+  64-bit integer is withheld by the generator rather than emitted as a binding
+  that builds on macOS and not on Linux.
 - Iterators over the containers a caller loops over: ``ValueTree`` children and
   properties, ``StringArray``, ``XmlElement`` children and attributes,
   ``NamedValueSet``,
