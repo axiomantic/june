@@ -17,7 +17,7 @@ type
   PixelARGB* {.header: juce_graphics, importcpp: "juce::PixelARGB", inheritable, pure.} = object
   PixelRGB* {.header: juce_graphics, importcpp: "juce::PixelRGB", inheritable, pure.} = object
   PixelAlpha* {.header: juce_graphics, importcpp: "juce::PixelAlpha", inheritable, pure.} = object
-  Colour* {.header: juce_graphics, importcpp: "juce::Colour", inheritable, pure.} = object
+  Colour* {.header: juce_graphics, importcpp: "juce::Colour", inheritable, pure, bycopy.} = object
   ColourGradient* {.header: juce_graphics, importcpp: "juce::ColourGradient", inheritable, pure.} = object
   EdgeTable* {.header: juce_graphics, importcpp: "juce::EdgeTable", inheritable, pure.} = object
   PathFlatteningIterator* {.header: juce_graphics, importcpp: "juce::PathFlatteningIterator", inheritable, pure.} = object
@@ -82,6 +82,45 @@ type
   FontFontStyleFlags* {.header: juce_graphics, importcpp: "juce::Font::FontStyleFlags".} = distinct cint
   AttributedStringWordWrap* {.header: juce_graphics, importcpp: "juce::AttributedString::WordWrap".} = distinct cint
   AttributedStringReadingDirection* {.header: juce_graphics, importcpp: "juce::AttributedString::ReadingDirection".} = distinct cint
+
+# Comparison for the enums above, taken from their base type,
+# and $ so a value can appear in a message. $ prints the number
+# rather than the name: the binding holds the C++ enumerator and
+# there is no table of names on this side to look one up in.
+proc `==`*(a: TypefaceMetricsKind, b: TypefaceMetricsKind): bool {.borrow.}
+proc `$`*(value: TypefaceMetricsKind): string {.borrow.}
+proc `==`*(a: JustificationFlags, b: JustificationFlags): bool {.borrow.}
+proc `$`*(value: JustificationFlags): string {.borrow.}
+proc `==`*(a: PathIteratorPathElementType, b: PathIteratorPathElementType): bool {.borrow.}
+proc `$`*(value: PathIteratorPathElementType): string {.borrow.}
+proc `==`*(a: PathStrokeTypeJointStyle, b: PathStrokeTypeJointStyle): bool {.borrow.}
+proc `$`*(value: PathStrokeTypeJointStyle): string {.borrow.}
+proc `==`*(a: PathStrokeTypeEndCapStyle, b: PathStrokeTypeEndCapStyle): bool {.borrow.}
+proc `$`*(value: PathStrokeTypeEndCapStyle): string {.borrow.}
+proc `==`*(a: RectanglePlacementFlags, b: RectanglePlacementFlags): bool {.borrow.}
+proc `$`*(value: RectanglePlacementFlags): string {.borrow.}
+proc `==`*(a: GraphicsResamplingQuality, b: GraphicsResamplingQuality): bool {.borrow.}
+proc `$`*(value: GraphicsResamplingQuality): string {.borrow.}
+proc `==`*(a: ImagePixelFormat, b: ImagePixelFormat): bool {.borrow.}
+proc `$`*(value: ImagePixelFormat): string {.borrow.}
+proc `==`*(a: ImageBitmapDataReadWriteMode, b: ImageBitmapDataReadWriteMode): bool {.borrow.}
+proc `$`*(value: ImageBitmapDataReadWriteMode): string {.borrow.}
+proc `==`*(a: TypefaceColourGlyphFormat, b: TypefaceColourGlyphFormat): bool {.borrow.}
+proc `$`*(value: TypefaceColourGlyphFormat): string {.borrow.}
+proc `==`*(a: FontFontStyleFlags, b: FontFontStyleFlags): bool {.borrow.}
+proc `$`*(value: FontFontStyleFlags): string {.borrow.}
+proc `==`*(a: AttributedStringWordWrap, b: AttributedStringWordWrap): bool {.borrow.}
+proc `$`*(value: AttributedStringWordWrap): string {.borrow.}
+proc `==`*(a: AttributedStringReadingDirection, b: AttributedStringReadingDirection): bool {.borrow.}
+proc `$`*(value: AttributedStringReadingDirection): string {.borrow.}
+
+# Bitwise operators for the flag sets among them.
+proc `or`*(a: JustificationFlags, b: JustificationFlags): JustificationFlags {.borrow.}
+proc `and`*(a: JustificationFlags, b: JustificationFlags): JustificationFlags {.borrow.}
+proc `or`*(a: RectanglePlacementFlags, b: RectanglePlacementFlags): RectanglePlacementFlags {.borrow.}
+proc `and`*(a: RectanglePlacementFlags, b: RectanglePlacementFlags): RectanglePlacementFlags {.borrow.}
+proc `or`*(a: FontFontStyleFlags, b: FontFontStyleFlags): FontFontStyleFlags {.borrow.}
+proc `and`*(a: FontFontStyleFlags, b: FontFontStyleFlags): FontFontStyleFlags {.borrow.}
 
 let TypefaceMetricsKind_legacy* {.header: juce_graphics, importcpp: "juce::TypefaceMetricsKind::legacy".}: TypefaceMetricsKind
 let TypefaceMetricsKind_portable* {.header: juce_graphics, importcpp: "juce::TypefaceMetricsKind::portable".}: TypefaceMetricsKind
@@ -253,7 +292,7 @@ proc intersectsLine*(this: Path, line: Line[cfloat], tolerance: cfloat): bool {.
 proc getClippedLine*(this: Path, line: Line[cfloat], keepSectionOutsidePath: bool): Line[cfloat] {.header: juce_graphics, importcpp: "#.getClippedLine(@)".}
 proc getLength*(this: Path, transform: AffineTransform, tolerance: cfloat): cfloat {.header: juce_graphics, importcpp: "#.getLength(@)".}
 proc getPointAlongPath*(this: Path, distanceFromStart: cfloat, transform: AffineTransform, tolerance: cfloat): Point[cfloat] {.header: juce_graphics, importcpp: "#.getPointAlongPath(@)".}
-proc getNearestPoint*(this: Path, targetPoint: Point[cfloat], pointOnPath: Point[cfloat], transform: AffineTransform, tolerance: cfloat): cfloat {.header: juce_graphics, importcpp: "#.getNearestPoint(@)".}
+proc getNearestPoint*(this: Path, targetPoint: Point[cfloat], pointOnPath: var Point[cfloat], transform: AffineTransform, tolerance: cfloat): cfloat {.header: juce_graphics, importcpp: "#.getNearestPoint(@)".}
 proc clear*(this: var Path) {.header: juce_graphics, importcpp: "#.clear()".}
 proc startNewSubPath*(this: var Path, startX: cfloat, startY: cfloat) {.header: juce_graphics, importcpp: "#.startNewSubPath(@)".}
 proc startNewSubPath*(this: var Path, start: Point[cfloat]) {.header: juce_graphics, importcpp: "#.startNewSubPath(@)".}
@@ -387,22 +426,22 @@ proc desaturate*(this: var PixelAlpha) {.header: juce_graphics, importcpp: "#.de
 proc `==`*(this: PixelAlpha, other: PixelAlpha): bool {.error: "juce::PixelAlpha defines no operator==; compare a property instead".}
 
 proc makeColour*(): Colour {.header: juce_graphics, importcpp: "juce::Colour(@)".}
-proc makeColour*(argb: uint32): Colour {.header: juce_graphics, importcpp: "juce::Colour((unsigned int) @)".}
-proc makeColour*(red: uint8, green: uint8, blue: uint8): Colour {.header: juce_graphics, importcpp: "juce::Colour(@)".}
-proc makeColour*(red: uint8, green: uint8, blue: uint8, alpha: uint8): Colour {.header: juce_graphics, importcpp: "juce::Colour(@)".}
-proc makeColour*(red: uint8, green: uint8, blue: uint8, alpha: cfloat): Colour {.header: juce_graphics, importcpp: "juce::Colour(@)".}
-proc makeColour*(hue: cfloat, saturation: cfloat, brightness: cfloat, alpha: uint8): Colour {.header: juce_graphics, importcpp: "juce::Colour(@)".}
-proc makeColour*(hue: cfloat, saturation: cfloat, brightness: cfloat, alpha: cfloat): Colour {.header: juce_graphics, importcpp: "juce::Colour(@)".}
-proc makeColour*(argb: PixelARGB): Colour {.header: juce_graphics, importcpp: "juce::Colour((juce::PixelARGB) @)".}
-proc makeColour*(rgb: PixelRGB): Colour {.header: juce_graphics, importcpp: "juce::Colour((juce::PixelRGB) @)".}
-proc makeColour*(alpha: PixelAlpha): Colour {.header: juce_graphics, importcpp: "juce::Colour((juce::PixelAlpha) @)".}
+proc makeColour*(argb: uint32): Colour {.header: juce_graphics, importcpp: "juce::Colour((unsigned int) #)".}
+proc makeColour*(red: uint8, green: uint8, blue: uint8): Colour {.header: juce_graphics, importcpp: "juce::Colour((unsigned char) #, (unsigned char) #, (unsigned char) #)".}
+proc makeColour*(red: uint8, green: uint8, blue: uint8, alpha: uint8): Colour {.header: juce_graphics, importcpp: "juce::Colour((unsigned char) #, (unsigned char) #, (unsigned char) #, (unsigned char) #)".}
+proc makeColour*(red: uint8, green: uint8, blue: uint8, alpha: cfloat): Colour {.header: juce_graphics, importcpp: "juce::Colour((unsigned char) #, (unsigned char) #, (unsigned char) #, (float) #)".}
+proc makeColour*(hue: cfloat, saturation: cfloat, brightness: cfloat, alpha: uint8): Colour {.header: juce_graphics, importcpp: "juce::Colour((float) #, (float) #, (float) #, (unsigned char) #)".}
+proc makeColour*(hue: cfloat, saturation: cfloat, brightness: cfloat, alpha: cfloat): Colour {.header: juce_graphics, importcpp: "juce::Colour((float) #, (float) #, (float) #, (float) #)".}
+proc makeColour*(argb: PixelARGB): Colour {.header: juce_graphics, importcpp: "juce::Colour((juce::PixelARGB) #)".}
+proc makeColour*(rgb: PixelRGB): Colour {.header: juce_graphics, importcpp: "juce::Colour((juce::PixelRGB) #)".}
+proc makeColour*(alpha: PixelAlpha): Colour {.header: juce_graphics, importcpp: "juce::Colour((juce::PixelAlpha) #)".}
 proc fromRGB*(this: typedesc[Colour], red: uint8, green: uint8, blue: uint8): Colour {.header: juce_graphics, importcpp: "juce::Colour::fromRGB(@)".}
 proc fromRGBA*(this: typedesc[Colour], red: uint8, green: uint8, blue: uint8, alpha: uint8): Colour {.header: juce_graphics, importcpp: "juce::Colour::fromRGBA(@)".}
 proc fromFloatRGBA*(this: typedesc[Colour], red: cfloat, green: cfloat, blue: cfloat, alpha: cfloat): Colour {.header: juce_graphics, importcpp: "juce::Colour::fromFloatRGBA(@)".}
-proc fromHSV*(this: typedesc[Colour], hue: cfloat, saturation: cfloat, brightness: cfloat, alpha: cfloat): Colour {.header: juce_graphics, importcpp: "juce::Colour::fromHSV(@)".}
-proc fromHSV*(this: typedesc[Colour], hue: cfloat, saturation: cfloat, brightness: cfloat, alpha: uint8): Colour {.header: juce_graphics, importcpp: "juce::Colour::fromHSV(@)".}
-proc fromHSL*(this: typedesc[Colour], hue: cfloat, saturation: cfloat, lightness: cfloat, alpha: cfloat): Colour {.header: juce_graphics, importcpp: "juce::Colour::fromHSL(@)".}
-proc fromHSL*(this: typedesc[Colour], hue: cfloat, saturation: cfloat, lightness: cfloat, alpha: uint8): Colour {.header: juce_graphics, importcpp: "juce::Colour::fromHSL(@)".}
+proc fromHSV*(this: typedesc[Colour], hue: cfloat, saturation: cfloat, brightness: cfloat, alpha: cfloat): Colour {.header: juce_graphics, importcpp: "(#juce::Colour::fromHSV((float) #, (float) #, (float) #, (float) #))".}
+proc fromHSV*(this: typedesc[Colour], hue: cfloat, saturation: cfloat, brightness: cfloat, alpha: uint8): Colour {.header: juce_graphics, importcpp: "(#juce::Colour::fromHSV((float) #, (float) #, (float) #, (unsigned char) #))".}
+proc fromHSL*(this: typedesc[Colour], hue: cfloat, saturation: cfloat, lightness: cfloat, alpha: cfloat): Colour {.header: juce_graphics, importcpp: "(#juce::Colour::fromHSL((float) #, (float) #, (float) #, (float) #))".}
+proc fromHSL*(this: typedesc[Colour], hue: cfloat, saturation: cfloat, lightness: cfloat, alpha: uint8): Colour {.header: juce_graphics, importcpp: "(#juce::Colour::fromHSL((float) #, (float) #, (float) #, (unsigned char) #))".}
 proc `Colour=`*(this: var Colour, arg1: Colour): var Colour {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc `==`*(this: Colour, other: Colour): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: Colour, other: Colour): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
@@ -476,7 +515,7 @@ proc getColourPosition*(this: ColourGradient, index: cint): float64 {.header: ju
 proc getColour*(this: ColourGradient, index: cint): Colour {.header: juce_graphics, importcpp: "#.getColour(@)".}
 proc setColour*(this: var ColourGradient, index: cint, newColour: Colour) {.header: juce_graphics, importcpp: "#.setColour(@)".}
 proc getColourAtPosition*(this: ColourGradient, position: float64): Colour {.header: juce_graphics, importcpp: "#.getColourAtPosition(@)".}
-proc createLookupTable*(this: ColourGradient, transform: AffineTransform, resultLookupTable: HeapBlock[PixelARGB]): cint {.header: juce_graphics, importcpp: "#.createLookupTable(@)".}
+proc createLookupTable*(this: ColourGradient, transform: AffineTransform, resultLookupTable: var HeapBlock[PixelARGB]): cint {.header: juce_graphics, importcpp: "#.createLookupTable(@)".}
 proc createLookupTable*(this: ColourGradient, resultLookupTable: ptr PixelARGB, numEntries: cint) {.header: juce_graphics, importcpp: "#.createLookupTable(@)".}
 proc isOpaque*(this: ColourGradient): bool {.header: juce_graphics, importcpp: "#.isOpaque()".}
 proc isInvisible*(this: ColourGradient): bool {.header: juce_graphics, importcpp: "#.isInvisible()".}
@@ -583,28 +622,13 @@ proc loadFrom*(this: typedesc[ImageFileFormat], rawData: constPointer, numBytesO
 proc `==`*(this: ImageFileFormat, other: ImageFileFormat): bool {.error: "juce::ImageFileFormat defines no operator==; compare a property instead".}
 
 proc makePNGImageFormat*(): PNGImageFormat {.header: juce_graphics, importcpp: "juce::PNGImageFormat(@)".}
-proc getFormatName*(this: var PNGImageFormat): String {.header: juce_graphics, importcpp: "#.getFormatName()".}
-proc usesFileExtension*(this: var PNGImageFormat, arg1: File): bool {.header: juce_graphics, importcpp: "#.usesFileExtension(@)".}
-proc canUnderstand*(this: var PNGImageFormat, arg1: var InputStream): bool {.header: juce_graphics, importcpp: "#.canUnderstand(@)".}
-proc decodeImage*(this: var PNGImageFormat, arg1: var InputStream): Image {.header: juce_graphics, importcpp: "#.decodeImage(@)".}
-proc writeImageToStream*(this: var PNGImageFormat, arg1: Image, arg2: var OutputStream): bool {.header: juce_graphics, importcpp: "#.writeImageToStream(@)".}
 proc `==`*(this: PNGImageFormat, other: PNGImageFormat): bool {.error: "juce::PNGImageFormat defines no operator==; compare a property instead".}
 
 proc makeJPEGImageFormat*(): JPEGImageFormat {.header: juce_graphics, importcpp: "juce::JPEGImageFormat(@)".}
 proc setQuality*(this: var JPEGImageFormat, newQuality: cfloat) {.header: juce_graphics, importcpp: "#.setQuality(@)".}
-proc getFormatName*(this: var JPEGImageFormat): String {.header: juce_graphics, importcpp: "#.getFormatName()".}
-proc usesFileExtension*(this: var JPEGImageFormat, arg1: File): bool {.header: juce_graphics, importcpp: "#.usesFileExtension(@)".}
-proc canUnderstand*(this: var JPEGImageFormat, arg1: var InputStream): bool {.header: juce_graphics, importcpp: "#.canUnderstand(@)".}
-proc decodeImage*(this: var JPEGImageFormat, arg1: var InputStream): Image {.header: juce_graphics, importcpp: "#.decodeImage(@)".}
-proc writeImageToStream*(this: var JPEGImageFormat, arg1: Image, arg2: var OutputStream): bool {.header: juce_graphics, importcpp: "#.writeImageToStream(@)".}
 proc `==`*(this: JPEGImageFormat, other: JPEGImageFormat): bool {.error: "juce::JPEGImageFormat defines no operator==; compare a property instead".}
 
 proc makeGIFImageFormat*(): GIFImageFormat {.header: juce_graphics, importcpp: "juce::GIFImageFormat(@)".}
-proc getFormatName*(this: var GIFImageFormat): String {.header: juce_graphics, importcpp: "#.getFormatName()".}
-proc usesFileExtension*(this: var GIFImageFormat, arg1: File): bool {.header: juce_graphics, importcpp: "#.usesFileExtension(@)".}
-proc canUnderstand*(this: var GIFImageFormat, arg1: var InputStream): bool {.header: juce_graphics, importcpp: "#.canUnderstand(@)".}
-proc decodeImage*(this: var GIFImageFormat, arg1: var InputStream): Image {.header: juce_graphics, importcpp: "#.decodeImage(@)".}
-proc writeImageToStream*(this: var GIFImageFormat, arg1: Image, arg2: var OutputStream): bool {.header: juce_graphics, importcpp: "#.writeImageToStream(@)".}
 proc `==`*(this: GIFImageFormat, other: GIFImageFormat): bool {.error: "juce::GIFImageFormat defines no operator==; compare a property instead".}
 
 proc withLineSpacing*(this: GlyphArrangementOptions, x: cfloat): GlyphArrangementOptions {.header: juce_graphics, importcpp: "#.withLineSpacing(@)".}
@@ -727,7 +751,7 @@ proc multiplyAllAlphas*(this: var Image, amountToMultiplyBy: cfloat) {.header: j
 proc desaturate*(this: var Image) {.header: juce_graphics, importcpp: "#.desaturate()".}
 proc setBackupEnabled*(this: var Image, arg1: bool): bool {.header: juce_graphics, importcpp: "#.setBackupEnabled(@)".}
 proc moveImageSection*(this: var Image, destX: cint, destY: cint, sourceX: cint, sourceY: cint, width: cint, height: cint) {.header: juce_graphics, importcpp: "#.moveImageSection(@)".}
-proc createSolidAreaMask*(this: Image, result: RectangleList[cint], alphaThreshold: cfloat) {.header: juce_graphics, importcpp: "#.createSolidAreaMask(@)".}
+proc createSolidAreaMask*(this: Image, result: var RectangleList[cint], alphaThreshold: cfloat) {.header: juce_graphics, importcpp: "#.createSolidAreaMask(@)".}
 proc getProperties*(this: Image): ptr NamedValueSet {.header: juce_graphics, importcpp: "#.getProperties()".}
 proc createLowLevelContext*(this: Image): UniquePtr[LowLevelGraphicsContext] {.header: juce_graphics, importcpp: "#.createLowLevelContext()".}
 proc getReferenceCount*(this: Image): cint {.header: juce_graphics, importcpp: "#.getReferenceCount()".}
@@ -760,7 +784,7 @@ proc height*(this: var ImageBitmapData): var cint {.header: juce_graphics, impor
 proc `height=`*(this: var ImageBitmapData, value: cint) {.header: juce_graphics, importcpp: "#.height = #".}
 proc dataReleaser*(this: ImageBitmapData): UniquePtr[ImageBitmapDataBitmapDataReleaser] {.header: juce_graphics, importcpp: "#.dataReleaser".}
 proc dataReleaser*(this: var ImageBitmapData): var UniquePtr[ImageBitmapDataBitmapDataReleaser] {.header: juce_graphics, importcpp: "#.dataReleaser".}
-proc `dataReleaser=`*(this: var ImageBitmapData, value: UniquePtr[ImageBitmapDataBitmapDataReleaser]) {.header: juce_graphics, importcpp: "#.dataReleaser = #".}
+proc `dataReleaser=`*(this: var ImageBitmapData, value: UniquePtr[ImageBitmapDataBitmapDataReleaser]) {.header: juce_graphics, importcpp: "#.dataReleaser = std::move(#)".}
 proc getLinePointer*(this: ImageBitmapData, y: cint): ptr uint8 {.header: juce_graphics, importcpp: "#.getLinePointer(@)".}
 proc getPixelPointer*(this: ImageBitmapData, x: cint, y: cint): ptr uint8 {.header: juce_graphics, importcpp: "#.getPixelPointer(@)".}
 proc getPixelColour*(this: ImageBitmapData, x: cint, y: cint): Colour {.header: juce_graphics, importcpp: "#.getPixelColour(@)".}
@@ -778,21 +802,21 @@ proc needsBackup*(this: ImagePixelDataBackupExtensions): bool {.header: juce_gra
 proc canBackup*(this: ImagePixelDataBackupExtensions): bool {.header: juce_graphics, importcpp: "#.canBackup()".}
 proc `==`*(this: ImagePixelDataBackupExtensions, other: ImagePixelDataBackupExtensions): bool {.error: "juce::ImagePixelDataBackupExtensions defines no operator==; compare a property instead".}
 
-proc makeImagePixelData*(arg1: ImagePixelFormat, width: cint, height: cint): ImagePixelData {.header: juce_graphics, importcpp: "juce::ImagePixelData(@)".}
+# proc makeImagePixelData*(arg1: ImagePixelFormat, width: cint, height: cint): ImagePixelData {.header: juce_graphics, importcpp: "juce::ImagePixelData(@)".}  # ImagePixelData is abstract; build a CustomImagePixelData instead
 proc pixelFormat*(this: ImagePixelData): ImagePixelFormat {.header: juce_graphics, importcpp: "#.pixelFormat".}
 proc width*(this: ImagePixelData): cint {.header: juce_graphics, importcpp: "#.width".}
 proc height*(this: ImagePixelData): cint {.header: juce_graphics, importcpp: "#.height".}
 proc userData*(this: ImagePixelData): NamedValueSet {.header: juce_graphics, importcpp: "#.userData".}
 proc userData*(this: var ImagePixelData): var NamedValueSet {.header: juce_graphics, importcpp: "#.userData".}
 proc `userData=`*(this: var ImagePixelData, value: NamedValueSet) {.header: juce_graphics, importcpp: "#.userData = #".}
-# proc listeners*(this: ImagePixelData): ListenerList<Listener> {.header: juce_graphics, importcpp: "#.listeners".}  # a type that cannot be spelled in Nim
-# proc listeners*(this: var ImagePixelData): var ListenerList<Listener> {.header: juce_graphics, importcpp: "#.listeners".}  # a type that cannot be spelled in Nim
-# proc `listeners=`*(this: var ImagePixelData, value: ListenerList<Listener>) {.header: juce_graphics, importcpp: "#.listeners = #".}  # a type that cannot be spelled in Nim
+# proc listeners*(this: ImagePixelData): ListenerList<Listener> {.header: juce_graphics, importcpp: "#.listeners".}  # a ListenerList over a nested type, which has no name outside the class; addListener and removeListener reach it
+# proc listeners*(this: var ImagePixelData): var ListenerList<Listener> {.header: juce_graphics, importcpp: "#.listeners".}  # a ListenerList over a nested type, which has no name outside the class; addListener and removeListener reach it
+# proc `listeners=`*(this: var ImagePixelData, value: ListenerList<Listener>) {.header: juce_graphics, importcpp: "#.listeners = #".}  # a ListenerList over a nested type, which has no name outside the class; addListener and removeListener reach it
 proc createLowLevelContext*(this: var ImagePixelData): UniquePtr[LowLevelGraphicsContext] {.header: juce_graphics, importcpp: "#.createLowLevelContext()".}
 proc clone*(this: var ImagePixelData): ReferenceCountedObjectPtr[ImagePixelData] {.header: juce_graphics, importcpp: "#.clone()".}
 proc createType*(this: ImagePixelData): UniquePtr[ImageType] {.header: juce_graphics, importcpp: "#.createType()".}
 proc getBackupExtensions*(this: var ImagePixelData): ptr ImagePixelDataBackupExtensions {.header: juce_graphics, importcpp: "#.getBackupExtensions()".}
-proc getBackupExtensions*(this: ImagePixelData): ptr ImagePixelDataBackupExtensions {.header: juce_graphics, importcpp: "#.getBackupExtensions()".}
+proc getBackupExtensions*(this: ImagePixelData): ConstPtr[ImagePixelDataBackupExtensions] {.header: juce_graphics, importcpp: "#.getBackupExtensions()".}
 proc initialiseBitmapData*(this: var ImagePixelData, arg1: var ImageBitmapData, x: cint, y: cint, arg4: ImageBitmapDataReadWriteMode) {.header: juce_graphics, importcpp: "#.initialiseBitmapData(@)".}
 proc getSharedCount*(this: ImagePixelData): cint {.header: juce_graphics, importcpp: "#.getSharedCount()".}
 proc moveImageSection*(this: var ImagePixelData, destTopLeft: Point[cint], sourceRect: Rectangle[cint]) {.header: juce_graphics, importcpp: "#.moveImageSection(@)".}
@@ -805,27 +829,23 @@ proc multiplyAllAlphas*(this: var ImagePixelData, amount: cfloat) {.header: juce
 proc desaturateInArea*(this: var ImagePixelData, bounds: Rectangle[cint]) {.header: juce_graphics, importcpp: "#.desaturateInArea(@)".}
 proc desaturate*(this: var ImagePixelData) {.header: juce_graphics, importcpp: "#.desaturate()".}
 proc sendDataChangeMessage*(this: var ImagePixelData) {.header: juce_graphics, importcpp: "#.sendDataChangeMessage()".}
-proc getNativeExtensions*(this: var ImagePixelData): ImagePixelDataNativeExtensions {.header: juce_graphics, importcpp: "#.getNativeExtensions()".}
+# proc getNativeExtensions*(this: var ImagePixelData): ImagePixelDataNativeExtensions {.header: juce_graphics, importcpp: "#.getNativeExtensions()".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
 proc `==`*(this: ImagePixelData, other: ImagePixelData): bool {.error: "juce::ImagePixelData defines no operator==; compare a property instead".}
 
 proc imageDataChanged*(this: var ImagePixelDataListener, arg1: ptr ImagePixelData) {.header: juce_graphics, importcpp: "#.imageDataChanged(@)".}
 proc imageDataBeingDeleted*(this: var ImagePixelDataListener, arg1: ptr ImagePixelData) {.header: juce_graphics, importcpp: "#.imageDataBeingDeleted(@)".}
 proc `==`*(this: ImagePixelDataListener, other: ImagePixelDataListener): bool {.error: "juce::ImagePixelData::Listener defines no operator==; compare a property instead".}
 
-proc makeImageType*(): ImageType {.header: juce_graphics, importcpp: "juce::ImageType(@)".}
+# proc makeImageType*(): ImageType {.header: juce_graphics, importcpp: "juce::ImageType(@)".}  # ImageType is abstract; build a CustomImageType instead
 proc create*(this: ImageType, arg1: ImagePixelFormat, width: cint, height: cint, shouldClearImage: bool): ReferenceCountedObjectPtr[ImagePixelData] {.header: juce_graphics, importcpp: "#.create(@)".}
 proc getTypeID*(this: ImageType): cint {.header: juce_graphics, importcpp: "#.getTypeID()".}
 proc convert*(this: ImageType, source: Image): Image {.header: juce_graphics, importcpp: "#.convert(@)".}
 proc `==`*(this: ImageType, other: ImageType): bool {.error: "juce::ImageType defines no operator==; compare a property instead".}
 
 proc makeSoftwareImageType*(): SoftwareImageType {.header: juce_graphics, importcpp: "juce::SoftwareImageType(@)".}
-proc create*(this: SoftwareImageType, arg1: ImagePixelFormat, width: cint, height: cint, clearImage: bool): ReferenceCountedObjectPtr[ImagePixelData] {.header: juce_graphics, importcpp: "#.create(@)".}
-proc getTypeID*(this: SoftwareImageType): cint {.header: juce_graphics, importcpp: "#.getTypeID()".}
 proc `==`*(this: SoftwareImageType, other: SoftwareImageType): bool {.error: "juce::SoftwareImageType defines no operator==; compare a property instead".}
 
 proc makeNativeImageType*(): NativeImageType {.header: juce_graphics, importcpp: "juce::NativeImageType(@)".}
-proc create*(this: NativeImageType, arg1: ImagePixelFormat, width: cint, height: cint, clearImage: bool): ReferenceCountedObjectPtr[ImagePixelData] {.header: juce_graphics, importcpp: "#.create(@)".}
-proc getTypeID*(this: NativeImageType): cint {.header: juce_graphics, importcpp: "#.getTypeID()".}
 proc `==`*(this: NativeImageType, other: NativeImageType): bool {.error: "juce::NativeImageType defines no operator==; compare a property instead".}
 
 proc makeFillType*(): FillType {.header: juce_graphics, importcpp: "juce::FillType(@)".}
@@ -837,7 +857,7 @@ proc colour*(this: var FillType): var Colour {.header: juce_graphics, importcpp:
 proc `colour=`*(this: var FillType, value: Colour) {.header: juce_graphics, importcpp: "#.colour = #".}
 proc gradient*(this: FillType): UniquePtr[ColourGradient] {.header: juce_graphics, importcpp: "#.gradient".}
 proc gradient*(this: var FillType): var UniquePtr[ColourGradient] {.header: juce_graphics, importcpp: "#.gradient".}
-proc `gradient=`*(this: var FillType, value: UniquePtr[ColourGradient]) {.header: juce_graphics, importcpp: "#.gradient = #".}
+proc `gradient=`*(this: var FillType, value: UniquePtr[ColourGradient]) {.header: juce_graphics, importcpp: "#.gradient = std::move(#)".}
 proc image*(this: FillType): Image {.header: juce_graphics, importcpp: "#.image".}
 proc image*(this: var FillType): var Image {.header: juce_graphics, importcpp: "#.image".}
 proc `image=`*(this: var FillType, value: Image) {.header: juce_graphics, importcpp: "#.image = #".}
@@ -894,6 +914,7 @@ proc colour*(this: var ColourLayer): var CppOptional[Colour] {.header: juce_grap
 proc `colour=`*(this: var ColourLayer, value: CppOptional[Colour]) {.header: juce_graphics, importcpp: "#.colour = #".}
 proc `==`*(this: ColourLayer, other: ColourLayer): bool {.error: "juce::ColourLayer defines no operator==; compare a property instead".}
 
+proc makeImageLayer*(): ImageLayer {.header: juce_graphics, importcpp: "juce::ImageLayer(@)".}  # implicit default constructor
 proc image*(this: ImageLayer): Image {.header: juce_graphics, importcpp: "#.image".}
 proc image*(this: var ImageLayer): var Image {.header: juce_graphics, importcpp: "#.image".}
 proc `image=`*(this: var ImageLayer, value: Image) {.header: juce_graphics, importcpp: "#.image = #".}
@@ -902,11 +923,12 @@ proc transform*(this: var ImageLayer): var AffineTransform {.header: juce_graphi
 proc `transform=`*(this: var ImageLayer, value: AffineTransform) {.header: juce_graphics, importcpp: "#.transform = #".}
 proc `==`*(this: ImageLayer, other: ImageLayer): bool {.error: "juce::ImageLayer defines no operator==; compare a property instead".}
 
-# proc layer*(this: GlyphLayer): std::variant<ColourLayer, ImageLayer> {.header: juce_graphics, importcpp: "#.layer".}  # a type that cannot be spelled in Nim
-# proc layer*(this: var GlyphLayer): var std::variant<ColourLayer, ImageLayer> {.header: juce_graphics, importcpp: "#.layer".}  # a type that cannot be spelled in Nim
-# proc `layer=`*(this: var GlyphLayer, value: std::variant<ColourLayer, ImageLayer>) {.header: juce_graphics, importcpp: "#.layer = #".}  # a type that cannot be spelled in Nim
+# proc layer*(this: GlyphLayer): std::variant<ColourLayer, ImageLayer> {.header: juce_graphics, importcpp: "#.layer".}  # a std::variant, which Nim cannot spell
+# proc layer*(this: var GlyphLayer): var std::variant<ColourLayer, ImageLayer> {.header: juce_graphics, importcpp: "#.layer".}  # a std::variant, which Nim cannot spell
+# proc `layer=`*(this: var GlyphLayer, value: std::variant<ColourLayer, ImageLayer>) {.header: juce_graphics, importcpp: "#.layer = #".}  # a std::variant, which Nim cannot spell
 proc `==`*(this: GlyphLayer, other: GlyphLayer): bool {.error: "juce::GlyphLayer defines no operator==; compare a property instead".}
 
+proc makeTypefaceMetrics*(): TypefaceMetrics {.header: juce_graphics, importcpp: "juce::TypefaceMetrics(@)".}  # implicit default constructor
 proc ascent*(this: TypefaceMetrics): cfloat {.header: juce_graphics, importcpp: "#.ascent".}
 proc ascent*(this: var TypefaceMetrics): var cfloat {.header: juce_graphics, importcpp: "#.ascent".}
 proc `ascent=`*(this: var TypefaceMetrics, value: cfloat) {.header: juce_graphics, importcpp: "#.ascent = #".}
@@ -932,17 +954,17 @@ proc getNominalGlyphForCodepoint*(this: Typeface, arg1: WChar): CppOptional[uint
 proc createSystemFallback*(this: Typeface, text: String, language: String): ReferenceCountedObjectPtr[Typeface] {.header: juce_graphics, importcpp: "#.createSystemFallback(@)".}
 proc findSystemTypeface*(this: typedesc[Typeface]): ReferenceCountedObjectPtr[Typeface] {.header: juce_graphics, importcpp: "juce::Typeface::findSystemTypeface()".}
 proc getSupportedFeatures*(this: Typeface): CppVector[FontFeatureTag] {.header: juce_graphics, importcpp: "#.getSupportedFeatures()".}
-proc getNativeDetails*(this: Typeface): ptr TypefaceNative {.header: juce_graphics, importcpp: "#.getNativeDetails()".}
+proc getNativeDetails*(this: Typeface): ConstPtr[TypefaceNative] {.header: juce_graphics, importcpp: "#.getNativeDetails()".}
 proc `==`*(this: Typeface, other: Typeface): bool {.error: "juce::Typeface defines no operator==; compare a property instead".}
 
 proc `==`*(this: TypefaceNative, other: TypefaceNative): bool {.error: "juce::Typeface::Native defines no operator==; compare a property instead".}
 
 proc makeFontOptions*(): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions(@)".}
-proc makeFontOptions*(fontHeight: cfloat): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions((float) @)".}
-proc makeFontOptions*(fontHeight: cfloat, styleFlags: cint): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions(@)".}
-proc makeFontOptions*(typefaceName: String, fontHeight: cfloat, styleFlags: cint): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions(@)".}
-proc makeFontOptions*(typefaceName: String, typefaceStyle: String, fontHeight: cfloat): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions(@)".}
-proc makeFontOptions*(typeface: ReferenceCountedObjectPtr[Typeface]): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions((const juce::ReferenceCountedObjectPtr<juce::Typeface> &) @)".}
+proc makeFontOptions*(fontHeight: cfloat): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions((float) #)".}
+proc makeFontOptions*(fontHeight: cfloat, styleFlags: cint): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions((float) #, (int) #)".}
+proc makeFontOptions*(typefaceName: String, fontHeight: cfloat, styleFlags: cint): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions((const juce::String &) #, (float) #, (int) #)".}
+proc makeFontOptions*(typefaceName: String, typefaceStyle: String, fontHeight: cfloat): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions((const juce::String &) #, (const juce::String &) #, (float) #)".}
+proc makeFontOptions*(typeface: ReferenceCountedObjectPtr[Typeface]): FontOptions {.header: juce_graphics, importcpp: "juce::FontOptions((const juce::ReferenceCountedObjectPtr<juce::Typeface> &) #)".}
 proc withName*(this: FontOptions, x: String): FontOptions {.header: juce_graphics, importcpp: "#.withName(@)".}
 proc withStyle*(this: FontOptions, x: String): FontOptions {.header: juce_graphics, importcpp: "#.withStyle(@)".}
 proc withTypeface*(this: FontOptions, x: ReferenceCountedObjectPtr[Typeface]): FontOptions {.header: juce_graphics, importcpp: "#.withTypeface(@)".}
@@ -981,13 +1003,13 @@ proc `<=`*(this: FontOptions, other: FontOptions): bool {.header: juce_graphics,
 # proc operator>*(this: FontOptions, other: FontOptions): bool {.header: juce_graphics, importcpp: "#.operator>(@)".}  # Nim derives > and >= from < and <=
 # proc operator>=*(this: FontOptions, other: FontOptions): bool {.header: juce_graphics, importcpp: "#.operator>=(@)".}  # Nim derives > and >= from < and <=
 
-proc makeFont*(options: FontOptions): Font {.header: juce_graphics, importcpp: "juce::Font((juce::FontOptions) @)".}
-proc makeFont*(fontHeight: cfloat, styleFlags: cint): Font {.header: juce_graphics, importcpp: "juce::Font(@)".}
-proc makeFont*(typefaceName: String, fontHeight: cfloat, styleFlags: cint): Font {.header: juce_graphics, importcpp: "juce::Font(@)".}
-proc makeFont*(typefaceName: String, typefaceStyle: String, fontHeight: cfloat): Font {.header: juce_graphics, importcpp: "juce::Font(@)".}
-proc makeFont*(typeface: ReferenceCountedObjectPtr[Typeface]): Font {.header: juce_graphics, importcpp: "juce::Font((const juce::ReferenceCountedObjectPtr<juce::Typeface> &) @)".}
+proc makeFont*(options: FontOptions): Font {.header: juce_graphics, importcpp: "juce::Font((juce::FontOptions) #)".}
+proc makeFont*(fontHeight: cfloat, styleFlags: cint): Font {.header: juce_graphics, importcpp: "juce::Font((float) #, (int) #)".}
+proc makeFont*(typefaceName: String, fontHeight: cfloat, styleFlags: cint): Font {.header: juce_graphics, importcpp: "juce::Font((const juce::String &) #, (float) #, (int) #)".}
+proc makeFont*(typefaceName: String, typefaceStyle: String, fontHeight: cfloat): Font {.header: juce_graphics, importcpp: "juce::Font((const juce::String &) #, (const juce::String &) #, (float) #)".}
+proc makeFont*(typeface: ReferenceCountedObjectPtr[Typeface]): Font {.header: juce_graphics, importcpp: "juce::Font((const juce::ReferenceCountedObjectPtr<juce::Typeface> &) #)".}
 proc makeFont*(): Font {.header: juce_graphics, importcpp: "juce::Font(@)".}
-proc `Font=`*(this: var Font, other: Font): var Font {.header: juce_graphics, importcpp: "#.operator=(@)".}
+proc `Font=`*(this: var Font, other: Font): var Font {.header: juce_graphics, importcpp: "#.operator=(std::move(#))".}
 proc `==`*(this: Font, other: Font): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: Font, other: Font): bool {.header: juce_graphics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc setTypefaceName*(this: var Font, faceName: String) {.header: juce_graphics, importcpp: "#.setTypefaceName(@)".}
@@ -1047,13 +1069,13 @@ proc setDescentOverride*(this: var Font, arg1: CppOptional[cfloat]) {.header: ju
 proc setSizeAndStyle*(this: var Font, newHeight: cfloat, newStyleFlags: cint, newHorizontalScale: cfloat, newKerningAmount: cfloat) {.header: juce_graphics, importcpp: "#.setSizeAndStyle(@)".}
 proc setSizeAndStyle*(this: var Font, newHeight: cfloat, newStyle: String, newHorizontalScale: cfloat, newKerningAmount: cfloat) {.header: juce_graphics, importcpp: "#.setSizeAndStyle(@)".}
 proc getTypefacePtr*(this: Font): ReferenceCountedObjectPtr[Typeface] {.header: juce_graphics, importcpp: "#.getTypefacePtr()".}
-proc findFonts*(this: typedesc[Font], results: Array[Font]) {.header: juce_graphics, importcpp: "juce::Font::findFonts(@)".}
+proc findFonts*(this: typedesc[Font], results: var Array[Font]) {.header: juce_graphics, importcpp: "juce::Font::findFonts(@)".}
 proc findAllTypefaceNames*(this: typedesc[Font]): StringArray {.header: juce_graphics, importcpp: "juce::Font::findAllTypefaceNames()".}
 proc findAllTypefaceStyles*(this: typedesc[Font], family: String): StringArray {.header: juce_graphics, importcpp: "juce::Font::findAllTypefaceStyles(@)".}
 proc findSuitableFontForText*(this: Font, text: String, language: String): Font {.header: juce_graphics, importcpp: "#.findSuitableFontForText(@)".}
 proc toString*(this: Font): String {.header: juce_graphics, importcpp: "#.toString()".}
 proc fromString*(this: typedesc[Font], fontDescription: String): Font {.header: juce_graphics, importcpp: "juce::Font::fromString(@)".}
-proc getNativeDetails*(this: Font): FontNative {.header: juce_graphics, importcpp: "#.getNativeDetails()".}
+# proc getNativeDetails*(this: Font): FontNative {.header: juce_graphics, importcpp: "#.getNativeDetails()".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
 proc getHeightToPointsFactor*(this: Font): cfloat {.header: juce_graphics, importcpp: "#.getHeightToPointsFactor()".}
 
 proc `==`*(this: FontNative, other: FontNative): bool {.error: "juce::Font::Native defines no operator==; compare a property instead".}
@@ -1098,7 +1120,6 @@ proc colour*(this: AttributedStringAttribute): Colour {.header: juce_graphics, i
 proc colour*(this: var AttributedStringAttribute): var Colour {.header: juce_graphics, importcpp: "#.colour".}
 proc `colour=`*(this: var AttributedStringAttribute, value: Colour) {.header: juce_graphics, importcpp: "#.colour = #".}
 proc `AttributedStringAttribute=`*(this: var AttributedStringAttribute, arg1: AttributedStringAttribute): var AttributedStringAttribute {.header: juce_graphics, importcpp: "#.operator=(@)".}
-proc `AttributedStringAttribute=`*(this: var AttributedStringAttribute, arg1: var AttributedStringAttribute): var AttributedStringAttribute {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc `==`*(this: AttributedStringAttribute, other: AttributedStringAttribute): bool {.error: "juce::AttributedString::Attribute defines no operator==; compare a property instead".}
 
 proc makePositionedGlyph*(): PositionedGlyph {.header: juce_graphics, importcpp: "juce::PositionedGlyph(@)".}
@@ -1123,8 +1144,8 @@ proc makeGlyphArrangement*(): GlyphArrangement {.header: juce_graphics, importcp
 proc `GlyphArrangement=`*(this: var GlyphArrangement, arg1: GlyphArrangement): var GlyphArrangement {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc getNumGlyphs*(this: GlyphArrangement): cint {.header: juce_graphics, importcpp: "#.getNumGlyphs()".}
 proc getGlyph*(this: var GlyphArrangement, index: cint): var PositionedGlyph {.header: juce_graphics, importcpp: "#.getGlyph(@)".}
-# proc begin*(this: GlyphArrangement): ptr PositionedGlyph {.header: juce_graphics, importcpp: "#.begin()".}  # a C++ iterator; loop with the Nim iterator instead
-# proc `end`*(this: GlyphArrangement): ptr PositionedGlyph {.header: juce_graphics, importcpp: "#.end()".}  # a C++ iterator; loop with the Nim iterator instead
+# proc begin*(this: GlyphArrangement): ConstPtr[PositionedGlyph] {.header: juce_graphics, importcpp: "#.begin()".}  # a C++ iterator; loop with the Nim iterator instead
+# proc `end`*(this: GlyphArrangement): ConstPtr[PositionedGlyph] {.header: juce_graphics, importcpp: "#.end()".}  # a C++ iterator; loop with the Nim iterator instead
 proc clear*(this: var GlyphArrangement) {.header: juce_graphics, importcpp: "#.clear()".}
 proc addLineOfText*(this: var GlyphArrangement, font: Font, text: String, x: cfloat, y: cfloat) {.header: juce_graphics, importcpp: "#.addLineOfText(@)".}
 proc addCurtailedLineOfText*(this: var GlyphArrangement, font: Font, text: String, x: cfloat, y: cfloat, maxWidthPixels: cfloat, useEllipsis: bool) {.header: juce_graphics, importcpp: "#.addCurtailedLineOfText(@)".}
@@ -1157,7 +1178,7 @@ proc getWidth*(this: TextLayout): cfloat {.header: juce_graphics, importcpp: "#.
 proc getHeight*(this: TextLayout): cfloat {.header: juce_graphics, importcpp: "#.getHeight()".}
 proc getNumLines*(this: TextLayout): cint {.header: juce_graphics, importcpp: "#.getNumLines()".}
 proc getLine*(this: TextLayout, index: cint): var TextLayoutLine {.header: juce_graphics, importcpp: "#.getLine(@)".}
-proc addLine*(this: var TextLayout, arg1: UniquePtr[TextLayoutLine]) {.header: juce_graphics, importcpp: "#.addLine(@)".}
+proc addLine*(this: var TextLayout, arg1: UniquePtr[TextLayoutLine]) {.header: juce_graphics, importcpp: "#.addLine(std::move(#))".}
 proc ensureStorageAllocated*(this: var TextLayout, numLinesNeeded: cint) {.header: juce_graphics, importcpp: "#.ensureStorageAllocated(@)".}
 # proc begin*(this: var TextLayout): iterator {.header: juce_graphics, importcpp: "#.begin()".}  # a C++ iterator; loop with the Nim iterator instead
 # proc begin*(this: TextLayout): _iterator {.header: juce_graphics, importcpp: "#.begin()".}  # a C++ iterator; loop with the Nim iterator instead
@@ -1203,9 +1224,9 @@ proc `==`*(this: TextLayoutRun, other: TextLayoutRun): bool {.error: "juce::Text
 
 proc makeTextLayoutLine*(): TextLayoutLine {.header: juce_graphics, importcpp: "juce::TextLayout::Line(@)".}
 proc makeTextLayoutLine*(stringRange: Range[cint], lineOrigin: Point[cfloat], ascent: cfloat, descent: cfloat, leading: cfloat, numRunsToPreallocate: cint): TextLayoutLine {.header: juce_graphics, importcpp: "juce::TextLayout::Line(@)".}
-proc runs*(this: TextLayoutLine): OwnedArray[TextLayoutRun] {.header: juce_graphics, importcpp: "#.runs".}
+# proc runs*(this: TextLayoutLine): OwnedArray[TextLayoutRun] {.header: juce_graphics, importcpp: "#.runs".}  # OwnedArray[TextLayoutRun] has no accessible copy constructor, so it can only be reached through the var getter below
 proc runs*(this: var TextLayoutLine): var OwnedArray[TextLayoutRun] {.header: juce_graphics, importcpp: "#.runs".}
-proc `runs=`*(this: var TextLayoutLine, value: OwnedArray[TextLayoutRun]) {.header: juce_graphics, importcpp: "#.runs = #".}
+# proc `runs=`*(this: var TextLayoutLine, value: OwnedArray[TextLayoutRun]) {.header: juce_graphics, importcpp: "#.runs = #".}  # OwnedArray[TextLayoutRun] has no accessible copy constructor, so it can only be reached through the var getter below
 proc stringRange*(this: TextLayoutLine): Range[cint] {.header: juce_graphics, importcpp: "#.stringRange".}
 proc stringRange*(this: var TextLayoutLine): var Range[cint] {.header: juce_graphics, importcpp: "#.stringRange".}
 proc `stringRange=`*(this: var TextLayoutLine, value: Range[cint]) {.header: juce_graphics, importcpp: "#.stringRange = #".}
@@ -1222,7 +1243,6 @@ proc leading*(this: TextLayoutLine): cfloat {.header: juce_graphics, importcpp: 
 proc leading*(this: var TextLayoutLine): var cfloat {.header: juce_graphics, importcpp: "#.leading".}
 proc `leading=`*(this: var TextLayoutLine, value: cfloat) {.header: juce_graphics, importcpp: "#.leading = #".}
 proc `TextLayoutLine=`*(this: var TextLayoutLine, arg1: TextLayoutLine): var TextLayoutLine {.header: juce_graphics, importcpp: "#.operator=(@)".}
-proc `TextLayoutLine=`*(this: var TextLayoutLine, arg1: var TextLayoutLine): var TextLayoutLine {.header: juce_graphics, importcpp: "#.operator=(@)".}
 proc getLineBoundsX*(this: TextLayoutLine): Range[cfloat] {.header: juce_graphics, importcpp: "#.getLineBoundsX()".}
 proc getLineBoundsY*(this: TextLayoutLine): Range[cfloat] {.header: juce_graphics, importcpp: "#.getLineBoundsY()".}
 proc getLineBounds*(this: TextLayoutLine): Rectangle[cfloat] {.header: juce_graphics, importcpp: "#.getLineBounds()".}
@@ -1279,36 +1299,6 @@ proc `==`*(this: ScaledImage, other: ScaledImage): bool {.error: "juce::ScaledIm
 
 proc makeLowLevelGraphicsSoftwareRenderer*(imageToRenderOnto: Image): LowLevelGraphicsSoftwareRenderer {.header: juce_graphics, importcpp: "juce::LowLevelGraphicsSoftwareRenderer(@)".}
 proc makeLowLevelGraphicsSoftwareRenderer*(imageToRenderOnto: Image, origin: Point[cint], initialClip: RectangleList[cint]): LowLevelGraphicsSoftwareRenderer {.header: juce_graphics, importcpp: "juce::LowLevelGraphicsSoftwareRenderer(@)".}
-proc getPreferredImageTypeForTemporaryImages*(this: LowLevelGraphicsSoftwareRenderer): UniquePtr[ImageType] {.header: juce_graphics, importcpp: "#.getPreferredImageTypeForTemporaryImages()".}
-proc isVectorDevice*(this: LowLevelGraphicsSoftwareRenderer): bool {.header: juce_graphics, importcpp: "#.isVectorDevice()".}
-proc getClipBounds*(this: LowLevelGraphicsSoftwareRenderer): Rectangle[cint] {.header: juce_graphics, importcpp: "#.getClipBounds()".}
-proc isClipEmpty*(this: LowLevelGraphicsSoftwareRenderer): bool {.header: juce_graphics, importcpp: "#.isClipEmpty()".}
-proc setOrigin*(this: var LowLevelGraphicsSoftwareRenderer, o: Point[cint]) {.header: juce_graphics, importcpp: "#.setOrigin(@)".}
-proc addTransform*(this: var LowLevelGraphicsSoftwareRenderer, t: AffineTransform) {.header: juce_graphics, importcpp: "#.addTransform(@)".}
-proc getPhysicalPixelScaleFactor*(this: LowLevelGraphicsSoftwareRenderer): cfloat {.header: juce_graphics, importcpp: "#.getPhysicalPixelScaleFactor()".}
-proc clipRegionIntersects*(this: var LowLevelGraphicsSoftwareRenderer, r: Rectangle[cint]): bool {.header: juce_graphics, importcpp: "#.clipRegionIntersects(@)".}
-proc clipToRectangle*(this: var LowLevelGraphicsSoftwareRenderer, r: Rectangle[cint]): bool {.header: juce_graphics, importcpp: "#.clipToRectangle(@)".}
-proc clipToRectangleList*(this: var LowLevelGraphicsSoftwareRenderer, r: RectangleList[cint]): bool {.header: juce_graphics, importcpp: "#.clipToRectangleList(@)".}
-proc excludeClipRectangle*(this: var LowLevelGraphicsSoftwareRenderer, r: Rectangle[cint]) {.header: juce_graphics, importcpp: "#.excludeClipRectangle(@)".}
-proc clipToPath*(this: var LowLevelGraphicsSoftwareRenderer, path: Path, t: AffineTransform) {.header: juce_graphics, importcpp: "#.clipToPath(@)".}
-proc clipToImageAlpha*(this: var LowLevelGraphicsSoftwareRenderer, im: Image, t: AffineTransform) {.header: juce_graphics, importcpp: "#.clipToImageAlpha(@)".}
-proc saveState*(this: var LowLevelGraphicsSoftwareRenderer) {.header: juce_graphics, importcpp: "#.saveState()".}
-proc restoreState*(this: var LowLevelGraphicsSoftwareRenderer) {.header: juce_graphics, importcpp: "#.restoreState()".}
-proc beginTransparencyLayer*(this: var LowLevelGraphicsSoftwareRenderer, opacity: cfloat) {.header: juce_graphics, importcpp: "#.beginTransparencyLayer(@)".}
-proc endTransparencyLayer*(this: var LowLevelGraphicsSoftwareRenderer) {.header: juce_graphics, importcpp: "#.endTransparencyLayer()".}
-proc setFill*(this: var LowLevelGraphicsSoftwareRenderer, fillType: FillType) {.header: juce_graphics, importcpp: "#.setFill(@)".}
-proc setOpacity*(this: var LowLevelGraphicsSoftwareRenderer, newOpacity: cfloat) {.header: juce_graphics, importcpp: "#.setOpacity(@)".}
-proc setInterpolationQuality*(this: var LowLevelGraphicsSoftwareRenderer, quality: GraphicsResamplingQuality) {.header: juce_graphics, importcpp: "#.setInterpolationQuality(@)".}
-proc fillRect*(this: var LowLevelGraphicsSoftwareRenderer, r: Rectangle[cint], replace: bool) {.header: juce_graphics, importcpp: "#.fillRect(@)".}
-proc fillRect*(this: var LowLevelGraphicsSoftwareRenderer, r: Rectangle[cfloat]) {.header: juce_graphics, importcpp: "#.fillRect(@)".}
-proc fillRectList*(this: var LowLevelGraphicsSoftwareRenderer, list: RectangleList[cfloat]) {.header: juce_graphics, importcpp: "#.fillRectList(@)".}
-proc fillPath*(this: var LowLevelGraphicsSoftwareRenderer, path: Path, t: AffineTransform) {.header: juce_graphics, importcpp: "#.fillPath(@)".}
-proc drawImage*(this: var LowLevelGraphicsSoftwareRenderer, im: Image, t: AffineTransform) {.header: juce_graphics, importcpp: "#.drawImage(@)".}
-proc drawLine*(this: var LowLevelGraphicsSoftwareRenderer, line: Line[cfloat]) {.header: juce_graphics, importcpp: "#.drawLine(@)".}
-proc setFont*(this: var LowLevelGraphicsSoftwareRenderer, newFont: Font) {.header: juce_graphics, importcpp: "#.setFont(@)".}
-proc getFont*(this: var LowLevelGraphicsSoftwareRenderer): Font {.header: juce_graphics, importcpp: "#.getFont()".}
-proc getFrameId*(this: LowLevelGraphicsSoftwareRenderer): uint64 {.header: juce_graphics, importcpp: "#.getFrameId()".}
-proc drawGlyphs*(this: var LowLevelGraphicsSoftwareRenderer, glyphs: Span[uint16], positions: Span[Point[cfloat]], t: AffineTransform) {.header: juce_graphics, importcpp: "#.drawGlyphs(@)".}
 proc `==`*(this: LowLevelGraphicsSoftwareRenderer, other: LowLevelGraphicsSoftwareRenderer): bool {.error: "juce::LowLevelGraphicsSoftwareRenderer defines no operator==; compare a property instead".}
 
 proc applyEffect*(this: var ImageEffectFilter, sourceImage: var Image, destContext: var Graphics, scaleFactor: cfloat, alpha: cfloat) {.header: juce_graphics, importcpp: "#.applyEffect(@)".}
@@ -1332,25 +1322,223 @@ proc `==`*(this: DropShadow, other: DropShadow): bool {.error: "juce::DropShadow
 
 proc makeDropShadowEffect*(): DropShadowEffect {.header: juce_graphics, importcpp: "juce::DropShadowEffect(@)".}
 proc setShadowProperties*(this: var DropShadowEffect, newShadow: DropShadow) {.header: juce_graphics, importcpp: "#.setShadowProperties(@)".}
-proc applyEffect*(this: var DropShadowEffect, sourceImage: var Image, destContext: var Graphics, scaleFactor: cfloat, alpha: cfloat) {.header: juce_graphics, importcpp: "#.applyEffect(@)".}
 proc `==`*(this: DropShadowEffect, other: DropShadowEffect): bool {.error: "juce::DropShadowEffect defines no operator==; compare a property instead".}
 
 proc makeGlowEffect*(): GlowEffect {.header: juce_graphics, importcpp: "juce::GlowEffect(@)".}
 proc setGlowProperties*(this: var GlowEffect, newRadius: cfloat, newColour: Colour, offset: Point[cint]) {.header: juce_graphics, importcpp: "#.setGlowProperties(@)".}
-proc applyEffect*(this: var GlowEffect, arg1: var Image, arg2: var Graphics, scaleFactor: cfloat, alpha: cfloat) {.header: juce_graphics, importcpp: "#.applyEffect(@)".}
 proc `==`*(this: GlowEffect, other: GlowEffect): bool {.error: "juce::GlowEffect defines no operator==; compare a property instead".}
 
 proc `==`*(this: ImagePixelDataNativeExtensions, other: ImagePixelDataNativeExtensions): bool {.error: "juce::ImagePixelDataNativeExtensions defines no operator==; compare a property instead".}
 
+let Colours_transparentBlack* {.header: juce_graphics, importcpp: "juce::Colours::transparentBlack".}: Colour
+let Colours_transparentWhite* {.header: juce_graphics, importcpp: "juce::Colours::transparentWhite".}: Colour
+let Colours_aliceblue* {.header: juce_graphics, importcpp: "juce::Colours::aliceblue".}: Colour
+let Colours_antiquewhite* {.header: juce_graphics, importcpp: "juce::Colours::antiquewhite".}: Colour
+let Colours_aqua* {.header: juce_graphics, importcpp: "juce::Colours::aqua".}: Colour
+let Colours_aquamarine* {.header: juce_graphics, importcpp: "juce::Colours::aquamarine".}: Colour
+let Colours_azure* {.header: juce_graphics, importcpp: "juce::Colours::azure".}: Colour
+let Colours_beige* {.header: juce_graphics, importcpp: "juce::Colours::beige".}: Colour
+let Colours_bisque* {.header: juce_graphics, importcpp: "juce::Colours::bisque".}: Colour
+let Colours_black* {.header: juce_graphics, importcpp: "juce::Colours::black".}: Colour
+let Colours_blanchedalmond* {.header: juce_graphics, importcpp: "juce::Colours::blanchedalmond".}: Colour
+let Colours_blue* {.header: juce_graphics, importcpp: "juce::Colours::blue".}: Colour
+let Colours_blueviolet* {.header: juce_graphics, importcpp: "juce::Colours::blueviolet".}: Colour
+let Colours_brown* {.header: juce_graphics, importcpp: "juce::Colours::brown".}: Colour
+let Colours_burlywood* {.header: juce_graphics, importcpp: "juce::Colours::burlywood".}: Colour
+let Colours_cadetblue* {.header: juce_graphics, importcpp: "juce::Colours::cadetblue".}: Colour
+let Colours_chartreuse* {.header: juce_graphics, importcpp: "juce::Colours::chartreuse".}: Colour
+let Colours_chocolate* {.header: juce_graphics, importcpp: "juce::Colours::chocolate".}: Colour
+let Colours_coral* {.header: juce_graphics, importcpp: "juce::Colours::coral".}: Colour
+let Colours_cornflowerblue* {.header: juce_graphics, importcpp: "juce::Colours::cornflowerblue".}: Colour
+let Colours_cornsilk* {.header: juce_graphics, importcpp: "juce::Colours::cornsilk".}: Colour
+let Colours_crimson* {.header: juce_graphics, importcpp: "juce::Colours::crimson".}: Colour
+let Colours_cyan* {.header: juce_graphics, importcpp: "juce::Colours::cyan".}: Colour
+let Colours_darkblue* {.header: juce_graphics, importcpp: "juce::Colours::darkblue".}: Colour
+let Colours_darkcyan* {.header: juce_graphics, importcpp: "juce::Colours::darkcyan".}: Colour
+let Colours_darkgoldenrod* {.header: juce_graphics, importcpp: "juce::Colours::darkgoldenrod".}: Colour
+let Colours_darkgrey* {.header: juce_graphics, importcpp: "juce::Colours::darkgrey".}: Colour
+let Colours_darkgreen* {.header: juce_graphics, importcpp: "juce::Colours::darkgreen".}: Colour
+let Colours_darkkhaki* {.header: juce_graphics, importcpp: "juce::Colours::darkkhaki".}: Colour
+let Colours_darkmagenta* {.header: juce_graphics, importcpp: "juce::Colours::darkmagenta".}: Colour
+let Colours_darkolivegreen* {.header: juce_graphics, importcpp: "juce::Colours::darkolivegreen".}: Colour
+let Colours_darkorange* {.header: juce_graphics, importcpp: "juce::Colours::darkorange".}: Colour
+let Colours_darkorchid* {.header: juce_graphics, importcpp: "juce::Colours::darkorchid".}: Colour
+let Colours_darkred* {.header: juce_graphics, importcpp: "juce::Colours::darkred".}: Colour
+let Colours_darksalmon* {.header: juce_graphics, importcpp: "juce::Colours::darksalmon".}: Colour
+let Colours_darkseagreen* {.header: juce_graphics, importcpp: "juce::Colours::darkseagreen".}: Colour
+let Colours_darkslateblue* {.header: juce_graphics, importcpp: "juce::Colours::darkslateblue".}: Colour
+let Colours_darkslategrey* {.header: juce_graphics, importcpp: "juce::Colours::darkslategrey".}: Colour
+let Colours_darkturquoise* {.header: juce_graphics, importcpp: "juce::Colours::darkturquoise".}: Colour
+let Colours_darkviolet* {.header: juce_graphics, importcpp: "juce::Colours::darkviolet".}: Colour
+let Colours_deeppink* {.header: juce_graphics, importcpp: "juce::Colours::deeppink".}: Colour
+let Colours_deepskyblue* {.header: juce_graphics, importcpp: "juce::Colours::deepskyblue".}: Colour
+let Colours_dimgrey* {.header: juce_graphics, importcpp: "juce::Colours::dimgrey".}: Colour
+let Colours_dodgerblue* {.header: juce_graphics, importcpp: "juce::Colours::dodgerblue".}: Colour
+let Colours_firebrick* {.header: juce_graphics, importcpp: "juce::Colours::firebrick".}: Colour
+let Colours_floralwhite* {.header: juce_graphics, importcpp: "juce::Colours::floralwhite".}: Colour
+let Colours_forestgreen* {.header: juce_graphics, importcpp: "juce::Colours::forestgreen".}: Colour
+let Colours_fuchsia* {.header: juce_graphics, importcpp: "juce::Colours::fuchsia".}: Colour
+let Colours_gainsboro* {.header: juce_graphics, importcpp: "juce::Colours::gainsboro".}: Colour
+let Colours_ghostwhite* {.header: juce_graphics, importcpp: "juce::Colours::ghostwhite".}: Colour
+let Colours_gold* {.header: juce_graphics, importcpp: "juce::Colours::gold".}: Colour
+let Colours_goldenrod* {.header: juce_graphics, importcpp: "juce::Colours::goldenrod".}: Colour
+let Colours_grey* {.header: juce_graphics, importcpp: "juce::Colours::grey".}: Colour
+let Colours_green* {.header: juce_graphics, importcpp: "juce::Colours::green".}: Colour
+let Colours_greenyellow* {.header: juce_graphics, importcpp: "juce::Colours::greenyellow".}: Colour
+let Colours_honeydew* {.header: juce_graphics, importcpp: "juce::Colours::honeydew".}: Colour
+let Colours_hotpink* {.header: juce_graphics, importcpp: "juce::Colours::hotpink".}: Colour
+let Colours_indianred* {.header: juce_graphics, importcpp: "juce::Colours::indianred".}: Colour
+let Colours_indigo* {.header: juce_graphics, importcpp: "juce::Colours::indigo".}: Colour
+let Colours_ivory* {.header: juce_graphics, importcpp: "juce::Colours::ivory".}: Colour
+let Colours_khaki* {.header: juce_graphics, importcpp: "juce::Colours::khaki".}: Colour
+let Colours_lavender* {.header: juce_graphics, importcpp: "juce::Colours::lavender".}: Colour
+let Colours_lavenderblush* {.header: juce_graphics, importcpp: "juce::Colours::lavenderblush".}: Colour
+let Colours_lawngreen* {.header: juce_graphics, importcpp: "juce::Colours::lawngreen".}: Colour
+let Colours_lemonchiffon* {.header: juce_graphics, importcpp: "juce::Colours::lemonchiffon".}: Colour
+let Colours_lightblue* {.header: juce_graphics, importcpp: "juce::Colours::lightblue".}: Colour
+let Colours_lightcoral* {.header: juce_graphics, importcpp: "juce::Colours::lightcoral".}: Colour
+let Colours_lightcyan* {.header: juce_graphics, importcpp: "juce::Colours::lightcyan".}: Colour
+let Colours_lightgoldenrodyellow* {.header: juce_graphics, importcpp: "juce::Colours::lightgoldenrodyellow".}: Colour
+let Colours_lightgreen* {.header: juce_graphics, importcpp: "juce::Colours::lightgreen".}: Colour
+let Colours_lightgrey* {.header: juce_graphics, importcpp: "juce::Colours::lightgrey".}: Colour
+let Colours_lightpink* {.header: juce_graphics, importcpp: "juce::Colours::lightpink".}: Colour
+let Colours_lightsalmon* {.header: juce_graphics, importcpp: "juce::Colours::lightsalmon".}: Colour
+let Colours_lightseagreen* {.header: juce_graphics, importcpp: "juce::Colours::lightseagreen".}: Colour
+let Colours_lightskyblue* {.header: juce_graphics, importcpp: "juce::Colours::lightskyblue".}: Colour
+let Colours_lightslategrey* {.header: juce_graphics, importcpp: "juce::Colours::lightslategrey".}: Colour
+let Colours_lightsteelblue* {.header: juce_graphics, importcpp: "juce::Colours::lightsteelblue".}: Colour
+let Colours_lightyellow* {.header: juce_graphics, importcpp: "juce::Colours::lightyellow".}: Colour
+let Colours_lime* {.header: juce_graphics, importcpp: "juce::Colours::lime".}: Colour
+let Colours_limegreen* {.header: juce_graphics, importcpp: "juce::Colours::limegreen".}: Colour
+let Colours_linen* {.header: juce_graphics, importcpp: "juce::Colours::linen".}: Colour
+let Colours_magenta* {.header: juce_graphics, importcpp: "juce::Colours::magenta".}: Colour
+let Colours_maroon* {.header: juce_graphics, importcpp: "juce::Colours::maroon".}: Colour
+let Colours_mediumaquamarine* {.header: juce_graphics, importcpp: "juce::Colours::mediumaquamarine".}: Colour
+let Colours_mediumblue* {.header: juce_graphics, importcpp: "juce::Colours::mediumblue".}: Colour
+let Colours_mediumorchid* {.header: juce_graphics, importcpp: "juce::Colours::mediumorchid".}: Colour
+let Colours_mediumpurple* {.header: juce_graphics, importcpp: "juce::Colours::mediumpurple".}: Colour
+let Colours_mediumseagreen* {.header: juce_graphics, importcpp: "juce::Colours::mediumseagreen".}: Colour
+let Colours_mediumslateblue* {.header: juce_graphics, importcpp: "juce::Colours::mediumslateblue".}: Colour
+let Colours_mediumspringgreen* {.header: juce_graphics, importcpp: "juce::Colours::mediumspringgreen".}: Colour
+let Colours_mediumturquoise* {.header: juce_graphics, importcpp: "juce::Colours::mediumturquoise".}: Colour
+let Colours_mediumvioletred* {.header: juce_graphics, importcpp: "juce::Colours::mediumvioletred".}: Colour
+let Colours_midnightblue* {.header: juce_graphics, importcpp: "juce::Colours::midnightblue".}: Colour
+let Colours_mintcream* {.header: juce_graphics, importcpp: "juce::Colours::mintcream".}: Colour
+let Colours_mistyrose* {.header: juce_graphics, importcpp: "juce::Colours::mistyrose".}: Colour
+let Colours_moccasin* {.header: juce_graphics, importcpp: "juce::Colours::moccasin".}: Colour
+let Colours_navajowhite* {.header: juce_graphics, importcpp: "juce::Colours::navajowhite".}: Colour
+let Colours_navy* {.header: juce_graphics, importcpp: "juce::Colours::navy".}: Colour
+let Colours_oldlace* {.header: juce_graphics, importcpp: "juce::Colours::oldlace".}: Colour
+let Colours_olive* {.header: juce_graphics, importcpp: "juce::Colours::olive".}: Colour
+let Colours_olivedrab* {.header: juce_graphics, importcpp: "juce::Colours::olivedrab".}: Colour
+let Colours_orange* {.header: juce_graphics, importcpp: "juce::Colours::orange".}: Colour
+let Colours_orangered* {.header: juce_graphics, importcpp: "juce::Colours::orangered".}: Colour
+let Colours_orchid* {.header: juce_graphics, importcpp: "juce::Colours::orchid".}: Colour
+let Colours_palegoldenrod* {.header: juce_graphics, importcpp: "juce::Colours::palegoldenrod".}: Colour
+let Colours_palegreen* {.header: juce_graphics, importcpp: "juce::Colours::palegreen".}: Colour
+let Colours_paleturquoise* {.header: juce_graphics, importcpp: "juce::Colours::paleturquoise".}: Colour
+let Colours_palevioletred* {.header: juce_graphics, importcpp: "juce::Colours::palevioletred".}: Colour
+let Colours_papayawhip* {.header: juce_graphics, importcpp: "juce::Colours::papayawhip".}: Colour
+let Colours_peachpuff* {.header: juce_graphics, importcpp: "juce::Colours::peachpuff".}: Colour
+let Colours_peru* {.header: juce_graphics, importcpp: "juce::Colours::peru".}: Colour
+let Colours_pink* {.header: juce_graphics, importcpp: "juce::Colours::pink".}: Colour
+let Colours_plum* {.header: juce_graphics, importcpp: "juce::Colours::plum".}: Colour
+let Colours_powderblue* {.header: juce_graphics, importcpp: "juce::Colours::powderblue".}: Colour
+let Colours_purple* {.header: juce_graphics, importcpp: "juce::Colours::purple".}: Colour
+let Colours_rebeccapurple* {.header: juce_graphics, importcpp: "juce::Colours::rebeccapurple".}: Colour
+let Colours_red* {.header: juce_graphics, importcpp: "juce::Colours::red".}: Colour
+let Colours_rosybrown* {.header: juce_graphics, importcpp: "juce::Colours::rosybrown".}: Colour
+let Colours_royalblue* {.header: juce_graphics, importcpp: "juce::Colours::royalblue".}: Colour
+let Colours_saddlebrown* {.header: juce_graphics, importcpp: "juce::Colours::saddlebrown".}: Colour
+let Colours_salmon* {.header: juce_graphics, importcpp: "juce::Colours::salmon".}: Colour
+let Colours_sandybrown* {.header: juce_graphics, importcpp: "juce::Colours::sandybrown".}: Colour
+let Colours_seagreen* {.header: juce_graphics, importcpp: "juce::Colours::seagreen".}: Colour
+let Colours_seashell* {.header: juce_graphics, importcpp: "juce::Colours::seashell".}: Colour
+let Colours_sienna* {.header: juce_graphics, importcpp: "juce::Colours::sienna".}: Colour
+let Colours_silver* {.header: juce_graphics, importcpp: "juce::Colours::silver".}: Colour
+let Colours_skyblue* {.header: juce_graphics, importcpp: "juce::Colours::skyblue".}: Colour
+let Colours_slateblue* {.header: juce_graphics, importcpp: "juce::Colours::slateblue".}: Colour
+let Colours_slategrey* {.header: juce_graphics, importcpp: "juce::Colours::slategrey".}: Colour
+let Colours_snow* {.header: juce_graphics, importcpp: "juce::Colours::snow".}: Colour
+let Colours_springgreen* {.header: juce_graphics, importcpp: "juce::Colours::springgreen".}: Colour
+let Colours_steelblue* {.header: juce_graphics, importcpp: "juce::Colours::steelblue".}: Colour
+let Colours_tan* {.header: juce_graphics, importcpp: "juce::Colours::tan".}: Colour
+let Colours_teal* {.header: juce_graphics, importcpp: "juce::Colours::teal".}: Colour
+let Colours_thistle* {.header: juce_graphics, importcpp: "juce::Colours::thistle".}: Colour
+let Colours_tomato* {.header: juce_graphics, importcpp: "juce::Colours::tomato".}: Colour
+let Colours_turquoise* {.header: juce_graphics, importcpp: "juce::Colours::turquoise".}: Colour
+let Colours_violet* {.header: juce_graphics, importcpp: "juce::Colours::violet".}: Colour
+let Colours_wheat* {.header: juce_graphics, importcpp: "juce::Colours::wheat".}: Colour
+let Colours_white* {.header: juce_graphics, importcpp: "juce::Colours::white".}: Colour
+let Colours_whitesmoke* {.header: juce_graphics, importcpp: "juce::Colours::whitesmoke".}: Colour
+let Colours_yellow* {.header: juce_graphics, importcpp: "juce::Colours::yellow".}: Colour
+let Colours_yellowgreen* {.header: juce_graphics, importcpp: "juce::Colours::yellowgreen".}: Colour
+
 proc maskPixelComponents*(x: uint32): uint32 {.header: juce_graphics, importcpp: "juce::maskPixelComponents(@)".}
 proc clampPixelComponents*(x: uint32): uint32 {.header: juce_graphics, importcpp: "juce::clampPixelComponents(@)".}
+proc Colours_findColourForName*(colourName: String, defaultColour: Colour): Colour {.header: juce_graphics, importcpp: "juce::Colours::findColourForName(@)".}
 
 
 
 
 include juce_graphics_lifting
 
+proc `$`*(this: AffineTransform): string {.error: "juce::AffineTransform has no toString; print a property instead".}
+proc `$`*(this: Justification): string {.error: "juce::Justification has no toString; print a property instead".}
 proc `$`*(this: Path): string = $this.toString()
+proc `$`*(this: PathIterator): string {.error: "juce::Path::Iterator has no toString; print a property instead".}
+proc `$`*(this: PixelARGB): string {.error: "juce::PixelARGB has no toString; print a property instead".}
+proc `$`*(this: PixelRGB): string {.error: "juce::PixelRGB has no toString; print a property instead".}
+proc `$`*(this: PixelAlpha): string {.error: "juce::PixelAlpha has no toString; print a property instead".}
 proc `$`*(this: Colour): string = $this.toString()
+proc `$`*(this: ColourGradient): string {.error: "juce::ColourGradient has no toString; print a property instead".}
+proc `$`*(this: EdgeTable): string {.error: "juce::EdgeTable has no toString; print a property instead".}
+proc `$`*(this: PathFlatteningIterator): string {.error: "juce::PathFlatteningIterator has no toString; print a property instead".}
+proc `$`*(this: PathStrokeType): string {.error: "juce::PathStrokeType has no toString; print a property instead".}
+proc `$`*(this: RectanglePlacement): string {.error: "juce::RectanglePlacement has no toString; print a property instead".}
+proc `$`*(this: ImageCache): string {.error: "juce::ImageCache has no toString; print a property instead".}
+proc `$`*(this: ImageConvolutionKernel): string {.error: "juce::ImageConvolutionKernel has no toString; print a property instead".}
+proc `$`*(this: ImageFileFormat): string {.error: "juce::ImageFileFormat has no toString; print a property instead".}
+proc `$`*(this: PNGImageFormat): string {.error: "juce::PNGImageFormat has no toString; print a property instead".}
+proc `$`*(this: JPEGImageFormat): string {.error: "juce::JPEGImageFormat has no toString; print a property instead".}
+proc `$`*(this: GIFImageFormat): string {.error: "juce::GIFImageFormat has no toString; print a property instead".}
+proc `$`*(this: GlyphArrangementOptions): string {.error: "juce::GlyphArrangementOptions has no toString; print a property instead".}
+proc `$`*(this: Graphics): string {.error: "juce::Graphics has no toString; print a property instead".}
+proc `$`*(this: GraphicsScopedSaveState): string {.error: "juce::Graphics::ScopedSaveState has no toString; print a property instead".}
+proc `$`*(this: Image): string {.error: "juce::Image has no toString; print a property instead".}
+proc `$`*(this: ImageBitmapData): string {.error: "juce::Image::BitmapData has no toString; print a property instead".}
+proc `$`*(this: ImageBitmapDataBitmapDataReleaser): string {.error: "juce::Image::BitmapData::BitmapDataReleaser has no toString; print a property instead".}
+proc `$`*(this: ImagePixelDataBackupExtensions): string {.error: "juce::ImagePixelDataBackupExtensions has no toString; print a property instead".}
+proc `$`*(this: ImagePixelData): string {.error: "juce::ImagePixelData has no toString; print a property instead".}
+proc `$`*(this: ImagePixelDataListener): string {.error: "juce::ImagePixelData::Listener has no toString; print a property instead".}
+proc `$`*(this: ImageType): string {.error: "juce::ImageType has no toString; print a property instead".}
+proc `$`*(this: SoftwareImageType): string {.error: "juce::SoftwareImageType has no toString; print a property instead".}
+proc `$`*(this: NativeImageType): string {.error: "juce::NativeImageType has no toString; print a property instead".}
+proc `$`*(this: FillType): string {.error: "juce::FillType has no toString; print a property instead".}
 proc `$`*(this: FontFeatureTag): string = $this.toString()
+proc `$`*(this: FontFeatureSetting): string {.error: "juce::FontFeatureSetting has no toString; print a property instead".}
+proc `$`*(this: ColourLayer): string {.error: "juce::ColourLayer has no toString; print a property instead".}
+proc `$`*(this: ImageLayer): string {.error: "juce::ImageLayer has no toString; print a property instead".}
+proc `$`*(this: GlyphLayer): string {.error: "juce::GlyphLayer has no toString; print a property instead".}
+proc `$`*(this: TypefaceMetrics): string {.error: "juce::TypefaceMetrics has no toString; print a property instead".}
+proc `$`*(this: Typeface): string {.error: "juce::Typeface has no toString; print a property instead".}
+proc `$`*(this: TypefaceNative): string {.error: "juce::Typeface::Native has no toString; print a property instead".}
+proc `$`*(this: FontOptions): string {.error: "juce::FontOptions has no toString; print a property instead".}
 proc `$`*(this: Font): string = $this.toString()
+proc `$`*(this: FontNative): string {.error: "juce::Font::Native has no toString; print a property instead".}
+proc `$`*(this: AttributedString): string {.error: "juce::AttributedString has no toString; print a property instead".}
+proc `$`*(this: AttributedStringAttribute): string {.error: "juce::AttributedString::Attribute has no toString; print a property instead".}
+proc `$`*(this: PositionedGlyph): string {.error: "juce::PositionedGlyph has no toString; print a property instead".}
+proc `$`*(this: GlyphArrangement): string {.error: "juce::GlyphArrangement has no toString; print a property instead".}
+proc `$`*(this: TextLayout): string {.error: "juce::TextLayout has no toString; print a property instead".}
+proc `$`*(this: TextLayoutGlyph): string {.error: "juce::TextLayout::Glyph has no toString; print a property instead".}
+proc `$`*(this: TextLayoutRun): string {.error: "juce::TextLayout::Run has no toString; print a property instead".}
+proc `$`*(this: TextLayoutLine): string {.error: "juce::TextLayout::Line has no toString; print a property instead".}
+proc `$`*(this: LowLevelGraphicsContext): string {.error: "juce::LowLevelGraphicsContext has no toString; print a property instead".}
+proc `$`*(this: ScaledImage): string {.error: "juce::ScaledImage has no toString; print a property instead".}
+proc `$`*(this: LowLevelGraphicsSoftwareRenderer): string {.error: "juce::LowLevelGraphicsSoftwareRenderer has no toString; print a property instead".}
+proc `$`*(this: ImageEffectFilter): string {.error: "juce::ImageEffectFilter has no toString; print a property instead".}
+proc `$`*(this: DropShadow): string {.error: "juce::DropShadow has no toString; print a property instead".}
+proc `$`*(this: DropShadowEffect): string {.error: "juce::DropShadowEffect has no toString; print a property instead".}
+proc `$`*(this: GlowEffect): string {.error: "juce::GlowEffect has no toString; print a property instead".}
+proc `$`*(this: ImagePixelDataNativeExtensions): string {.error: "juce::ImagePixelDataNativeExtensions has no toString; print a property instead".}

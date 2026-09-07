@@ -169,6 +169,53 @@ type
 proc `=copy`*[T](dst: var HeapBlock[T], src: HeapBlock[T]) {.error: "a HeapBlock cannot be copied".}
 proc `=destroy`*[T](this: var HeapBlock[T]) = discard
 
+# Three more types nothing could build, each of which a binding takes as a
+# parameter: Typeface.createSystemTypefaceFor and LowLevelGraphicsContext
+# .drawGlyphs take a Span, DragAndDropTargetSourceDetails.sourceComponent takes
+# a WeakReference, and DialogWindowLaunchOptions.content takes an
+# OptionalScopedPointer. Every one of those was unreachable.
+proc makeSpan*[T](): Span[T]
+    {.header: "<juce_core/juce_core.h>", importcpp: "juce::Span<'*0>()", constructor.}
+proc makeSpan*[T](first: ptr T, count: csize_t): Span[T]
+    {.header: "<juce_core/juce_core.h>", importcpp: "juce::Span<'*0>(@)", constructor.}
+
+proc makeWeakReference*[T](target: ptr T): WeakReference[T]
+    {.header: "<juce_core/juce_core.h>", importcpp: "juce::WeakReference<'*0>(@)", constructor.}
+
+# takeOwnership says whether the pointer is deleted with the wrapper, which is
+# the whole point of the type: false makes it a plain observer.
+proc makeOptionalScopedPointer*[T](target: ptr T, takeOwnership: bool): OptionalScopedPointer[T]
+    {.header: "<juce_core/juce_core.h>", importcpp: "juce::OptionalScopedPointer<'*0>(@)", constructor.}
+
+# Parallelogram had no constructor, so nothing could build one. It is what
+# DrawableImage.getBoundingBox returns and what DrawableRectangle.setRectangle
+# takes, and neither was reachable without this.
+proc makeParallelogram*[T](): Parallelogram[T]
+    {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::Parallelogram<'*0>()", constructor.}
+proc makeParallelogram*[T](rectangle: Rectangle[T]): Parallelogram[T]
+    {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::Parallelogram<'*0>(@)", constructor.}
+proc makeParallelogram*[T](topLeft: Point[T], topRight: Point[T],
+                           bottomLeft: Point[T]): Parallelogram[T]
+    {.header: "<juce_graphics/juce_graphics.h>", importcpp: "juce::Parallelogram<'*0>(@)", constructor.}
+
+# Nothing could be read back off one either. The three corners are public
+# fields on the C++ side, and the rest are the accessors JUCE derives from
+# them.
+proc topLeft*[T](this: Parallelogram[T]): Point[T]
+    {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.topLeft".}
+proc topRight*[T](this: Parallelogram[T]): Point[T]
+    {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.topRight".}
+proc bottomLeft*[T](this: Parallelogram[T]): Point[T]
+    {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.bottomLeft".}
+proc getBottomRight*[T](this: Parallelogram[T]): Point[T]
+    {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getBottomRight()".}
+proc getWidth*[T](this: Parallelogram[T]): T
+    {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getWidth()".}
+proc getHeight*[T](this: Parallelogram[T]): T
+    {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.getHeight()".}
+proc isEmpty*[T](this: Parallelogram[T]): bool
+    {.header: "<juce_graphics/juce_graphics.h>", importcpp: "#.isEmpty()".}
+
 proc makeHeapBlock*[T](): HeapBlock[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::HeapBlock<'*0>()".}
 proc makeHeapBlock*[T](numElements: csize_t): HeapBlock[T] {.header: "<juce_core/juce_core.h>", importcpp: "juce::HeapBlock<'*0>(@)".}
 proc `[]`*[T](this: HeapBlock[T], index: cint): T {.importcpp: "#[#]".}
@@ -198,6 +245,13 @@ proc makeOwnedArray*[T](): OwnedArray[T] {.header: "<juce_core/juce_core.h>", im
 
 proc size*[T](this: Array[T]): cint {.importcpp: "#.size()".}
 proc isEmpty*[T](this: Array[T]): bool {.importcpp: "#.isEmpty()".}
+# Nim builds a temporary for a by-value result, so `[]` needs T to be
+# default-constructible. juce::TextLayout::Glyph is not, which made every
+# element of a TextLayout run unreachable. getReference hands back JUCE's own
+# reference instead and needs nothing of T.
+proc getReference*[T](this: var Array[T], index: cint): var T
+    {.header: "<juce_core/juce_core.h>", importcpp: "#.getReference(#)".}
+
 proc `[]`*[T](this: Array[T], index: cint): T {.importcpp: "#[#]".}
 proc getFirst*[T](this: Array[T]): T {.importcpp: "#.getFirst()".}
 proc getLast*[T](this: Array[T]): T {.importcpp: "#.getLast()".}
@@ -210,16 +264,37 @@ iterator items*[T](this: Array[T]): T =
   for index in 0.cint ..< this.size():
     yield this[index]
 
-# OwnedArray holds pointers it owns, so indexing yields a ptr rather than a value.
-proc size*[T](this: OwnedArray[T]): cint {.importcpp: "#.size()".}
-proc isEmpty*[T](this: OwnedArray[T]): bool {.importcpp: "#.isEmpty()".}
-proc `[]`*[T](this: OwnedArray[T], index: cint): ptr T {.importcpp: "#[#]".}
+# OwnedArray holds pointers it owns, so indexing yields a ptr rather than a
+# value. It deletes its copy constructor, which takes the same two-part
+# treatment HeapBlock and UniquePtr get: `=copy` is an error, so a copy is
+# refused in Nim's words rather than in a page of C++ template errors, and
+# `=destroy` leaves the destructor to C++.
+#
+# The receivers are var as well. HeapBlock's hooks are enough on their own
+# because nothing hands one out by value, but an OwnedArray is only ever
+# reached through the var getter on the class that owns it - a by-value
+# receiver would ask for the copy the hook then refuses.
+proc `=copy`*[T](dst: var OwnedArray[T], src: OwnedArray[T]) {.error: "an OwnedArray cannot be copied; it owns what it holds".}
+proc `=destroy`*[T](this: var OwnedArray[T]) = discard
 
-iterator items*[T](this: OwnedArray[T]): ptr T =
+proc size*[T](this: var OwnedArray[T]): cint {.importcpp: "#.size()".}
+proc isEmpty*[T](this: var OwnedArray[T]): bool {.importcpp: "#.isEmpty()".}
+proc `[]`*[T](this: var OwnedArray[T], index: cint): ptr T {.importcpp: "#[#]".}
+
+iterator items*[T](this: var OwnedArray[T]): ptr T =
   for index in 0.cint ..< this.size():
     yield this[index]
 
 # ReferenceCountedObjectPtr
+# There was no way to make one. Everything that produced a
+# ReferenceCountedObjectPtr came out of JUCE, so a Nim override of a virtual
+# that has to return one - ImagePixelData::clone, Typeface::createSystemFallback
+# - could not be written at all.
+proc makeReferenceCountedObjectPtr*[T](): ReferenceCountedObjectPtr[T]
+    {.header: "<juce_core/juce_core.h>", importcpp: "juce::ReferenceCountedObjectPtr<'*0>()", constructor.}
+proc makeReferenceCountedObjectPtr*[T](target: ptr T): ReferenceCountedObjectPtr[T]
+    {.header: "<juce_core/juce_core.h>", importcpp: "juce::ReferenceCountedObjectPtr<'*0>(@)", constructor.}
+
 proc get*[T](this: ReferenceCountedObjectPtr[T]): ptr T {.importcpp: "#.get()".}
 proc isNil*[T](this: ReferenceCountedObjectPtr[T]): bool {.importcpp: "(# == nullptr)".}
 

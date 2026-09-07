@@ -52,11 +52,19 @@ defineCppClassInternal CustomActionListener of ActionListener:
 
 proc newCustomActionListener*(): ptr CustomActionListener {.importcpp: "(new june::CustomActionListener)".}
 
+proc setActionListenerCallbackHandler*(this: var CustomActionListener,
+                                       handler: proc(message: ptr String) {.closure.}) =
+    this.onActionListenerCallback = bindClosure(handler)
+
 defineCppClassInternal CustomChangeListener of ChangeListener:
     include "juce_events/juce_events.h"
     proc changeListenerCallback(source: ptr ChangeBroadcaster) = discard
 
 proc newCustomChangeListener*(): ptr CustomChangeListener {.importcpp: "(new june::CustomChangeListener)".}
+
+proc setChangeListenerCallbackHandler*(this: var CustomChangeListener,
+                                       handler: proc(source: ptr ChangeBroadcaster) {.closure.}) =
+    this.onChangeListenerCallback = bindClosure(handler)
 
 
 # Subclasses for the abstract classes of this module. Generated; see

@@ -14,7 +14,7 @@ import subprocess
 import sys
 
 import clang.cindex
-from clang.cindex import AccessSpecifier, CursorKind
+from clang.cindex import AccessSpecifier, CursorKind, TypeKind
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from inspect_juce import use_system_libclang
@@ -138,6 +138,26 @@ def type_declaration(clang_type):
             break
         seen = pointee
     return clang_type.get_declaration()
+
+
+# Nim keywords that turn up as C++ parameter names. A parameter called `type`
+# is a syntax error rather than a bad name, so it is quoted.
+nim_keywords = {
+    "addr", "and", "as", "asm", "bind", "block", "break", "case", "cast",
+    "concept", "const", "continue", "converter", "defer", "discard", "distinct",
+    "div", "do", "elif", "else", "end", "enum", "except", "export", "finally",
+    "for", "from", "func", "if", "import", "in", "include", "interface", "is",
+    "isnot", "iterator", "let", "macro", "method", "mixin", "mod", "nil", "not",
+    "notin", "object", "of", "or", "out", "proc", "ptr", "raise", "ref",
+    "return", "shl", "shr", "static", "template", "try", "tuple", "type",
+    "using", "var", "when", "while", "xor", "yield",
+}
+
+
+def parameter_name(spelling, index):
+    """The Nim spelling of a C++ parameter name."""
+    name = spelling or f"arg{index}"
+    return f"`{name}`" if name in nim_keywords else name
 
 
 def qualified_name(cursor):
@@ -274,14 +294,6 @@ def map_type(type_spelling, declared, is_return, declaration=None, aliases=None)
             return f"constval[{name}]"
         return name
 
-    # A typedef names something the bindings do know: Typeface::Ptr stands for
-    # ReferenceCountedObjectPtr<Typeface>, and CommandID for int.
-    if declaration is not None and declaration.kind in (
-            CursorKind.TYPEDEF_DECL, CursorKind.TYPE_ALIAS_DECL):
-        underlying = declaration.underlying_typedef_type
-        if underlying is not None and underlying.spelling != type_spelling:
-            return map_type(underlying.spelling, declared, is_return,
-                            type_declaration(underlying), aliases)
     return None
 
 
@@ -430,8 +442,16 @@ def abstract_classes(unit):
                     is_abstract = child.is_abstract_record()
                 except AttributeError:
                     is_abstract = False
-                if is_abstract and child.spelling not in found:
-                    found[child.spelling] = child
+                # Keyed on the flattened name the bindings use, not on the
+                # class's own spelling. main() filters against the declared Nim
+                # names, so a nested class keyed as `Listener` never matched one
+                # and was dropped with no withheld entry - and every class named
+                # Listener collapsed onto a single key besides. 58 abstract
+                # classes were skipped that way, most of them the Listener and
+                # LookAndFeelMethods interfaces an application implements.
+                flattened = strip_namespace(qualified_name(child)).replace("::", "")
+                if is_abstract and flattened not in found:
+                    found[flattened] = child
             walk(child)
 
     walk(unit.cursor)
@@ -477,22 +497,20 @@ def pure_virtuals(cursor):
                 continue
             if not member.is_virtual_method():
                 continue
+            key = signature(member)
             if member.is_pure_virtual_method():
                 if member.access_specifier == AccessSpecifier.PRIVATE:
                     private = True
-                elif (signature(member) not in seen
-                        and signature(member) not in implemented):
-                    seen.add(signature(member))
+                elif key not in seen and key not in implemented:
+                    seen.add(key)
                     result.append(member)
             else:
                 # A base's pure virtual that this class already implements.
                 # By signature: a non-pure method that merely shares a name
                 # overrides nothing, and treating it as an implementation drops
                 # a pure virtual that really does need one.
-                implemented.add(signature(member))
+                implemented.add(key)
 
-    # The class itself first, so its own implementations mask the base's pure
-    # virtuals rather than the other way round.
     walk(cursor)
     return [m for m in result if signature(m) not in implemented], private
 
@@ -541,6 +559,9 @@ def handler_type(mapped):
             return "ptr " + mapped[len(marker):-1]
     if mapped.startswith("constval["):
         return mapped[len("constval["):-1]
+    if mapped.startswith("basescalar["):
+        # The callback returns the base scalar, never the distinct enum.
+        return "cint"
     if mapped.startswith("constrawptr["):
         inner = mapped[len("constrawptr["):-1]
         return inner if inner == "pointer" else f"ptr {inner}"
@@ -569,7 +590,8 @@ def base_constructors(cursor, declared):
             mapped = map_constructor_type(argument.type, declared)
             if mapped is None or mapped == "":
                 return None
-            arguments.append(f"{argument.spelling or f'arg{index}'}: {mapped}")
+            arguments.append(
+                f"{parameter_name(argument.spelling, index)}: {mapped}")
         signatures.append((", ".join(arguments), len(arguments)))
 
     if not found_any:
@@ -586,17 +608,39 @@ def base_constructors(cursor, declared):
     return unique
 
 
+# Classes whose generated form does not compile, with the reason each was
+# measured. Nothing in the headers predicts one: the failure shows only when
+# the generated std::function is assigned, so an entry here is a record of a
+# compile that was actually attempted.
+#
+# Empty. The one entry it held was TreeView::LookAndFeelMethods, whose
+# drawTreeviewPlusMinusBox takes a Colour by value; `inheritable` made Nim hand
+# every object over as a pointer, so the closure's C signature said Colour*
+# where the std::function said Colour. Colour is marked bycopy now.
+unsupported_subclasses = {
+}
+
+
 def render_class(cursor, module, declared):
     """The macro invocation for one class, or a reason it was withheld.
 
     The macro derives the C++ parent as juce::<the Nim name>. That is right for
     a top-level class and wrong for a nested one, whose Nim name is the parts
     joined together - it would name a juce::FlattenedName that does not exist.
-    No abstract class in these modules is nested, so nothing needs the
-    cppParent directive today, and a future one would fail to compile rather
-    than emit something wrong.
+    A nested class therefore carries a cppParent directive giving the real
+    qualified spelling, the same way the hand-written CustomSliderListener
+    does.
+
+    This used to say no abstract class in these modules was nested. 58 of them
+    are: the Listener and LookAndFeelMethods interfaces an application
+    implements, ComponentBuilder::TypeHandler, TextEditor::InputFilter and the
+    rest. They were invisible because abstract_classes keyed them on their own
+    spelling, which never matched a declared Nim name.
     """
-    name = cursor.spelling
+    qualified = strip_namespace(qualified_name(cursor))
+    name = qualified.replace("::", "")
+    if name in unsupported_subclasses:
+        return None, unsupported_subclasses[name]
     methods, has_private = pure_virtuals(cursor)
     if has_private:
         return None, "a pure virtual is private, so no subclass can implement it"
@@ -606,6 +650,8 @@ def render_class(cursor, module, declared):
     aliases = {}
     lines = [f"defineCppClassInternal Custom{name} of {name}:",
              f'    include "{module}/{module}.h"']
+    if "::" in qualified:
+        lines.append(f'    cppParent "juce::{qualified}"')
 
     setters = []
     seen = set()
@@ -614,6 +660,35 @@ def render_class(cursor, module, declared):
             return None, f"{method.spelling} is overloaded, which one handler cannot express"
         seen.add(method.spelling)
 
+        # Nim's importcpp substitutes a type by a single digit, so a
+        # std::function can name at most ten of them: '0 to '9. A void
+        # override therefore carries ten arguments and one with a result nine,
+        # and JUCE has six virtuals past that - drawFileBrowserRow takes
+        # twelve. There is no spelling for those.
+        # Nim builds a temporary for a closure's result, so a handler cannot
+        # return a type C++ cannot value-initialise. juce::Justification is
+        # one: it declares constructors and no default, and
+        # getSidePanelTitleJustification returns it.
+        returned = method.result_type.get_canonical().get_declaration()
+        if returned is not None and returned.kind in (
+                CursorKind.CLASS_DECL, CursorKind.STRUCT_DECL) and returned.is_definition():
+            constructors = [c for c in returned.get_children()
+                            if c.kind == CursorKind.CONSTRUCTOR]
+            has_default = any(len(list(c.get_arguments())) == 0
+                              and c.access_specifier == AccessSpecifier.PUBLIC
+                              for c in constructors)
+            if constructors and not has_default:
+                return None, (f"{method.spelling} returns {returned.spelling}, "
+                              f"which has no default constructor, and Nim builds "
+                              f"a temporary for a closure's result")
+
+        argument_count = len(list(method.get_arguments()))
+        limit = 10 if method.result_type.spelling == "void" else 9
+        if argument_count > limit:
+            return None, (f"{method.spelling} takes {argument_count} arguments, "
+                          f"and a std::function Nim can spell carries at most "
+                          f"{limit} here")
+
         arguments, handler_args, handler_types = [], [], []
         for index, argument in enumerate(method.get_arguments()):
             mapped = map_type(argument.type.spelling, declared, is_return=False,
@@ -621,7 +696,7 @@ def render_class(cursor, module, declared):
                               aliases=aliases)
             if mapped is None:
                 return None, f"{argument.type.spelling} in {method.spelling} has no Nim spelling"
-            argument_name = argument.spelling or f"arg{index}"
+            argument_name = parameter_name(argument.spelling, index)
             arguments.append(f"{argument_name}: {mapped}")
             handler_types.append(handler_type(mapped))
             handler_args.append(f"{argument_name}: {handler_types[-1]}")
@@ -631,6 +706,15 @@ def render_class(cursor, module, declared):
                            aliases=aliases)
         if returns is None:
             return None, f"{method.result_type.spelling} returned by {method.spelling} has no Nim spelling"
+
+        # Every bound JUCE enum is a `distinct cint`, and Nim renders one
+        # closure struct for `proc(): cint` and `proc(): SomeEnum`, typing its
+        # function-pointer field from whichever it emits first. A program that
+        # sets one handler of each kind then assigns a pointer of the wrong
+        # type. basescalar keeps the distinct out of the closure: the callback
+        # returns the base scalar and the forwarder casts.
+        if returns and method.result_type.get_canonical().kind == TypeKind.ENUM:
+            returns = f"basescalar[{returns}]"
 
         signature = ", ".join(arguments)
         suffix = f": {returns}" if returns else ""

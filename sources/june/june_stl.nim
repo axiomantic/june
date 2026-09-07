@@ -43,6 +43,14 @@ proc `=copy`*[T](dst: var UniquePtr[T], src: UniquePtr[T]) {.error: "a UniquePtr
 # do: the value is a C++ object, so its own destructor runs at scope exit.
 proc `=destroy`*[T](this: var UniquePtr[T]) = discard
 
+# There was no way to make one, so a Nim override of a virtual returning a
+# std::unique_ptr - ImagePixelData::createLowLevelContext and createType - could
+# not be written. The one taking a pointer takes ownership, as C++ does.
+proc makeUniquePtr*[T](): UniquePtr[T]
+    {.importcpp: "std::unique_ptr<'*0>()", header: "<memory>", constructor.}
+proc makeUniquePtr*[T](owned: ptr T): UniquePtr[T]
+    {.importcpp: "std::unique_ptr<'*0>(@)", header: "<memory>", constructor.}
+
 proc get*[T](this: UniquePtr[T]): ptr T {.importcpp: "#.get()".}
 proc release*[T](this: var UniquePtr[T]): ptr T {.importcpp: "#.release()".}
 proc reset*[T](this: var UniquePtr[T]) {.importcpp: "#.reset()".}
@@ -50,6 +58,16 @@ proc isNil*[T](this: UniquePtr[T]): bool {.importcpp: "(# == nullptr)".}
 
 # `'0` is the return type, so the pattern names std::optional<T> once rather
 # than wrapping the already-optional return type in another one.
+# Neither could be built, so a Nim override of a virtual returning one could
+# not be written: ComponentTraverser::getAllComponents returns a
+# std::vector<Component*>.
+proc makeCppVector*[T](): CppVector[T]
+    {.importcpp: "std::vector<'*0>()", header: "<vector>", constructor.}
+proc makeCppString*(): CppString
+    {.importcpp: "std::string()", header: "<string>", constructor.}
+proc makeCppString*(text: cstring): CppString
+    {.importcpp: "std::string(@)", header: "<string>", constructor.}
+
 proc makeCppOptional*[T](value: T): CppOptional[T] {.importcpp: "'0(@)", header: "<optional>".}
 proc makeCppOptionalEmpty*[T](): CppOptional[T] {.importcpp: "'0()", header: "<optional>".}
 
