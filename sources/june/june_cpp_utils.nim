@@ -121,12 +121,17 @@ proc cppFunctionObjectShape(head: string): tuple[ok: bool, returnsVoid: bool,
     byConstRef = true
     rest = rest[0 ..< rest.len - 3]
 
-  # What is left is one letter and one digit: N0 through R9.
-  if rest.len != 2: return (false, false, 0, false)
+  # What is left is one letter and its arity in decimal: N0 through N10, R0
+  # through R9. Two digits, because N10 is declared and a parser that took one
+  # would not recognize it - it would fall through to the ordinary head
+  # substitution and spell the type as itself rather than as a std::function.
+  if rest.len notin {2, 3}: return (false, false, 0, false)
   if rest[0] notin {'N', 'R'}: return (false, false, 0, false)
-  if rest[1] notin {'0' .. '9'}: return (false, false, 0, false)
 
-  let arity = ord(rest[1]) - ord('0')
+  var arity = 0
+  for digit in rest[1 .. ^1]:
+    if digit notin {'0' .. '9'}: return (false, false, 0, false)
+    arity = arity * 10 + (ord(digit) - ord('0'))
   # A const reference needs something to refer to, so Ref is meaningless at
   # arity zero and the parser should not accept a name that claims it.
   if byConstRef and arity == 0: return (false, false, 0, false)
