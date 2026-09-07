@@ -561,6 +561,12 @@ and some assertions live in per-platform files. A site listed for THIS platform
 and no longer reached fails the check too, so an entry cannot outlive the test
 that needed it.
 
+So does an assertion whose site the check cannot parse. Both times the site
+pattern has been wrong it matched less than JUCE prints and said nothing about
+it, so the number of assertions JUCE announced is compared against the number
+of sites read out of them, and a shortfall is reported before either list is
+consulted.
+
 --------------------------
 Regenerating The Bindings
 --------------------------

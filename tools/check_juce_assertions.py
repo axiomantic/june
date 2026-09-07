@@ -23,6 +23,11 @@ what JUCE asserts there and which test does it. Adding one is a claim that the
 assertion is the documented answer to something the test deliberately asks -
 not a way to quieten a warning. A line here that no run produces is stale and
 fails the check too, so an entry cannot outlive the test that needed it.
+
+An assertion the site pattern cannot parse fails the check as well, before
+either list is consulted. Every way this check has been wrong so far was the
+pattern silently matching less than JUCE prints, so the count of what JUCE
+announced is compared against the count of sites read out of it.
 """
 
 import collections
@@ -149,13 +154,31 @@ EXPECTED = {
          "way"),
 }
 
-# .mm and .m as well as .cpp and .h: JUCE implements much of its macOS
-# layer in Objective-C++, and jassert is used in those files too. A
-# pattern that omits them cannot report an assertion it never matches,
-# so those sites would be silently exempt from this check - the same
-# shape of failure the check exists to catch.
-PATTERN = re.compile(
-    r"JUCE Assertion failure in ([A-Za-z_]+\.(?:cpp|h|mm|m):\d+)")
+# The file part is anything up to the colon, and is deliberately no longer a
+# character class.
+#
+# Enumerating what a JUCE file name may contain failed twice, the same way each
+# time. First the extension: .mm and .m were missing, and JUCE implements much
+# of its macOS layer in Objective-C++, where jassert is used like anywhere
+# else. Then the letters: `[A-Za-z_]+` admits no DIGIT, which exempted
+# juce_LookAndFeel_V1 through V4, juce_CharPointer_UTF8, juce_CharPointer_UTF16
+# and juce_Base64 - eleven digit-bearing basenames holding a jassert across the
+# five modules this suite drives. juce_LookAndFeel_V4 is JUCE's DEFAULT look
+# and feel, so its three jassertfalse sites are among the likeliest of all to
+# be reached. An assertion the pattern misses is not reported as unparsed; it
+# is not reported at all, and the check then prints its all-clear.
+#
+# So a narrow class is the wrong shape here. It asks the pattern to predict
+# what JUCE will name a file, and it fails silently when the prediction is
+# wrong - which is the shape of failure this check exists to catch.
+PATTERN = re.compile(r"JUCE Assertion failure in (\S+:\d+)")
+
+# The words JUCE prints before the site, counted on their own so the pattern's
+# reach is checked rather than assumed. Every occurrence of this in a log is an
+# assertion whatever follows it, so PATTERN matching fewer times than this
+# occurs means an assertion was read by nothing. Both failures above were
+# exactly that, and were quiet. This is what makes a third one loud.
+ANNOUNCEMENT = "JUCE Assertion failure in "
 
 
 def this_platform():
@@ -178,15 +201,30 @@ def main(argv):
 
     seen = collections.Counter()
     where = collections.defaultdict(set)
+    announced = 0
     for path in paths:
         try:
             text = open(path, errors="replace").read()
         except OSError as error:
             print(f"could not read {path}: {error}", file=sys.stderr)
             return 2
+        announced += text.count(ANNOUNCEMENT)
         for site in PATTERN.findall(text):
             seen[site] += 1
             where[site].add(path)
+
+    parsed = sum(seen.values())
+    if parsed < announced:
+        print(f"JUCE announced {announced} assertions and this read the site "
+              f"of {parsed} of them. The rest are exempt from every check "
+              f"below without saying so, which is what PATTERN is written to "
+              f"prevent - widen it rather than the lists:", file=sys.stderr)
+        for path in paths:
+            text = open(path, errors="replace").read()
+            for line in text.splitlines():
+                if ANNOUNCEMENT in line and not PATTERN.search(line):
+                    print(f"  {path}: {line.strip()}", file=sys.stderr)
+        return 1
 
     unexpected = sorted(site for site in seen if site not in EXPECTED)
     if unexpected:
