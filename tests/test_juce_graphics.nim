@@ -2170,7 +2170,11 @@ proc testPathGeometry() =
         # scaleToFit puts the path inside the rectangle it is given.
         path.scaleToFit(0.0'f32, 0.0'f32, 200.0'f32, 200.0'f32, true)
         let fitted = path.getBounds()
-        doAssert fitted.getWidth() <= 200.0'f32 and fitted.getHeight() <= 200.0'f32,
+        # A square path fitted into a square target with preserveProportions
+        # lands at exactly 200x200 on the origin. `<= 200` was already true on
+        # entry - the path is 10 wide - so it held if scaleToFit did nothing.
+        doAssert abs(fitted.getWidth() - 200.0'f32) < 1.0e-3'f32 and
+                 abs(fitted.getHeight() - 200.0'f32) < 1.0e-3'f32,
                  "after scaleToFit the path is " & $fitted.getWidth() & "x" &
                  $fitted.getHeight()
 
@@ -2937,8 +2941,9 @@ proc testGraphicsTextAndImages() =
 
         g.setImageResamplingQuality(
             GraphicsResamplingQuality_highResamplingQuality)
-        doAssert not g.getInternalContext().addr.isNil,
-                 "the graphics has no internal context"
+        # Not asserted: getInternalContext returns a REFERENCE, so its address
+        # cannot be nil. testLowLevelGraphicsContext drives it for real.
+        discard g.getInternalContext().addr
 
 initialiseJuce_GUI()
 testGraphicsTextAndImages()
@@ -3719,10 +3724,14 @@ proc testTypefaceGlyphs() =
 
         # A glyph has a bounding box, and the letter 'W' is wider than 'i' in
         # any font a human would use.
-        let wide = cint(typeface.get()[]
-            .getNominalGlyphForCodepoint(uint16(ord('W'))).value())
-        let narrow = cint(typeface.get()[]
-            .getNominalGlyphForCodepoint(uint16(ord('i'))).value())
+        # hasValue first, as for 'A' above. value() on an empty optional
+        # throws, which aborts with no line number instead of failing.
+        let wideGlyph = typeface.get()[].getNominalGlyphForCodepoint(uint16(ord('W')))
+        let narrowGlyph = typeface.get()[].getNominalGlyphForCodepoint(uint16(ord('i')))
+        doAssert wideGlyph.hasValue() and narrowGlyph.hasValue(),
+                 "the typeface has no glyph for 'W' or 'i'"
+        let wide = cint(wideGlyph.value())
+        let narrow = cint(narrowGlyph.value())
         doAssert typeface.get()[].getGlyphBounds(wide).getWidth() >
                  typeface.get()[].getGlyphBounds(narrow).getWidth(),
                  "'W' measures " &
@@ -4578,10 +4587,12 @@ proc testEdgeTable() =
         doAssert apart.isEmpty(), "two tables that do not overlap intersect"
 
     block:
-        # A zero multiplier takes every level to nothing. The table does not
-        # mark itself for an emptiness check when it does that
-        # (juce_EdgeTable.cpp: multiplyLevels sets no flag), so the bounds are
-        # what is asserted rather than isEmpty.
+        # multiplyLevels scales the coverage levels and sets no emptiness flag
+        # (juce_EdgeTable.cpp), so isEmpty cannot see it - and nor can anything
+        # else from Nim, because no binding reads a level back. What is
+        # asserted is therefore only that the call leaves the BOUNDS alone,
+        # which is the one property observable here. The levels are exercised,
+        # not verified.
         var table = makeEdgeTable(makeRectangle(0.cint, 0.cint,
                                                 8.cint, 8.cint))
         table.multiplyLevels(0.5'f32)

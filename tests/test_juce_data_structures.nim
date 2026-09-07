@@ -896,7 +896,7 @@ proc testUndoManagerTransactions() =
     discard manager.perform(cast[ptr UndoableAction](
         countingAction(addr performed, addr undone)))
 
-    doAssert manager.getNumberOfUnitsTakenUpByStoredCommands() >= 0,
+    doAssert manager.getNumberOfUnitsTakenUpByStoredCommands() > 0,
              "the stored commands take up " &
              $manager.getNumberOfUnitsTakenUpByStoredCommands() & " units"
     doAssert manager.getTimeOfUndoTransaction().toMilliseconds() > 0,
@@ -1232,8 +1232,10 @@ proc testValueTreeListenerDefaults() =
            "the property now reads " &
            $tree.getProperty(makeIdentifier(makeString("name"))).toString()
 
-  # And a listener added to a tree hears about a real change without either
-  # side needing an override.
+  # addListener and removeListener are exercised, but NOT observed: every
+  # ValueTree::Listener method has an empty body in JUCE, so no Custom subclass
+  # is generated and no override can count a callback. What is asserted is only
+  # that attaching a listener does not disturb the write.
   tree.addListener(addr listener)
   discard tree.setProperty(makeIdentifier(makeString("name")),
                    makejuce_var(makeString("changed")), nil)
@@ -1242,8 +1244,10 @@ proc testValueTreeListenerDefaults() =
            "changed",
            "the property did not change"
 
-  # setPropertyExcludingListener skips the one listener it names, which is how
-  # a listener avoids hearing its own write back.
+  # setPropertyExcludingListener names a listener to skip, which is how a
+  # listener avoids hearing its own write back. The skipping itself is NOT
+  # observable here, for the reason above; what is asserted is that the write
+  # still lands.
   tree.addListener(addr listener)
   discard tree.setPropertyExcludingListener(
       addr listener, makeIdentifier(makeString("name")),

@@ -84,8 +84,9 @@ EXPECTED = {
          "test pins that an unnamed one cannot be saved"),
     "juce_TableListBox.cpp:684":
         ("any",
-         "refreshComponentForCell expects nothing to recycle, and the "
-         "model test calls it the way the table would the first time"),
+         "refreshComponentForCell asserts that nothing is handed in to "
+         "recycle; the model test calls it BOTH ways, and it is the call "
+         "passing an existing component - not the nil one - that trips it"),
     "juce_RelativeCoordinatePositioner.cpp:285":
         ("any",
          "markerListBeingDeleted expects the list to be among the watched "
@@ -191,6 +192,14 @@ def main(argv):
     for argument in argv:
         if argument.startswith("--platform="):
             platform = argument.split("=", 1)[1]
+            # An unrecognised value is not a narrower run: the stale check below
+            # keeps only entries tagged "any" or this platform, so a typo turns
+            # that check OFF for every tagged entry and still prints an
+            # all-clear.
+            if platform not in ("linux", "macos"):
+                print(f"unknown platform {platform!r}: expected linux or macos",
+                      file=sys.stderr)
+                return 2
         else:
             paths.append(argument)
 
@@ -226,7 +235,13 @@ def main(argv):
                     print(f"  {path}: {line.strip()}", file=sys.stderr)
         return 1
 
-    unexpected = sorted(site for site in seen if site not in EXPECTED)
+    # The tag is checked in BOTH directions. A site listed for macOS that
+    # starts firing on Linux is JUCE asserting somewhere it did not before,
+    # which is exactly what this exists to report - and testing only
+    # `not in EXPECTED` accepts it silently.
+    unexpected = sorted(site for site in seen
+                        if site not in EXPECTED
+                        or EXPECTED[site][0] not in ("any", platform))
     if unexpected:
         print("JUCE asserted somewhere the suite does not expect. Each of "
               "these is JUCE telling you something is wrong, and it does not "

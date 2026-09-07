@@ -3885,7 +3885,9 @@ proc testFileMetadataAndVolumes() =
         let target = root.getChildFile(makeStringRef("target.txt"))
         doAssert target.replaceWithText(makeString("t")), "could not write the target"
         let link = root.getChildFile(makeStringRef("link.txt"))
-        if target.createSymbolicLink(link, true):
+        doAssert target.createSymbolicLink(link, true),
+                 "could not create a symbolic link in the temp directory"
+        block:
             doAssert link.getLinkedTarget() == target,
                      "the link points at " & $link.getLinkedTarget().getFullPathName()
             discard link.getNativeLinkedTarget()
@@ -5013,8 +5015,15 @@ proc testArgumentListOptions() =
     # The file lookups come in four shapes: file or folder, each with and
     # without removal. The two "existing" ones raise on a path that is not
     # there, so they are given one that is.
+    # A PRIVATE subdirectory, not the shared temp directory: the file
+    # names below are fixed, so two runs sharing a machine would delete
+    # and rewrite each other's fixtures.
     let directory = File.getSpecialLocation(
-        FileSpecialLocationType_tempDirectory)
+            FileSpecialLocationType_tempDirectory)
+        .getNonexistentChildFile(makeString("june-scratch"), makeString(""))
+    doAssert directory.createDirectory().wasOk(),
+             "could not make the temp directory"
+    defer: discard directory.deleteRecursively()
     let file = directory.getChildFile(makeString("june_argument_list.txt"))
     discard file.replaceWithText(makeString("x"))
 
@@ -5672,12 +5681,14 @@ proc testThreadPoolJobList() =
     doAssert pool.getNumJobs() == 0,
              "after removing it the pool holds " & $pool.getNumJobs()
 
-    # Whether the job RAN first is a race between the pool's thread picking it
-    # up and removeJob taking it away, and both orders were observed while
-    # this was written. So only the count's bounds are asserted; pinning it to
-    # 0 or to 1 would make this test fail on a differently loaded machine.
-    doAssert ran == 0 or ran == 1,
-             "the job ran " & $ran & " times"
+    # Whether the job RAN first is a race between the pool's thread picking
+    # it up and removeJob taking it away, and both orders were observed
+    # while this was written. Nothing is asserted about the count for that
+    # reason - and `ran` can only be 0 or 1 by construction anyway, so an
+    # assertion to that effect would pass whatever removeJob did.
+    # removeJob's own return value and the emptied queue, above, are what
+    # carry this block.
+    discard ran
 
     cdelete job
 
@@ -5833,8 +5844,15 @@ proc testUrlUploadsAndReads() =
   block:
     # An upload turns the URL into a POST with a multipart body, which is what
     # isPost reports and what the plain query string does not carry.
+    # A PRIVATE subdirectory, not the shared temp directory: the file
+    # names below are fixed, so two runs sharing a machine would delete
+    # and rewrite each other's fixtures.
     let directory = File.getSpecialLocation(
-        FileSpecialLocationType_tempDirectory)
+            FileSpecialLocationType_tempDirectory)
+        .getNonexistentChildFile(makeString("june-scratch"), makeString(""))
+    doAssert directory.createDirectory().wasOk(),
+             "could not make the temp directory"
+    defer: discard directory.deleteRecursively()
     let payload = directory.getChildFile(makeString("june_url_upload.txt"))
     doAssert payload.replaceWithText(makeString("file contents")),
              "the payload file could not be written"
@@ -5869,8 +5887,15 @@ proc testUrlUploadsAndReads() =
 
   block:
     # A file:// URL reads through the same three methods a network one would.
+    # A PRIVATE subdirectory, not the shared temp directory: the file
+    # names below are fixed, so two runs sharing a machine would delete
+    # and rewrite each other's fixtures.
     let directory = File.getSpecialLocation(
-        FileSpecialLocationType_tempDirectory)
+            FileSpecialLocationType_tempDirectory)
+        .getNonexistentChildFile(makeString("june-scratch"), makeString(""))
+    doAssert directory.createDirectory().wasOk(),
+             "could not make the temp directory"
+    defer: discard directory.deleteRecursively()
     let textFile = directory.getChildFile(makeString("june_url_read.txt"))
     doAssert textFile.replaceWithText(makeString("the whole text")),
              "the text file could not be written"
@@ -5944,11 +5969,19 @@ proc testOptionBuilders() =
              "withMaxDecimalPlaces moved the encoding"
 
     # And the options reach JSON.toString, which is what they are for:
-    # multi-line spacing puts a newline in and the default does not.
-    let value = makejuce_var(makeArray[juce_var]())
-    let onOneLine = $JSON.toString(makejuce_var(makeString("x")), base)
-    doAssert not onOneLine.contains("\n"),
-             "the default spacing wrapped: " & onOneLine
+    # The two extremes, compared against each other rather than against the
+    # DEFAULT: an empty array is `[]` under every spacing, and a non-empty
+    # one wraps under the default too, so neither tells `none` from
+    # `multiLine` on its own. Both halves are asserted, because checking
+    # one would pass for a toString that ignored the options entirely.
+    var elements = makeArray[juce_var]()
+    elements.add(makejuce_var(makeString("a")))
+    elements.add(makejuce_var(makeString("b")))
+    let value = makejuce_var(elements)
+    let flat = $JSON.toString(value, base.withSpacing(JSONSpacing_none))
+    doAssert not flat.contains("\n"), "none spacing wrapped: " & flat
+    let wrapped = $JSON.toString(value, base.withSpacing(JSONSpacing_multiLine))
+    doAssert wrapped.contains("\n"), "multiLine did not wrap: " & wrapped
 
   block:
     let base = makeThreadRealtimeOptions()
@@ -6442,8 +6475,15 @@ testUuidFields()
 # the round trip is what is actually asserted.
 proc testZipFileRoundTrip() =
   block:
+    # A PRIVATE subdirectory, not the shared temp directory: the file
+    # names below are fixed, so two runs sharing a machine would delete
+    # and rewrite each other's fixtures.
     let directory = File.getSpecialLocation(
-        FileSpecialLocationType_tempDirectory)
+            FileSpecialLocationType_tempDirectory)
+        .getNonexistentChildFile(makeString("june-scratch"), makeString(""))
+    doAssert directory.createDirectory().wasOk(),
+             "could not make the temp directory"
+    defer: discard directory.deleteRecursively()
     let alpha = directory.getChildFile(makeString("june_zip_alpha.txt"))
     let beta = directory.getChildFile(makeString("june_zip_beta.txt"))
     doAssert alpha.replaceWithText(makeString("first file")),

@@ -837,7 +837,7 @@ proc multiplyAllAlphas*(this: var ImagePixelData, amount: cfloat) {.header: juce
 proc desaturateInArea*(this: var ImagePixelData, bounds: Rectangle[cint]) {.header: juce_graphics, importcpp: "#.desaturateInArea(@)".}
 proc desaturate*(this: var ImagePixelData) {.header: juce_graphics, importcpp: "#.desaturate()".}
 proc sendDataChangeMessage*(this: var ImagePixelData) {.header: juce_graphics, importcpp: "#.sendDataChangeMessage()".}
-# proc getNativeExtensions*(this: var ImagePixelData): ImagePixelDataNativeExtensions {.header: juce_graphics, importcpp: "#.getNativeExtensions()".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
+# proc getNativeExtensions*(this: var ImagePixelData): ImagePixelDataNativeExtensions {.header: juce_graphics, importcpp: "#.getNativeExtensions()".}  # declared in JUCE's header with no definition another translation unit can call, so calling it fails to link
 proc `==`*(this: ImagePixelData, other: ImagePixelData): bool {.error: "juce::ImagePixelData defines no operator==; compare a property instead".}
 
 proc imageDataChanged*(this: var ImagePixelDataListener, arg1: ptr ImagePixelData) {.header: juce_graphics, importcpp: "#.imageDataChanged(@)".}
@@ -907,8 +907,8 @@ proc `tag=`*(this: var FontFeatureSetting, value: FontFeatureTag) {.header: juce
 proc value*(this: FontFeatureSetting): uint32 {.header: juce_graphics, importcpp: "#.value".}
 proc value*(this: var FontFeatureSetting): var uint32 {.header: juce_graphics, importcpp: "#.value".}
 proc `value=`*(this: var FontFeatureSetting, value: uint32) {.header: juce_graphics, importcpp: "#.value = #".}
-# proc `<`*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator<(@)".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
-# proc `<=`*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator<=(@)".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
+# proc `<`*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator<(@)".}  # declared in JUCE's header with no definition another translation unit can call, so calling it fails to link
+# proc `<=`*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator<=(@)".}  # declared in JUCE's header with no definition another translation unit can call, so calling it fails to link
 # proc operator>*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator>(@)".}  # Nim derives > and >= from < and <=
 # proc operator>=*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator>=(@)".}  # Nim derives > and >= from < and <=
 proc `==`*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}
@@ -1083,7 +1083,7 @@ proc findAllTypefaceStyles*(this: typedesc[Font], family: String): StringArray {
 proc findSuitableFontForText*(this: Font, text: String, language: String): Font {.header: juce_graphics, importcpp: "#.findSuitableFontForText(@)".}
 proc toString*(this: Font): String {.header: juce_graphics, importcpp: "#.toString()".}
 proc fromString*(this: typedesc[Font], fontDescription: String): Font {.header: juce_graphics, importcpp: "juce::Font::fromString(@)".}
-# proc getNativeDetails*(this: Font): FontNative {.header: juce_graphics, importcpp: "#.getNativeDetails()".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
+# proc getNativeDetails*(this: Font): FontNative {.header: juce_graphics, importcpp: "#.getNativeDetails()".}  # declared in JUCE's header with no definition another translation unit can call, so calling it fails to link
 proc getHeightToPointsFactor*(this: Font): cfloat {.header: juce_graphics, importcpp: "#.getHeightToPointsFactor()".}
 
 proc `==`*(this: FontNative, other: FontNative): bool {.error: "juce::Font::Native defines no operator==; compare a property instead".}

@@ -810,7 +810,11 @@ def without_comment(line):
     index = 0
     while index < len(line):
         if (line[index] == "#"
-                and line[:index].count('"') % 2 == 0
+                    # An escaped quote is not a delimiter. Counting it as
+                    # one makes the parity wrong, truncates the line inside
+                    # its own literal, and hides whatever followed - a
+                    # macOS-only call among the possibilities.
+                    and line[:index].replace('\\"', "").count('"') % 2 == 0
                 and not (index and line[index - 1] == "'"
                          and line[index + 1:index + 2] == "'")):
             return line[:index]
@@ -872,8 +876,13 @@ def check_macos_only_calls():
         print("MACOS_ONLY_METHODS is not where this expected it",
               file=sys.stderr)
         return False
-    methods = set(re.findall(r'\(\s*"[A-Za-z_]\w*"\s*,\s*"([A-Za-z_]\w*)"\s*\)',
-                             block.group(1)))
+    # Extracted as PAIRS and counted as pairs below. `methods` is a set of
+    # method NAMES, so two classes sharing one - setCurrentDragImage is on three
+    # in the sibling file - collapse to a single name against two lines, and the
+    # count reports a missed extraction that did not happen.
+    pairs = re.findall(r'\(\s*"([A-Za-z_]\w*)"\s*,\s*"([A-Za-z_]\w*)"\s*\)',
+                       block.group(1))
+    methods = {method for _, method in pairs}
 
     # Every tuple in the block has to yield a name. Reading a list out of
     # another file with a regex is fragile in one direction only: a pattern
@@ -888,7 +897,7 @@ def check_macos_only_calls():
     entries = [line for line in block.group(1).split("\n")
                if line.strip() and not line.strip().startswith("#")
                and "," in line]
-    if len(entries) != len(methods):
+    if len(entries) != len(pairs):
         print(f"MACOS_ONLY_METHODS holds {len(entries)} entries but this "
               f"extracted {len(methods)} names, so the ones it missed are "
               f"exempt from this check without saying so", file=sys.stderr)

@@ -278,6 +278,13 @@ proc hasStyle*(this: ProgressBarStyleOptional): bool
     {.header: "<optional>", importcpp: "#.has_value()".}
 proc style*(this: ProgressBarStyleOptional): ProgressBarStyle
     {.header: "<optional>", importcpp: "(*#)".}
+# Bound for the same reason as Range's and Int64Range's: a fieldless
+# importcpp object falls back to Nim's structural equality, which compares
+# nothing and answers true for every pair. ProgressBar::Style is an enum
+# class, so std::optional's own == is well formed over it.
+proc `==`*(this: ProgressBarStyleOptional,
+           other: ProgressBarStyleOptional): bool
+    {.header: "<optional>", importcpp: "# == #".}
 
 
 # Subclasses for the abstract classes of this module. Generated; see

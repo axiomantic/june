@@ -1015,7 +1015,13 @@ def scalar_overloaded_names(methods):
     return ambiguous
 
 
-# Declared in JUCE's headers and defined nowhere in JUCE 8.0.15. The binding
+# Declared in JUCE's headers with no definition another translation unit can
+# call. Two mechanisms reach that: a definition that exists only in a
+# per-platform source this build does not compile, and a constexpr member
+# defined in a .cpp - implicitly inline, so it emits no out-of-line symbol.
+# FontFeatureSetting's comparisons are the second kind, and its == is NOT among
+# them: the harness calls it and links, which is the only way to tell. The
+# binding
 # compiles and the call fails to link, which no amount of parsing the headers
 # can predict - each of these was found by linking one. One entry per class,
 # holding a set, for the reason skip_class_method's own comment gives.
@@ -2488,8 +2494,9 @@ def run_main(juce_module_name, juce_class_name_to_export):
                                           for a in m.get_arguments()))
                         in undefined_in_juce.get(class_name, ())):
                 comment = "# "
-                reason = ("declared in JUCE's header and defined nowhere in "
-                          "JUCE 8.0.15, so calling it fails to link")
+                reason = ("declared in JUCE's header with no definition "
+                           "another translation unit can call, so calling it "
+                           "fails to link")
             elif skip_class_method(class_name, m.spelling):
                 comment, reason = "# ", "excluded deliberately: see skip_class_method"
 

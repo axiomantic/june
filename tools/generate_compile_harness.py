@@ -239,8 +239,19 @@ for module, text in src.items():
                 skipped["a no-argument constructor, covered by its own check"] += 1
                 continue
             call = f"{name}()"
-            rendered = (f"discard {call}" if returns.strip()
-                        and returns.strip() != ": void" else call)
+            # The same binds decision the receiver path makes below. A
+            # discarded call CONSTRUCTS nothing, so a by-value return of a
+            # class C++ will not copy compiles here while failing at every
+            # real call site - the whole reason this harness binds results.
+            bare = returns.strip()[1:].strip() if returns.strip() else ""
+            if (bare and bare != "void" and re.fullmatch(r"\w+", bare)
+                    and bare not in MOVE_ONLY_RESULTS):
+                values += 1
+                rendered = f"let harnessValue{values} = {call}"
+            elif bare and bare != "void":
+                rendered = f"discard {call}"
+            else:
+                rendered = call
             if name in MACOS_ONLY_FUNCTIONS:
                 macos_used.add(name)
                 mac_only.append(f"            {rendered}")

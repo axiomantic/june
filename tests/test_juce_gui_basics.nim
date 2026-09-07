@@ -3177,8 +3177,11 @@ proc testFileBrowserComponent() =
         # (juce_FileListComponent.cpp:77 checks isStillLoading and otherwise
         # only remembers the file for later). So the name is set again until
         # it takes, rather than once and hoped for.
+        # The bound is WALL-CLOCK on a shared runner, so it is set well
+        # past any plausible scan rather than just past a fast one. A slow
+        # correct run costs seconds; a false red costs a debugging session.
         var highlighted = false
-        for attempt in 0 ..< 200:
+        for attempt in 0 ..< 3000:   # 30s, not 2s: see below
             browser.setFileName(makeString("alpha.txt"))
             if $browser.getHighlightedFile().getFileName() == "alpha.txt":
                 highlighted = true
@@ -9428,7 +9431,9 @@ proc testTreeViewRows() =
                  "clearSelectedItems left " & $tree.getNumSelectedItems()
 
         # The tree's own display settings round trip.
-        doAssert tree.getIndentSize() >= 0,
+        # Not `>= 0`: that is a property of the type, true whatever the
+        # binding returns. The default is what JUCE sets in its constructor.
+        doAssert tree.getIndentSize() > 0,
                  "the indent is " & $tree.getIndentSize()
         tree.setIndentSize(30.cint)
         doAssert tree.getIndentSize() == 30,
@@ -10215,6 +10220,12 @@ proc testAlertWindowContents() =
         doAssert not makeProgressBarStyleUnset().hasStyle(),
                  "an unset progress bar style holds one"
         let linear = makeProgressBarStyle(ProgressBarStyle_linear)
+        # Two DIFFERENT values, because an equal pair passes under the
+        # structural fallback whether == is bound or not.
+        doAssert not (linear == makeProgressBarStyleUnset()),
+                 "a set style compared equal to an unset one"
+        doAssert linear == makeProgressBarStyle(ProgressBarStyle_linear),
+                 "two identical styles compared unequal"
         doAssert linear.hasStyle(), "a set progress bar style holds nothing"
         doAssert linear.style() == ProgressBarStyle_linear,
                  "the style read back as a different one"
@@ -10614,13 +10625,15 @@ proc testDesktop() =
         doAssert Desktop.getInstance().getDraggingMouseSource(0.cint) == nil,
                  "a dragging mouse source exists"
 
-        # The click and wheel counters only ever go up, and start at zero here.
-        doAssert Desktop.getInstance().getMouseButtonClickCounter() >= 0,
-                 "the click counter is " &
-                 $Desktop.getInstance().getMouseButtonClickCounter()
-        doAssert Desktop.getInstance().getMouseWheelMoveCounter() >= 0,
-                 "the wheel counter is " &
-                 $Desktop.getInstance().getMouseWheelMoveCounter()
+        # Both counters are ints that only ever go up, so `>= 0` is a property
+        # of the type. What can go wrong is a binding wired to a counter that
+        # moves the other way, which two reads catch.
+        let clicks = Desktop.getInstance().getMouseButtonClickCounter()
+        let wheels = Desktop.getInstance().getMouseWheelMoveCounter()
+        doAssert Desktop.getInstance().getMouseButtonClickCounter() >= clicks,
+                 "the click counter went backwards from " & $clicks
+        doAssert Desktop.getInstance().getMouseWheelMoveCounter() >= wheels,
+                 "the wheel counter went backwards from " & $wheels
 
     block:
         # The component stack. Nothing is on the desktop in this test, so it is
@@ -12898,8 +12911,12 @@ proc testSliderSkewAndTextBox() =
 
         let before = slider[].getNumChildComponents()
         slider[].showTextBox()
-        doAssert slider[].getNumChildComponents() >= before,
-                 "showing the text box removed a child"
+        # `>=` also passes when showTextBox adds nothing, which is half of
+        # what the message claims. The text box is already shown here, so the
+        # count is expected to be unchanged - state that, not an inequality.
+        doAssert slider[].getNumChildComponents() == before,
+                 "showing an already-shown text box changed the child count to " &
+                 $slider[].getNumChildComponents()
 
         slider[].hideTextBox(false)
         doAssert slider[].getValue() == 5.0,

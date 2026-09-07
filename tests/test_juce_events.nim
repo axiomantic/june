@@ -1,4 +1,6 @@
 
+import std/os
+
 import june
 
 # Enums had no binding at all before, so any parameter typed by one had no
@@ -592,18 +594,28 @@ proc testMessageManagerIdentity() =
     doAssert heard == 0,
              "the broadcast was delivered inline, " & $heard & " times"
 
+    # The override is reached by calling the virtual through the base
+    # class. deliverBroadcastMessage cannot show it, because it POSTS - so
+    # `heard == 0` after deregistering holds for a reason that has nothing
+    # to do with deregistering, and would hold if the call were a no-op.
+    cast[ptr ActionListener](listener)[].actionListenerCallback(
+        makeString("direct"))
+    doAssert heard == 1, "the override was not reached; heard is " & $heard
+
     manager[].deregisterBroadcastListener(cast[ptr ActionListener](listener))
     manager[].deliverBroadcastMessage(makeString("ignored"))
-    doAssert heard == 0,
-             "a deregistered listener heard " & $heard & " messages"
+    doAssert heard == 1,
+             "a posted broadcast was delivered inline after deregistering"
 
     cdelete listener
 
   block:
     # stopDispatchLoop sets the flag runDispatchLoop watches, and
-    # hasStopMessageBeenSent reads it. This is LAST in the file, because the
-    # flag is process-wide and stays set - a test after it would be running
-    # against a message manager that has been told to quit.
+    # quitMessagePosted is a MEMBER of the MessageManager
+    # (juce_MessageManager.h), not a process-wide flag, and the
+    # shutdownJuce_GUI below deletes the instance along with it, so a later
+    # test gets a fresh one. It is still last in THIS proc, so nothing after
+    # it here runs against a manager that has been told to quit.
     #
     # runDispatchLoop itself is never called: it does not return until this
     # flag is set from another thread, so calling it would hang the suite
@@ -656,7 +668,10 @@ proc testInterprocessConnectionOverAPipe() =
     initialiseJuce_GUI()
 
     const magic = 0x6a756e65'u32
-    let pipeName = makeString("june-test-pipe")
+    # Per-process: createPipe is called with mustNotExist = false, so two
+    # suite runs on one machine would otherwise share one pipe and each
+    # see the other's connections.
+    let pipeName = makeString("june-test-pipe-" & $getCurrentProcessId())
 
     block:
         var server = newCustomInterprocessConnection(false, magic)

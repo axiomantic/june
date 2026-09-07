@@ -110,12 +110,35 @@ UNREACHABLE_METHODS = {
 }
 
 
+def without_comment(line):
+    """The line up to its first real `#`.
+
+    A `#` inside a string literal is not a comment, and a `#` between two single
+    quotes is a Nim character literal, so neither ends the line.
+    """
+    index = 0
+    while index < len(line):
+        if (line[index] == "#"
+                and line[:index].replace('\\"', "").count('"') % 2 == 0
+                and not (index and line[index - 1] == "'"
+                         and line[index + 1:index + 2] == "'")):
+            return line[:index]
+        index += 1
+    return line
+
+
 def called_names():
     names = set()
     for path in sorted(TESTS.glob("test_juce_*.nim")):
         if path.name == HARNESS:
             continue
         text = path.read_text()
+        # Comments cut first. A name in prose is not a call: `# see
+        # Component.setBounds()` would credit setBounds on every class that
+        # declares one. This is the same defect the gate's
+        # check_names_are_called_not_mentioned exists to catch, and the figures
+        # below overstate coverage without it.
+        text = "\n".join(without_comment(line) for line in text.split("\n"))
         # The backticks are optional: a method whose name is a Nim keyword is
         # called as `x.\`type\`()`, and without them the call reads as
         # uncalled while the test really does make it.

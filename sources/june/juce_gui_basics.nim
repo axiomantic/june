@@ -2876,7 +2876,7 @@ proc `RelativeCoordinate=`*(this: var RelativeCoordinate, arg1: RelativeCoordina
 proc `==`*(this: RelativeCoordinate, arg1: RelativeCoordinate): bool {.header: juce_gui_basics, importcpp: "#.operator==(@)".}
 # proc operator!=*(this: RelativeCoordinate, arg1: RelativeCoordinate): bool {.header: juce_gui_basics, importcpp: "#.operator!=(@)".}  # Nim derives != from ==
 proc resolve*(this: RelativeCoordinate, evaluationScope: ptr ExpressionScope): float64 {.header: juce_gui_basics, importcpp: "#.resolve(@)".}
-# proc references*(this: RelativeCoordinate, coordName: String, evaluationScope: ptr ExpressionScope): bool {.header: juce_gui_basics, importcpp: "#.references(@)".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
+# proc references*(this: RelativeCoordinate, coordName: String, evaluationScope: ptr ExpressionScope): bool {.header: juce_gui_basics, importcpp: "#.references(@)".}  # declared in JUCE's header with no definition another translation unit can call, so calling it fails to link
 proc isRecursive*(this: RelativeCoordinate, evaluationScope: ptr ExpressionScope): bool {.header: juce_gui_basics, importcpp: "#.isRecursive(@)".}
 proc isDynamic*(this: RelativeCoordinate): bool {.header: juce_gui_basics, importcpp: "#.isDynamic()".}
 proc moveToAbsolute*(this: var RelativeCoordinate, absoluteTargetPosition: float64, evaluationScope: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.moveToAbsolute(@)".}
@@ -3086,7 +3086,7 @@ proc makeRelativePointPathQuadraticTo*(controlPoint: RelativePoint, endPoint: Re
 # proc controlPoints*(this: RelativePointPathQuadraticTo): RelativePoint[2] {.header: juce_gui_basics, importcpp: "#.controlPoints".}  # a fixed-size C array member, which Nim cannot spell and which no other accessor exposes
 # proc controlPoints*(this: var RelativePointPathQuadraticTo): var RelativePoint[2] {.header: juce_gui_basics, importcpp: "#.controlPoints".}  # a fixed-size C array member, which Nim cannot spell and which no other accessor exposes
 # proc `controlPoints=`*(this: var RelativePointPathQuadraticTo, value: RelativePoint[2]) {.header: juce_gui_basics, importcpp: "#.controlPoints = #".}  # a fixed-size C array member, which Nim cannot spell and which no other accessor exposes
-# proc createTree*(this: RelativePointPathQuadraticTo): ValueTree {.header: juce_gui_basics, importcpp: "#.createTree()".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
+# proc createTree*(this: RelativePointPathQuadraticTo): ValueTree {.header: juce_gui_basics, importcpp: "#.createTree()".}  # declared in JUCE's header with no definition another translation unit can call, so calling it fails to link
 proc addToPath*(this: RelativePointPathQuadraticTo, path: var Path, arg2: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.addToPath(@)".}
 proc getControlPoints*(this: var RelativePointPathQuadraticTo, numPoints: var cint): ptr RelativePoint {.header: juce_gui_basics, importcpp: "#.getControlPoints(@)".}
 proc clone*(this: RelativePointPathQuadraticTo): ptr RelativePointPathElementBase {.header: juce_gui_basics, importcpp: "#.clone()".}
@@ -3097,7 +3097,7 @@ proc makeRelativePointPathCubicTo*(controlPoint1: RelativePoint, controlPoint2: 
 # proc controlPoints*(this: RelativePointPathCubicTo): RelativePoint[3] {.header: juce_gui_basics, importcpp: "#.controlPoints".}  # a fixed-size C array member, which Nim cannot spell and which no other accessor exposes
 # proc controlPoints*(this: var RelativePointPathCubicTo): var RelativePoint[3] {.header: juce_gui_basics, importcpp: "#.controlPoints".}  # a fixed-size C array member, which Nim cannot spell and which no other accessor exposes
 # proc `controlPoints=`*(this: var RelativePointPathCubicTo, value: RelativePoint[3]) {.header: juce_gui_basics, importcpp: "#.controlPoints = #".}  # a fixed-size C array member, which Nim cannot spell and which no other accessor exposes
-# proc createTree*(this: RelativePointPathCubicTo): ValueTree {.header: juce_gui_basics, importcpp: "#.createTree()".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
+# proc createTree*(this: RelativePointPathCubicTo): ValueTree {.header: juce_gui_basics, importcpp: "#.createTree()".}  # declared in JUCE's header with no definition another translation unit can call, so calling it fails to link
 proc addToPath*(this: RelativePointPathCubicTo, path: var Path, arg2: ptr ExpressionScope) {.header: juce_gui_basics, importcpp: "#.addToPath(@)".}
 proc getControlPoints*(this: var RelativePointPathCubicTo, numPoints: var cint): ptr RelativePoint {.header: juce_gui_basics, importcpp: "#.getControlPoints(@)".}
 proc clone*(this: RelativePointPathCubicTo): ptr RelativePointPathElementBase {.header: juce_gui_basics, importcpp: "#.clone()".}
@@ -3487,7 +3487,7 @@ proc repaintRow*(this: var ListBox, rowNumber: cint) {.header: juce_gui_basics, 
 proc createSnapshotOfRows*(this: var ListBox, rows: SparseSet[cint], x: var cint, y: var cint): ScaledImage {.header: juce_gui_basics, importcpp: "#.createSnapshotOfRows(@)".}
 proc getViewport*(this: ListBox): ptr Viewport {.header: juce_gui_basics, importcpp: "#.getViewport()".}
 proc startDragAndDrop*(this: var ListBox, arg1: MouseEvent, rowsToDrag: SparseSet[cint], dragDescription: juce_var, allowDraggingToOtherWindows: bool) {.header: juce_gui_basics, importcpp: "#.startDragAndDrop(@)".}
-# proc setSelectedRows*(this: var ListBox, arg1: SparseSet[cint], arg2: bool) {.header: juce_gui_basics, importcpp: "#.setSelectedRows(@)".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
+# proc setSelectedRows*(this: var ListBox, arg1: SparseSet[cint], arg2: bool) {.header: juce_gui_basics, importcpp: "#.setSelectedRows(@)".}  # declared in JUCE's header with no definition another translation unit can call, so calling it fails to link
 proc getModel*(this: ListBox): ptr ListBoxModel {.header: juce_gui_basics, importcpp: "#.getModel()".}
 proc getTooltip*(this: var ListBox): String {.header: juce_gui_basics, importcpp: "#.getTooltip()".}  # inherited from a secondary base
 proc setTooltip*(this: var ListBox, newTooltip: String) {.header: juce_gui_basics, importcpp: "#.setTooltip(@)".}  # inherited from a secondary base
@@ -3606,16 +3606,16 @@ proc isRotary*(this: Slider): bool {.header: juce_gui_basics, importcpp: "#.isRo
 proc isBar*(this: Slider): bool {.header: juce_gui_basics, importcpp: "#.isBar()".}
 proc isTwoValue*(this: Slider): bool {.header: juce_gui_basics, importcpp: "#.isTwoValue()".}
 proc isThreeValue*(this: Slider): bool {.header: juce_gui_basics, importcpp: "#.isThreeValue()".}
-# proc setValue*(this: var Slider, arg1: float64, arg2: bool) {.header: juce_gui_basics, importcpp: "#.setValue(@)".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
-# proc setValue*(this: var Slider, arg1: float64, arg2: bool, arg3: bool) {.header: juce_gui_basics, importcpp: "#.setValue(@)".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
-# proc setMinValue*(this: var Slider, arg1: float64, arg2: bool, arg3: bool, arg4: bool) {.header: juce_gui_basics, importcpp: "#.setMinValue(@)".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
-# proc setMinValue*(this: var Slider, arg1: float64, arg2: bool, arg3: bool) {.header: juce_gui_basics, importcpp: "#.setMinValue(@)".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
-# proc setMinValue*(this: var Slider, arg1: float64, arg2: bool) {.header: juce_gui_basics, importcpp: "#.setMinValue(@)".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
-# proc setMaxValue*(this: var Slider, arg1: float64, arg2: bool, arg3: bool, arg4: bool) {.header: juce_gui_basics, importcpp: "#.setMaxValue(@)".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
-# proc setMaxValue*(this: var Slider, arg1: float64, arg2: bool, arg3: bool) {.header: juce_gui_basics, importcpp: "#.setMaxValue(@)".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
-# proc setMaxValue*(this: var Slider, arg1: float64, arg2: bool) {.header: juce_gui_basics, importcpp: "#.setMaxValue(@)".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
-# proc setMinAndMaxValues*(this: var Slider, arg1: float64, arg2: float64, arg3: bool, arg4: bool) {.header: juce_gui_basics, importcpp: "#.setMinAndMaxValues(@)".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
-# proc setMinAndMaxValues*(this: var Slider, arg1: float64, arg2: float64, arg3: bool) {.header: juce_gui_basics, importcpp: "#.setMinAndMaxValues(@)".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
+# proc setValue*(this: var Slider, arg1: float64, arg2: bool) {.header: juce_gui_basics, importcpp: "#.setValue(@)".}  # declared in JUCE's header with no definition another translation unit can call, so calling it fails to link
+# proc setValue*(this: var Slider, arg1: float64, arg2: bool, arg3: bool) {.header: juce_gui_basics, importcpp: "#.setValue(@)".}  # declared in JUCE's header with no definition another translation unit can call, so calling it fails to link
+# proc setMinValue*(this: var Slider, arg1: float64, arg2: bool, arg3: bool, arg4: bool) {.header: juce_gui_basics, importcpp: "#.setMinValue(@)".}  # declared in JUCE's header with no definition another translation unit can call, so calling it fails to link
+# proc setMinValue*(this: var Slider, arg1: float64, arg2: bool, arg3: bool) {.header: juce_gui_basics, importcpp: "#.setMinValue(@)".}  # declared in JUCE's header with no definition another translation unit can call, so calling it fails to link
+# proc setMinValue*(this: var Slider, arg1: float64, arg2: bool) {.header: juce_gui_basics, importcpp: "#.setMinValue(@)".}  # declared in JUCE's header with no definition another translation unit can call, so calling it fails to link
+# proc setMaxValue*(this: var Slider, arg1: float64, arg2: bool, arg3: bool, arg4: bool) {.header: juce_gui_basics, importcpp: "#.setMaxValue(@)".}  # declared in JUCE's header with no definition another translation unit can call, so calling it fails to link
+# proc setMaxValue*(this: var Slider, arg1: float64, arg2: bool, arg3: bool) {.header: juce_gui_basics, importcpp: "#.setMaxValue(@)".}  # declared in JUCE's header with no definition another translation unit can call, so calling it fails to link
+# proc setMaxValue*(this: var Slider, arg1: float64, arg2: bool) {.header: juce_gui_basics, importcpp: "#.setMaxValue(@)".}  # declared in JUCE's header with no definition another translation unit can call, so calling it fails to link
+# proc setMinAndMaxValues*(this: var Slider, arg1: float64, arg2: float64, arg3: bool, arg4: bool) {.header: juce_gui_basics, importcpp: "#.setMinAndMaxValues(@)".}  # declared in JUCE's header with no definition another translation unit can call, so calling it fails to link
+# proc setMinAndMaxValues*(this: var Slider, arg1: float64, arg2: float64, arg3: bool) {.header: juce_gui_basics, importcpp: "#.setMinAndMaxValues(@)".}  # declared in JUCE's header with no definition another translation unit can call, so calling it fails to link
 proc getTooltip*(this: var Slider): String {.header: juce_gui_basics, importcpp: "#.getTooltip()".}  # inherited from a secondary base
 proc setTooltip*(this: var Slider, newTooltip: String) {.header: juce_gui_basics, importcpp: "#.setTooltip(@)".}  # inherited from a secondary base
 proc `==`*(this: Slider, other: Slider): bool {.error: "juce::Slider defines no operator==; compare a property instead".}
