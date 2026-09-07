@@ -216,7 +216,17 @@ for module, text in src.items():
 
         parts = split_parameters(body)
         if not parts:
-            skipped["no receiver"] += 1
+            # A no-argument constructor is already required to be called by a
+            # test, so calling it here would only duplicate that. Anything else
+            # taking no arguments is a free function with nothing covering it -
+            # juce_assert_noreturn and juce_isRunningUnderDebugger were the two,
+            # and neither had ever been handed to a C++ compiler.
+            if name.startswith("make"):
+                skipped["a no-argument constructor, covered by its own check"] += 1
+                continue
+            call = f"{name}()"
+            calls.append(f"        discard {call}" if returns.strip()
+                         and returns.strip() != ": void" else f"        {call}")
             continue
         first_name, first_type = parts[0].split(":", 1)
         first_type = first_type.strip()

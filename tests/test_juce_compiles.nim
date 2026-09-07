@@ -1755,6 +1755,8 @@ proc compileChunk4() =
         let harnessValue1255 = AndroidDocumentIterator.makeNonRecursive(nowhere[AndroidDocument]()[])
         let harnessValue1256 = AndroidDocumentIterator.makeRecursive(nowhere[AndroidDocument]()[])
         let harnessValue1257 = makeAndroidDocumentInputSource(nowhere[AndroidDocument]()[])
+        juce_assert_noreturn()
+        discard juce_isRunningUnderDebugger()
         logAssertion(cast[constChar](cstring("")), 0.cint)
         zeromem(cast[pointer](address), 0'u64)
         let harnessValue1258 = juce_hypot(0.0'f32, 0.0'f32)
@@ -2036,11 +2038,11 @@ proc compileChunk4() =
         nowhere[ValueTreeListener]()[].valueTreeChildOrderChanged(nowhere[ValueTree]()[], 0.cint, 0.cint)
         nowhere[ValueTreeListener]()[].valueTreeParentChanged(nowhere[ValueTree]()[])
         nowhere[ValueTreeListener]()[].valueTreeRedirected(nowhere[ValueTree]()[])
-        nowhere[ValueTreeSynchroniser]()[].stateChanged(cast[constPointer](address), 0'u64)
-        nowhere[ValueTreeSynchroniser]()[].sendFullSyncCallback()
 
 proc compileChunk5() =
     if address != 0:
+        nowhere[ValueTreeSynchroniser]()[].stateChanged(cast[constPointer](address), 0'u64)
+        nowhere[ValueTreeSynchroniser]()[].sendFullSyncCallback()
         let harnessValue1397 = ValueTreeSynchroniser.applyChange(nowhere[ValueTree]()[], cast[constPointer](address), 0'u64, cast[ptr UndoManager](address))
         let harnessValue1398 = nowhere[ValueTreeSynchroniser]()[].getRoot()
         let harnessValue1399 = makeValueTreePropertyWithDefault(nowhere[ValueTree]()[], nowhere[Identifier]()[], cast[ptr UndoManager](address))
@@ -2439,11 +2441,11 @@ proc compileChunk5() =
         discard ImageFileFormat.findImageFormatForStream(nowhere[InputStream]()[])
         discard ImageFileFormat.findImageFormatForFileExtension(nowhere[june.File]()[])
         let harnessValue1629 = ImageFileFormat.loadFrom(nowhere[InputStream]()[])
-        let harnessValue1630 = ImageFileFormat.loadFrom(nowhere[june.File]()[])
-        let harnessValue1631 = ImageFileFormat.loadFrom(cast[constPointer](address), 0'u64)
 
 proc compileChunk6() =
     if address != 0:
+        let harnessValue1630 = ImageFileFormat.loadFrom(nowhere[june.File]()[])
+        let harnessValue1631 = ImageFileFormat.loadFrom(cast[constPointer](address), 0'u64)
         nowhere[JPEGImageFormat]()[].setQuality(0.0'f32)
         let harnessValue1632 = nowhere[GlyphArrangementOptions]()[].withLineSpacing(0.0'f32)
         let harnessValue1633 = nowhere[GlyphArrangementOptions]()[].withLineHeightMultiple(0.0'f32)
@@ -2842,11 +2844,11 @@ proc compileChunk6() =
         nowhere[GlyphArrangement]()[].createPath(nowhere[Path]()[])
         let harnessValue1812 = nowhere[GlyphArrangement]()[].findGlyphIndexAt(0.0'f32, 0.0'f32)
         discard nowhere[GlyphArrangement]()[].getBoundingBox(0.cint, 0.cint, false)
-        nowhere[GlyphArrangement]()[].moveRangeOfGlyphs(0.cint, 0.cint, 0.0'f32, 0.0'f32)
-        nowhere[GlyphArrangement]()[].removeRangeOfGlyphs(0.cint, 0.cint)
 
 proc compileChunk7() =
     if address != 0:
+        nowhere[GlyphArrangement]()[].moveRangeOfGlyphs(0.cint, 0.cint, 0.0'f32, 0.0'f32)
+        nowhere[GlyphArrangement]()[].removeRangeOfGlyphs(0.cint, 0.cint)
         nowhere[GlyphArrangement]()[].stretchRangeOfGlyphs(0.cint, 0.cint, 0.0'f32)
         nowhere[GlyphArrangement]()[].justifyGlyphs(0.cint, 0.cint, 0.0'f32, 0.0'f32, 0.0'f32, 0.0'f32, nowhere[Justification]()[])
         discard GlyphArrangement.getStringBounds(nowhere[Font]()[], nowhere[StringRef]()[])
@@ -3245,11 +3247,11 @@ proc compileChunk7() =
         nowhere[ModalComponentManager]()[].endModal(nowhere[ModalComponentManagerKey]()[], cast[ptr Component](address), 0.cint)
         nowhere[ModalComponentManagerCallback]()[].modalStateFinished(0.cint)
         let harnessValue2072 = nowhere[ComponentPaintDiagnostics]()[].totalPaintDuration()
-        discard nowhere[ComponentPaintDiagnostics]()[].totalPaintDuration()
-        let harnessValue2073 = nowhere[ComponentPaintDiagnostics]()[].paintDuration()
 
 proc compileChunk8() =
     if address != 0:
+        discard nowhere[ComponentPaintDiagnostics]()[].totalPaintDuration()
+        let harnessValue2073 = nowhere[ComponentPaintDiagnostics]()[].paintDuration()
         discard nowhere[ComponentPaintDiagnostics]()[].paintDuration()
         let harnessValue2074 = nowhere[ComponentPaintDiagnostics]()[].paintOverChildrenDuration()
         discard nowhere[ComponentPaintDiagnostics]()[].paintOverChildrenDuration()
@@ -3648,11 +3650,11 @@ proc compileChunk8() =
         nowhere[FileDragAndDropTarget]()[].filesDropped(nowhere[StringArray]()[], 0.cint, 0.cint)
         let harnessValue2194 = makeMouseInactivityDetector(nowhere[Component]()[])
         nowhere[MouseInactivityDetector]()[].setDelay(0.cint)
-        nowhere[MouseInactivityDetector]()[].setMouseMoveTolerance(0.cint)
-        nowhere[MouseInactivityDetector]()[].addListener(cast[ptr MouseInactivityDetectorListener](address))
 
 proc compileChunk9() =
     if address != 0:
+        nowhere[MouseInactivityDetector]()[].setMouseMoveTolerance(0.cint)
+        nowhere[MouseInactivityDetector]()[].addListener(cast[ptr MouseInactivityDetectorListener](address))
         nowhere[MouseInactivityDetector]()[].removeListener(cast[ptr MouseInactivityDetectorListener](address))
         nowhere[MouseInactivityDetectorListener]()[].mouseBecameActive()
         nowhere[MouseInactivityDetectorListener]()[].mouseBecameInactive()
@@ -4051,11 +4053,11 @@ proc compileChunk9() =
         discard nowhere[AccessibilityTableInterface]()[].getRowHandler(0.cint)
         discard nowhere[AccessibilityTableInterface]()[].getHeaderHandler()
         discard nowhere[AccessibilityTableInterface]()[].getRowSpan(nowhere[AccessibilityHandler]()[])
-        discard nowhere[AccessibilityTableInterface]()[].getColumnSpan(nowhere[AccessibilityHandler]()[])
-        nowhere[AccessibilityTableInterface]()[].showCell(nowhere[AccessibilityHandler]()[])
 
 proc compileChunk10() =
     if address != 0:
+        discard nowhere[AccessibilityTableInterface]()[].getColumnSpan(nowhere[AccessibilityHandler]()[])
+        nowhere[AccessibilityTableInterface]()[].showCell(nowhere[AccessibilityHandler]()[])
         let harnessValue2354 = nowhere[AccessibilityTableInterfaceSpan]()[].begin()
         discard nowhere[AccessibilityTableInterfaceSpan]()[].begin()
         let harnessValue2355 = nowhere[AccessibilityTableInterfaceSpan]()[].num()
@@ -4454,11 +4456,11 @@ proc compileChunk10() =
         let harnessValue2548 = nowhere[RelativeParallelogram]()[].resetToPerpendicular(cast[ptr ExpressionScope](address))
         let harnessValue2549 = nowhere[RelativeParallelogram]()[].isDynamic()
         discard RelativeParallelogram.getInternalCoordForPoint(cast[ptr Point[cfloat]](address), nowhere[Point[cfloat]]()[])
-        discard RelativeParallelogram.getPointForInternalCoord(cast[ptr Point[cfloat]](address), nowhere[Point[cfloat]]()[])
-        discard RelativeParallelogram.getBoundingBox(cast[ptr Point[cfloat]](address))
 
 proc compileChunk11() =
     if address != 0:
+        discard RelativeParallelogram.getPointForInternalCoord(cast[ptr Point[cfloat]](address), nowhere[Point[cfloat]]()[])
+        discard RelativeParallelogram.getBoundingBox(cast[ptr Point[cfloat]](address))
         let harnessValue2550 = makeRelativePointPath(nowhere[Path]()[])
         discard nowhere[RelativePointPath]()[].elements()
         let harnessValue2551 = nowhere[RelativePointPath]()[].usesNonZeroWinding()
@@ -4857,11 +4859,11 @@ proc compileChunk11() =
         nowhere[Slider]()[].setSliderStyle(SliderSliderStyle_LinearHorizontal)
         let harnessValue2712 = nowhere[Slider]()[].getSliderStyle()
         nowhere[Slider]()[].setRotaryParameters(nowhere[SliderRotaryParameters]()[])
-        nowhere[Slider]()[].setRotaryParameters(0.0'f32, 0.0'f32, false)
-        let harnessValue2713 = nowhere[Slider]()[].getRotaryParameters()
 
 proc compileChunk12() =
     if address != 0:
+        nowhere[Slider]()[].setRotaryParameters(0.0'f32, 0.0'f32, false)
+        let harnessValue2713 = nowhere[Slider]()[].getRotaryParameters()
         nowhere[Slider]()[].setMouseDragSensitivity(0.cint)
         let harnessValue2714 = nowhere[Slider]()[].getMouseDragSensitivity()
         nowhere[Slider]()[].setVelocityBasedMode(false)
@@ -5260,11 +5262,11 @@ proc compileChunk12() =
         nowhere[AlertWindow]()[].triggerButtonClick(nowhere[String]()[])
         nowhere[AlertWindow]()[].setEscapeKeyCancels(false)
         nowhere[AlertWindow]()[].addTextEditor(nowhere[String]()[], nowhere[String]()[], nowhere[String]()[], false)
-        let harnessValue2875 = nowhere[AlertWindow]()[].getTextEditorContents(nowhere[String]()[])
-        discard nowhere[AlertWindow]()[].getTextEditor(nowhere[String]()[])
 
 proc compileChunk13() =
     if address != 0:
+        let harnessValue2875 = nowhere[AlertWindow]()[].getTextEditorContents(nowhere[String]()[])
+        discard nowhere[AlertWindow]()[].getTextEditor(nowhere[String]()[])
         nowhere[AlertWindow]()[].addComboBox(nowhere[String]()[], nowhere[StringArray]()[], nowhere[String]()[])
         discard nowhere[AlertWindow]()[].getComboBoxComponent(nowhere[String]()[])
         nowhere[AlertWindow]()[].addTextBlock(nowhere[String]()[])
@@ -5663,11 +5665,11 @@ proc compileChunk13() =
         nowhere[FileTreeComponent]()[].setDragAndDropDescription(nowhere[String]()[])
         let harnessValue3018 = nowhere[FileTreeComponent]()[].getDragAndDropDescription()
         nowhere[FileTreeComponent]()[].setItemHeight(0.cint)
-        let harnessValue3019 = nowhere[FileTreeComponent]()[].getItemHeight()
-        nowhere[FileTreeComponent]()[].addListener(cast[ptr FileBrowserListener](address))
 
 proc compileChunk14() =
     if address != 0:
+        let harnessValue3019 = nowhere[FileTreeComponent]()[].getItemHeight()
+        nowhere[FileTreeComponent]()[].addListener(cast[ptr FileBrowserListener](address))
         nowhere[FileTreeComponent]()[].removeListener(cast[ptr FileBrowserListener](address))
         nowhere[FileTreeComponent]()[].sendDoubleClickMessage(nowhere[june.File]()[])
         nowhere[FileTreeComponent]()[].sendMouseClickMessage(nowhere[june.File]()[], nowhere[MouseEvent]()[])
@@ -6066,11 +6068,11 @@ proc compileChunk14() =
         let harnessValue3202 = nowhere[GridItemMargin]()[].bottom()
         discard nowhere[GridItemMargin]()[].bottom()
         let harnessValue3203 = nowhere[Grid]()[].justifyItems()
-        discard nowhere[Grid]()[].justifyItems()
-        let harnessValue3204 = nowhere[Grid]()[].alignItems()
 
 proc compileChunk15() =
     if address != 0:
+        discard nowhere[Grid]()[].justifyItems()
+        let harnessValue3204 = nowhere[Grid]()[].alignItems()
         discard nowhere[Grid]()[].alignItems()
         let harnessValue3205 = nowhere[Grid]()[].justifyContent()
         discard nowhere[Grid]()[].justifyContent()
