@@ -120,9 +120,33 @@ uncallable = {}
 # carrying a hand-written binding is named by a test today.
 unnameable_receivers = {}
 
+# The first parameter, whatever it is called.
+#
+# This required the literal name `this`, which is what the generated modules
+# spell a receiver and what most of the hand-written layer copies. It is not
+# what all of it spells: june_function_utils.nim names every one of its
+# receivers `f`, so none of the CppFunctionObject types entered the check at
+# all. The gate then printed "all 45 receiver types ... are named by a test"
+# while the widened pattern finds 81 - and among the 36 it had never looked at
+# were the eighteen CppFunctionObject types whose `invoke` overloads no test
+# called, so seventeen importcpp strings had never been handed to a C++
+# compiler. A check that cannot fail is worse than no check.
+#
+# The type is taken after any var/ptr/ref/sink/lent, and counts only if
+# sources/june DECLARES it. That is what keeps a first parameter from being
+# read as a receiver when it is not one. `varargs[untyped]` on a macro and the
+# `T` of a generic are not types a test could name, and `int`, `string` and
+# `cstring` are Nim's rather than this library's - a test "naming" int is a
+# word search that cannot fail. Declared-in-sources is the property that
+# separates those from a real receiver, and it needs no list to maintain.
 receiver = re.compile(
     r'(?:proc|iterator|template|converter|macro) `?([\w=$\[\]]+)`?\*'
-    r'(?:\[[^\]]*\])?\(this: (?:var )?(\w+)')
+    r'(?:\[[^\]]*\])?\(\w+: (?:(?:var|ptr|ref|sink|lent) )*([A-Za-z_]\w*)')
+
+# `type X* = ...` on one line, and an indented entry in a `type` block.
+type_declaration = re.compile(r'^type (\w+)')
+type_block_entry = re.compile(r'^\s+(\w+)\*?\s*(?:\[[^\]]*\])?\s*'
+                              r'(?:\{\.[^}]*\.\})?\s*=')
 
 export = re.compile(
     r'(?:proc|iterator|template|converter|macro) (`[^`]+`|\w+)\*')
@@ -1068,6 +1092,33 @@ def check_gitignore_order():
     return True
 
 
+def declared_types():
+    """Every type name declared under sources/june.
+
+    This is what tells a receiver from a first parameter that is not one. It
+    reads the generated modules as well as the hand-written layer, because a
+    lifting file declares bindings on JUCE classes the generator declares.
+    """
+    names = set()
+    for path in sorted(glob.glob("sources/june/*.nim")):
+        in_block = False
+        with open(path) as handle:
+            for line in handle:
+                match = type_declaration.match(line)
+                if match:
+                    names.add(match.group(1))
+                    in_block = True
+                    continue
+                if line.strip() and not line[0].isspace():
+                    in_block = line.rstrip() == "type"
+                    continue
+                if in_block:
+                    entry = type_block_entry.match(line)
+                    if entry:
+                        names.add(entry.group(1))
+    return names
+
+
 def check_receiver_types_named():
     """Every hand-written binding has a receiver some test names.
 
@@ -1087,13 +1138,32 @@ def check_receiver_types_named():
     mentions the type cannot have called anything on it. Matching is textual,
     so naming the type or its constructor both count.
 
-    This is a per-TYPE check, and that is its limit. It catches a type no test
-    names - CppArray and Optional were both invisible that way. It cannot catch
-    a method never called on a type some test DOES name: CppMap.isEmpty and
-    CppUnorderedMap.`[]` were two of the eight above, and testStlContainers
-    constructs both types, so nothing here would have flagged them. Six of the
-    eight, not all eight.
+    This is a per-TYPE check, and that is one of its two limits. It catches a
+    type no test names - CppArray and Optional were both invisible that way. It
+    cannot catch a method never called on a type some test DOES name:
+    CppMap.isEmpty and CppUnorderedMap.`[]` were two of the eight above, and
+    testStlContainers constructs both types, so nothing here would have flagged
+    them. Six of the eight, not all eight.
+
+    The other limit is what a receiver is TAKEN TO BE, and it used to be a
+    first parameter literally named `this`. That is what the generated modules
+    spell and what most of the hand-written layer copies, and it silently
+    excluded the file that does not: june_function_utils.nim names every
+    receiver `f`. Thirty-six types were outside the check, eighteen of them
+    CppFunctionObject types, and seventeen `invoke` overloads had consequently
+    never been handed to a C++ compiler while this printed "all 45 receiver
+    types ... are named by a test" - a gate satisfied by having looked at
+    nothing. The receiver is now the first parameter under any name.
+
+    Taking any first parameter needs a rule for the ones that are not
+    receivers, and the rule is that sources/june has to DECLARE the type.
+    `varargs[untyped]` on a macro and the `T` of a generic are not types a test
+    could name; `int`, `string` and `cstring` are Nim's own, and asking a test
+    to "name int" is a word search that cannot fail. Declared-in-sources
+    separates a real receiver from all of those and needs no list to keep up to
+    date.
     """
+    declared = declared_types()
     receivers = {}
     for name in hand_written:
         path = os.path.join("sources", "june", name)
@@ -1102,7 +1172,7 @@ def check_receiver_types_named():
         with open(path) as handle:
             for line in handle:
                 match = receiver.match(line)
-                if match:
+                if match and match.group(2) in declared:
                     receivers.setdefault(match.group(2), set()).add(match.group(1))
 
     used = ""

@@ -772,7 +772,10 @@ against that whole shape, and it fails when any of these is not exercised::
 
 - a hand-written binding name that no test calls
 - a receiver type carrying a hand-written binding that no test names, so the
-  check above is satisfied only by a same-named method on another type
+  check above is satisfied only by a same-named method on another type. The
+  receiver is the first parameter whatever it is called, and counts as one when
+  ``sources/june`` declares its type - which is what tells it from a first
+  parameter that is a generic, a ``varargs[untyped]`` or a type of Nim's own
 - a withheld ``begin()`` naming a Nim iterator that does not exist
 - an emitted implicit default constructor that no test builds
 - a generated subclass that no test builds

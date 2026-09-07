@@ -1284,6 +1284,31 @@ proc testFontFeatureSettings() =
 
 testFontFeatureSettings()
 
+# The Justification converter ================================================
+#
+# juce_graphics_lifting declares `converter toJustification(flags:
+# JustificationFlags)` so a JustificationFlags can be passed wherever a
+# Justification is wanted. A converter applied implicitly compiles, but nothing
+# in the suite spelled the type it converts FROM, and the gate that reads which
+# hand-written receiver types a test names spells its receiver `flags` rather
+# than `this` - so this declaration sat outside that check entirely.
+#
+# Applied both ways here: named, so the conversion is the thing under test, and
+# implicitly, which is how a caller writes it.
+
+proc testJustificationConverter() =
+    block:
+        let flags: JustificationFlags = JustificationFlags_centredRight
+        let converted: Justification = flags
+        doAssert converted.getFlags() == flags.cint,
+                 "the converter lost the flags: " & $converted.getFlags() &
+                 " rather than " & $flags.cint
+        doAssert converted == makeJustification(flags.cint),
+                 "the converter built a different Justification than makeJustification"
+
+
+testJustificationConverter()
+
 # Every bound constant ========================================================
 #
 # A `let` with an importcpp is not checked against C++ unless something reads

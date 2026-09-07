@@ -387,6 +387,169 @@ proc testEveryClosureArity() =
 
 testEveryClosureArity()
 
+# Every closure arity, through invoke =========================================
+#
+# `invoke` is a SECOND binding for each of the arities above, with an importcpp
+# string of its own. The call operator does not compile it - `f(1, 2)` and
+# `f.invoke(1, 2)` are two declarations, and an importcpp string reaches the C++
+# compiler only where its own proc is called. Seventeen of them, N2 to N10 and
+# R2 to R9, had no call site anywhere in the suite and had therefore never been
+# compiled at all.
+#
+# What was supposed to notice is check_handwritten_covered.py, whose receiver
+# check reads every type carrying a hand-written binding and fails on one no
+# test names. It matched a receiver spelled `this`, and june_function_utils
+# spells every one of them `f`, so the CppFunctionObject types were not among
+# the types it checked - and it reported all of them covered.
+
+proc testEveryClosureArityInvoked() =
+    block:
+        var seen: seq[cint] = @[]
+        seen = @[]
+        var invoked0: CppFunctionObjectN0 = bindClosure(proc() =
+                seen.add(0.cint))
+        invoked0.invoke()
+        doAssert seen == @[0.cint],
+                 "the 0-argument void closure invoked saw " & $seen
+        seen = @[]
+        var invoked1: CppFunctionObjectN1[cint] = bindClosure(proc(a1: cint) =
+                seen.add(a1))
+        invoked1.invoke(1.cint)
+        doAssert seen == @[1.cint],
+                 "the 1-argument void closure invoked saw " & $seen
+        seen = @[]
+        var invoked2: CppFunctionObjectN2[cint, cint] = bindClosure(proc(a1: cint, a2: cint) =
+                seen.add(a1)
+                seen.add(a2))
+        invoked2.invoke(1.cint, 2.cint)
+        doAssert seen == @[1.cint, 2.cint],
+                 "the 2-argument void closure invoked saw " & $seen
+        seen = @[]
+        var invoked3: CppFunctionObjectN3[cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint) =
+                seen.add(a1)
+                seen.add(a2)
+                seen.add(a3))
+        invoked3.invoke(1.cint, 2.cint, 3.cint)
+        doAssert seen == @[1.cint, 2.cint, 3.cint],
+                 "the 3-argument void closure invoked saw " & $seen
+        seen = @[]
+        var invoked4: CppFunctionObjectN4[cint, cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint) =
+                seen.add(a1)
+                seen.add(a2)
+                seen.add(a3)
+                seen.add(a4))
+        invoked4.invoke(1.cint, 2.cint, 3.cint, 4.cint)
+        doAssert seen == @[1.cint, 2.cint, 3.cint, 4.cint],
+                 "the 4-argument void closure invoked saw " & $seen
+        seen = @[]
+        var invoked5: CppFunctionObjectN5[cint, cint, cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint) =
+                seen.add(a1)
+                seen.add(a2)
+                seen.add(a3)
+                seen.add(a4)
+                seen.add(a5))
+        invoked5.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint)
+        doAssert seen == @[1.cint, 2.cint, 3.cint, 4.cint, 5.cint],
+                 "the 5-argument void closure invoked saw " & $seen
+        seen = @[]
+        var invoked6: CppFunctionObjectN6[cint, cint, cint, cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint, a6: cint) =
+                seen.add(a1)
+                seen.add(a2)
+                seen.add(a3)
+                seen.add(a4)
+                seen.add(a5)
+                seen.add(a6))
+        invoked6.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint)
+        doAssert seen == @[1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint],
+                 "the 6-argument void closure invoked saw " & $seen
+        seen = @[]
+        var invoked7: CppFunctionObjectN7[cint, cint, cint, cint, cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint, a6: cint, a7: cint) =
+                seen.add(a1)
+                seen.add(a2)
+                seen.add(a3)
+                seen.add(a4)
+                seen.add(a5)
+                seen.add(a6)
+                seen.add(a7))
+        invoked7.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint)
+        doAssert seen == @[1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint],
+                 "the 7-argument void closure invoked saw " & $seen
+        seen = @[]
+        var invoked8: CppFunctionObjectN8[cint, cint, cint, cint, cint, cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint, a6: cint, a7: cint, a8: cint) =
+                seen.add(a1)
+                seen.add(a2)
+                seen.add(a3)
+                seen.add(a4)
+                seen.add(a5)
+                seen.add(a6)
+                seen.add(a7)
+                seen.add(a8))
+        invoked8.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint)
+        doAssert seen == @[1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint],
+                 "the 8-argument void closure invoked saw " & $seen
+        seen = @[]
+        var invoked9: CppFunctionObjectN9[cint, cint, cint, cint, cint, cint, cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint, a6: cint, a7: cint, a8: cint, a9: cint) =
+                seen.add(a1)
+                seen.add(a2)
+                seen.add(a3)
+                seen.add(a4)
+                seen.add(a5)
+                seen.add(a6)
+                seen.add(a7)
+                seen.add(a8)
+                seen.add(a9))
+        invoked9.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint, 9.cint)
+        doAssert seen == @[1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint, 9.cint],
+                 "the 9-argument void closure invoked saw " & $seen
+        seen = @[]
+        var invoked10: CppFunctionObjectN10[cint, cint, cint, cint, cint, cint, cint, cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint, a6: cint, a7: cint, a8: cint, a9: cint, a10: cint) =
+                seen.add(a1)
+                seen.add(a2)
+                seen.add(a3)
+                seen.add(a4)
+                seen.add(a5)
+                seen.add(a6)
+                seen.add(a7)
+                seen.add(a8)
+                seen.add(a9)
+                seen.add(a10))
+        invoked10.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint, 9.cint, 10.cint)
+        doAssert seen == @[1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint, 9.cint, 10.cint],
+                 "the 10-argument void closure invoked saw " & $seen
+        var returned0: CppFunctionObjectR0[cint] = bindClosure(proc(): cint = 7.cint)
+        doAssert returned0.invoke() == 7.cint,
+                 "the 0-argument closure invoked returned " & $returned0.invoke()
+        var returned1: CppFunctionObjectR1[cint, cint] = bindClosure(proc(a1: cint): cint = a1)
+        doAssert returned1.invoke(1.cint) == 1.cint,
+                 "the 1-argument closure invoked returned " & $returned1.invoke(1.cint)
+        var returned2: CppFunctionObjectR2[cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint): cint = a1 + a2)
+        doAssert returned2.invoke(1.cint, 2.cint) == 3.cint,
+                 "the 2-argument closure invoked returned " & $returned2.invoke(1.cint, 2.cint)
+        var returned3: CppFunctionObjectR3[cint, cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint): cint = a1 + a2 + a3)
+        doAssert returned3.invoke(1.cint, 2.cint, 3.cint) == 6.cint,
+                 "the 3-argument closure invoked returned " & $returned3.invoke(1.cint, 2.cint, 3.cint)
+        var returned4: CppFunctionObjectR4[cint, cint, cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint): cint = a1 + a2 + a3 + a4)
+        doAssert returned4.invoke(1.cint, 2.cint, 3.cint, 4.cint) == 10.cint,
+                 "the 4-argument closure invoked returned " & $returned4.invoke(1.cint, 2.cint, 3.cint, 4.cint)
+        var returned5: CppFunctionObjectR5[cint, cint, cint, cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint): cint = a1 + a2 + a3 + a4 + a5)
+        doAssert returned5.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint) == 15.cint,
+                 "the 5-argument closure invoked returned " & $returned5.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint)
+        var returned6: CppFunctionObjectR6[cint, cint, cint, cint, cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint, a6: cint): cint = a1 + a2 + a3 + a4 + a5 + a6)
+        doAssert returned6.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint) == 21.cint,
+                 "the 6-argument closure invoked returned " & $returned6.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint)
+        var returned7: CppFunctionObjectR7[cint, cint, cint, cint, cint, cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint, a6: cint, a7: cint): cint = a1 + a2 + a3 + a4 + a5 + a6 + a7)
+        doAssert returned7.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint) == 28.cint,
+                 "the 7-argument closure invoked returned " & $returned7.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint)
+        var returned8: CppFunctionObjectR8[cint, cint, cint, cint, cint, cint, cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint, a6: cint, a7: cint, a8: cint): cint = a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8)
+        doAssert returned8.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint) == 36.cint,
+                 "the 8-argument closure invoked returned " & $returned8.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint)
+        var returned9: CppFunctionObjectR9[cint, cint, cint, cint, cint, cint, cint, cint, cint, cint] = bindClosure(proc(a1: cint, a2: cint, a3: cint, a4: cint, a5: cint, a6: cint, a7: cint, a8: cint, a9: cint): cint = a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9)
+        doAssert returned9.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint, 9.cint) == 45.cint,
+                 "the 9-argument closure invoked returned " & $returned9.invoke(1.cint, 2.cint, 3.cint, 4.cint, 5.cint, 6.cint, 7.cint, 8.cint, 9.cint)
+
+
+testEveryClosureArityInvoked()
+
 # The nested abstract classes =================================================
 #
 # The subclass generator keyed an abstract class on its own spelling, which
