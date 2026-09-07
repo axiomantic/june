@@ -508,6 +508,13 @@ def remap_template(spelling, *args):
     if nim_head == "Range" and mapped == ["int64"]:
         return "Int64Range"
 
+    # Any OTHER instantiation over a 64-bit integer has the same defect and no
+    # correctly-spelled type to fall back on, so withhold it rather than emit a
+    # binding that compiles on macOS and not on Linux. Withheld is visible in the
+    # module and in the harness accounting; a Linux-only compile error is not.
+    if any(m in ("int64", "uint64") for m in mapped):
+        return None
+
     return f"{nim_head}[{', '.join(mapped)}]"
 
 def remap_template_arg(spelling, *args):
