@@ -336,9 +336,12 @@ def map_std_function(bare, declared, aliases):
 
     arguments = [] if argument_text in ("", "void") \
         else split_template_arguments(argument_text)
-    # The family stops at nine arguments, because a Nim importcpp pattern can
-    # name at most ten types ('0 to '9) and the return type takes one of them.
-    if len(arguments) > 9:
+    # A Nim importcpp pattern can name at most ten types, '0 to '9. A value
+    # return takes one of them, which leaves nine arguments; a void return takes
+    # none, so the N family reaches ten - CppFunctionObjectN10 is declared and
+    # nothing else in the chain stops at nine.
+    returns_void = return_spelling in ("void", "")
+    if len(arguments) > (10 if returns_void else 9):
         return None
 
     # A const reference argument is spelled by a Ref member, and only the
@@ -360,7 +363,6 @@ def map_std_function(bare, declared, aliases):
         # Every argument had to be a const reference for the flag to be set on
         # a single-argument function, so nothing more to check.
 
-    returns_void = return_spelling in ("void", "")
     pieces = []
     if not returns_void:
         mapped = map_type(return_spelling, declared, is_return=False,

@@ -788,12 +788,25 @@ def check_inherited_methods():
 def without_comment(line):
     """`line` up to its comment, if it has one.
 
-    A `#` counts as the start of a comment when an even number of quotes
-    precede it, so a `#` inside a string literal stays.
+    A `#` counts as the start of a comment when an even number of double quotes
+    precede it, so a `#` inside a string literal stays, and `\'#\'` is skipped
+    because a character literal is not a comment either.
+
+    Single quotes are deliberately NOT tracked as literal delimiters. Nim spells
+    a numeric suffix with one - `0\'f32`, `5\'u8` - and this suite is full of
+    them, so a scanner that opened a character literal on every `\'` would think
+    most of the file was inside one and stop finding comments at all. That is a
+    worse failure than the case it would fix, and the two-character form above
+    covers the case that actually arises.
     """
-    for index, character in enumerate(line):
-        if character == "#" and line[:index].count('"') % 2 == 0:
+    index = 0
+    while index < len(line):
+        if (line[index] == "#"
+                and line[:index].count('"') % 2 == 0
+                and not (index and line[index - 1] == "'"
+                         and line[index + 1:index + 2] == "'")):
             return line[:index]
+        index += 1
     return line
 
 
