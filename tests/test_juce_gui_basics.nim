@@ -890,6 +890,19 @@ proc testGeneratedSubclassesConstruct() =
         cdelete value
 
     block:
+        # ComponentMovementWatcher declares three pure virtuals, two of which
+        # share a name with a non-pure method of its ComponentListener base and
+        # differ from it only in signature. The `new` is what proves all three
+        # are overridden: a subclass that implemented only componentPeerChanged
+        # would still be abstract, and would compile until this line.
+        let watched = newCustomComponent()
+        let value = newCustomComponentMovementWatcher(
+            cast[ptr Component](watched))
+        doAssert not value.isNil, "newCustomComponentMovementWatcher returned nil"
+        cdelete value
+        cdelete watched
+
+    block:
         let value = newCustomComponentTraverser()
         doAssert not value.isNil, "newCustomComponentTraverser returned nil"
         cdelete value

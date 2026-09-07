@@ -464,17 +464,20 @@ def pure_virtuals(cursor):
                 if member.access_specifier == AccessSpecifier.PRIVATE:
                     private = True
                 elif (signature(member) not in seen
-                        and member.spelling not in implemented):
+                        and signature(member) not in implemented):
                     seen.add(signature(member))
                     result.append(member)
             else:
                 # A base's pure virtual that this class already implements.
-                implemented.add(member.spelling)
+                # By signature: a non-pure method that merely shares a name
+                # overrides nothing, and treating it as an implementation drops
+                # a pure virtual that really does need one.
+                implemented.add(signature(member))
 
     # The class itself first, so its own implementations mask the base's pure
     # virtuals rather than the other way round.
     walk(cursor)
-    return [m for m in result if m.spelling not in implemented], private
+    return [m for m in result if signature(m) not in implemented], private
 
 
 def map_constructor_type(clang_type, declared):
