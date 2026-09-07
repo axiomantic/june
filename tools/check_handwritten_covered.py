@@ -101,12 +101,15 @@ APPLIED, NO_BINDING = "applied", "no binding"
 
 operator_uses = {
     "$": (APPLIED, '$greeting'),
-    "()": (APPLIED, '`()`(native, noArguments)'),
+    "()": (APPLIED, '`()`(native, noArguments.addr)'),
     "<": (APPLIED, 'makeString("aa") < makeString("bb")'),
     "<=": (APPLIED, 'makeString("aa") <= makeString("aa")'),
     "==": (APPLIED, 'makeRange(0.cint, 10.cint) == makeRange(0.cint, 10.cint)'),
     "[]": (APPLIED, 'table[0.cint].getRed()'),
     "[]=": (APPLIED, 'headers[makeString("accept")] = makeString("text/plain")'),
+    # Spelled as a call rather than as `target = 13`, because the name carries
+    # the type: Nim's assignment operator for juce_var is not plain `=`.
+    "juce_var=": (APPLIED, '`juce_var=`(target, 13)'),
     # `=destroy` is `= discard` and `=copy` is `{.error.}`. Neither names a C++
     # expression, and `=copy` is a deletion marker whose whole purpose is that
     # reaching it is a compile error - a test that called one could not build.
