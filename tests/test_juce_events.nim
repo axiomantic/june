@@ -121,13 +121,25 @@ testAsyncUpdater()
 
 # std::exception is bound so that unhandledException can be overridden, which
 # is how a JUCE application reports a crash. There is no way to raise a C++
-# exception from Nim to call it with, so this checks the signature is callable
-# rather than the handler running.
+# exception from Nim to call it with, so the calls are COMPILED but never RUN.
+#
+# That distinction is the whole point. A `compiles` assertion type-checks the
+# expression and generates no code, and an importcpp string only reaches the
+# C++ compiler at a code-generated call site - so `compiles` could not have
+# failed however wrong the binding was. Nim skips a proc nothing references,
+# so each is bound to a proc VARIABLE, which is a reference it cannot elide.
+# `cast[pointer](p)` is not enough: Nim folds that and emits no body at all.
+proc callsUnhandledException(app: var JUCEApplicationBase, e: ptr CppException) =
+  app.unhandledException(e, makeString("source.nim"), 42.cint)
+
+proc callsWhat(e: CppException): constChar =
+  e.what()
+
 proc testUnhandledExceptionBinding() =
-  doAssert compiles(
-    proc(app: var JUCEApplicationBase, e: ptr CppException) =
-      app.unhandledException(e, makeString("source.nim"), 42.cint))
-  doAssert compiles(proc(e: CppException): constChar = e.what())
+  let unhandled = callsUnhandledException
+  doAssert unhandled != nil
+  let what = callsWhat
+  doAssert what != nil
 
 testUnhandledExceptionBinding()
 

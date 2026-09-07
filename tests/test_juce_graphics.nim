@@ -193,13 +193,22 @@ testStaticMethods()
 # std::byte is a distinct C++ type, not an alias for a character, so a Nim
 # uint8 does not convert to one. Binding it is what makes the Typeface overload
 # that loads a font from raw memory nameable.
+# Compiled but never run. A Span[CppByte] over real font data is what the call
+# needs and a test has none, but the call still has to reach the C++ compiler:
+# an importcpp string is checked at a code-generated call site and nowhere
+# else, so a `compiles` assertion here would have passed however wrong the
+# binding was. Binding the proc to a variable below is what makes Nim emit it.
+proc callsCreateSystemTypefaceFor(
+    data: Span[CppByte]): ReferenceCountedObjectPtr[Typeface] =
+  Typeface.createSystemTypefaceFor(data)
+
 proc testCppByte() =
   let value = 200'u8.toCppByte()
   doAssert value.toUint8() == 200'u8, "the byte came back as " & $value.toUint8()
   doAssert 0'u8.toCppByte().toUint8() == 0'u8
 
-  doAssert compiles(proc(data: Span[CppByte]): ReferenceCountedObjectPtr[Typeface] =
-    Typeface.createSystemTypefaceFor(data))
+  let fromMemory = callsCreateSystemTypefaceFor
+  doAssert fromMemory != nil
 
 testCppByte()
 

@@ -302,12 +302,35 @@ proc testLookAndFeel() =
 testLookAndFeel()
 
 # std::type_index, which AccessibilityHandler hands out. One cannot be built
-# without a handler, so this checks the type is nameable and its operations are
-# callable rather than comparing two real ones.
+# without a handler, so these calls are COMPILED and never RUN.
+#
+# They used to sit inside `compiles`, which type-checks and generates nothing.
+# An importcpp string is only handed to the C++ compiler at a code-generated
+# call site, so those assertions could not have failed however wrong the three
+# bindings were. Binding each proc to a variable is a reference Nim will not
+# elide, so the bodies - and the importcpp strings in them - are emitted.
+# The results are discarded rather than returned. std::type_index has no
+# default constructor, and a Nim proc returning one by value opens its body
+# with `std::type_index result{}`, which does not compile. `discard` still
+# code-generates the call, which is all this needs. The three assertions
+# inside `compiles` hid that too: they never reached the C++ compiler, so
+# they never learned the return could not be spelled.
+proc callsGetTypeIndex(handler: AccessibilityHandler) =
+  discard handler.getTypeIndex()
+
+proc callsTypeIndexEquality(a, b: CppTypeIndex) =
+  discard a == b
+
+proc callsTypeIndexName(a: CppTypeIndex) =
+  discard a.name()
+
 proc testTypeIndexBinding() =
-  doAssert compiles(proc(handler: AccessibilityHandler): CppTypeIndex = handler.getTypeIndex())
-  doAssert compiles(proc(a, b: CppTypeIndex): bool = a == b)
-  doAssert compiles(proc(a: CppTypeIndex): constChar = a.name())
+  let index = callsGetTypeIndex
+  doAssert index != nil
+  let equality = callsTypeIndexEquality
+  doAssert equality != nil
+  let name = callsTypeIndexName
+  doAssert name != nil
 
 testTypeIndexBinding()
 
