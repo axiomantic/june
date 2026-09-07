@@ -495,8 +495,11 @@ One unit is one bound method on one class; overloads collapse into one, since a
 test calling either exercises the name. The match is by name rather than by
 receiver, which makes the uncalled figure a LOWER bound: it may credit a method
 because a same-named one on another class was called, so the real gap is at
-least this big. What it will not do is the reverse - a method it reports
-uncalled is uncalled.
+least this big. It errs the other way too, though far less often: a call it
+cannot see - a getter bound to a variable and used on the next line, or an
+operator applied as syntax - reads as uncalled when a test does make it. The
+figure tracks a direction between runs; it is not a guarantee in either
+direction, and the gate that fails a build is the other script.
 
 No figure it prints fails a run. It exits non-zero only where the script has
 fallen out of step with the tree: a receiver-taking declaration of a shape it

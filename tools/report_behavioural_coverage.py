@@ -14,6 +14,8 @@ A method counts as CALLED when its name appears after a dot and before an open
 parenthesis OR another dot, anywhere in a behavioural test file. The second case
 matters: `button[].onClick.invoke()` exercises the onClick getter, and matching
 only on a following parenthesis missed every getter chained into a further call.
+A method whose name is a Nim keyword operator is counted separately, since it is
+applied as `not x` and never as `x.not()`, and the dotted pattern cannot see it.
 
 It is still generous in one direction and strict in another:
 
