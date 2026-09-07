@@ -411,6 +411,14 @@ proc testFreeFunctionOperators() =
   doAssert not (makeString("a") == makeString("b"))
   doAssert makeString("a") != makeString("b")
 
+  # String's ordering, hand-written in juce_core_lifting. Both operands are
+  # Strings on purpose: a StringRef on the left picks the GENERATED
+  # `<`(StringRef, String) instead, so a comparison written that way says
+  # nothing about these two.
+  doAssert makeString("aa") < makeString("bb"), "String <"
+  doAssert not (makeString("bb") < makeString("aa")), "String < reversed"
+  doAssert makeString("aa") <= makeString("aa"), "String <= on equal values"
+
   # And a plain free function, which had no binding at all.
   doAssert countNumberOfBits(0b1011'u32) == 3
   doAssert findHighestSetBit(0b1000'u32) == 3
