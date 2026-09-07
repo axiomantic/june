@@ -773,6 +773,11 @@ against that whole shape, and it fails when any of these is not exercised::
   python3 tools/check_handwritten_covered.py
 
 - a hand-written binding name that no test calls
+- a hand-written binding name a test mentions only as prose. The condition
+  above asks whether the NAME occurs, and a name is an ordinary word: three
+  bindings were reported covered by "what" in a comment, "the difference
+  between them", and "after one release the count is". The occurrence has to
+  be shaped like a call
 - an exported operator with no entry saying how it is checked, or an entry whose
   recorded fragment is no longer in the tests. An operator is applied as syntax -
   ``a == b``, ``$x``, ``s[i]`` - so the name search above cannot find its call

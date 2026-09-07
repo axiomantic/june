@@ -1141,6 +1141,73 @@ def declared_types():
     return names
 
 
+# A hand-written binding whose name the corpus contains only as prose. The
+# reason has to be why a call cannot appear in a test or an example.
+mentioned_not_called = {
+    "defineCppClassInternal":
+        "the library-side variant, invoked 113 times by the generated "
+        "*_subclasses modules rather than by a test. The suite compiles those, "
+        "so the macro is expanded - just not from this corpus.",
+}
+
+
+def check_names_are_called_not_mentioned(declared_names):
+    """A hand-written binding name appears in a call, not only in prose.
+
+    The check above asks whether the NAME occurs in the tests, and a name is an
+    ordinary word. `what` on CppException was reported covered by the English
+    "what" in 347 comments; `between` on Range by "the difference between them";
+    `release` on UniquePtr by "after one release the count is". None of the
+    three had ever reached a C++ compiler, which is the one thing this file
+    exists to prevent.
+
+    So the occurrence has to look like a call. Three shapes count, because Nim
+    spells a call three ways: with parentheses or brackets whatever precedes it
+    (`$makeStringFromUTF8(...)` counts, and the `$` is not a word boundary), by
+    UFCS without them (`obj.reset`), and command-style for a macro or template
+    (`defineCppClass Foo of Bar:`). Comments and string literals are removed
+    first - that is the whole point.
+
+    This is narrower than the name search and does not replace it: a name that
+    is called is also mentioned, so anything this catches the other lets pass.
+    """
+    names = {name for name in declared_names if name.isidentifier()}
+
+    prose = test_sources(count_harness=False)
+    code = re.sub(r"#.*", "", prose)
+    code = re.sub(r'"[^"\n]*"', '""', code)
+
+    def called(name):
+        spelled = re.escape(name)
+        return (re.search(r"(?<![A-Za-z0-9_])" + spelled + r"\s*[(\[]", code)
+                or re.search(r"\." + spelled + r"(?![A-Za-z0-9_])", code)
+                or re.search(r"(?m)^\s*" + spelled + r"\s+[A-Za-z_]", code))
+
+    mentioned = sorted(name for name in names
+                       if name not in mentioned_not_called
+                       and re.search(r"\b" + re.escape(name) + r"\b", prose)
+                       and not called(name))
+    stale = sorted(name for name in mentioned_not_called if name not in names)
+
+    if mentioned:
+        print("These names occur in the tests only as prose, so the name check "
+              "above passes while nothing calls them:", file=sys.stderr)
+        for name in mentioned:
+            print(f"  {name}", file=sys.stderr)
+    if stale:
+        print("These are listed as mentioned-not-called but are no longer "
+              "declared:", file=sys.stderr)
+        for name in stale:
+            print(f"  {name}", file=sys.stderr)
+    if mentioned or stale:
+        return False
+
+    print(f"all {len(names) - len(mentioned_not_called)} hand-written names "
+          f"that a test mentions are spelled as a call "
+          f"({len(mentioned_not_called)} is invoked outside this corpus)")
+    return True
+
+
 def check_receiver_types_named():
     """Every hand-written binding has a receiver some test names.
 
@@ -1366,6 +1433,7 @@ def main():
     stale = sorted(name for name in uncallable if name not in declared)
 
     operator_problems = check_operators(declared, lines_by_name, used)
+    called_ok = check_names_are_called_not_mentioned(declared)
 
     # An exemption that covers more than one declaration is excusing something
     # its reason never mentioned.
@@ -1412,7 +1480,7 @@ def main():
     fields_ok = check_field_accessors()
     macos_ok = check_macos_only_calls()
 
-    if (uncovered or stale or operator_problems or not licences_ok
+    if (uncovered or stale or operator_problems or not called_ok or not licences_ok
             or not iterators_ok or not defaults_ok or not subclasses_ok
             or not handlers_ok or not constructors_ok or not constants_ok
             or not statics_ok or not classes_ok or not inherited_ok
