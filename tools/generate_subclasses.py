@@ -388,7 +388,7 @@ def map_template(bare, declared, aliases=None):
     inner = rest[:-1]
 
     if head in ("std::function", "function"):
-        return map_std_function()
+        return map_std_function(bare, declared, aliases)
 
     template_map = {"std::unique_ptr": "UniquePtr", "unique_ptr": "UniquePtr",
                     "std::shared_ptr": "SharedPtr", "shared_ptr": "SharedPtr",
