@@ -766,6 +766,8 @@ def check_static_variables():
               "is not checked:", file=sys.stderr)
         for name in unread[:20]:
             print(f"  {name}", file=sys.stderr)
+        if len(unread) > 20:
+            print(f"  ... and {len(unread) - 20} more", file=sys.stderr)
         return False
 
     print(f"all {len(emitted)} static variables are read by a test")
