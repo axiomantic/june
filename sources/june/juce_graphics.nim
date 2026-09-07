@@ -907,8 +907,8 @@ proc `tag=`*(this: var FontFeatureSetting, value: FontFeatureTag) {.header: juce
 proc value*(this: FontFeatureSetting): uint32 {.header: juce_graphics, importcpp: "#.value".}
 proc value*(this: var FontFeatureSetting): var uint32 {.header: juce_graphics, importcpp: "#.value".}
 proc `value=`*(this: var FontFeatureSetting, value: uint32) {.header: juce_graphics, importcpp: "#.value = #".}
-proc `<`*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator<(@)".}
-proc `<=`*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator<=(@)".}
+# proc `<`*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator<(@)".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
+# proc `<=`*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator<=(@)".}  # declared in JUCE's header and defined nowhere in JUCE 8.0.15, so calling it fails to link
 # proc operator>*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator>(@)".}  # Nim derives > and >= from < and <=
 # proc operator>=*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator>=(@)".}  # Nim derives > and >= from < and <=
 proc `==`*(this: FontFeatureSetting, other: FontFeatureSetting): bool {.header: juce_graphics, importcpp: "#.operator==(@)".}

@@ -197,9 +197,6 @@ for module, text in src.items():
             if re.search(r'importcpp: "#\.' + re.escape(bare) + r' = ', line):
                 skipped["a field setter, covered by the field check"] += 1
                 continue
-        elif name.endswith("=`") or name.endswith("="):
-            skipped["an operator"] += 1
-            continue
         if not setter_like:
             if not name.startswith("`") and not re.fullmatch(r"\w+", name):
                 skipped["an operator"] += 1

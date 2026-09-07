@@ -998,6 +998,13 @@ undefined_in_juce = {
     "Font": {"getNativeDetails"},
     "ImagePixelData": {"getNativeExtensions"},
     "RelativeCoordinate": {"references"},
+    # JUCE declares these four as constexpr in juce_FontFeatures.h and defines
+    # them, still constexpr, in juce_FontFeatures.cpp. A constexpr member is
+    # implicitly inline, so that definition emits no out-of-line symbol and no
+    # other translation unit can call it: the binding compiles and the link
+    # fails with "symbol(s) not found". Found by linking one, which is the only
+    # way this class of defect shows itself.
+    "FontFeatureSetting": {"operator<", "operator<=", "operator>", "operator>="},
     # JUCE keeps the removed shape of these as a [[deprecated]] declaration
     # with no definition, so a call compiles and the link fails. An entry can
     # name one overload rather than the method, because the replacement sits
