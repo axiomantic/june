@@ -894,18 +894,44 @@ def check_macos_only_calls():
               f"exempt from this check without saying so", file=sys.stderr)
         return False
 
+    # The same list in its free-function form. A free function has no receiver,
+    # so the pattern below cannot reach it: `juce_assert_noreturn()` carries no
+    # leading dot and would be exempt from this check while reading as covered
+    # by it. Extracted and counted the same two ways as the methods above.
+    fn_block = re.search(r"MACOS_ONLY_FUNCTIONS = \{(.*?)\n\}", harness, re.S)
+    if fn_block is None:
+        print("MACOS_ONLY_FUNCTIONS is not where this expected it",
+              file=sys.stderr)
+        return False
+    functions = set(re.findall(r'"([A-Za-z_]\w*)"', fn_block.group(1)))
+    fn_entries = [line for line in fn_block.group(1).split("\n")
+                  if line.strip() and not line.strip().startswith("#")
+                  and "," in line]
+    if len(fn_entries) != len(functions):
+        print(f"MACOS_ONLY_FUNCTIONS holds {len(fn_entries)} entries but this "
+              f"extracted {len(functions)} names, so the ones it missed are "
+              f"exempt from this check without saying so", file=sys.stderr)
+        return False
+
     unguarded = []
     paths = []
     for pattern in ("tests/test_juce_*.nim", "examples/*.nim"):
         paths += sorted(glob.glob(pattern))
     call_pattern = re.compile(
         r"\.(" + "|".join(sorted(methods)) + r")(?![A-Za-z0-9_])")
+    # Not preceded by a dot or a word character, so a METHOD sharing the name is
+    # not mistaken for the free function and reported at the wrong site.
+    fn_pattern = (re.compile(r"(?<![.\w])(" + "|".join(sorted(functions))
+                             + r")\s*\(") if functions else None)
     for path in paths:
         if path == GENERATED_HARNESS:
             continue
         lines = open(path).read().splitlines()
         for number, line in enumerate(lines):
-            call = call_pattern.search(without_comment(line))
+            stripped = without_comment(line)
+            call = call_pattern.search(stripped)
+            if call is None and fn_pattern is not None:
+                call = fn_pattern.search(stripped)
             if not call:
                 continue
             indent = len(line) - len(line.lstrip())
@@ -931,7 +957,8 @@ def check_macos_only_calls():
         return False
 
     print(f"every behavioural call to one of the {len(methods)} macOS-only "
-          f"methods is guarded")
+          f"methods and {len(functions)} macOS-only free "
+          f"function{'' if len(functions) == 1 else 's'} is guarded")
     return True
 
 
