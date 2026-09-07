@@ -238,7 +238,8 @@ for reason, n in skipped.most_common(8):
 remainder = skipped.most_common()[8:]
 if remainder:
     print(f"#   {sum(n for _, n in remainder):5}  ... and "
-          f"{len(remainder)} more reasons", file=sys.stderr)
+          f"{len(remainder)} more reason{'s' if len(remainder) > 1 else ''}",
+          file=sys.stderr)
 
 # Every bound declaration is either called or skipped for a named reason. The
 # counts above go to stderr, where nothing reads them, so a change that stopped
