@@ -332,11 +332,24 @@ def check_no_argument_constructors():
     uncalled = sorted(name for name in emitted
                       if name not in platform_specific_constructors
                       and not re.search(r"\b" + name + r"\b", used))
+
+    # An exemption naming a constructor the generator no longer emits excuses
+    # nothing, and its reason stops being checked against anything. Every other
+    # exemption list in this file is held to that; this one was not.
+    stale = sorted(name for name in platform_specific_constructors
+                   if name not in emitted)
+
     if uncalled:
         print("These no-argument constructors are never called, so nothing "
               "compiles them:", file=sys.stderr)
         for name in uncalled:
             print(f"  {name}", file=sys.stderr)
+    if stale:
+        print("These are listed as platform specific but are no longer "
+              "emitted:", file=sys.stderr)
+        for name in stale:
+            print(f"  {name}", file=sys.stderr)
+    if uncalled or stale:
         return False
 
     print(f"all {len(emitted) - len(platform_specific_constructors)} "
