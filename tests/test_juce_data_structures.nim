@@ -98,6 +98,25 @@ proc testGeneratedUndoableAction() =
 
 testGeneratedUndoableAction()
 
+# Copying a generated subclass keeps its handlers ==============================
+#
+# The generated C++ class carries a variadic perfect-forwarding constructor, so
+# that a base with a protected constructor - juce::Button's - can still be
+# reached. Unconstrained, that template is a BETTER match for a non-const lvalue
+# than the implicit copy constructor, so `var copy = original` forwarded to the
+# BASE's copy constructor and sliced: the new object was built from the base
+# subobject alone and every std::function handler on it was empty. Nothing
+# failed to compile and nothing threw; the callback simply never ran again.
+
+proc testGeneratedSubclassCopyKeepsHandlers() =
+  var original: CustomUndoableAction
+  original.setPerformHandler(proc(): bool = true)
+
+  var copy = original
+  doAssert copy.perform(), "the copy lost its perform handler"
+
+testGeneratedSubclassCopyKeepsHandlers()
+
 # Value =======================================================================
 #
 # A shared reference to a var. Two Values referring to the same source see each

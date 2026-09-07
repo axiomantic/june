@@ -270,7 +270,7 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
   var cppIncludedHeader = "june_generated_" & parentClassName & ".h"
   var cppGeneratedHeader = "june_generated_" & className & ".h"
 
-  var cppIncludeDefinition = "#pragma once\n\n#include <utility>\n\n"
+  var cppIncludeDefinition = "#pragma once\n\n#include <type_traits>\n#include <utility>\n\n"
   if not internalClass:
       cppIncludeDefinition &= "#include \"" & cppIncludedHeader & "\"\n"
 
@@ -282,7 +282,17 @@ proc juneClassCodegen(class: NimNode, body: NimNode, internalClass: bool, parent
   # A public forwarding constructor rather than `using Parent::Parent`. An
   # inherited constructor keeps the base's access, and juce::Button's is
   # protected, so the subclass could not be constructed from outside at all.
-  cppClassDefinition &= "    template <typename... Args>\n"
+  #
+  # Constrained so it cannot take part in copying or moving one of these. A
+  # bare Args&&... is a better match for a NON-CONST lvalue than the implicit
+  # copy constructor, so `Custom x(y)` chose the template, forwarded to the
+  # BASE's copy constructor, and sliced: the object was built from the base
+  # subobject alone and every handler was silently dropped. Where the base is
+  # not copyable at all - juce::Component - the same call failed inside the
+  # base instead, naming a constructor the caller never wrote.
+  let excludeSelf = "std::enable_if_t<!(sizeof...(Args) == 1 && (std::is_base_of_v<" &
+                    className & ", std::decay_t<Args>> && ...))>"
+  cppClassDefinition &= "    template <typename... Args, typename = " & excludeSelf & ">\n"
   cppClassDefinition &= "    " & className & "(Args&&... args) : " & cppParent & "(std::forward<Args>(args)...) {}\n\n"
 
   for node in body.children:
