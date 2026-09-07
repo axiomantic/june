@@ -778,7 +778,8 @@ against that whole shape, and it fails when any of these is not exercised::
 - an overload set taking a Nim ``int`` with no proc that accepts one losslessly
 - the same signature declared more than once
 - an inherited method a secondary base had to restate
-- a macOS-only method called outside a ``when defined(macosx)`` guard
+- a macOS-only method called outside a ``when defined(macosx)`` guard, in a
+  test or in an example, with or without the call's parentheses
 - a file under ``sources/`` whose copyright notice is missing, doubled, or -
   in a generated module - not byte-identical to the hand-written ones
 - an exemption that covers more than one declaration, so its recorded reason

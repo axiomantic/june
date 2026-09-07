@@ -739,6 +739,18 @@ def check_inherited_methods():
     return True
 
 
+def without_comment(line):
+    """`line` up to its comment, if it has one.
+
+    A `#` counts as the start of a comment when an even number of quotes
+    precede it, so a `#` inside a string literal stays.
+    """
+    for index, character in enumerate(line):
+        if character == "#" and line[:index].count('"') % 2 == 0:
+            return line[:index]
+    return line
+
+
 def check_macos_only_calls():
     """A behavioural test calling a macOS-only method does so under a guard.
 
@@ -754,6 +766,30 @@ def check_macos_only_calls():
     indentation, is `when defined(macosx)`. That is what the suite's own
     guards look like, and a false ALARM here is cheap to fix while a false
     all-clear is what this exists to prevent.
+
+    The corpus is the tests AND the examples, which is what test_sources
+    covers and what CI builds on ubuntu. This cannot call test_sources itself,
+    because the guard is found by walking BACK through a file's lines and
+    test_sources returns the files concatenated; it uses the same two patterns
+    instead. Leaving examples out was not a smaller corpus but a hole in this
+    exact shape: an unguarded macOS-only call in an example breaks the ubuntu
+    build, which is the failure this check exists to move earlier.
+
+    The generated harness is the one file left out. Its calls are placed under
+    a guard by the generator, from the same list read here, so it would only
+    ever confirm the generator against itself.
+
+    A call is matched by the dot and the name, with no parenthesis required.
+    Nim calls a no-argument method as `file.isBundle`, and requiring `(` meant
+    that spelling was not seen - for File.isBundle among others, which is the
+    very call that put this list in the harness.
+
+    Dropping the parenthesis made comments matter. The required `(` had been
+    excluding them by accident, and a comment in test_juce_core.nim explains
+    why String.convertToPrecomposedUnicode is left out of a sweep - prose that
+    named the method and then read as an unguarded call to it. So the comment
+    is cut off each line first, at the first `#` with an even number of quotes
+    before it, which is a comment rather than a `#` inside a string.
 
     What this does NOT catch: a macOS-only method that is not on that list.
     The list was built by compiling the harness on Linux, one round per error
@@ -792,13 +828,17 @@ def check_macos_only_calls():
         return False
 
     unguarded = []
-    for path in sorted(glob.glob("tests/test_juce_*.nim")):
-        if path.endswith("test_juce_compiles.nim"):
+    paths = []
+    for pattern in ("tests/test_juce_*.nim", "examples/*.nim"):
+        paths += sorted(glob.glob(pattern))
+    call_pattern = re.compile(
+        r"\.(" + "|".join(sorted(methods)) + r")(?![A-Za-z0-9_])")
+    for path in paths:
+        if path == GENERATED_HARNESS:
             continue
         lines = open(path).read().splitlines()
         for number, line in enumerate(lines):
-            call = re.search(r"\.(" + "|".join(sorted(methods)) + r")\s*\(",
-                             line)
+            call = call_pattern.search(without_comment(line))
             if not call:
                 continue
             indent = len(line) - len(line.lstrip())
