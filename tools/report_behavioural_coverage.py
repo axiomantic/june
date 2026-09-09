@@ -391,6 +391,23 @@ def main():
     print(f"{remaining:>8}  uncalled, and reachable")
     print()
 
+    # How much room the by-name match leaves. The uncalled figure credits a
+    # method when a same-named one on any class was called, so it is a lower
+    # bound; this is the ceiling on how many could be credited that way. It is
+    # printed rather than written into the docs because it drifted once: it had
+    # been derived over the proc LINES, a larger population than the one the
+    # figures above live in, so it bounded a quantity it was not measured in.
+    shared = collections.Counter(name for names in per.values()
+                                 for name in names)
+    print(f"{'methods':>8}  room the by-name match leaves")
+    print(f"{total:>8}  bound methods with a receiver")
+    print(f"{len(shared):>8}  distinct names over them")
+    print(f"{sum(1 for k in shared.values() if k > 1):>8}  names bound on more "
+          f"than one class")
+    print(f"{total - len(shared):>8}  beyond one per shared name, the ceiling "
+          f"on what the match could credit unseen")
+    print()
+
     reachable = sorted(((count, cls) for cls, count in uncalled.items()
                         if cls not in UNREACHABLE), reverse=True)
     print(f"{'methods':>8}  largest reachable gaps")

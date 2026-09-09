@@ -34,12 +34,16 @@ One unit is one bound method on one class, and overloads collapse into one. The
 match is by NAME rather than by receiver, which makes the uncalled figure a
 lower bound: it may credit a method because a same-named one elsewhere was
 called, so the real gap is at least this big. The room for that is not small.
-The five generated modules declare 5013 receiver-taking methods under 3695
-distinct names, and 684 of those names are bound on more than one class, which
-leaves 1318 methods beyond one per shared name. That is the ceiling on how many
-could be credited without their own receiver ever being called, not a claim
-about how many are - but it is the reason to read the figure as a floor rather
-than a measurement. ``ToolbarButton::buttonStateChanged`` was exactly this: it
+``report_behavioural_coverage.py`` prints the room in a table beside the one
+above: the 4528 methods carry 3238 distinct names, 672 of those names are bound
+on more than one class, and 1290 methods sit beyond one per shared name. That
+is the ceiling on how many could be credited without their own receiver ever
+being called, not a claim about how many are - but it is the reason to read the
+figure as a floor rather than a measurement. The tool prints it rather than this
+document stating it because an earlier hand-derived version of these four
+numbers was measured over the receiver-taking proc LINES, a larger population
+than the 4528 the gap itself lives in, so it bounded a quantity it was not
+measured in. ``ToolbarButton::buttonStateChanged`` was exactly this: it
 dropped off the uncalled list when ``DrawableButton``'s method of the same name
 was covered, and a test for it had to be written afterwards. It errs the other way too, though
 far less often: a call spelled in a form the match cannot see reads as uncalled
