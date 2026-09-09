@@ -98,6 +98,27 @@ path that does nothing - a disabled ``ComboBox``, a ``TableHeaderComponent``
 with no columns to offer - and that path is worth taking. The rest belong in
 the unreachable lists below.
 
+A handful are reachable and must still be left alone, which is why they are not
+in those lists: nothing stops a test calling them, and calling one damages the
+run. ``LookAndFeel::playAlertSound`` is ``NSBeep()`` on macOS and writes a BEL
+into stdout on Linux, which is the same stdout the assertion and leak gates
+read. ``Desktop::setKioskModeComponent`` carries a ``jassert`` that the outgoing
+kiosk component has a peer, so a component that was never on the desktop passes
+on the way in and fires it on the way out. ``ModalComponentManager::attachCallback``
+wraps its callback in a ``unique_ptr`` and only releases it if the component is
+already on the modal stack, so attaching to anything else deletes the callback
+and a later ``cdelete`` is a double free. ``ChoicePropertyComponent::setIndex``
+is ``jassertfalse`` on the base and no subclass is generated for it. Each of
+those would add a site to the assertion ledger, or a leak, or a crash, in
+exchange for a number.
+
+Being blocked by an input device is worth checking rather than assuming, since
+the name rarely settles it. ``ListBox::selectRowsBasedOnModifierKeys`` sounds
+like it needs a live keyboard and takes a ``ModifierKeys`` value that
+``makeModifierKeys`` builds, so its three branches are all assertable. Only the
+methods that actually take a ``MouseEvent`` are out of reach, because
+``MouseInputSource`` has no public constructor.
+
 
 Rules this branch learned the hard way
 ======================================
