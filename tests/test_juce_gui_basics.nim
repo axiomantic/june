@@ -19115,3 +19115,110 @@ proc testCallOutBoxPositionAndDismissal() =
 
 
 testCallOutBoxPositionAndDismissal()
+
+
+# LookAndFeel_V4::drawPointer paints a small triangular arrow. It returns
+# nothing, so the only way to check it is to render into an image and read the
+# pixels back.
+proc testLookAndFeelV4DrawPointer() =
+    initialiseJuce_GUI()
+
+    block:
+        var feel = makeLookAndFeel_V4()
+
+        # The shape drawn for each of the four directions, sampled over the
+        # 21x21 square the pointer was told to occupy.
+        var signatures: seq[string] = @[]
+
+        for direction in 0.cint .. 3.cint:
+            let image = makeImage(ImagePixelFormat_ARGB, 80.cint, 60.cint, true)
+            var g = makeGraphics(image)
+
+            doAssert image.getPixelAt(20.cint, 20.cint).getAlpha() == 0'u8,
+                     "the image was not transparent before drawing"
+
+            feel.drawPointer(g, 10.0'f32, 10.0'f32, 20.0'f32,
+                             makeColour(255'u8, 0'u8, 0'u8, 255'u8), direction)
+
+            var opaque = 0
+            var outsideRequestedArea = 0
+            var shape = ""
+            for y in 0 ..< 60:
+                for x in 0 ..< 80:
+                    let lit = image.getPixelAt(x.cint, y.cint).getAlpha() > 0'u8
+                    if lit:
+                        opaque += 1
+                        if x < 10 or x > 30 or y < 10 or y > 30:
+                            outsideRequestedArea += 1
+                    if x >= 10 and x <= 30 and y >= 10 and y <= 30:
+                        shape.add(if lit: '#' else: '.')
+            signatures.add(shape)
+
+            doAssert opaque == 300,
+                     "direction " & $direction & " covered " & $opaque & " pixels"
+            doAssert outsideRequestedArea == 0,
+                     "direction " & $direction & " painted " &
+                     $outsideRequestedArea & " pixels outside the area it was given"
+
+            # It paints in the colour it was handed, not the look-and-feel's own.
+            let centre = image.getPixelAt(20.cint, 20.cint)
+            doAssert centre.getRed() == 255'u8 and centre.getGreen() == 0'u8 and
+                     centre.getBlue() == 0'u8 and centre.getAlpha() == 255'u8,
+                     "direction " & $direction & " painted the centre rgba " &
+                     $centre.getRed() & "," & $centre.getGreen() & "," &
+                     $centre.getBlue() & "," & $centre.getAlpha()
+
+        # The four directions cover the same number of pixels -- the triangle
+        # is only rotated -- so a count alone would pass even if `direction`
+        # were ignored. Comparing the shapes is what proves it is honoured.
+        for i in 0 .. 3:
+            for j in i + 1 .. 3:
+                doAssert signatures[i] != signatures[j],
+                         "directions " & $i & " and " & $j & " drew the same shape"
+
+    shutdownJuce_GUI()
+
+
+testLookAndFeelV4DrawPointer()
+
+
+# FileTreeComponent's drag-and-drop description is the value its items hand to
+# a drag-and-drop container as their drag source description
+# (juce_FileTreeComponent.cpp:122). It is plain stored state, and the getter is
+# a separate proc from the setter.
+proc testFileTreeComponentDragAndDropDescription() =
+    initialiseJuce_GUI()
+
+    block:
+        var scanner = makeTimeSliceThread(makeString("june-drag-desc-scan"))
+        doAssert scanner.startThread(), "the scanning thread did not start"
+        var listing = makeDirectoryContentsList(nil, scanner)
+        var tree = makeFileTreeComponent(listing)
+
+        doAssert $tree.getDragAndDropDescription() == "",
+                 "a fresh tree already describes its drags as [" &
+                 $tree.getDragAndDropDescription() & "]"
+
+        tree.setDragAndDropDescription(makeString("audio files"))
+        doAssert $tree.getDragAndDropDescription() == "audio files",
+                 "after setting it the description reads [" &
+                 $tree.getDragAndDropDescription() & "]"
+
+        # A second, different value: the getter reports what was last set
+        # rather than the first thing it saw.
+        tree.setDragAndDropDescription(makeString("presets"))
+        doAssert $tree.getDragAndDropDescription() == "presets",
+                 "after resetting it the description reads [" &
+                 $tree.getDragAndDropDescription() & "]"
+
+        tree.setDragAndDropDescription(makeString(""))
+        doAssert $tree.getDragAndDropDescription() == "",
+                 "the description could not be cleared; it reads [" &
+                 $tree.getDragAndDropDescription() & "]"
+
+        discard scanner.stopThread(2000.cint)
+
+    shutdownJuce_GUI()
+
+
+testFileTreeComponentDragAndDropDescription()
