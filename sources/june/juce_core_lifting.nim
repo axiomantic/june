@@ -10,8 +10,13 @@
 proc makeStringFromUTF8*(text: cstring, bufferSizeBytes: int = -1): String {.header: juce_core, importcpp: "juce::String::fromUTF8(@)".}
 
 proc toRawUTF8*(this: String): string =
-    result = newString(this.length())
-    copyMem(result.cstring, cast[ptr char](this.toRawUTF8Impl()), this.length())
+    # length() counts characters and this buffer is measured in bytes. The two
+    # agree only for ASCII, so sizing by length() truncates a multi-byte
+    # character mid-sequence.
+    let numBytes = int(this.getNumBytesAsUTF8())
+    result = newString(numBytes)
+    if numBytes > 0:
+        copyMem(result.cstring, cast[ptr char](this.toRawUTF8Impl()), numBytes)
 
 proc `$`*(text: String): string = text.toRawUTF8
 
@@ -150,3 +155,16 @@ proc newFileInputSource*(file: File,
                          ptr FileInputSource
     {.header: juce_core,
       importcpp: "(new juce::FileInputSource(@))".}
+
+# LocalisedStrings::setFallback takes ownership the same way, and every
+# LocalisedStrings constructor other than the copy constructor takes two
+# arguments, so cnew cannot reach any of them either.
+proc newLocalisedStrings*(fileContents: String,
+                          ignoreCaseOfKeys: bool): ptr LocalisedStrings
+    {.header: juce_core,
+      importcpp: "(new juce::LocalisedStrings(@))".}
+
+proc newLocalisedStrings*(fileToLoad: File,
+                          ignoreCaseOfKeys: bool): ptr LocalisedStrings
+    {.header: juce_core,
+      importcpp: "(new juce::LocalisedStrings(@))".}

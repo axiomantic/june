@@ -2150,6 +2150,34 @@ countries: pi
 
 testLocalisedStrings()
 
+
+proc testLocalisedStringsFallback() =
+    block:
+        let table = """language: Pirate
+countries: pi
+
+"Open" = "Broach"
+"""
+        let backup = """language: Pirate
+countries: pi
+
+"Quit" = "Abandon ship"
+"""
+        var strings = makeLocalisedStrings(makeString(table), false)
+        doAssert $strings.translate(makeString("Quit")) == "Quit",
+                 "a word with no entry did not come back unchanged"
+
+        # setFallback takes ownership, so the table it is given has to be built
+        # with new rather than handed a copy of a stack value.
+        strings.setFallback(newLocalisedStrings(makeString(backup), false))
+
+        doAssert $strings.translate(makeString("Quit")) == "Abandon ship",
+                 "the fallback table was not consulted"
+        doAssert $strings.translate(makeString("Open")) == "Broach",
+                 "the fallback displaced an entry the table holds itself"
+
+testLocalisedStringsFallback()
+
 # The GZIP streams and SubregionStream ========================================
 #
 # A compress-then-decompress round trip, so the assertion is that the bytes
@@ -8295,3 +8323,451 @@ proc testFileSearchPathRawAndSeparator() =
                  "joining with a semicolon gave " & semicolons
 
 testFileSearchPathRawAndSeparator()
+
+# The enum casts ==============================================================
+#
+# toCint is a static_cast across the C++ boundary, so the numbers below are the
+# values JUCE declares - not an ordinal Nim invented. Thread::Priority is the
+# one that would catch a binding built from declaration order instead: its
+# members run 2, 1, 0, -1, -2, and MachineIdFlags is a bitfield, so `or` has to
+# produce the sum of two powers of two rather than a third ordinal.
+
+proc testEnumCasts() =
+    block:
+        doAssert IncrementRef_no.toCint() == 0.cint,
+                 "IncrementRef::no is " & $IncrementRef_no.toCint()
+        doAssert IncrementRef_yes.toCint() == 1.cint,
+                 "IncrementRef::yes is " & $IncrementRef_yes.toCint()
+
+        doAssert FileFollowSymlinks_no.toCint() == 0.cint,
+                 "File::FollowSymlinks::no is " & $FileFollowSymlinks_no.toCint()
+        doAssert FileFollowSymlinks_noCycles.toCint() == 1.cint,
+                 "File::FollowSymlinks::noCycles is " &
+                 $FileFollowSymlinks_noCycles.toCint()
+        doAssert FileFollowSymlinks_yes.toCint() == 2.cint,
+                 "File::FollowSymlinks::yes is " & $FileFollowSymlinks_yes.toCint()
+
+        doAssert JSONSpacing_none.toCint() == 0.cint,
+                 "JSON::Spacing::none is " & $JSONSpacing_none.toCint()
+        doAssert JSONSpacing_singleLine.toCint() == 1.cint,
+                 "JSON::Spacing::singleLine is " & $JSONSpacing_singleLine.toCint()
+        doAssert JSONSpacing_multiLine.toCint() == 2.cint,
+                 "JSON::Spacing::multiLine is " & $JSONSpacing_multiLine.toCint()
+
+        doAssert JSONEncoding_utf8.toCint() == 0.cint,
+                 "JSON::Encoding::utf8 is " & $JSONEncoding_utf8.toCint()
+        doAssert JSONEncoding_ascii.toCint() == 1.cint,
+                 "JSON::Encoding::ascii is " & $JSONEncoding_ascii.toCint()
+
+        doAssert URLParameterHandling_inAddress.toCint() == 0.cint,
+                 "URL::ParameterHandling::inAddress is " &
+                 $URLParameterHandling_inAddress.toCint()
+        doAssert URLParameterHandling_inPostData.toCint() == 1.cint,
+                 "URL::ParameterHandling::inPostData is " &
+                 $URLParameterHandling_inPostData.toCint()
+
+        doAssert ThreadPriority_highest.toCint() == 2.cint,
+                 "Thread::Priority::highest is " & $ThreadPriority_highest.toCint()
+        doAssert ThreadPriority_high.toCint() == 1.cint,
+                 "Thread::Priority::high is " & $ThreadPriority_high.toCint()
+        doAssert ThreadPriority_normal.toCint() == 0.cint,
+                 "Thread::Priority::normal is " & $ThreadPriority_normal.toCint()
+        doAssert ThreadPriority_low.toCint() == -1.cint,
+                 "Thread::Priority::low is " & $ThreadPriority_low.toCint()
+        doAssert ThreadPriority_background.toCint() == -2.cint,
+                 "Thread::Priority::background is " &
+                 $ThreadPriority_background.toCint()
+
+        doAssert SystemStatsMachineIdFlags_macAddresses.toCint() == 1.cint,
+                 "MachineIdFlags::macAddresses is " &
+                 $SystemStatsMachineIdFlags_macAddresses.toCint()
+        doAssert SystemStatsMachineIdFlags_fileSystemId.toCint() == 2.cint,
+                 "MachineIdFlags::fileSystemId is " &
+                 $SystemStatsMachineIdFlags_fileSystemId.toCint()
+        doAssert SystemStatsMachineIdFlags_legacyUniqueId.toCint() == 4.cint,
+                 "MachineIdFlags::legacyUniqueId is " &
+                 $SystemStatsMachineIdFlags_legacyUniqueId.toCint()
+        doAssert SystemStatsMachineIdFlags_uniqueId.toCint() == 8.cint,
+                 "MachineIdFlags::uniqueId is " &
+                 $SystemStatsMachineIdFlags_uniqueId.toCint()
+
+        let both = SystemStatsMachineIdFlags_macAddresses or
+                   SystemStatsMachineIdFlags_uniqueId
+        doAssert both.toCint() == 9.cint,
+                 "two machine id flags or'd together give " & $both.toCint()
+
+testEnumCasts()
+
+# StringPairArray's case sensitivity ==========================================
+
+proc testStringPairArrayIgnoresCase() =
+    block:
+        var pairs = makeStringPairArray(false)
+        pairs.set(makeString("Content-Type"), makeString("text/plain"))
+        doAssert not pairs.getIgnoresCase(),
+                 "a case-sensitive array reports that it ignores case"
+        doAssert $pairs.getValue(makeStringRef("content-type"), makeString("")) == "",
+                 "a case-sensitive lookup matched a differently-cased key"
+
+        pairs.setIgnoresCase(true)
+        doAssert pairs.getIgnoresCase(),
+                 "setIgnoresCase(true) did not take"
+        doAssert $pairs.getValue(makeStringRef("content-type"), makeString("")) ==
+                 "text/plain",
+                 "a case-insensitive lookup gave " &
+                 $pairs.getValue(makeStringRef("content-type"), makeString(""))
+
+        # The flag is live rather than applied at insertion time: turning it back
+        # off makes the same array reject the same lookup again.
+        pairs.setIgnoresCase(false)
+        doAssert $pairs.getValue(makeStringRef("content-type"), makeString("")) == "",
+                 "the array stayed case-insensitive after the flag was cleared"
+
+testStringPairArrayIgnoresCase()
+
+# StringPool's collection pass ================================================
+#
+# Pooling is observable through the ADDRESS of the shared buffer: two equal
+# strings come back sharing one. garbageCollect drops entries the pool alone
+# holds, so what it must NOT do is drop one a caller still references - that is
+# what is asserted. The dropped side is not: a freed buffer can be handed back
+# at the same address, so an address comparison there would prove nothing.
+
+proc testStringPoolGarbageCollect() =
+    block:
+        var pool = makeStringPool()
+        let held = pool.getPooledString(makeString("june-pooled"))
+        let again = pool.getPooledString(makeString("june-pooled"))
+        doAssert held.getCharPointer().getAddress() ==
+                 again.getCharPointer().getAddress(),
+                 "the pool handed back two separate buffers for one string"
+
+        block:
+            let transient = pool.getPooledString(makeString("june-transient"))
+            doAssert $transient == "june-transient",
+                     "the pool returned " & $transient
+        pool.garbageCollect()
+
+        let survivor = pool.getPooledString(makeString("june-pooled"))
+        doAssert survivor.getCharPointer().getAddress() ==
+                 held.getCharPointer().getAddress(),
+                 "collecting dropped a string that was still referenced"
+
+testStringPoolGarbageCollect()
+
+# MemoryBlock's wholesale replacement =========================================
+
+proc testMemoryBlockReplaceWith() =
+    block:
+        var block1 = makeMemoryBlock(16'u64, true)
+        doAssert block1.getSize() == 16'u64,
+                 "the block holds " & $block1.getSize() & " bytes"
+
+        # replaceWith resizes as well as overwrites, which is what separates it
+        # from copyFrom: the block shrinks to the source's length.
+        block1.replaceWith(cast[constPointer](cstring("june")), 4'u64)
+        doAssert block1.getSize() == 4'u64,
+                 "after replacing, the block holds " & $block1.getSize() & " bytes"
+        doAssert $block1.toString() == "june",
+                 "the block reads back as " & $block1.toString()
+
+        block1.replaceWith(cast[constPointer](cstring("a longer run of bytes")), 21'u64)
+        doAssert block1.getSize() == 21'u64,
+                 "after growing, the block holds " & $block1.getSize() & " bytes"
+        doAssert $block1.toString() == "a longer run of bytes",
+                 "the grown block reads back as " & $block1.toString()
+
+testMemoryBlockReplaceWith()
+
+# BufferedInputStream's lookahead =============================================
+
+proc testBufferedInputStreamPeek() =
+    block:
+        let text = "abcdef"
+        var source = makeMemoryInputStream(cast[constPointer](cstring(text)),
+                                           text.len.uint64, false)
+        var buffered = makeBufferedInputStream(source, 2.cint)
+
+        doAssert buffered.peekByte() == 'a',
+                 "peeking at the start gave " & $buffered.peekByte()
+        doAssert buffered.getPosition() == 0'i64,
+                 "peeking moved the position to " & $buffered.getPosition()
+        doAssert buffered.readByte() == 'a',
+                 "the byte read back is not the byte peeked at"
+        doAssert buffered.getPosition() == 1'i64,
+                 "reading left the position at " & $buffered.getPosition()
+
+        # The buffer is two bytes wide, so peeking past its end has to refill it
+        # rather than answer from what is already held.
+        doAssert buffered.setPosition(5'i64), "seeking to the last byte failed"
+        doAssert buffered.peekByte() == 'f',
+                 "peeking at the last byte gave " & $buffered.peekByte()
+        doAssert buffered.readByte() == 'f',
+                 "the last byte read back differently"
+        doAssert buffered.isExhausted(),
+                 "the stream has more after its last byte"
+
+testBufferedInputStreamPeek()
+
+# TextDiff's changes, whole and one at a time =================================
+#
+# The diff is asserted by REPLAYING it: applying the whole set to the original
+# has to give the target, and applying the changes one at a time by hand has to
+# arrive at the same place. A diff that recorded the right number of changes
+# with the wrong offsets would pass a count and fail this.
+
+proc testTextDiffAppliedTo() =
+    block:
+        let original = makeString("the quick brown fox")
+        let target = makeString("the slow brown dog")
+        let diff = makeTextDiff(original, target)
+
+        doAssert diff.changes().size() > 0,
+                 "the diff between two different strings holds no changes"
+        doAssert $diff.appliedTo(original) == $target,
+                 "replaying the diff gave " & $diff.appliedTo(original)
+
+        var replayed = original
+        for i in 0 ..< diff.changes().size():
+            replayed = diff.changes()[i].appliedTo(replayed)
+        doAssert $replayed == $target,
+                 "replaying the changes one at a time gave " & $replayed
+
+        # A change with no inserted text is a deletion, and applying it has to
+        # shorten the string by exactly the run it covers.
+        var deletion = makeTextDiffChange()
+        deletion.start = 3.cint
+        deletion.length = 6.cint
+        doAssert deletion.isDeletion(),
+                 "a change with no inserted text is not a deletion"
+        doAssert $deletion.appliedTo(original) == "the brown fox",
+                 "deleting six characters gave " & $deletion.appliedTo(original)
+
+        # Two identical strings differ by nothing, so the diff is a no-op.
+        let same = makeTextDiff(original, original)
+        doAssert same.changes().size() == 0,
+                 "a string against itself gave " & $same.changes().size() & " changes"
+        doAssert $same.appliedTo(original) == $original,
+                 "an empty diff changed the text"
+
+testTextDiffAppliedTo()
+
+# InputSource's sibling lookup ================================================
+#
+# createInputStreamFor resolves a path RELATIVE to the source's own file, which
+# is what an XmlDocument uses to find a DTD next to the document. Asking for a
+# sibling by bare name has to reach the neighbouring file, and asking for one
+# that is not there has to give nothing rather than the source's own stream.
+
+proc testInputSourceCreateInputStreamFor() =
+    block:
+        let root = june.File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                       .getNonexistentChildFile(makeString("june-input-source"),
+                                                makeString(""))
+        doAssert root.createDirectory().wasOk(), "could not make the temp directory"
+
+        let document = root.getChildFile(makeStringRef("document.xml"))
+        let sibling = root.getChildFile(makeStringRef("sibling.txt"))
+        doAssert document.replaceWithText(makeString("<tag/>")),
+                 "could not write the document"
+        doAssert sibling.replaceWithText(makeString("next door")),
+                 "could not write the sibling"
+
+        var source = makeFileInputSource(document)
+        block:
+            let own = source.createInputStream()
+            doAssert not own.isNil(), "the source made no stream for its own file"
+            doAssert $own[].readEntireStreamAsString() == "<tag/>",
+                     "the source's own stream read " &
+                     $own[].readEntireStreamAsString()
+            cdelete own
+
+        block:
+            let related = source.createInputStreamFor(makeString("sibling.txt"))
+            doAssert not related.isNil(), "the sibling could not be opened"
+            doAssert $related[].readEntireStreamAsString() == "next door",
+                     "the sibling read " & $related[].readEntireStreamAsString()
+            cdelete related
+
+        let missing = source.createInputStreamFor(makeString("absent.txt"))
+        doAssert missing.isNil(), "a missing sibling produced a stream"
+
+        doAssert root.deleteRecursively(), "could not remove the temp directory"
+
+testInputSourceCreateInputStreamFor()
+
+# NamedPipe's two ways in =====================================================
+#
+# The sequence mirrors juce_NamedPipe.cpp's own unit test, because the asymmetry
+# it checks is the whole contract: createNewPipe MAKES the endpoint and
+# openExisting only attaches to one, so openExisting has to fail before anything
+# has created it. mustNotExist is what distinguishes a second creator from a
+# re-creation by the same owner.
+
+proc testNamedPipe() =
+    block:
+        let name = makeString("june-pipe-" & $getCurrentProcessId())
+
+        # A pipe left behind by an earlier run would make every assertion below
+        # read the wrong way, so one is taken and dropped first to clear it.
+        block:
+            var stale = makeNamedPipe()
+            discard stale.createNewPipe(name, false)
+
+        block:
+            var pipe = makeNamedPipe()
+            doAssert not pipe.isOpen(), "a fresh pipe reports itself open"
+
+            doAssert pipe.createNewPipe(name, true),
+                     "creating a pipe that must not already exist failed"
+            doAssert pipe.isOpen(), "the created pipe reports itself closed"
+            doAssert $pipe.getName() == $name,
+                     "the pipe is named " & $pipe.getName()
+
+            # The owner may re-create its own pipe; another holder may not.
+            doAssert pipe.createNewPipe(name, false),
+                     "the owner could not re-create its own pipe"
+            doAssert pipe.isOpen(), "re-creating left the pipe closed"
+
+            var other = makeNamedPipe()
+            doAssert not other.createNewPipe(name, true),
+                     "a second creator was allowed to take an existing pipe"
+            doAssert not other.isOpen(),
+                     "the refused creator reports itself open"
+
+            var attached = makeNamedPipe()
+            doAssert attached.openExisting(name),
+                     "the existing pipe could not be opened"
+            doAssert attached.isOpen(),
+                     "the attached pipe reports itself closed"
+            doAssert $attached.getName() == $name,
+                     "the attached pipe is named " & $attached.getName()
+
+            attached.close()
+            doAssert not attached.isOpen(), "close left the pipe open"
+
+            pipe.close()
+            doAssert not pipe.isOpen(), "close left the owner's pipe open"
+
+        block:
+            # With nothing there to attach to, openExisting fails outright.
+            var pipe = makeNamedPipe()
+            doAssert not pipe.openExisting(name),
+                     "openExisting attached to a pipe that was closed"
+            doAssert not pipe.isOpen(),
+                     "the failed openExisting left the pipe open"
+
+testNamedPipe()
+
+# DynamicLibrary's symbol lookup ==============================================
+#
+# The looked-up pointer is CALLED rather than merely checked against nil: a
+# handle that resolved to the wrong symbol, or to a stale address, would pass a
+# nil check and fail this. strlen is chosen because its answer is fixed and its
+# signature cannot be got wrong.
+
+when defined(macosx) or defined(linux):
+    proc testDynamicLibrary() =
+        block:
+            when defined(macosx):
+                let libraryName = "/usr/lib/libSystem.B.dylib"
+            else:
+                let libraryName = "libc.so.6"
+
+            var library = makeDynamicLibrary()
+            doAssert not library.isOpen(), "a fresh library reports itself open"
+            doAssert library.getFunction(makeString("strlen")).isNil(),
+                     "an unopened library resolved a symbol"
+
+            doAssert library.open(makeString(libraryName)),
+                     "could not open " & libraryName
+            doAssert library.isOpen(), "the opened library reports itself closed"
+            doAssert not library.getNativeHandle().isNil(),
+                     "the opened library has no native handle"
+
+            let symbol = library.getFunction(makeString("strlen"))
+            doAssert not symbol.isNil(), "strlen did not resolve"
+
+            type StrlenProc = proc (s: cstring): csize_t {.cdecl, gcsafe, raises: [].}
+            doAssert cast[StrlenProc](symbol)(cstring("june")) == 4.csize_t,
+                     "the resolved strlen answered " &
+                     $cast[StrlenProc](symbol)(cstring("june"))
+
+            doAssert library.getFunction(makeString("june_no_such_symbol")).isNil(),
+                     "a symbol that does not exist resolved anyway"
+
+            library.close()
+            doAssert not library.isOpen(), "close left the library open"
+            doAssert library.getFunction(makeString("strlen")).isNil(),
+                     "a closed library still resolves symbols"
+
+    testDynamicLibrary()
+
+# String's precomposed form ===================================================
+#
+# JUCE implements this in juce_Strings_mac.mm only, so the test is guarded
+# rather than given a fallback expectation. "e" followed by a combining acute
+# is two code points; the precomposed form is one.
+
+when defined(macosx):
+    proc testConvertToPrecomposedUnicode() =
+        block:
+            # Compared as juce::Strings and by UTF-8 byte count, which is what
+            # distinguishes the two forms: they hold the same text and differ
+            # only in how many code points express it.
+            let decomposed = makeStringFromUTF8("cafe\xCC\x81")
+            doAssert decomposed.length() == 5,
+                     "the decomposed form has " & $decomposed.length() & " characters"
+            doAssert decomposed.getNumBytesAsUTF8() == 6'u64,
+                     "the decomposed form is " &
+                     $decomposed.getNumBytesAsUTF8() & " bytes"
+
+            let precomposed = decomposed.convertToPrecomposedUnicode()
+            doAssert precomposed.length() == 4,
+                     "the precomposed form has " & $precomposed.length() & " characters"
+            doAssert precomposed.getNumBytesAsUTF8() == 5'u64,
+                     "the precomposed form is " &
+                     $precomposed.getNumBytesAsUTF8() & " bytes"
+            doAssert precomposed == makeStringFromUTF8("caf\xC3\xA9"),
+                     "the precomposed form is not the composed character"
+
+            # Text with nothing to combine comes back untouched.
+            let plain = makeString("cafe")
+            doAssert $plain.convertToPrecomposedUnicode() == "cafe",
+                     "plain text became " & $plain.convertToPrecomposedUnicode()
+
+    testConvertToPrecomposedUnicode()
+
+
+# `$` goes through toRawUTF8, which copies a byte count out of a juce::String.
+# juce::String::length() answers in characters, so a buffer sized by it cuts a
+# multi-byte character in half and yields a string that is not valid UTF-8.
+
+proc testStringToNimRoundTrip() =
+    block:
+        let accented = makeStringFromUTF8("caf\xC3\xA9")
+        doAssert accented.length() == 4,
+                 "the string holds " & $accented.length() & " characters"
+        doAssert accented.getNumBytesAsUTF8() == 5'u64,
+                 "the string is " & $accented.getNumBytesAsUTF8() & " bytes"
+        doAssert ($accented).len == 5,
+                 "`$` returned " & $(($accented).len) & " bytes for a 5-byte string"
+        doAssert $accented == "caf\xC3\xA9",
+                 "`$` returned " & $accented
+
+    block:
+        # Three bytes for one character, and a character outside the basic
+        # multilingual plane, which UTF-8 spells in four.
+        let wide = makeStringFromUTF8("\xE6\x97\xA5\xF0\x9F\x8E\xB5")
+        doAssert wide.getNumBytesAsUTF8() == 7'u64,
+                 "the string is " & $wide.getNumBytesAsUTF8() & " bytes"
+        doAssert ($wide).len == 7,
+                 "`$` returned " & $(($wide).len) & " bytes for a 7-byte string"
+        doAssert $wide == "\xE6\x97\xA5\xF0\x9F\x8E\xB5",
+                 "`$` did not return the text it was given"
+
+    block:
+        let empty = makeString("")
+        doAssert ($empty).len == 0, "`$` invented bytes for an empty string"
+
+testStringToNimRoundTrip()
