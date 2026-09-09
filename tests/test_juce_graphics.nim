@@ -5106,3 +5106,93 @@ proc testTextLayoutAddLineAndSize() =
                  " to " & $layout.getHeight()
 
 testTextLayoutAddLineAndSize()
+
+# ColourGradient's stops, read back and faded ==================================
+#
+# The three are pure value arithmetic over the stops, so no drawing is needed.
+# getColourPosition reads back the proportion a stop was ADDED at, which is what
+# separates it from the index; getColourAtPosition INTERPOLATES between stops,
+# so it is asked for a point halfway between two and the answer is the mixture
+# rather than either end; and multiplyOpacity scales every stop's alpha, which
+# is asserted on both stops because scaling only the first would pass on one.
+
+proc testColourGradientStops() =
+    block:
+        var gradient = makeColourGradient()
+        let black = makeColour(0'u8, 0'u8, 0'u8, 255'u8)
+        let white = makeColour(255'u8, 255'u8, 255'u8, 255'u8)
+        discard gradient.addColour(0.0, black)
+        discard gradient.addColour(1.0, white)
+
+        doAssert gradient.getColourPosition(0.cint) == 0.0,
+                 "the first stop sits at " & $gradient.getColourPosition(0.cint)
+        doAssert gradient.getColourPosition(1.cint) == 1.0,
+                 "the second stop sits at " & $gradient.getColourPosition(1.cint)
+
+        # Halfway between black and white is grey - neither end, which is what
+        # an implementation that returned the nearest stop would give.
+        let middle = gradient.getColourAtPosition(0.5)
+        doAssert middle.getRed() > 0'u8 and middle.getRed() < 255'u8,
+                 "halfway along the gradient is red " & $middle.getRed()
+
+        # Halving the opacity halves both stops' alpha, not just the first.
+        gradient.multiplyOpacity(0.5'f32)
+        doAssert gradient.getColour(0.cint).getAlpha() < 255'u8,
+                 "the first stop is still " & $gradient.getColour(0.cint).getAlpha()
+        doAssert gradient.getColour(1.cint).getAlpha() < 255'u8,
+                 "the second stop is still " & $gradient.getColour(1.cint).getAlpha()
+
+testColourGradientStops()
+
+# DropShadow's three drawing paths =============================================
+#
+# All three return void, so the only observable is what lands on the image. Each
+# is drawn into its OWN transparent image and the shadow's own area is asserted
+# to have picked up alpha while a far corner has not - a shadow that painted
+# everywhere, or nowhere, fails one of the two. The colour is opaque black and
+# the radius small, so the ink is where the geometry says rather than smeared
+# across the whole bitmap.
+
+proc testDropShadowDrawingPaths() =
+    block:
+        let shadow = makeDropShadow(makeColour(0'u8, 0'u8, 0'u8, 255'u8),
+                                    4.cint, makePoint(0.cint, 0.cint))
+
+        # A rectangle in the middle.
+        let forRect = makeImage(ImagePixelFormat_ARGB, 64.cint, 64.cint, true)
+        block:
+            var g = makeGraphics(forRect)
+            shadow.drawForRectangle(g, makeRectangle(20.cint, 20.cint, 24.cint, 24.cint))
+        doAssert forRect.getPixelAt(32.cint, 32.cint).getAlpha() > 0'u8,
+                 "the rectangle shadow left its own middle empty"
+        doAssert forRect.getPixelAt(2.cint, 2.cint).getAlpha() == 0'u8,
+                 "the rectangle shadow reached the far corner"
+
+        # The same shape as a path.
+        var path = makePath()
+        path.addRectangle(20.0'f32, 20.0'f32, 24.0'f32, 24.0'f32)
+        let forPath = makeImage(ImagePixelFormat_ARGB, 64.cint, 64.cint, true)
+        block:
+            var g = makeGraphics(forPath)
+            shadow.drawForPath(g, path)
+        doAssert forPath.getPixelAt(32.cint, 32.cint).getAlpha() > 0'u8,
+                 "the path shadow left its own middle empty"
+        doAssert forPath.getPixelAt(2.cint, 2.cint).getAlpha() == 0'u8,
+                 "the path shadow reached the far corner"
+
+        # And from an image's own alpha: a filled square in the middle.
+        let source = makeImage(ImagePixelFormat_ARGB, 64.cint, 64.cint, true)
+        block:
+            var g = makeGraphics(source)
+            g.setColour(makeColour(255'u8, 255'u8, 255'u8, 255'u8))
+            g.fillRect(makeRectangle(20.cint, 20.cint, 24.cint, 24.cint))
+        let forImage = makeImage(ImagePixelFormat_ARGB, 64.cint, 64.cint, true)
+        block:
+            var g = makeGraphics(forImage)
+            shadow.drawForImage(g, source)
+        doAssert forImage.getPixelAt(32.cint, 32.cint).getAlpha() > 0'u8,
+                 "the image shadow left the square's middle empty"
+        doAssert forImage.getPixelAt(2.cint, 2.cint).getAlpha() == 0'u8,
+                 "the image shadow reached the far corner"
+
+testDropShadowDrawingPaths()
