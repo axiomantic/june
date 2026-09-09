@@ -7424,6 +7424,12 @@ testRemainingGuiFields()
 # its own getter where no constructor can build one, or an instance JUCE hands
 # out where the class has no constructor at all.
 
+# The non-var getter overload needs a call site of its own, and selecting it
+# takes a non-var receiver: MultiChoicePropertyComponent cannot be copied into
+# a `let`.
+proc copyOfOnHeightChange(c: MultiChoicePropertyComponent): CppFunctionObjectN0 =
+    c.onHeightChange
+
 proc testLastFields() =
     initialiseJuce_GUI()
 
@@ -7491,6 +7497,18 @@ proc testLastFields() =
         var resized = 0
         component.onHeightChange = bindClosure(proc() = resized += 1)
         doAssert resized == 0, "the height closure ran before any resize"
+
+        # Assigning the field and reading it back are separate bindings, so
+        # invoking what the getter returns is what proves the closure reached
+        # the field at all.
+        component.onHeightChange.invoke()
+        doAssert resized == 1,
+                 "invoking the stored height closure produced " & $resized & " calls"
+
+        var copiedHeightChange = copyOfOnHeightChange(component)
+        copiedHeightChange.invoke()
+        doAssert resized == 2,
+                 "invoking the copied height closure left the count at " & $resized
 
     shutdownJuce_GUI()
 
@@ -17419,3 +17437,756 @@ proc testFocusOutlineOutlineWindowPropertiesOverrides() =
 
 
 testFocusOutlineOutlineWindowPropertiesOverrides()
+
+
+# The field getters come in a var and a non-var form, and an importcpp proc
+# reaches the C++ compiler only where it is called, so each form needs a call
+# site. These take the receiver non-var, which is the only way to select the
+# non-var overload -- a `let` copy is impossible, as neither Slider nor Label
+# can be copied.
+proc copyOfTextFromValueFunction(s: Slider): CppFunctionObjectR1[String, cdouble] =
+    s.textFromValueFunction
+
+proc copyOfValueFromTextFunction(s: Slider): CppFunctionObjectR1Ref[cdouble, String] =
+    s.valueFromTextFunction
+
+proc copyOfOnEditorShow(l: Label): CppFunctionObjectN0 =
+    l.onEditorShow
+
+proc copyOfOnEditorHide(l: Label): CppFunctionObjectN0 =
+    l.onEditorHide
+
+
+proc testSliderTextConversionFunctions() =
+    initialiseJuce_GUI()
+
+    block:
+        var slider = makeSlider(makeString("dial"))
+
+        # Without a function installed, Slider::getTextFromValue formats to
+        # getNumDecimalPlacesToDisplay() places (juce_Slider.cpp:1654-1655),
+        # which a default slider reports as 7. That is the baseline the
+        # installed function has to displace.
+        let plain = $slider.getTextFromValue(3.5)
+        doAssert plain == "3.5000000", "the stock getTextFromValue gave " & plain
+
+        var textCalls = 0
+        var textSaw: seq[float64] = @[]
+        slider.textFromValueFunction = bindClosure(proc(v: cdouble): String =
+            textCalls += 1
+            textSaw.add(v.float64)
+            makeString("v<" & $int(v * 2.0) & ">"))
+
+        let converted = $slider.getTextFromValue(3.5)
+        doAssert textCalls == 1,
+                 "getTextFromValue reached the installed function " & $textCalls & " times"
+        doAssert textSaw == @[3.5],
+                 "the function was handed " & $textSaw
+        doAssert converted == "v<7>",
+                 "getTextFromValue returned " & converted
+
+        # The suffix is appended to whatever the function returned
+        # (juce_Slider.cpp:1660), so it proves the function's result is used
+        # rather than replaced.
+        # setTextValueSuffix refreshes the slider's own text box, which routes
+        # through getTextFromValue too, so the count moves without an explicit
+        # call here. Take the baseline after it settles.
+        slider.setTextValueSuffix(makeString(" Hz"))
+        let callsBeforeSuffixed = textCalls
+        let suffixed = $slider.getTextFromValue(1.0)
+        doAssert textCalls == callsBeforeSuffixed + 1,
+                 "the suffixed getTextFromValue moved the count by " &
+                 $(textCalls - callsBeforeSuffixed)
+        doAssert suffixed == "v<2> Hz",
+                 "getTextFromValue with a suffix returned " & suffixed
+
+        # Assigning the field and reading it back are separate bindings.
+        # Invoking what the getter returns is what proves the callable landed
+        # in the field, rather than only that getTextFromValue behaved. The
+        # field's own result carries no suffix -- getTextFromValue appends that
+        # afterwards (juce_Slider.cpp:1660) -- so the two results differ.
+        let callsBeforeDirect = textCalls
+        let direct = $slider.textFromValueFunction.invoke(3.5)
+        doAssert textCalls == callsBeforeDirect + 1,
+                 "invoking the field moved the count by " &
+                 $(textCalls - callsBeforeDirect)
+        doAssert direct == "v<7>",
+                 "the field returned " & direct
+        doAssert direct != suffixed,
+                 "the field's result already carried the suffix"
+
+        var copiedText = copyOfTextFromValueFunction(slider)
+        let copiedResult = $copiedText.invoke(4.0)
+        doAssert textCalls == callsBeforeDirect + 2,
+                 "invoking the copied field moved the count by " &
+                 $(textCalls - callsBeforeDirect)
+        doAssert copiedResult == "v<8>",
+                 "the copied field returned " & copiedResult
+
+        var valueCalls = 0
+        var valueSaw: seq[string] = @[]
+        slider.valueFromTextFunction = bindConstRefClosure(proc(t: ptr String): cdouble =
+            valueCalls += 1
+            valueSaw.add($t[])
+            42.5)
+
+        # getValueFromText strips the suffix before calling the function
+        # (juce_Slider.cpp:1667-1668).
+        let parsed = slider.getValueFromText(makeString("  17 Hz"))
+        doAssert valueCalls == 1,
+                 "getValueFromText reached the installed function " & $valueCalls & " times"
+        doAssert textCalls == callsBeforeDirect + 2,
+                 "getValueFromText also moved the text count to " & $textCalls
+        doAssert valueSaw == @["17"],
+                 "the function was handed " & $valueSaw
+        doAssert parsed == 42.5,
+                 "getValueFromText returned " & $parsed
+
+        # The const-reference form has no `invoke`, only the call operator, and
+        # it takes its argument by pointer.
+        var textForField = makeString("99")
+        let directValue = `()`(slider.valueFromTextFunction, addr textForField)
+        doAssert valueCalls == 2,
+                 "invoking the field left the count at " & $valueCalls
+        doAssert directValue == 42.5,
+                 "the field returned " & $directValue
+        doAssert valueSaw == @["17", "99"],
+                 "the field was handed " & $valueSaw
+
+        var copiedValue = copyOfValueFromTextFunction(slider)
+        var textForCopy = makeString("abc")
+        discard `()`(copiedValue, addr textForCopy)
+        doAssert valueCalls == 3,
+                 "invoking the copied field left the count at " & $valueCalls
+        doAssert valueSaw == @["17", "99", "abc"],
+                 "the copied field was handed " & $valueSaw
+
+    shutdownJuce_GUI()
+
+
+testSliderTextConversionFunctions()
+
+
+proc testLabelEditorCallbacks() =
+    initialiseJuce_GUI()
+
+    block:
+        var label = makeLabel(makeString("nameLabel"), makeString("before"))
+        label.setBounds(makeRectangle(0.cint, 0.cint, 80.cint, 24.cint))
+        label.setEditable(true, true, false)
+
+        var shows = 0
+        var hides = 0
+        # The editor exists for the duration of onEditorShow and is already
+        # detached by onEditorHide (juce_Label.cpp:248 vs 284-288), so
+        # recording it proves which side of the swap each callback ran on.
+        var editorLiveAtShow = false
+        var editorLiveAtHide = true
+
+        # Capture a pointer, never the Label: a nested proc pulls what it names
+        # into a closure environment, and Label's copy-assignment is deleted
+        # (juce_Label.h:375), so naming `label` here would not compile.
+        let labelPtr = addr label
+        label.onEditorShow = bindClosure(proc() =
+            shows += 1
+            editorLiveAtShow = not labelPtr[].getCurrentTextEditor().isNil())
+        label.onEditorHide = bindClosure(proc() =
+            hides += 1
+            editorLiveAtHide = not labelPtr[].getCurrentTextEditor().isNil())
+
+        doAssert label.getCurrentTextEditor().isNil(),
+                 "the label had an editor before showEditor was called"
+
+        label.showEditor()
+        doAssert shows == 1,
+                 "showEditor reached onEditorShow " & $shows & " times"
+        doAssert hides == 0,
+                 "showEditor also moved onEditorHide to " & $hides
+        doAssert editorLiveAtShow,
+                 "onEditorShow ran without the editor in place"
+        doAssert not label.getCurrentTextEditor().isNil(),
+                 "showEditor left the label without an editor"
+
+        # A second showEditor is a no-op: the guard at juce_Label.cpp:230 only
+        # builds an editor when there is none.
+        label.showEditor()
+        doAssert shows == 1,
+                 "a second showEditor moved onEditorShow to " & $shows
+
+        label.hideEditor(true)
+        doAssert hides == 1,
+                 "hideEditor reached onEditorHide " & $hides & " times"
+        doAssert shows == 1,
+                 "hideEditor also moved onEditorShow to " & $shows
+        doAssert not editorLiveAtHide,
+                 "onEditorHide ran while the label still owned the editor"
+        doAssert label.getCurrentTextEditor().isNil(),
+                 "hideEditor left the editor in place"
+
+        # discardCurrentEditorContents was true, so the text is untouched
+        # (juce_Label.cpp:286-287).
+        let kept = $label.getText()
+        doAssert kept == "before", "hideEditor(true) left the text as " & kept
+
+        # And a second hideEditor has no editor to hide.
+        label.hideEditor(true)
+        doAssert hides == 1,
+                 "a second hideEditor moved onEditorHide to " & $hides
+
+        # Assigning a field and reading it back are separate bindings, so
+        # invoking what the getter returns is what proves the callable reached
+        # the field rather than only that showEditor/hideEditor behaved. There
+        # is no editor now, so both callbacks report one being absent.
+        label.onEditorShow.invoke()
+        doAssert shows == 2,
+                 "invoking onEditorShow left the count at " & $shows
+        doAssert not editorLiveAtShow,
+                 "onEditorShow saw an editor where the label has none"
+
+        label.onEditorHide.invoke()
+        doAssert hides == 2,
+                 "invoking onEditorHide left the count at " & $hides
+
+        var copiedShow = copyOfOnEditorShow(label)
+        copiedShow.invoke()
+        doAssert shows == 3,
+                 "invoking the copied onEditorShow left the count at " & $shows
+
+        var copiedHide = copyOfOnEditorHide(label)
+        copiedHide.invoke()
+        doAssert hides == 3,
+                 "invoking the copied onEditorHide left the count at " & $hides
+
+    shutdownJuce_GUI()
+
+
+testLabelEditorCallbacks()
+
+
+proc testLookAndFeelV4SetColourScheme() =
+    initialiseJuce_GUI()
+
+    block:
+        var lookAndFeel = makeLookAndFeel_V4(LookAndFeel_V4.getLightColourScheme())
+        let backgroundId = ResizableWindowColourIds_backgroundColourId.cint
+
+        # setColourScheme does more than store the scheme: it runs
+        # initialiseColours(), which maps windowBackground onto
+        # ResizableWindow::backgroundColourId (juce_LookAndFeel_V4.cpp:1419).
+        # Reading that id back is what proves the scheme was applied rather
+        # than merely held.
+        let lightBackground = lookAndFeel.findColour(backgroundId)
+        let lightScheme = LookAndFeel_V4.getLightColourScheme()
+        doAssert lightBackground ==
+                 lightScheme.getUIColour(LookAndFeel_V4ColourSchemeUIColour_windowBackground),
+                 "the light scheme's background did not reach the colour map"
+
+        var scheme = LookAndFeel_V4.getMidnightColourScheme()
+        let wanted = makeColour(9'u8, 200'u8, 31'u8, 255'u8)
+        scheme.setUIColour(LookAndFeel_V4ColourSchemeUIColour_windowBackground, wanted)
+
+        lookAndFeel.setColourScheme(scheme)
+
+        let applied = lookAndFeel.findColour(backgroundId)
+        doAssert applied == wanted,
+                 "after setColourScheme the background reads back as " & $applied
+        doAssert applied != lightBackground,
+                 "setColourScheme left the previous background in place"
+
+        # The scheme the object now reports is the one that was handed to it,
+        # and the entries that were not overridden came from midnight.
+        var current = lookAndFeel.getCurrentColourScheme()
+        doAssert current.getUIColour(LookAndFeel_V4ColourSchemeUIColour_windowBackground) == wanted,
+                 "getCurrentColourScheme disagrees with what was set"
+        let midnight = LookAndFeel_V4.getMidnightColourScheme()
+        doAssert current.getUIColour(LookAndFeel_V4ColourSchemeUIColour_defaultText) ==
+                 midnight.getUIColour(LookAndFeel_V4ColourSchemeUIColour_defaultText),
+                 "an entry that was never overridden did not come from the midnight scheme"
+
+    shutdownJuce_GUI()
+
+
+testLookAndFeelV4SetColourScheme()
+
+
+proc testDrawableButtonGetImageBounds() =
+    initialiseJuce_GUI()
+
+    block:
+        # Every figure below is computed from juce_DrawableButton.cpp:98-120,
+        # which is the whole of getImageBounds.
+        var button = makeDrawableButton(makeString("icon"),
+                                        DrawableButtonButtonStyle_ImageStretched)
+        button.setBounds(makeRectangle(0.cint, 0.cint, 100.cint, 80.cint))
+        button.setEdgeIndent(10.cint)
+
+        # ImageStretched takes the early exit: no indent is applied at all, so
+        # the image bounds are the local bounds even with an edge indent set.
+        let stretched = button.getImageBounds()
+        doAssert (stretched.getX(), stretched.getY(),
+                  stretched.getWidth(), stretched.getHeight()) ==
+                 (0.0'f32, 0.0'f32, 100.0'f32, 80.0'f32),
+                 "ImageStretched gave " & $stretched.getX() & "," &
+                 $stretched.getY() & "," & $stretched.getWidth() & "," &
+                 $stretched.getHeight()
+
+        # ImageFitted does not draw a background, so the indent is
+        # jmin(10, 30) by jmin(10, 24) -- the edge indent wins on both axes.
+        button.setButtonStyle(DrawableButtonButtonStyle_ImageFitted)
+        let fitted = button.getImageBounds()
+        doAssert (fitted.getX(), fitted.getY(),
+                  fitted.getWidth(), fitted.getHeight()) ==
+                 (10.0'f32, 10.0'f32, 80.0'f32, 60.0'f32),
+                 "ImageFitted gave " & $fitted.getX() & "," & $fitted.getY() &
+                 "," & $fitted.getWidth() & "," & $fitted.getHeight()
+
+        # ImageOnButtonBackground draws a background, so the indent is raised
+        # to a quarter of each edge: jmax(100/4, 10) by jmax(80/4, 10).
+        button.setButtonStyle(DrawableButtonButtonStyle_ImageOnButtonBackground)
+        let onBackground = button.getImageBounds()
+        doAssert (onBackground.getX(), onBackground.getY(),
+                  onBackground.getWidth(), onBackground.getHeight()) ==
+                 (25.0'f32, 20.0'f32, 50.0'f32, 40.0'f32),
+                 "ImageOnButtonBackground gave " & $onBackground.getX() & "," &
+                 $onBackground.getY() & "," & $onBackground.getWidth() & "," &
+                 $onBackground.getHeight()
+
+        # ImageAboveTextLabel trims the bottom by jmin(16, 80/4) before the
+        # indent is applied, which is the only style that loses height without
+        # losing the matching amount at the top.
+        button.setButtonStyle(DrawableButtonButtonStyle_ImageAboveTextLabel)
+        let aboveText = button.getImageBounds()
+        doAssert (aboveText.getX(), aboveText.getY(),
+                  aboveText.getWidth(), aboveText.getHeight()) ==
+                 (10.0'f32, 10.0'f32, 80.0'f32, 44.0'f32),
+                 "ImageAboveTextLabel gave " & $aboveText.getX() & "," &
+                 $aboveText.getY() & "," & $aboveText.getWidth() & "," &
+                 $aboveText.getHeight()
+
+        # The indent is a jmin against 30% of the width, so a large edge indent
+        # is clamped rather than obeyed.
+        button.setButtonStyle(DrawableButtonButtonStyle_ImageFitted)
+        button.setEdgeIndent(1000.cint)
+        let clamped = button.getImageBounds()
+        doAssert (clamped.getX(), clamped.getY(),
+                  clamped.getWidth(), clamped.getHeight()) ==
+                 (30.0'f32, 24.0'f32, 40.0'f32, 32.0'f32),
+                 "a 1000px edge indent gave " & $clamped.getX() & "," &
+                 $clamped.getY() & "," & $clamped.getWidth() & "," &
+                 $clamped.getHeight()
+
+    shutdownJuce_GUI()
+
+
+testDrawableButtonGetImageBounds()
+
+
+proc testTableListBoxModelPaintOverrides() =
+    initialiseJuce_GUI()
+
+    block:
+        var backgroundCalls = 0
+        var cellCalls = 0
+        var backgroundArgs: seq[(int, int, int, bool)] = @[]
+        var cellArgs: seq[(int, int, int, int, bool)] = @[]
+
+        let model = newCustomTableListBoxModel()
+        model[].setGetNumRowsHandler(proc(): cint = 3)
+        model[].setPaintRowBackgroundHandler(
+            proc(g: ptr Graphics, rowNumber: cint, width: cint, height: cint,
+                 rowIsSelected: bool) =
+                backgroundCalls += 1
+                backgroundArgs.add((rowNumber.int, width.int, height.int,
+                                    rowIsSelected))
+                g[].setColour(makeColour(255'u8, 0'u8, 0'u8, 255'u8))
+                g[].fillRect(makeRectangle(0.cint, 0.cint, width, height)))
+        model[].setPaintCellHandler(
+            proc(g: ptr Graphics, rowNumber: cint, columnId: cint, width: cint,
+                 height: cint, rowIsSelected: bool) =
+                cellCalls += 1
+                cellArgs.add((rowNumber.int, columnId.int, width.int,
+                              height.int, rowIsSelected))
+                g[].setColour(makeColour(0'u8, 0'u8, 255'u8, 255'u8))
+                g[].fillRect(makeRectangle(0.cint, 0.cint, 4.cint, 4.cint)))
+
+        var base = cast[ptr TableListBoxModel](model)
+
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 20.cint, true)
+        var graphics = makeGraphics(image)
+
+        base[].paintRowBackground(graphics, 2.cint, 30.cint, 12.cint, true)
+        doAssert backgroundCalls == 1,
+                 "paintRowBackground reached the override " & $backgroundCalls & " times"
+        doAssert cellCalls == 0,
+                 "paintRowBackground also moved paintCell to " & $cellCalls
+        doAssert backgroundArgs == @[(2, 30, 12, true)],
+                 "paintRowBackground was handed " & $backgroundArgs
+
+        # The Graphics handed to the override draws into this image, so the
+        # 30x12 fill it made is readable back out of the pixels.
+        doAssert image.getPixelAt(1.cint, 1.cint).getRed() == 255,
+                 "the row background fill did not reach the image"
+        doAssert image.getPixelAt(29.cint, 11.cint).getRed() == 255,
+                 "the row background fill stopped short of the width it was given"
+        doAssert image.getPixelAt(31.cint, 1.cint).getRed() == 0,
+                 "the row background fill ran past the width it was given"
+        doAssert image.getPixelAt(1.cint, 13.cint).getRed() == 0,
+                 "the row background fill ran past the height it was given"
+
+        base[].paintCell(graphics, 1.cint, 7.cint, 25.cint, 9.cint, false)
+        doAssert cellCalls == 1,
+                 "paintCell reached the override " & $cellCalls & " times"
+        doAssert backgroundCalls == 1,
+                 "paintCell also moved paintRowBackground to " & $backgroundCalls
+        doAssert cellArgs == @[(1, 7, 25, 9, false)],
+                 "paintCell was handed " & $cellArgs
+
+        # The cell painted blue over the red row background in its own corner.
+        let corner = image.getPixelAt(1.cint, 1.cint)
+        doAssert (corner.getRed(), corner.getBlue()) == (0'u8, 255'u8),
+                 "the cell fill did not replace the row background"
+        let outside = image.getPixelAt(10.cint, 1.cint)
+        doAssert (outside.getRed(), outside.getBlue()) == (255'u8, 0'u8),
+                 "the cell fill covered more than the 4x4 it drew"
+
+        cdelete model
+
+    shutdownJuce_GUI()
+
+
+testTableListBoxModelPaintOverrides()
+
+
+proc testComboBoxListenerOverride() =
+    initialiseJuce_GUI()
+
+    block:
+        var box = makeComboBox(makeString("choices"))
+        box.addItem(makeString("first"), 1.cint)
+        box.addItem(makeString("second"), 2.cint)
+        let boxAsBox = addr box
+
+        var changes = 0
+        var saw: ptr ComboBox = nil
+        var selectedWhenTold: seq[cint] = @[]
+
+        let listener = newCustomComboBoxListener()
+        listener[].setComboBoxChangedHandler(proc(arg0: ptr ComboBox) =
+            changes += 1
+            saw = arg0
+            selectedWhenTold.add(arg0[].getSelectedId()))
+
+        var base = cast[ptr ComboBoxListener](listener)
+
+        box.setSelectedId(2.cint, NotificationType_dontSendNotification)
+        base[].comboBoxChanged(boxAsBox)
+        doAssert changes == 1,
+                 "comboBoxChanged reached the override " & $changes & " times"
+        doAssert saw == boxAsBox,
+                 "comboBoxChanged was handed a box other than the one passed"
+        doAssert selectedWhenTold == @[2.cint],
+                 "the override read a selection of " & $selectedWhenTold
+
+        # The pointer is live inside the override, so a different selection is
+        # what the next delivery reports.
+        box.setSelectedId(1.cint, NotificationType_dontSendNotification)
+        base[].comboBoxChanged(boxAsBox)
+        doAssert changes == 2,
+                 "a second comboBoxChanged left the count at " & $changes
+        doAssert selectedWhenTold == @[2.cint, 1.cint],
+                 "the override read " & $selectedWhenTold
+
+        cdelete listener
+
+    shutdownJuce_GUI()
+
+
+testComboBoxListenerOverride()
+
+
+proc testDarkModeSettingListenerOverride() =
+    initialiseJuce_GUI()
+
+    block:
+        var changes = 0
+
+        let listener = newCustomDarkModeSettingListener()
+        listener[].setDarkModeSettingChangedHandler(proc() =
+            changes += 1)
+
+        var base = cast[ptr DarkModeSettingListener](listener)
+
+        base[].darkModeSettingChanged()
+        doAssert changes == 1,
+                 "darkModeSettingChanged reached the override " & $changes & " times"
+
+        base[].darkModeSettingChanged()
+        base[].darkModeSettingChanged()
+        doAssert changes == 3,
+                 "three deliveries left the count at " & $changes
+
+        cdelete listener
+
+    shutdownJuce_GUI()
+
+
+testDarkModeSettingListenerOverride()
+
+
+proc testFilePreviewComponentOverride() =
+    initialiseJuce_GUI()
+
+    block:
+        var changes = 0
+        var namesSeen: seq[string] = @[]
+
+        let preview = newCustomFilePreviewComponent()
+        preview[].setSelectedFileChangedHandler(proc(newSelectedFile: ptr june.File) =
+            changes += 1
+            namesSeen.add($newSelectedFile[].getFileName()))
+
+        var base = cast[ptr FilePreviewComponent](preview)
+
+        base[].selectedFileChanged(makeFile(makeString("/tmp/june-preview.txt")))
+        doAssert changes == 1,
+                 "selectedFileChanged reached the override " & $changes & " times"
+        doAssert namesSeen == @["june-preview.txt"],
+                 "the override was handed " & $namesSeen
+
+        # A different file is a different delivery, so the override reads the
+        # argument rather than anything it latched the first time.
+        base[].selectedFileChanged(makeFile(makeString("/tmp/other.wav")))
+        doAssert changes == 2,
+                 "a second selectedFileChanged left the count at " & $changes
+        doAssert namesSeen == @["june-preview.txt", "other.wav"],
+                 "the override was handed " & $namesSeen
+
+        cdelete preview
+
+    shutdownJuce_GUI()
+
+
+testFilePreviewComponentOverride()
+
+
+proc testFilenameComponentListenerOverride() =
+    initialiseJuce_GUI()
+
+    block:
+        var chooser = makeFilenameComponent(makeString("file"),
+                                            makeFile(makeString("/tmp/june-a.txt")),
+                                            true, false, false,
+                                            makeString("*.txt"),
+                                            makeString(""),
+                                            makeString("none"))
+        let chooserPtr = addr chooser
+
+        var changes = 0
+        var saw: ptr FilenameComponent = nil
+        var namesSeen: seq[string] = @[]
+
+        let listener = newCustomFilenameComponentListener()
+        listener[].setFilenameComponentChangedHandler(
+            proc(arg0: ptr FilenameComponent) =
+                changes += 1
+                saw = arg0
+                namesSeen.add($arg0[].getCurrentFile().getFileName()))
+
+        var base = cast[ptr FilenameComponentListener](listener)
+
+        base[].filenameComponentChanged(chooserPtr)
+        doAssert changes == 1,
+                 "filenameComponentChanged reached the override " & $changes & " times"
+        doAssert saw == chooserPtr,
+                 "the override was handed a component other than the one passed"
+        doAssert namesSeen == @["june-a.txt"],
+                 "the override read " & $namesSeen
+
+        # The component the override is handed is live, so a file set in
+        # between is what the next delivery reports.
+        chooser.setCurrentFile(makeFile(makeString("/tmp/june-b.txt")), true,
+                               NotificationType_dontSendNotification)
+        base[].filenameComponentChanged(chooserPtr)
+        doAssert changes == 2,
+                 "a second filenameComponentChanged left the count at " & $changes
+        doAssert namesSeen == @["june-a.txt", "june-b.txt"],
+                 "the override read " & $namesSeen
+
+        cdelete listener
+
+    shutdownJuce_GUI()
+
+
+testFilenameComponentListenerOverride()
+
+
+proc testButtonPropertyComponentButtonClicked() =
+    initialiseJuce_GUI()
+
+    block:
+        var clicks = 0
+        var textCalls = 0
+
+        let property = newCustomButtonPropertyComponent(makeString("Reset"), false)
+        property[].setButtonClickedHandler(proc() =
+            clicks += 1)
+        property[].setGetButtonTextHandler(proc(): String =
+            textCalls += 1
+            makeString("do it " & $clicks))
+
+        var base = cast[ptr ButtonPropertyComponent](property)
+
+        let textBefore = $base[].getButtonText()
+        doAssert textCalls == 1,
+                 "getButtonText reached the override " & $textCalls & " times"
+        doAssert textBefore == "do it 0",
+                 "getButtonText returned " & textBefore
+        doAssert clicks == 0,
+                 "getButtonText also moved the click count to " & $clicks
+
+        base[].buttonClicked()
+        doAssert clicks == 1,
+                 "buttonClicked reached the override " & $clicks & " times"
+
+        # getButtonText reads the click count, so the text moving is the click
+        # having actually landed in the Nim override rather than nowhere.
+        let textAfter = $base[].getButtonText()
+        doAssert textAfter == "do it 1",
+                 "after the click getButtonText returned " & textAfter
+
+        base[].buttonClicked()
+        doAssert clicks == 2,
+                 "a second buttonClicked left the count at " & $clicks
+
+        cdelete property
+
+    shutdownJuce_GUI()
+
+
+testButtonPropertyComponentButtonClicked()
+
+
+proc testComponentMovementWatcherPeerChanged() =
+    initialiseJuce_GUI()
+
+    block:
+        let watched = newCustomComponent()
+        watched[].setBounds(makeRectangle(0.cint, 0.cint, 30.cint, 20.cint))
+
+        var peerChanges = 0
+        var movedOrResized = 0
+        var visibilityChanges = 0
+
+        let watcher = newCustomComponentMovementWatcher(cast[ptr Component](watched))
+        watcher[].setComponentPeerChangedHandler(proc() =
+            peerChanges += 1)
+        watcher[].setComponentMovedOrResizedHandler(proc(wasMoved: bool,
+                                                          wasResized: bool) =
+            movedOrResized += 1)
+        watcher[].setComponentVisibilityChangedHandler(proc() =
+            visibilityChanges += 1)
+
+        var base = cast[ptr ComponentMovementWatcher](watcher)
+
+        base[].componentPeerChanged()
+        doAssert peerChanges == 1,
+                 "componentPeerChanged reached the override " & $peerChanges & " times"
+        doAssert movedOrResized == 0,
+                 "componentPeerChanged also moved the move count to " & $movedOrResized
+        doAssert visibilityChanges == 0,
+                 "componentPeerChanged also moved the visibility count to " &
+                 $visibilityChanges
+
+        base[].componentPeerChanged()
+        doAssert peerChanges == 2,
+                 "a second componentPeerChanged left the count at " & $peerChanges
+
+        cdelete watcher
+        cdelete watched
+
+    shutdownJuce_GUI()
+
+
+testComponentMovementWatcherPeerChanged()
+
+
+proc testRelativeRectangleApplyToComponent() =
+    initialiseJuce_GUI()
+
+    block:
+        let component = newCustomComponent()
+        component[].setBounds(makeRectangle(1.cint, 2.cint, 3.cint, 4.cint))
+        doAssert component[].getPositioner().isNil(),
+                 "a fresh component already has a positioner"
+
+        # A RelativeRectangle built from a plain rectangle is not dynamic, so
+        # applyToComponent takes the branch at juce_RelativeRectangle.cpp:281-282:
+        # it clears the positioner and sets the bounds to the resolved
+        # rectangle's smallest integer container.
+        let rect = makeRelativeRectangle(makeRectangle(10.5'f32, 20.25'f32,
+                                                       30.5'f32, 40.75'f32))
+        rect.applyToComponent(component[])
+
+        let bounds = component[].getBounds()
+        doAssert (bounds.getX(), bounds.getY(),
+                  bounds.getWidth(), bounds.getHeight()) ==
+                 (10.cint, 20.cint, 31.cint, 41.cint),
+                 "applyToComponent gave " & $bounds.getX() & "," &
+                 $bounds.getY() & "," & $bounds.getWidth() & "," &
+                 $bounds.getHeight()
+        doAssert component[].getPositioner().isNil(),
+                 "the static branch installed a positioner"
+
+        # A second, different rectangle moves the component again, so the
+        # bounds come from the rectangle applied rather than from one apply.
+        let other = makeRelativeRectangle(makeRectangle(0.0'f32, 0.0'f32,
+                                                        7.0'f32, 9.0'f32))
+        other.applyToComponent(component[])
+        let moved = component[].getBounds()
+        doAssert (moved.getX(), moved.getY(),
+                  moved.getWidth(), moved.getHeight()) ==
+                 (0.cint, 0.cint, 7.cint, 9.cint),
+                 "the second applyToComponent gave " & $moved.getX() & "," &
+                 $moved.getY() & "," & $moved.getWidth() & "," &
+                 $moved.getHeight()
+
+        cdelete component
+
+    shutdownJuce_GUI()
+
+
+testRelativeRectangleApplyToComponent()
+
+
+proc testFileChooserURLResults() =
+    initialiseJuce_GUI()
+
+    block:
+        var chooser = makeFileChooser(makeString("pick a file"), june.File(),
+                                      makeString("*"), true, false, nil)
+
+        # There is no headless path to a dialog, so the honest fact about an
+        # un-run chooser is that it yields nothing. FileChooser::getURLResult
+        # asserts results.size() <= 1 (juce_FileChooser.cpp:264), which holds
+        # at zero, so this reaches the real method without provoking it.
+        let urls = chooser.getURLResults()
+        doAssert urls.size() == 0,
+                 "a chooser nobody ran has " & $urls.size() & " URL results"
+
+        # getURLResult returns results.getFirst() through that same empty
+        # array, which is a default-constructed URL: empty, and not a file.
+        let url = chooser.getURLResult()
+        doAssert url.isEmpty(),
+                 "an un-run chooser's URL result is " & $url.toString(true)
+        doAssert not url.isLocalFile(),
+                 "an un-run chooser's URL result claims to be a local file"
+
+        # The plain-File side agrees, so the two views of "nothing chosen" are
+        # consistent rather than one of them merely being unimplemented.
+        doAssert chooser.getResults().size() == 0,
+                 "the File results disagree with the URL results"
+
+    shutdownJuce_GUI()
+
+
+testFileChooserURLResults()
