@@ -5823,3 +5823,95 @@ proc testTextLayoutBalancedLineLengths() =
 initialiseJuce_GUI()
 testTextLayoutBalancedLineLengths()
 shutdownJuce_GUI()
+
+# ImagePixelData::Listener, in behaviour ======================================
+#
+# JUCE binds no way to register one: the ListenerList behind it has no name
+# outside the class, so both calls are made on the BASE pointer, which is what
+# shows the Nim override reached C++. What each handler is handed is the pixel
+# data of a real Image, and asserting on the pointer it caught - its address
+# and the size it describes - is what says the argument survived the crossing.
+
+proc testImagePixelDataListenerOverrides() =
+    block:
+        var image = makeImage(ImagePixelFormat_ARGB, 8.cint, 6.cint, true)
+        var pixels = image.getPixelData()
+        doAssert not pixels.isNil(), "the image carries no pixel data"
+        let subject = pixels.get()
+
+        var changed = 0
+        var deleted = 0
+        var changedWith: ptr ImagePixelData = nil
+        var deletedWith: ptr ImagePixelData = nil
+
+        var listener = newCustomImagePixelDataListener()
+        doAssert not listener.isNil(), "the listener was not built"
+        listener[].setImageDataChangedHandler(proc(arg0: ptr ImagePixelData) =
+            changed += 1
+            changedWith = arg0)
+        listener[].setImageDataBeingDeletedHandler(proc(arg0: ptr ImagePixelData) =
+            deleted += 1
+            deletedWith = arg0)
+
+        let base = cast[ptr ImagePixelDataListener](listener)
+
+        base[].imageDataChanged(subject)
+        doAssert changed == 1,
+                 "imageDataChanged reached the override " & $changed & " times"
+        doAssert deleted == 0,
+                 "imageDataChanged also ran the deletion override"
+        doAssert changedWith == subject,
+                 "imageDataChanged was handed a different address"
+        doAssert changedWith[].width() == 8 and changedWith[].height() == 6,
+                 "the pixel data it caught measures " & $changedWith[].width() &
+                 " by " & $changedWith[].height()
+
+        base[].imageDataBeingDeleted(subject)
+        doAssert deleted == 1,
+                 "imageDataBeingDeleted reached the override " & $deleted & " times"
+        doAssert changed == 1,
+                 "imageDataBeingDeleted also ran the change override"
+        doAssert deletedWith == subject,
+                 "imageDataBeingDeleted was handed a different address"
+
+        cdelete listener
+
+testImagePixelDataListenerOverrides()
+
+# Typeface.getNativeDetails ===================================================
+#
+# Native is opaque: JUCE declares the class in the header and defines it only
+# inside each platform's back end, so the only claim that holds everywhere is
+# about the POINTER. Every back end answers with a member it owns, and JUCE
+# dereferences the result without checking it, so a real typeface answers
+# non-null and answers the same address every time.
+
+proc testTypefaceNativeDetails() =
+    initialiseJuce_GUI()
+
+    block:
+        let font = makeFont(makeFontOptions(18.0'f32))
+        let typeface = font.getTypefacePtr()
+        doAssert not typeface.isNil(), "the font has no typeface behind it"
+
+        let details = typeface.get()[].getNativeDetails()
+        doAssert not details.isNil(), "the typeface reported no native details"
+        doAssert details == typeface.get()[].getNativeDetails(),
+                 "two calls answered with different addresses"
+
+        # That two named system fonts resolve to two different typefaces is a
+        # macOS guarantee, not a portable one.
+        when defined(macosx):
+            var monoFont = makeFont(makeFontOptions(18.0'f32))
+            monoFont.setTypefaceName(Font.getDefaultMonospacedFontName())
+            let monoTypeface = monoFont.getTypefacePtr()
+            doAssert not monoTypeface.isNil(),
+                     "the monospaced font has no typeface behind it"
+            doAssert monoTypeface.get() != typeface.get(),
+                     "the monospaced name resolved to the same typeface"
+            doAssert monoTypeface.get()[].getNativeDetails() != details,
+                     "two different typefaces share one set of native details"
+
+    shutdownJuce_GUI()
+
+testTypefaceNativeDetails()

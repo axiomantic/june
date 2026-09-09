@@ -1491,3 +1491,38 @@ proc testValueTreeSynchroniserFullSync() =
     cdelete synchroniser
 
 testValueTreeSynchroniserFullSync()
+
+# ValueTreeSynchroniser.stateChanged ==========================================
+#
+# The other half of the pair above. There, JUCE calls stateChanged; here the
+# caller does, on the BASE pointer where the pure virtual lives, which is what
+# shows the generated override reached C++ rather than being installed and
+# forgotten. The bytes the handler catches are compared with the ones handed
+# in, so a binding that lost the length or passed a different address fails.
+
+proc testValueTreeSynchroniserStateChanged() =
+  block:
+    var captured: seq[byte] = @[]
+    var calls = 0
+
+    var tree = makeValueTree(makeIdentifier(makeString("ROOT")))
+    var synchroniser = newCustomValueTreeSynchroniser(tree)
+    synchroniser[].setStateChangedHandler(
+        proc(encodedChange: pointer, encodedChangeSize: csize_t) =
+          calls += 1
+          captured = newSeq[byte](encodedChangeSize.int)
+          if encodedChangeSize > 0.csize_t:
+            copyMem(captured[0].addr, encodedChange, encodedChangeSize.int))
+
+    var payload = @[7'u8, 11'u8, 13'u8, 251'u8]
+    cast[ptr ValueTreeSynchroniser](synchroniser)[].stateChanged(
+        constPointer(payload[0].addr), payload.len.uint64)
+
+    doAssert calls == 1,
+             "stateChanged reached the override " & $calls & " times"
+    doAssert captured == payload,
+             "the override caught " & $captured & ", not " & $payload
+
+    cdelete synchroniser
+
+testValueTreeSynchroniserStateChanged()

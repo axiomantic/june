@@ -117,6 +117,11 @@ UNREACHABLE_METHODS = {
         "toleranceDistance is read only inside wakeUp (const MouseEvent&)",
     "ComponentDragger.startDraggingComponent": "takes a const MouseEvent&",
     "ComponentDragger.dragComponent": "takes a const MouseEvent&",
+    # check_handwritten_covered.py already records this one, with this reason.
+    # It belongs here too, or the two tools disagree about the same field.
+    "ColourLayer.clip":
+        "belongs to ColourLayer, which holds an EdgeTable and so has no "
+        "default constructor, and nothing bound hands one out",
     "TextPropertyComponent.setInterestedInFileDrag":
         "forwards to the internal editor and is visible only through real "
         "file-drag events",
