@@ -15912,3 +15912,76 @@ proc testGridCountsAndGap() =
     shutdownJuce_GUI()
 
 testGridCountsAndGap()
+
+# Label::Listener, both shapes in one class =====================================
+#
+# labelTextChanged is PURE virtual in JUCE (juce_Label.h:200), so the generated
+# subclass overrides it and the call through the BASE pointer is what shows the
+# Nim override reached C++. editorShown and editorHidden are `{}` (:203, :206),
+# so nothing overrides them and what is pinned is that the defaults do NOTHING -
+# asserted by the same counter not moving, which is the only way to tell an
+# empty body from one that quietly reached the wrong handler.
+
+proc testLabelListenerOverrideAndDefaults() =
+    initialiseJuce_GUI()
+
+    block:
+        var listener = newCustomLabelListener()
+        var told = 0
+        listener[].setLabelTextChangedHandler(proc(which: ptr Label) = told += 1)
+
+        var label = makeLabel(makeString("name"), makeString("text"))
+        var editor = makeTextEditor(makeString("editor"), 0'u16)
+        let base = cast[ptr LabelListener](listener)
+
+        base[].labelTextChanged(addr label)
+        doAssert told == 1,
+                 "the override ran " & $told & " times, not once"
+
+        # The two empty defaults: they run, and they leave the counter alone.
+        base[].editorShown(addr label, editor)
+        base[].editorHidden(addr label, editor)
+        doAssert told == 1,
+                 "an empty default reached the text-changed handler; told is " & $told
+
+        cdelete listener
+
+    shutdownJuce_GUI()
+
+testLabelListenerOverrideAndDefaults()
+
+# HyperlinkButton's URL and its fitted width ====================================
+#
+# setURL and getURL round trip, asserted from a DIFFERENT starting URL so a
+# getter wired to a constant fails. changeWidthToFitText sizes the button to its
+# text, and the fitted width depends on the host's font - so what is asserted is
+# that it MOVED away from a width the text plainly does not need, and that the
+# height is left alone, rather than any particular number.
+
+proc testHyperlinkButtonUrlAndWidth() =
+    initialiseJuce_GUI()
+
+    block:
+        let first = makeURL(makeString("https://example.invalid/one"))
+        let second = makeURL(makeString("https://example.invalid/two"))
+        var link = makeHyperlinkButton(makeString("a link with some width"), first)
+
+        doAssert $link.getURL().toString(false) == "https://example.invalid/one",
+                 "the button starts at " & $link.getURL().toString(false)
+        link.setURL(second)
+        doAssert $link.getURL().toString(false) == "https://example.invalid/two",
+                 "after setURL the button holds " & $link.getURL().toString(false)
+
+        # A width the text cannot possibly want, so any real fitting moves it.
+        link.setBounds(0.cint, 0.cint, 1000.cint, 24.cint)
+        link.changeWidthToFitText()
+        doAssert link.getWidth() != 1000,
+                 "fitting the text left the button 1000 wide"
+        doAssert link.getWidth() > 0,
+                 "fitting the text gave a width of " & $link.getWidth()
+        doAssert link.getHeight() == 24,
+                 "fitting the width changed the height to " & $link.getHeight()
+
+    shutdownJuce_GUI()
+
+testHyperlinkButtonUrlAndWidth()
