@@ -16553,3 +16553,49 @@ proc testSliderRotaryParameters() =
     shutdownJuce_GUI()
 
 testSliderRotaryParameters()
+
+# MouseInactivityDetector::Listener through a base pointer =====================
+#
+# Both callbacks are pure virtual, so the C++ vtable slot can only be the Nim
+# override. The detector itself is not driven: it wakes on a MouseEvent, which
+# cannot be constructed here, so the callbacks are invoked the way JUCE's own
+# call site would - through a base pointer.
+#
+# Two counters rather than one: a forwarder wired to the wrong slot moves the
+# other counter, which a single counter could not tell from a correct call.
+
+proc testMouseInactivityDetectorListenerCallbacks() =
+    initialiseJuce_GUI()
+
+    block:
+        var active = 0
+        var inactive = 0
+        var listener = newCustomMouseInactivityDetectorListener()
+        listener[].setMouseBecameActiveHandler(proc() = active += 1)
+        listener[].setMouseBecameInactiveHandler(proc() = inactive += 1)
+
+        var base = cast[ptr MouseInactivityDetectorListener](listener)
+
+        base[].mouseBecameActive()
+        doAssert active == 1,
+                 "the active handler ran " & $active & " times, not once"
+        doAssert inactive == 0,
+                 "becoming active reached the inactive handler " &
+                 $inactive & " times"
+
+        base[].mouseBecameInactive()
+        doAssert inactive == 1,
+                 "the inactive handler ran " & $inactive & " times, not once"
+        doAssert active == 1,
+                 "becoming inactive reached the active handler again; " &
+                 "active is " & $active
+
+        base[].mouseBecameActive()
+        doAssert active == 2,
+                 "the active handler ran " & $active & " times, not twice"
+
+        cdelete listener
+
+    shutdownJuce_GUI()
+
+testMouseInactivityDetectorListenerCallbacks()

@@ -6384,10 +6384,11 @@ proc testSocketsWithoutAPeer() =
     doAssert not socket.isLocal(),
              "a listener with no peer reports a local peer"
 
-    # waitForNextConnection is NOT called. It has no timeout - it blocks until
-    # a connection arrives or the socket is closed from another thread - so
-    # calling it here hung the test run, which is how this was found. The
-    # compile harness covers it.
+    # waitForNextConnection is NOT called here. It has no timeout - it blocks
+    # until a connection arrives or the socket is closed from another thread -
+    # so calling it on a listener nobody dialled hung the test run, which is how
+    # this was found. testStreamingSocketAcceptsAConnection calls it only once a
+    # peer is already queued.
     #
     # waitUntilReady is the timeout-taking way to ask the same question, and
     # it reports at once that nothing is waiting to be accepted.
@@ -9095,3 +9096,132 @@ proc testUnitTestRunnerByCategory() =
         cdelete subject
 
 testUnitTestRunnerByCategory()
+
+# URL::DownloadTaskListener through a base pointer =============================
+#
+# No download is started: finished and progress are what JUCE calls ON the
+# listener, so they are invoked the way JUCE's own call site would - through a
+# base pointer - and no network is involved.
+#
+# The task pointer is a marker value rather than a real DownloadTask. Nothing
+# on this path dereferences it, and a forwarder that dropped or substituted the
+# argument would hand the handler a different one, which is the point of
+# reading it back.
+#
+# progress is virtual with an empty body in JUCE (juce_URL.h:472) and is not
+# overridden, so what is pinned is that the default does NOTHING - asserted by
+# the finished counter not moving, which is the only way to tell an empty body
+# from one that quietly reached the wrong handler.
+
+proc testURLDownloadTaskListenerCallbacks() =
+    block:
+        let marker = cast[ptr URLDownloadTask](cast[pointer](0xf00dBEEF))
+        var finishes = 0
+        var seenTask: ptr URLDownloadTask = nil
+        var seenSuccess = false
+
+        var listener = newCustomURLDownloadTaskListener()
+        listener[].setFinishedHandler(
+            proc(task: ptr URLDownloadTask, success: bool) =
+                finishes += 1
+                seenTask = task
+                seenSuccess = success)
+
+        var base = cast[ptr URLDownloadTaskListener](listener)
+
+        base[].finished(marker, true)
+        doAssert finishes == 1,
+                 "the finished handler ran " & $finishes & " times, not once"
+        doAssert seenTask == marker,
+                 "the handler was handed a different task pointer"
+        doAssert seenSuccess,
+                 "a download reported as succeeded reached the handler as failed"
+
+        base[].finished(nil, false)
+        doAssert finishes == 2,
+                 "the finished handler ran " & $finishes & " times, not twice"
+        doAssert seenTask.isNil(),
+                 "the handler kept the earlier task pointer"
+        doAssert not seenSuccess,
+                 "a download reported as failed reached the handler as succeeded"
+
+        # The empty default: it runs, and it leaves the counter alone.
+        base[].progress(marker, 512'i64, 4096'i64)
+        doAssert finishes == 2,
+                 "progress reached the finished handler; it ran " &
+                 $finishes & " times"
+        doAssert seenTask.isNil(),
+                 "progress overwrote the task the finished handler was handed"
+
+        cdelete listener
+
+testURLDownloadTaskListenerCallbacks()
+
+# StreamingSocket accepting a queued connection ================================
+#
+# waitForNextConnection has no timeout, so it is called only once a peer is
+# already waiting: the kernel completes the TCP handshake from the listen
+# backlog before anything calls accept, so the connect below queues the
+# connection and waitUntilReady confirms it is there with a bounded wait. The
+# call therefore returns at once rather than blocking.
+
+proc testStreamingSocketAcceptsAConnection() =
+  block:
+    var listener = makeStreamingSocket()
+    doAssert listener.createListener(0.cint, makeString("127.0.0.1")),
+             "creating a listener on an ephemeral port failed"
+    let port = listener.getBoundPort()
+    doAssert port > 0 and port <= 65535, "the listening port is " & $port
+
+    var client = makeStreamingSocket()
+    doAssert client.connect(makeString("127.0.0.1"), port, 2000.cint),
+             "connecting to the listener on port " & $port & " failed"
+    doAssert client.isConnected(), "a connected client reports itself closed"
+    doAssert client.getPort() == port,
+             "the client reports peer port " & $client.getPort()
+
+    let ready = listener.waitUntilReady(true, 2000.cint)
+    doAssert ready == 1,
+             "a listener that was dialled reported " & $ready &
+             " rather than a waiting connection"
+
+    var accepted = listener.waitForNextConnection()
+    doAssert not accepted.isNil(),
+             "accepting a queued connection produced nothing"
+    doAssert accepted[].isConnected(),
+             "the accepted socket reports itself closed"
+    # The accepted socket inherits the number that was PASSED to createListener
+    # (juce_Socket.cpp:650), not the one the OS handed out, so asking for an
+    # ephemeral port leaves the accepted socket reporting zero.
+    doAssert accepted[].getPort() == 0.cint,
+             "the accepted socket reports port " & $accepted[].getPort()
+    doAssert $accepted[].getHostName() == "127.0.0.1",
+             "the accepted socket reports peer " & $accepted[].getHostName()
+    doAssert accepted[].isLocal(),
+             "a loopback peer is not reported as local"
+    doAssert accepted[].getRawSocketHandle() != listener.getRawSocketHandle(),
+             "accepting handed back the listening socket itself"
+
+    # The accepted socket is the OTHER end of this client, not some other
+    # connection: a byte written on one arrives on the other.
+    let sent = client.write(cast[constPointer](cstring"june"), 4.cint)
+    doAssert sent == 4, "the client wrote " & $sent & " of 4 bytes"
+    doAssert accepted[].waitUntilReady(true, 2000.cint) == 1,
+             "nothing arrived on the accepted socket"
+
+    var received: array[8, char]
+    let got = accepted[].read(addr received[0], 4.cint, false)
+    doAssert got == 4, "the accepted socket read " & $got & " of 4 bytes"
+    doAssert received[0] == 'j' and received[1] == 'u' and
+             received[2] == 'n' and received[3] == 'e',
+             "the accepted socket read something the client did not write"
+
+    accepted[].close()
+    cdelete accepted
+    client.close()
+    listener.close()
+    doAssert listener.getBoundPort() == -1,
+             "after closing, the listener reports port " &
+             $listener.getBoundPort()
+
+testStreamingSocketAcceptsAConnection()

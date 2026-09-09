@@ -24,10 +24,10 @@ was written it read:
 methods  what
 =======  =========================================================
    4528  bound methods with a receiver
-   4203  called by a behavioural test
-     82  uncalled, and unreachable without a window, an input device
+   4331  called by a behavioural test
+     90  uncalled, and unreachable without a window, an input device
          or the app instance
-    243  uncalled, and reachable
+    107  uncalled, and reachable
 =======  =========================================================
 
 One unit is one bound method on one class, and overloads collapse into one. The
@@ -42,15 +42,15 @@ the counting rules.
 The shape of the remainder
 ==========================
 
-The 243 are spread across 175 classes:
+The 107 are spread across 70 classes:
 
 =======  =================
 classes   uncalled methods
 =======  =================
-      4                  4
-     8                  3
-     40                  2
-    123                  1
+      3                  4
+      6                  3
+     16                  2
+     45                  1
 =======  =================
 
 No class has five or more. That is the fact that governs how to spend effort
@@ -65,11 +65,11 @@ By module:
 ====================  =========  =========
 module                 methods    classes
 ====================  =========  =========
-juce_gui_basics             159        104
-juce_core                    42         37
-juce_graphics                24         19
-juce_events                  14         12
-juce_data_structures          4          3
+juce_gui_basics              97         61
+juce_core                     6          5
+juce_events                   4          4
+juce_graphics                 0          0
+juce_data_structures          0          0
 ====================  =========  =========
 
 
@@ -138,6 +138,39 @@ does not reclaim. ``PropertyPanel::addSection`` adopts its rows.
 crash or a leak first. The suite's leak gate catches them, but reading the JUCE
 source first is cheaper than reading a stack trace.
 
+
+**A call is not a test, and reaching for one hides an unreachable method.**
+Three tests called a setter whose value JUCE keeps private and then asserted
+something unrelated beside it. The method counted as called while the assertion
+could not fail if the method broke. Two of the three turned out to be genuinely
+unreachable once the implementation was read: ``MouseInactivityDetector``'s
+delay and tolerance are read only inside ``wakeUp (const MouseEvent&)``, and a
+``MouseEvent`` needs a ``MouseInputSource``, whose only non-copy constructor is
+private to ``ComponentPeer``, ``Desktop`` and two detail classes. When a value
+cannot be read back, ask whether the method can be reached at all before
+writing a test around it. If it cannot, it belongs in the list below with that
+reason; if it can, the effect is observable somewhere and that is what to
+assert. ``ProgressBar``'s two setters look identical to those three and are
+not: they feed the paint path, so rendering the bar and comparing the pixels
+holds them.
+
+**``doAssert cond, msg`` evaluates ``msg`` only when ``cond`` fails.** A call
+placed inside the message string is therefore not made on the passing path. A
+counter asserted against a number that includes such a call is wrong in the
+direction that still passes. Bind each result to a ``let`` first, then assert.
+
+**Laying out text loads a typeface into a cache only ``shutdownJuce_GUI``
+releases.** A test that builds fonts or lays out a string leaks without the
+initialise and shutdown pair around it, and the run still exits zero, because
+the leak detector prints and carries on exactly as ``jassert`` does. Fourteen
+leaked objects hid behind a passing suite this way.
+
+**A binding can be wrong in a direction every existing test agrees with.**
+``toRawUTF8`` sized its buffer with ``juce::String::length()``, which counts
+characters, and then copied that many BYTES, so ``$`` truncated every string
+holding a multi-byte character. Each of the suite's several thousand ``$``
+assertions was ASCII, where the two counts agree, so all of them passed. A test
+whose inputs never separate two quantities cannot tell you they are different.
 
 What is deliberately not covered
 ================================
