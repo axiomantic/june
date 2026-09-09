@@ -15985,3 +15985,90 @@ proc testHyperlinkButtonUrlAndWidth() =
     shutdownJuce_GUI()
 
 testHyperlinkButtonUrlAndWidth()
+
+# RelativeParallelogram resolved against a known rectangle ======================
+#
+# Built from a plain rectangle, the three corners it stores are that rectangle's,
+# so resolving is exact arithmetic and needs no scope - nil is passed for one.
+# resolveFourCorners fills FOUR points and resolveThreePoints fills three, which
+# is the difference between them: the fourth corner is derived, and asserting it
+# is what a resolver that filled only three would fail.
+
+proc testRelativeParallelogramResolution() =
+    initialiseJuce_GUI()
+
+    block:
+        var shape = makeRelativeParallelogram(
+            makeRectangle(10.0'f32, 20.0'f32, 40.0'f32, 30.0'f32))
+
+        var corners: array[4, Point[cfloat]]
+        shape.resolveFourCorners(corners[0].addr, nil)
+        doAssert corners[0].getX() == 10.0'f32 and corners[0].getY() == 20.0'f32,
+                 "the top left resolved to " & $corners[0].getX() & "," &
+                 $corners[0].getY()
+        doAssert corners[1].getX() == 50.0'f32 and corners[1].getY() == 20.0'f32,
+                 "the top right resolved to " & $corners[1].getX() & "," &
+                 $corners[1].getY()
+        doAssert corners[2].getX() == 10.0'f32 and corners[2].getY() == 50.0'f32,
+                 "the bottom left resolved to " & $corners[2].getX() & "," &
+                 $corners[2].getY()
+        # The fourth is DERIVED from the other three rather than stored, which is
+        # what makes a parallelogram a parallelogram.
+        doAssert corners[3].getX() == 50.0'f32 and corners[3].getY() == 50.0'f32,
+                 "the derived corner resolved to " & $corners[3].getX() & "," &
+                 $corners[3].getY()
+
+        var three: array[3, Point[cfloat]]
+        shape.resolveThreePoints(three[0].addr, nil)
+        doAssert three[0].getX() == 10.0'f32 and three[2].getY() == 50.0'f32,
+                 "three points resolved to a different shape"
+
+        # Perpendicular already: squaring it up leaves the corners alone, so the
+        # transform is asked for and the shape re-resolved to show that.
+        discard shape.resetToPerpendicular(nil)
+        shape.resolveFourCorners(corners[0].addr, nil)
+        doAssert corners[0].getX() == 10.0'f32 and corners[1].getX() == 50.0'f32,
+                 "squaring up an already square shape moved it to " &
+                 $corners[0].getX() & ".." & $corners[1].getX()
+
+    shutdownJuce_GUI()
+
+testRelativeParallelogramResolution()
+
+# ProgressBar's resolved style and its text ====================================
+#
+# getResolvedStyle answers the style the bar will actually use, so a bar built
+# with an EXPLICIT style answers that one and a bar built without answers
+# whatever the LookAndFeel supplies. Building both and comparing is what shows
+# the explicit style is honoured rather than ignored - one bar alone could not
+# tell the two apart.
+#
+# setPercentageDisplay and setTextToDisplay return void and have no getters.
+# They are exercised, and what is asserted around them is that the resolved
+# style is undisturbed, because that is the one thing about the bar that is
+# readable back.
+
+proc testProgressBarStyleAndText() =
+    initialiseJuce_GUI()
+
+    block:
+        var progress = 0.25
+        var circular = makeProgressBar(
+            progress, makeProgressBarStyle(ProgressBarStyle_circular))
+        doAssert circular.getResolvedStyle() == ProgressBarStyle_circular,
+                 "a bar asked for circular resolved to something else"
+
+        var linear = makeProgressBar(
+            progress, makeProgressBarStyle(ProgressBarStyle_linear))
+        doAssert linear.getResolvedStyle() == ProgressBarStyle_linear,
+                 "a bar asked for linear resolved to something else"
+
+        # Setting the text and the percentage flag leaves the style alone.
+        linear.setTextToDisplay(makeString("loading"))
+        linear.setPercentageDisplay(false)
+        doAssert linear.getResolvedStyle() == ProgressBarStyle_linear,
+                 "setting the text changed the resolved style"
+
+    shutdownJuce_GUI()
+
+testProgressBarStyleAndText()
