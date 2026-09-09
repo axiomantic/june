@@ -19349,3 +19349,123 @@ proc testListBoxSelectRowsBasedOnModifierKeys() =
 
 
 testListBoxSelectRowsBasedOnModifierKeys()
+
+
+# RelativeRectangle::renameSymbol forwards each of the four coordinates to
+# Expression::withRenamedSymbol (juce_RelativeRectangle.cpp:200-206), so one
+# call rewrites every coordinate that mentions the symbol and leaves the rest
+# alone.
+#
+# Two things constrain what can be asked here. A term that is a plain symbol
+# never reaches Expression::Scope::visitRelativeScope, which throws, so the
+# coordinates below use plain symbols and a plain Scope is enough. And
+# juce_Expression.cpp:1066 asserts that the new name is lower-case alphanumeric
+# or underscore -- a capital, space or dot would print a fresh assertion site
+# while the run still exited 0 -- so every new name here obeys that.
+proc testRelativeRectangleRenameSymbol() =
+    initialiseJuce_GUI()
+
+    block:
+        var scope = makeExpressionScope()
+        var rect = makeRelativeRectangle(makeString("a, b, a + 30, b + 20"))
+        doAssert $rect.toString() == "a, b, a + 30, b + 20",
+                 "the rectangle parsed as [" & $rect.toString() & "]"
+
+        rect.renameSymbol(makeExpressionSymbol(makeString(""), makeString("a")),
+                          makeString("width"), scope)
+
+        # Both coordinates that mentioned `a` were rewritten, and the two that
+        # mentioned `b` were not: the rename is per-symbol, not wholesale.
+        doAssert $rect.toString() == "width, b, width + 30, b + 20",
+                 "after renaming a the rectangle reads [" & $rect.toString() & "]"
+
+        # Renaming the other symbol as well, to show the first rename did not
+        # leave the remaining coordinates unable to be renamed in turn.
+        rect.renameSymbol(makeExpressionSymbol(makeString(""), makeString("b")),
+                          makeString("height"), scope)
+        doAssert $rect.toString() == "width, height, width + 30, height + 20",
+                 "after renaming b the rectangle reads [" & $rect.toString() & "]"
+
+        # A symbol the rectangle does not mention changes nothing.
+        rect.renameSymbol(makeExpressionSymbol(makeString(""), makeString("depth")),
+                          makeString("other"), scope)
+        doAssert $rect.toString() == "width, height, width + 30, height + 20",
+                 "renaming an absent symbol changed the rectangle to [" &
+                 $rect.toString() & "]"
+
+    shutdownJuce_GUI()
+
+
+testRelativeRectangleRenameSymbol()
+
+
+# ComponentScope::visitRelativeScope resolves a scope NAME against the
+# component tree and hands the resulting scope to the visitor
+# (juce_RelativeCoordinatePositioner.cpp:143-151): "parent" reaches the
+# parent component, and any other name is looked up as a sibling's component
+# ID. Unlike the abstract base's version, which throws, both of those are
+# resolvable -- and this file is compiled without C++ exceptions, so only
+# resolvable names are used here.
+#
+# getScopeUID is the address of the component the scope wraps, so the UIDs are
+# compared against each other rather than against any literal.
+proc testComponentScopeVisitRelativeScope() =
+    initialiseJuce_GUI()
+
+    block:
+        var parent = newCustomComponent()
+        parent[].setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 200.cint))
+        var child = newCustomComponent()
+        var sibling = newCustomComponent()
+        sibling[].setComponentID(makeString("sidebar"))
+        parent[].addAndMakeVisible(cast[ptr Component](child))
+        parent[].addAndMakeVisible(cast[ptr Component](sibling))
+
+        var visited: seq[string] = @[]
+        let visitor = newCustomExpressionScopeVisitor()
+        visitor[].setVisitHandler(proc(scope: ptr ExpressionScope) =
+            visited.add($scope[].getScopeUID()))
+
+        let childScope = makeRelativeCoordinatePositionerBaseComponentScope(
+            cast[ptr Component](child)[])
+        let parentScope = makeRelativeCoordinatePositionerBaseComponentScope(
+            cast[ptr Component](parent)[])
+        let siblingScope = makeRelativeCoordinatePositionerBaseComponentScope(
+            cast[ptr Component](sibling)[])
+
+        let childUID = $childScope.getScopeUID()
+        let parentUID = $parentScope.getScopeUID()
+        let siblingUID = $siblingScope.getScopeUID()
+        doAssert childUID != parentUID and childUID != siblingUID and
+                 parentUID != siblingUID,
+                 "three scopes over three components share a UID: " & childUID &
+                 ", " & parentUID & ", " & siblingUID
+
+        var asVisitor = cast[ptr ExpressionScopeVisitor](visitor)
+
+        childScope.visitRelativeScope(makeString("parent"), asVisitor[])
+        doAssert visited.len == 1,
+                 "visiting \"parent\" called the visitor " & $visited.len & " times"
+        doAssert visited[0] == parentUID,
+                 "visiting \"parent\" produced the scope " & visited[0] &
+                 " rather than the parent's " & parentUID
+
+        # Any other name is a sibling's component ID, which resolves to a
+        # different component again -- so the name is genuinely looked up
+        # rather than "parent" being the only thing that works.
+        childScope.visitRelativeScope(makeString("sidebar"), asVisitor[])
+        doAssert visited.len == 2,
+                 "visiting \"sidebar\" called the visitor " & $visited.len & " times in total"
+        doAssert visited[1] == siblingUID,
+                 "visiting \"sidebar\" produced the scope " & visited[1] &
+                 " rather than the sibling's " & siblingUID
+
+        cdelete visitor
+        cdelete sibling
+        cdelete child
+        cdelete parent
+
+    shutdownJuce_GUI()
+
+
+testComponentScopeVisitRelativeScope()
