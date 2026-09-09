@@ -19222,3 +19222,130 @@ proc testFileTreeComponentDragAndDropDescription() =
 
 
 testFileTreeComponentDragAndDropDescription()
+
+
+# ListBox: row snapshots and modifier-driven selection ========================
+#
+# Neither of these needs a window; a model and a setBounds are enough.
+proc testListBoxSnapshotOfRows() =
+    initialiseJuce_GUI()
+
+    block:
+        var model = newCustomListBoxModel()
+        model[].setNumRowsHandler(proc(): cint = 10)
+        var box = makeListBox(makeString("snapshot"), cast[ptr ListBoxModel](model))
+        box.setBounds(makeRectangle(0.cint, 0.cint, 120.cint, 200.cint))
+        box.setRowHeight(20.cint)
+        box.updateContent()
+
+        var rows = makeSparseSet[cint]()
+        rows.addRange(makeRange(2.cint, 5.cint))
+
+        # Seeded with a value the method cannot legitimately produce, so an
+        # implementation that never wrote the out-parameters would be caught
+        # rather than matching by luck -- x really does come back as 0.
+        var x = -1.cint
+        var y = -1.cint
+        let snapshot = box.createSnapshotOfRows(rows, x, y)
+
+        doAssert x == 0, "the snapshot's x offset came back as " & $x
+        doAssert y == 40,
+                 "rows 2..4 start 40px down a 20px-row list, but y came back as " & $y
+
+        let image = snapshot.getImage()
+        doAssert image.isValid(), "the snapshot image is invalid"
+
+        # The scale follows the display, so the pixel dimensions are checked
+        # against it rather than pinned: the snapshot is the box's width by the
+        # three requested rows' height, in logical units.
+        let scale = snapshot.getScale()
+        doAssert scale > 0.0, "the snapshot's scale came back as " & $scale
+        doAssert image.getWidth() == cint(120.0 * scale),
+                 "the snapshot is " & $image.getWidth() & "px wide at scale " & $scale
+        doAssert image.getHeight() == cint(60.0 * scale),
+                 "three 20px rows produced a " & $image.getHeight() &
+                 "px image at scale " & $scale
+
+        # A different range moves the offset and changes the height, which is
+        # what shows the SparseSet is read rather than ignored.
+        var otherRows = makeSparseSet[cint]()
+        otherRows.addRange(makeRange(5.cint, 7.cint))
+        var otherX = -1.cint
+        var otherY = -1.cint
+        let otherSnapshot = box.createSnapshotOfRows(otherRows, otherX, otherY)
+        doAssert otherY == 100,
+                 "rows 5..6 start 100px down, but y came back as " & $otherY
+        doAssert otherSnapshot.getImage().getHeight() == cint(40.0 * scale),
+                 "two rows produced a " & $otherSnapshot.getImage().getHeight() & "px image"
+
+        cdelete model
+
+    shutdownJuce_GUI()
+
+
+testListBoxSnapshotOfRows()
+
+
+# selectRowsBasedOnModifierKeys takes a ModifierKeys VALUE rather than a mouse
+# event, and juce_ListBox.cpp:808-824 branches three ways on it. All three are
+# exercised here; one branch alone would pass even if the modifiers were
+# ignored entirely.
+proc testListBoxSelectRowsBasedOnModifierKeys() =
+    initialiseJuce_GUI()
+
+    block:
+        var model = newCustomListBoxModel()
+        model[].setNumRowsHandler(proc(): cint = 10)
+        var box = makeListBox(makeString("selection"), cast[ptr ListBoxModel](model))
+        box.setBounds(makeRectangle(0.cint, 0.cint, 120.cint, 200.cint))
+        box.setRowHeight(20.cint)
+        box.updateContent()
+        box.setMultipleSelectionEnabled(true)
+
+        # No modifiers: a plain selection replacing whatever was there.
+        box.selectRowsBasedOnModifierKeys(3.cint, makeModifierKeys(0.cint), false)
+        doAssert box.isRowSelected(3.cint), "a plain click did not select row 3"
+        doAssert box.getSelectedRows().size() == 1,
+                 "a plain click selected " & $box.getSelectedRows().size() & " rows"
+        doAssert box.getLastRowSelected() == 3,
+                 "the last selected row is " & $box.getLastRowSelected()
+
+        # Shift with a previous row: the range from the last selected row.
+        box.selectRowsBasedOnModifierKeys(
+            6.cint, makeModifierKeys(ModifierKeysFlags_shiftModifier.cint), false)
+        doAssert box.getSelectedRows().size() == 4,
+                 "shift-clicking row 6 after row 3 selected " &
+                 $box.getSelectedRows().size() & " rows, not the range 3..6"
+        for row in 3.cint .. 6.cint:
+            doAssert box.isRowSelected(row),
+                     "row " & $row & " is outside the shift-selected range"
+        doAssert not box.isRowSelected(2.cint),
+                 "the shift range reached below row 3"
+        doAssert not box.isRowSelected(7.cint),
+                 "the shift range reached above row 6"
+
+        # Command with multiple selection enabled: flip one row, leaving the
+        # rest alone. Doing it twice restores it, which is what makes this a
+        # flip rather than a deselect-all.
+        box.selectRowsBasedOnModifierKeys(
+            4.cint, makeModifierKeys(ModifierKeysFlags_commandModifier.cint), false)
+        doAssert not box.isRowSelected(4.cint),
+                 "command-clicking a selected row did not deselect it"
+        doAssert box.getSelectedRows().size() == 3,
+                 "the flip left " & $box.getSelectedRows().size() & " rows selected"
+        doAssert box.isRowSelected(3.cint) and box.isRowSelected(5.cint),
+                 "the flip disturbed the rows either side of row 4"
+
+        box.selectRowsBasedOnModifierKeys(
+            4.cint, makeModifierKeys(ModifierKeysFlags_commandModifier.cint), false)
+        doAssert box.isRowSelected(4.cint),
+                 "command-clicking row 4 twice did not restore it"
+        doAssert box.getSelectedRows().size() == 4,
+                 "after flipping back there are " & $box.getSelectedRows().size() & " rows"
+
+        cdelete model
+
+    shutdownJuce_GUI()
+
+
+testListBoxSelectRowsBasedOnModifierKeys()
