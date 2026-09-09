@@ -119,6 +119,8 @@ UNREACHABLE_METHODS = {
         "delayMs is read only inside wakeUp (const MouseEvent&)",
     "MouseInactivityDetector.setMouseMoveTolerance":
         "toleranceDistance is read only inside wakeUp (const MouseEvent&)",
+    "ListBox.startDragAndDrop": "takes a MouseEvent",
+    "Viewport.useMouseWheelMoveIfNeeded": "takes a MouseEvent",
     "ComponentDragger.startDraggingComponent": "takes a const MouseEvent&",
     "ComponentDragger.dragComponent": "takes a const MouseEvent&",
     # check_handwritten_covered.py already records this one, with this reason.
