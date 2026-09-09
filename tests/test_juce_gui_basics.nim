@@ -19611,3 +19611,43 @@ proc testFileChooserDialogBoxCentreWithDefaultSize() =
 
 
 testFileChooserDialogBoxCentreWithDefaultSize()
+
+
+# DialogWindow::escapeKeyPressed is the whole of what the escape key does to a
+# dialog: if it was built to let escape stand in for the close button it hides
+# itself and answers true, and otherwise it answers false and leaves the window
+# alone (juce_DialogWindow.cpp:49-57). It touches no peer, so the window is
+# built with addToDesktop false and no display is needed.
+
+proc testDialogWindowEscapeKeyPressed() =
+    initialiseJuce_GUI()
+
+    block:
+        var triggering = makeDialogWindow(
+            makeString("closes on escape"),
+            makeColour(0'u8, 0'u8, 0'u8, 255'u8), true, false)
+        triggering.setVisible(true)
+        doAssert triggering.isVisible(),
+                 "the dialog was not visible before escape"
+
+        let handled = triggering.escapeKeyPressed()
+        doAssert handled, "escape was not treated as the close button"
+        doAssert not triggering.isVisible(),
+                 "escape did not hide a dialog that closes on escape"
+
+    block:
+        var ignoring = makeDialogWindow(
+            makeString("ignores escape"),
+            makeColour(0'u8, 0'u8, 0'u8, 255'u8), false, false)
+        ignoring.setVisible(true)
+
+        let handled = ignoring.escapeKeyPressed()
+        doAssert not handled,
+                 "escape was treated as the close button on a dialog built without it"
+        doAssert ignoring.isVisible(),
+                 "escape hid a dialog that does not close on escape"
+
+    shutdownJuce_GUI()
+
+
+testDialogWindowEscapeKeyPressed()
