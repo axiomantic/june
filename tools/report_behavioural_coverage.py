@@ -107,6 +107,25 @@ UNREACHABLE_METHODS = {
         "dereferences dragImageComponents[0], which is null with no live drag",
     "DragAndDropContainer.setCurrentDragImage":
         "dereferences dragImageComponents[0], which is null with no live drag",
+    # A MouseEvent needs a MouseInputSource, whose only non-copy constructor is
+    # private to ComponentPeer, Desktop and two detail classes. Nothing here can
+    # build one, which is why both classes are on the list above; a method that
+    # reaches its state only through a MouseEvent is unreachable for that reason.
+    "MouseInactivityDetector.setDelay":
+        "delayMs is read only inside wakeUp (const MouseEvent&)",
+    "MouseInactivityDetector.setMouseMoveTolerance":
+        "toleranceDistance is read only inside wakeUp (const MouseEvent&)",
+    "ComponentDragger.startDraggingComponent": "takes a const MouseEvent&",
+    "ComponentDragger.dragComponent": "takes a const MouseEvent&",
+    "TextPropertyComponent.setInterestedInFileDrag":
+        "forwards to the internal editor and is visible only through real "
+        "file-drag events",
+    "ModalComponentManager.startModal":
+        "juce::ModalComponentManager::Key has a private constructor and only "
+        "Component is its friend",
+    "ModalComponentManager.endModal":
+        "juce::ModalComponentManager::Key has a private constructor and only "
+        "Component is its friend",
 }
 
 

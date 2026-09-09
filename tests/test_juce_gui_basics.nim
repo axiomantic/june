@@ -15794,12 +15794,14 @@ testToolbarItemFactoryOverrides()
 #
 # isTextEditorMultiLine reports what the CONSTRUCTOR was told, so two components
 # built the two ways answer differently - which is the only way to tell it from
-# a binding wired to a constant. The other two return void and expose nothing to
-# read back: they are exercised, and what is asserted around them is that they
-# leave the component's answer alone.
+# a binding wired to a constant. textWasEdited exposes nothing to read back, but
+# it ends in callListeners, so a registered listener is what sees it happen.
 
 proc testTextPropertyComponentEditorShape() =
     initialiseJuce_GUI()
+
+    var edits = 0
+    var editedName = ""
 
     block:
         var oneLineValue = makeValue()
@@ -15814,13 +15816,31 @@ proc testTextPropertyComponentEditorShape() =
         doAssert manyLines.isTextEditorMultiLine(),
                  "a component built multi-line reports single-line"
 
-        # Both return void. textWasEdited is the hook JUCE calls after an edit,
-        # and setInterestedInFileDrag has no getter, so neither can be read back;
-        # what is asserted is that calling them does not change the shape above.
-        manyLines.setInterestedInFileDrag(false)
+        let listener = newCustomTextPropertyComponentListener()
+        listener[].setTextPropertyComponentChangedHandler(
+            proc(changed: ptr TextPropertyComponent) =
+                edits += 1
+                editedName = $changed[].getName())
+
+        oneLine.addListener(cast[ptr TextPropertyComponentListener](listener))
+        manyLines.addListener(cast[ptr TextPropertyComponentListener](listener))
+
         manyLines.textWasEdited()
-        doAssert manyLines.isTextEditorMultiLine(),
-                 "textWasEdited changed the editor's shape"
+        doAssert edits == 1, "the listener saw " & $edits & " edits"
+        doAssert editedName == "multi",
+                 "the edit was reported against " & editedName
+
+        oneLine.textWasEdited()
+        doAssert edits == 2, "one listener should hear both components"
+        doAssert editedName == "single",
+                 "the second edit was reported against " & editedName
+
+        manyLines.removeListener(cast[ptr TextPropertyComponentListener](listener))
+        manyLines.textWasEdited()
+        doAssert edits == 2, "removeListener did not detach it"
+
+        oneLine.removeListener(cast[ptr TextPropertyComponentListener](listener))
+        cdelete listener
 
     shutdownJuce_GUI()
 
@@ -16043,10 +16063,17 @@ testRelativeParallelogramResolution()
 # the explicit style is honoured rather than ignored - one bar alone could not
 # tell the two apart.
 #
-# setPercentageDisplay and setTextToDisplay return void and have no getters.
-# They are exercised, and what is asserted around them is that the resolved
-# style is undisturbed, because that is the one thing about the bar that is
-# readable back.
+# setPercentageDisplay and setTextToDisplay have no getters, but the paint path
+# reads both to build the string it draws, so the rendered pixels are the only
+# place their effect is visible.
+
+proc renderedProgressBar(bar: var ProgressBar): uint64 =
+    let image = makeImage(ImagePixelFormat_ARGB, 120.cint, 24.cint, true)
+    var context = makeGraphics(image)
+    bar.paintEntireComponent(context, false)
+    for y in 0 ..< 24:
+        for x in 0 ..< 120:
+            result = result * 31 + image.getPixelAt(x.cint, y.cint).getARGB().uint64
 
 proc testProgressBarStyleAndText() =
     initialiseJuce_GUI()
@@ -16063,12 +16090,466 @@ proc testProgressBarStyleAndText() =
         doAssert linear.getResolvedStyle() == ProgressBarStyle_linear,
                  "a bar asked for linear resolved to something else"
 
-        # Setting the text and the percentage flag leaves the style alone.
+        linear.setBounds(makeRectangle(0.cint, 0.cint, 120.cint, 24.cint))
+        let asPercentage = renderedProgressBar(linear)
+
         linear.setTextToDisplay(makeString("loading"))
-        linear.setPercentageDisplay(false)
-        doAssert linear.getResolvedStyle() == ProgressBarStyle_linear,
-                 "setting the text changed the resolved style"
+        let asMessage = renderedProgressBar(linear)
+        doAssert asMessage != asPercentage,
+                 "a bar showing a message drew the same pixels as one showing " &
+                 "a percentage"
+
+        linear.setTextToDisplay(makeString("loading"))
+        doAssert renderedProgressBar(linear) == asMessage,
+                 "the same message drew differently the second time"
+
+        linear.setTextToDisplay(makeString("saving"))
+        doAssert renderedProgressBar(linear) != asMessage,
+                 "two different messages drew the same pixels"
+
+        linear.setPercentageDisplay(true)
+        doAssert renderedProgressBar(linear) == asPercentage,
+                 "turning the percentage back on did not restore what it drew"
 
     shutdownJuce_GUI()
 
 testProgressBarStyleAndText()
+
+# DrawableImage overlay and DrawableRectangle corner size ======================
+#
+# Both are settings that change what the drawable PAINTS, so the destination
+# surface is asked rather than the getter alone. An opaque overlay makes JUCE
+# skip drawing the image itself and stencil it in the overlay colour instead,
+# which is why a red source comes out blue.
+
+proc testDrawableOverlayAndCornerSize() =
+    initialiseJuce_GUI()
+
+    block:
+        let source = makeImage(ImagePixelFormat_ARGB, 4.cint, 4.cint, true)
+        block:
+            var sourceContext = makeGraphics(source)
+            sourceContext.setColour(makeColour(255'u8, 0'u8, 0'u8, 255'u8))
+            sourceContext.fillAll()
+
+        var drawable = makeDrawableImage(source)
+        doAssert drawable.getOverlayColour().getARGB() == 0'u32,
+                 "a fresh drawable has an overlay of " &
+                 $drawable.getOverlayColour().getARGB()
+
+        let plain = makeImage(ImagePixelFormat_ARGB, 8.cint, 8.cint, true)
+        var plainContext = makeGraphics(plain)
+        drawable.drawAt(plainContext, 0.0'f32, 0.0'f32, 1.0'f32)
+        doAssert plain.getPixelAt(1.cint, 1.cint).getRed() == 255'u8,
+                 "without an overlay the drawable painted red " &
+                 $plain.getPixelAt(1.cint, 1.cint).getRed()
+
+        let blue = makeColour(0'u8, 0'u8, 255'u8, 255'u8)
+        drawable.setOverlayColour(blue)
+        doAssert drawable.getOverlayColour().getARGB() == blue.getARGB(),
+                 "the overlay read back as " &
+                 $drawable.getOverlayColour().getARGB()
+
+        let tinted = makeImage(ImagePixelFormat_ARGB, 8.cint, 8.cint, true)
+        var tintedContext = makeGraphics(tinted)
+        drawable.drawAt(tintedContext, 0.0'f32, 0.0'f32, 1.0'f32)
+        doAssert tinted.getPixelAt(1.cint, 1.cint).getBlue() == 255'u8,
+                 "the overlaid drawable painted blue " &
+                 $tinted.getPixelAt(1.cint, 1.cint).getBlue()
+        doAssert tinted.getPixelAt(1.cint, 1.cint).getRed() == 0'u8,
+                 "the overlay left red " & $tinted.getPixelAt(1.cint, 1.cint).getRed() &
+                 " behind"
+
+    block:
+        var rectangle = makeDrawableRectangle()
+        doAssert rectangle.getCornerSize().getX() == 0.0'f32 and
+                 rectangle.getCornerSize().getY() == 0.0'f32,
+                 "a fresh rectangle has corners of " &
+                 $rectangle.getCornerSize().getX() & "," &
+                 $rectangle.getCornerSize().getY()
+
+        rectangle.setRectangle(makeParallelogram(
+            makeRectangle(0.0'f32, 0.0'f32, 8.0'f32, 8.0'f32)))
+        rectangle.setFill(makeFillType(makeColour(0'u8, 255'u8, 0'u8, 255'u8)))
+
+        let square = makeImage(ImagePixelFormat_ARGB, 10.cint, 10.cint, true)
+        var squareContext = makeGraphics(square)
+        rectangle.drawAt(squareContext, 0.0'f32, 0.0'f32, 1.0'f32)
+        doAssert square.getPixelAt(0.cint, 0.cint).getAlpha() == 255'u8,
+                 "a square rectangle left its corner unpainted"
+
+        rectangle.setCornerSize(makePoint(4.0'f32, 4.0'f32))
+        doAssert rectangle.getCornerSize().getX() == 4.0'f32 and
+                 rectangle.getCornerSize().getY() == 4.0'f32,
+                 "the corner size read back as " &
+                 $rectangle.getCornerSize().getX() & "," &
+                 $rectangle.getCornerSize().getY()
+
+        let rounded = makeImage(ImagePixelFormat_ARGB, 10.cint, 10.cint, true)
+        var roundedContext = makeGraphics(rounded)
+        rectangle.drawAt(roundedContext, 0.0'f32, 0.0'f32, 1.0'f32)
+        doAssert rounded.getPixelAt(0.cint, 0.cint).getAlpha() == 0'u8,
+                 "rounding the corners still painted the corner pixel at alpha " &
+                 $rounded.getPixelAt(0.cint, 0.cint).getAlpha()
+        doAssert rounded.getPixelAt(4.cint, 4.cint).getGreen() == 255'u8,
+                 "rounding the corners emptied the middle too"
+
+    shutdownJuce_GUI()
+
+testDrawableOverlayAndCornerSize()
+
+# Label position, image placement and property height =========================
+#
+# Three settings whose constructors pick a non-zero default, so the default is
+# pinned first: a getter that returned a fixed value would agree with the value
+# that was set but disagree with the default.
+
+proc testWidgetPlacementDefaults() =
+    initialiseJuce_GUI()
+
+    block:
+        var group = makeGroupComponent(makeString("group"), makeString("Options"))
+        doAssert group.getTextLabelPosition().getFlags() ==
+                 JustificationFlags_left.cint,
+                 "a fresh group labels at " & $group.getTextLabelPosition().getFlags()
+
+        group.setTextLabelPosition(makeJustification(JustificationFlags_centred.cint))
+        doAssert group.getTextLabelPosition().getFlags() ==
+                 JustificationFlags_centred.cint,
+                 "the label position read back as " &
+                 $group.getTextLabelPosition().getFlags()
+
+    block:
+        var image = makeImageComponent(makeString("art"))
+        doAssert image.getImagePlacement().getFlags() ==
+                 RectanglePlacementFlags_centred.cint,
+                 "a fresh image component places at " &
+                 $image.getImagePlacement().getFlags()
+
+        image.setImagePlacement(
+            makeRectanglePlacement(RectanglePlacementFlags_stretchToFit.cint))
+        doAssert image.getImagePlacement().getFlags() ==
+                 RectanglePlacementFlags_stretchToFit.cint,
+                 "the placement read back as " & $image.getImagePlacement().getFlags()
+
+    block:
+        # PropertyComponent is abstract, so the height is reached through the
+        # generated subclass and called on the base, which is how a PropertyPanel
+        # asks for it.
+        let custom = newCustomPropertyComponent(makeString("Gain"), 42.cint)
+        var base = cast[ptr PropertyComponent](custom)
+        doAssert base[].getPreferredHeight() == 42,
+                 "the component was built 42 high and reports " &
+                 $base[].getPreferredHeight()
+
+        base[].setPreferredHeight(17.cint)
+        doAssert base[].getPreferredHeight() == 17,
+                 "the height read back as " & $base[].getPreferredHeight()
+        cdelete custom
+
+    shutdownJuce_GUI()
+
+testWidgetPlacementDefaults()
+
+# ChoicePropertyComponent's choices and MessageBoxOptions' component ==========
+#
+# withAssociatedComponent is a BUILDER: it returns a new options object and
+# leaves the one it was called on alone. Asserting the original is still empty
+# is what separates a builder from a mutator, and one of the two alone could
+# not tell them apart.
+#
+# ChoicePropertyComponent's setIndex is deliberately left uncalled: on the base
+# class it is a jassertfalse that tells you to override it, and JUCE has no
+# concrete subclass here to override it in.
+
+proc testChoicesAndMessageBoxComponent() =
+    initialiseJuce_GUI()
+
+    block:
+        var choices = makeStringArray()
+        choices.add(makeString("Off"))
+        choices.add(makeString("On"))
+
+        var values = makeArray[juce_var]()
+        values.add(makejuce_var(0.cint))
+        values.add(makejuce_var(1.cint))
+
+        var backing = makeValue(makejuce_var(0.cint))
+        var chooser = makeChoicePropertyComponent(
+            backing, makeString("Mode"), choices, values)
+
+        let reported = chooser.getChoices()
+        doAssert reported.size() == 2,
+                 "the component reports " & $reported.size() & " choices"
+        doAssert $reported[0.cint] == "Off",
+                 "the first choice is " & $reported[0.cint]
+        doAssert $reported[1.cint] == "On",
+                 "the second choice is " & $reported[1.cint]
+
+    block:
+        var owner = makeComponent(makeString("owner"))
+
+        let plain = makeMessageBoxOptions()
+        doAssert plain.getAssociatedComponent() == nil,
+                 "fresh options already name an associated component"
+
+        let attached = plain.withAssociatedComponent(owner.addr)
+        doAssert attached.getAssociatedComponent() == owner.addr,
+                 "the options came back naming a different component"
+        doAssert plain.getAssociatedComponent() == nil,
+                 "withAssociatedComponent mutated the options it was called on"
+
+    shutdownJuce_GUI()
+
+testChoicesAndMessageBoxComponent()
+
+# StretchableObjectResizer ====================================================
+#
+# resizeToFit distributes the target across the items in proportion to the room
+# each one has left, and it will not push an item past the minimum it was given.
+# Growing and then over-shrinking is what shows both halves: a resizer that
+# merely scaled would sail past the minimum on the second call.
+
+proc testStretchableObjectResizer() =
+    var resizer = makeStretchableObjectResizer()
+    resizer.addItem(100.0, 50.0, 200.0)
+    resizer.addItem(100.0, 50.0, 200.0)
+    doAssert resizer.getNumItems() == 2,
+             "the resizer holds " & $resizer.getNumItems() & " items"
+
+    resizer.resizeToFit(300.0)
+    doAssert resizer.getItemSize(0.cint) == 150.0,
+             "after growing to 300 the first item is " & $resizer.getItemSize(0.cint)
+    doAssert resizer.getItemSize(1.cint) == 150.0,
+             "after growing to 300 the second item is " & $resizer.getItemSize(1.cint)
+
+    # 50 is below the two minimums added together, so the minimums win.
+    resizer.resizeToFit(50.0)
+    doAssert resizer.getItemSize(0.cint) == 50.0,
+             "shrinking past the minimum left the first item at " &
+             $resizer.getItemSize(0.cint)
+    doAssert resizer.getItemSize(1.cint) == 50.0,
+             "shrinking past the minimum left the second item at " &
+             $resizer.getItemSize(1.cint)
+
+    doAssert resizer.getItemSize(9.cint) == 0.0,
+             "an index past the end answered " & $resizer.getItemSize(9.cint)
+
+testStretchableObjectResizer()
+
+# ApplicationCommandInfo's flags and default keypresses =======================
+#
+# setActive writes a single bit of the flags word rather than replacing it, so
+# a flag set beforehand has to survive being disabled and re-enabled.
+
+proc testApplicationCommandInfo() =
+    var info = makeApplicationCommandInfo(77.cint)
+    doAssert info.commandID() == 77, "the command is " & $info.commandID()
+    doAssert info.flags() == 0, "a fresh command carries flags " & $info.flags()
+
+    info.setTicked(true)
+    info.setActive(false)
+    doAssert (info.flags() and ApplicationCommandInfoCommandFlags_isDisabled.cint) != 0,
+             "the command was disabled and its flags are " & $info.flags()
+    doAssert (info.flags() and ApplicationCommandInfoCommandFlags_isTicked.cint) != 0,
+             "disabling the command cleared its tick"
+
+    info.setActive(true)
+    doAssert (info.flags() and ApplicationCommandInfoCommandFlags_isDisabled.cint) == 0,
+             "the command stayed disabled with flags " & $info.flags()
+    doAssert (info.flags() and ApplicationCommandInfoCommandFlags_isTicked.cint) != 0,
+             "re-enabling the command cleared its tick"
+
+    doAssert info.defaultKeypresses().size() == 0,
+             "a fresh command already has " & $info.defaultKeypresses().size() &
+             " keypresses"
+
+    info.addDefaultKeypress(ord('s').cint,
+                            makeModifierKeys(ModifierKeysFlags_commandModifier.cint))
+    info.addDefaultKeypress(ord('w').cint, makeModifierKeys())
+    doAssert info.defaultKeypresses().size() == 2,
+             "the command has " & $info.defaultKeypresses().size() & " keypresses"
+    doAssert info.defaultKeypresses()[0.cint].getKeyCode() == ord('s').cint,
+             "the first keypress is " & $info.defaultKeypresses()[0.cint].getKeyCode()
+    doAssert info.defaultKeypresses()[0.cint].getModifiers().isCommandDown(),
+             "the first keypress lost its command modifier"
+    doAssert info.defaultKeypresses()[1.cint].getKeyCode() == ord('w').cint,
+             "the second keypress is " & $info.defaultKeypresses()[1.cint].getKeyCode()
+    doAssert not info.defaultKeypresses()[1.cint].getModifiers().isCommandDown(),
+             "the second keypress gained a command modifier"
+
+testApplicationCommandInfo()
+
+# DirectoryContentsList's hidden files and its thread =========================
+#
+# ignoresHiddenFiles is a bit of the type flags rather than a stored bool, and
+# clearing it re-scans, so the count of files found is what says the flag took
+# effect. getTimeSliceThread has to hand back the very thread the list was
+# built with, which its name identifies.
+
+proc testDirectoryContentsListHiddenFiles() =
+    initialiseJuce_GUI()
+
+    block:
+        let root = june.File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                       .getNonexistentChildFile(makeString("june-hidden"), makeString(""))
+        doAssert root.createDirectory().wasOk(), "could not make the temp directory"
+        defer: discard root.deleteRecursively()
+
+        doAssert root.getChildFile(makeStringRef("visible.txt"))
+                     .replaceWithText(makeString("seen")), "could not write visible.txt"
+        doAssert root.getChildFile(makeStringRef(".hidden.txt"))
+                     .replaceWithText(makeString("unseen")), "could not write .hidden.txt"
+
+        var scanner = makeTimeSliceThread(makeString("june-hidden-scan"))
+        doAssert scanner.startThread(), "the scanning thread did not start"
+
+        var listing = makeDirectoryContentsList(nil, scanner)
+        doAssert $listing.getTimeSliceThread().getThreadName() == "june-hidden-scan",
+                 "the listing named its thread " &
+                 $listing.getTimeSliceThread().getThreadName()
+        doAssert listing.ignoresHiddenFiles(),
+                 "a fresh listing does not ignore hidden files"
+
+        # june.Thread, not Thread: inside a template the bare name binds to
+        # Nim's own generic system.Thread instead.
+        template waitForScan() =
+            var waited = 0
+            while listing.isStillLoading() and waited < 5000:
+                june.Thread.sleep(10.cint)
+                waited += 10
+            doAssert not listing.isStillLoading(),
+                     "the scan was still running after " & $waited & "ms"
+
+        listing.setDirectory(root, false, true)
+        listing.refresh()
+        waitForScan()
+        doAssert listing.getNumFiles() == 1,
+                 "ignoring hidden files the listing holds " & $listing.getNumFiles()
+
+        listing.setIgnoresHiddenFiles(false)
+        doAssert not listing.ignoresHiddenFiles(),
+                 "the listing still ignores hidden files"
+        waitForScan()
+        doAssert listing.getNumFiles() == 2,
+                 "including hidden files the listing holds " & $listing.getNumFiles()
+
+        listing.clear()
+        doAssert scanner.stopThread(2000.cint), "the scanning thread did not stop"
+
+    shutdownJuce_GUI()
+
+testDirectoryContentsListHiddenFiles()
+
+# BorderedComponentBoundsConstrainer ==========================================
+#
+# Both methods are virtual and the class is abstract, so the generated subclass
+# supplies them and they are read back through the base pointer, which is where
+# JUCE itself calls them from.
+
+proc testBorderedComponentBoundsConstrainer() =
+    initialiseJuce_GUI()
+
+    block:
+        var wrapped = makeComponentBoundsConstrainer()
+        wrapped.setMinimumWidth(31.cint)
+        # The handler captures the POINTER: capturing the constrainer itself
+        # would copy it into the closure environment and hand back the copy.
+        let wrappedPtr = wrapped.addr
+
+        let bordered = newCustomBorderedComponentBoundsConstrainer()
+        bordered[].setGetWrappedConstrainerHandler(
+            proc(): ptr ComponentBoundsConstrainer = wrappedPtr)
+        bordered[].setGetAdditionalBorderHandler(
+            proc(): BorderSize[cint] = makeBorderSize(3.cint, 5.cint, 7.cint, 9.cint))
+
+        var base = cast[ptr BorderedComponentBoundsConstrainer](bordered)
+        doAssert base[].getWrappedConstrainer() == wrappedPtr,
+                 "the constrainer wrapped something else"
+        doAssert base[].getWrappedConstrainer()[].getMinimumWidth() == 31,
+                 "the wrapped constrainer has a minimum width of " &
+                 $base[].getWrappedConstrainer()[].getMinimumWidth()
+
+        let border = base[].getAdditionalBorder()
+        doAssert border.getTop() == 3 and border.getLeft() == 5,
+                 "the additional border is " & $border.getTop() & "," & $border.getLeft()
+
+        cdelete bordered
+
+    shutdownJuce_GUI()
+
+testBorderedComponentBoundsConstrainer()
+
+# ResizableBorderComponent's zone and border thickness ========================
+#
+# The border thickness decides which zone a point on the component falls in, so
+# the same point is classified against two different thicknesses. Reading the
+# zone back from a fresh component pins the centre default, which is what a
+# component nobody has moved the mouse over reports.
+
+proc testResizableBorderComponentZone() =
+    initialiseJuce_GUI()
+
+    block:
+        var target = makeComponent(makeString("resizable"))
+        target.setBounds(makeRectangle(0.cint, 0.cint, 100.cint, 100.cint))
+
+        var border = makeResizableBorderComponent(target.addr, nil)
+        doAssert border.getBorderThickness().getTop() == 5,
+                 "a fresh border is " & $border.getBorderThickness().getTop() & " thick"
+        doAssert border.getCurrentZone().isDraggingWholeObject(),
+                 "a component nobody has touched reports an edge zone"
+
+        border.setBorderThickness(makeBorderSize(12.cint))
+        doAssert border.getBorderThickness().getTop() == 12,
+                 "the thickness read back as " & $border.getBorderThickness().getTop()
+        doAssert border.getCurrentZone().isDraggingWholeObject(),
+                 "changing the thickness moved the current zone off centre"
+
+        # x = 8 is inside a 12px border and outside a 5px one.
+        let bounds = makeRectangle(0.cint, 0.cint, 100.cint, 100.cint)
+        let position = makePoint(8.cint, 50.cint)
+        let thick = ResizableBorderComponentZone.fromPositionOnBorder(
+            bounds, makeBorderSize(12.cint), position)
+        doAssert thick.isDraggingLeftEdge(),
+                 "8px into a 12px border is not the left edge"
+        let thin = ResizableBorderComponentZone.fromPositionOnBorder(
+            bounds, makeBorderSize(5.cint), position)
+        doAssert thin.isDraggingWholeObject(),
+                 "8px into a 5px border is not the middle"
+
+    shutdownJuce_GUI()
+
+testResizableBorderComponentZone()
+
+# Slider::RotaryParameters ====================================================
+#
+# The struct's members have no default initialisers, so a bare one holds
+# whatever was on the stack. A Slider fills one in, which is why the defaults
+# are read from a slider rather than from a fresh struct.
+
+proc testSliderRotaryParameters() =
+    initialiseJuce_GUI()
+
+    block:
+        var slider = makeSlider(makeString("knob"))
+        let defaults = slider.getRotaryParameters()
+        doAssert defaults.stopAtEnd(), "a fresh slider does not stop at the end"
+        doAssert defaults.endAngleRadians() > defaults.startAngleRadians(),
+                 "the sweep ends at " & $defaults.endAngleRadians() &
+                 " and starts at " & $defaults.startAngleRadians()
+
+        var params = makeSliderRotaryParameters()
+        params.startAngleRadians = 1.0'f32
+        params.endAngleRadians = 4.0'f32
+        params.stopAtEnd = false
+        slider.setRotaryParameters(params)
+
+        let applied = slider.getRotaryParameters()
+        doAssert applied.endAngleRadians() == 4.0'f32,
+                 "the sweep ends at " & $applied.endAngleRadians()
+        doAssert not applied.stopAtEnd(), "the slider still stops at the end"
+
+    shutdownJuce_GUI()
+
+testSliderRotaryParameters()
