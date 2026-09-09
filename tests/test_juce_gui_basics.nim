@@ -15734,3 +15734,39 @@ proc testToolbarItemFactoryOverrides() =
     shutdownJuce_GUI()
 
 testToolbarItemFactoryOverrides()
+
+# TextPropertyComponent's editor shape =========================================
+#
+# isTextEditorMultiLine reports what the CONSTRUCTOR was told, so two components
+# built the two ways answer differently - which is the only way to tell it from
+# a binding wired to a constant. The other two return void and expose nothing to
+# read back: they are exercised, and what is asserted around them is that they
+# leave the component's answer alone.
+
+proc testTextPropertyComponentEditorShape() =
+    initialiseJuce_GUI()
+
+    block:
+        var oneLineValue = makeValue()
+        var manyLineValue = makeValue()
+        var oneLine = makeTextPropertyComponent(
+            oneLineValue, makeString("single"), 32.cint, false)
+        var manyLines = makeTextPropertyComponent(
+            manyLineValue, makeString("multi"), 512.cint, true)
+
+        doAssert not oneLine.isTextEditorMultiLine(),
+                 "a component built single-line reports multi-line"
+        doAssert manyLines.isTextEditorMultiLine(),
+                 "a component built multi-line reports single-line"
+
+        # Both return void. textWasEdited is the hook JUCE calls after an edit,
+        # and setInterestedInFileDrag has no getter, so neither can be read back;
+        # what is asserted is that calling them does not change the shape above.
+        manyLines.setInterestedInFileDrag(false)
+        manyLines.textWasEdited()
+        doAssert manyLines.isTextEditorMultiLine(),
+                 "textWasEdited changed the editor's shape"
+
+    shutdownJuce_GUI()
+
+testTextPropertyComponentEditorShape()

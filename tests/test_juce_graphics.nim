@@ -4998,3 +4998,51 @@ proc testTextLayoutLineBounds() =
                  "the bounds are " & $bounds.getHeight() & " tall, not ascent + descent"
 
 testTextLayoutLineBounds()
+
+# ImagePixelData::BackupExtensions, in behaviour ===============================
+#
+# The real path to one of these is ImagePixelData::getBackupExtensions, which
+# answers a null pointer on every platform that does not back its images up - so
+# a test built on a real Image would assert nothing on macOS or Linux. The
+# generated Custom subclass gives a deterministic one instead, and every call
+# below goes through the BASE pointer, which is what shows the Nim override
+# reached C++ rather than being installed and forgotten.
+
+proc testImageBackupExtensionOverrides() =
+    block:
+        var extensions = newCustomImagePixelDataBackupExtensions()
+        var enabled = false
+        var backups = 0
+
+        extensions[].setSetBackupEnabledHandler(proc(value: bool) = enabled = value)
+        extensions[].setIsBackupEnabledHandler(proc(): bool = enabled)
+        extensions[].setBackupNowHandler(proc(): bool =
+            backups += 1
+            enabled)
+        extensions[].setNeedsBackupHandler(proc(): bool = not enabled)
+        extensions[].setCanBackupHandler(proc(): bool = true)
+
+        let base = cast[ptr ImagePixelDataBackupExtensions](extensions)
+        doAssert base[].canBackup(), "the canBackup override did not answer"
+        doAssert not base[].isBackupEnabled(),
+                 "backups are enabled before anything enabled them"
+        doAssert base[].needsBackup(),
+                 "a disabled extension does not report needing a backup"
+
+        # backupNow answers what the override answers, and the override reads
+        # the state the setter wrote - so this is the whole round trip through
+        # C++ and back, not one call in isolation.
+        doAssert not base[].backupNow(),
+                 "backupNow succeeded while backups were disabled"
+        doAssert backups == 1, "backupNow ran " & $backups & " times, not once"
+
+        base[].setBackupEnabled(true)
+        doAssert base[].isBackupEnabled(), "enabling backups did not reach the override"
+        doAssert not base[].needsBackup(),
+                 "an enabled extension still reports needing a backup"
+        doAssert base[].backupNow(), "backupNow failed while backups were enabled"
+        doAssert backups == 2, "backupNow ran " & $backups & " times, not twice"
+
+        cdelete extensions
+
+testImageBackupExtensionOverrides()
