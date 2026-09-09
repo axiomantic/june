@@ -24,10 +24,10 @@ was written it read:
 methods  what
 =======  =========================================================
    4528  bound methods with a receiver
-   4331  called by a behavioural test
+   4344  called by a behavioural test
      92  uncalled, and unreachable without a window, an input device
          or the app instance
-    105  uncalled, and reachable
+     92  uncalled, and reachable
 =======  =========================================================
 
 One unit is one bound method on one class, and overloads collapse into one. The
@@ -42,18 +42,17 @@ the counting rules.
 The shape of the remainder
 ==========================
 
-The 105 are spread across 69 classes:
+The 92 are spread across 65 classes:
 
 =======  =================
 classes   uncalled methods
 =======  =================
-      3                  4
       6                  3
      15                  2
-     45                  1
+     44                  1
 =======  =================
 
-No class has five or more. That is the fact that governs how to spend effort
+No class has four or more. That is the fact that governs how to spend effort
 here: the large blocks are gone, and what is left costs roughly the same
 per-class overhead as a large one did while returning a quarter as much. A
 class still has to be read in the JUCE source, its real behaviour established
@@ -65,7 +64,7 @@ By module:
 ====================  =========  =========
 module                 methods    classes
 ====================  =========  =========
-juce_gui_basics              95         60
+juce_gui_basics              82         56
 juce_core                     6          5
 juce_events                   4          4
 juce_graphics                 0          0

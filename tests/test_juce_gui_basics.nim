@@ -16599,3 +16599,376 @@ proc testMouseInactivityDetectorListenerCallbacks() =
     shutdownJuce_GUI()
 
 testMouseInactivityDetectorListenerCallbacks()
+
+# registerCommand and the command table =======================================
+#
+# registerAllCommandsForTarget is a loop around registerCommand, so the direct
+# call is the same path with the target left out - and it is the only way to
+# reach the branch that overwrites an entry that is already there.
+#
+# The two branches differ in one flag. A command the manager has not seen is
+# copied with isTicked cleared (juce_ApplicationCommandManager.cpp:81-83); a
+# command that is already registered is assigned over
+# (juce_ApplicationCommandManager.cpp:78) and keeps whatever it arrives with.
+
+const commandFind = 1003.cint
+
+proc testApplicationCommandManagerRegistration() =
+    initialiseJuce_GUI()
+
+    block:
+        var manager = makeApplicationCommandManager()
+
+        var info = makeApplicationCommandInfo(commandFind)
+        info.setInfo(makeString("Find"), makeString("Finds the next match"),
+                     makeString("Searching"), 0.cint)
+        info.setTicked(true)
+        manager.registerCommand(info)
+
+        doAssert manager.getNumCommands() == 1,
+                 "after one registerCommand the manager holds " &
+                 $manager.getNumCommands() & " commands"
+
+        # getCommandForIndex reads the table by position rather than by id, and
+        # hands back the manager's own copy, not the struct passed in.
+        let stored = manager.getCommandForIndex(0.cint)
+        doAssert not stored.isNil(), "the manager has no entry at index 0"
+        doAssert stored[].commandID() == commandFind,
+                 "entry 0 is for command " & $stored[].commandID()
+        doAssert $stored[].shortName() == "Find",
+                 "entry 0 is named " & $stored[].shortName()
+        doAssert $stored[].categoryName() == "Searching",
+                 "entry 0 is in category " & $stored[].categoryName()
+        doAssert $stored[].description() == "Finds the next match",
+                 "entry 0 is described as " & $stored[].description()
+
+        # The tick did not survive the copy: a newly registered command is
+        # forced unticked (juce_ApplicationCommandManager.cpp:83).
+        doAssert (stored[].flags() and
+                  ApplicationCommandInfoCommandFlags_isTicked.cint) == 0,
+                 "registerCommand kept isTicked on a command it had not seen"
+
+        # An index outside the table is nil rather than a fault: the body is an
+        # OwnedArray subscript (juce_ApplicationCommandManager.h:162).
+        doAssert manager.getCommandForIndex(1.cint).isNil(),
+                 "there is an entry one past the end of the table"
+        doAssert manager.getCommandForIndex(-1.cint).isNil(),
+                 "there is an entry before the start of the table"
+
+        # The other branch. Same name, category and default keypresses, so the
+        # assertion inside registerCommand that guards against a typo is not
+        # tripped; only the tick differs, and this time it is kept.
+        var again = makeApplicationCommandInfo(commandFind)
+        again.setInfo(makeString("Find"), makeString("Finds the next match"),
+                      makeString("Searching"), 0.cint)
+        again.setTicked(true)
+        manager.registerCommand(again)
+
+        doAssert manager.getNumCommands() == 1,
+                 "re-registering the same id left " & $manager.getNumCommands() &
+                 " commands"
+        let updated = manager.getCommandForIndex(0.cint)
+        doAssert (updated[].flags() and
+                  ApplicationCommandInfoCommandFlags_isTicked.cint) != 0,
+                 "re-registering dropped isTicked as though the command were new"
+
+        # commandStatusChanged only asks for an asynchronous refresh
+        # (juce_ApplicationCommandManager.cpp:125-128). The pending flag lives
+        # on AsyncUpdater, which the manager inherits privately
+        # (juce_ApplicationCommandManager.h:95), so what is observable is that
+        # the notification leaves the command table alone.
+        manager.commandStatusChanged()
+        doAssert manager.getNumCommands() == 1,
+                 "the status notification left " & $manager.getNumCommands() &
+                 " commands"
+        let afterNotify = manager.getCommandForIndex(0.cint)
+        doAssert not afterNotify.isNil(),
+                 "the status notification emptied the command table"
+        doAssert afterNotify[].commandID() == commandFind,
+                 "entry 0 is now for command " & $afterNotify[].commandID()
+        doAssert $afterNotify[].shortName() == "Find",
+                 "entry 0 is now named " & $afterNotify[].shortName()
+
+        # getFirstCommandTarget ignores the id it is given and answers with
+        # firstTarget, falling through to findDefaultComponentTarget when there
+        # is none (juce_ApplicationCommandManager.cpp:215-218). That fallback
+        # wants a focused component, an active top level window or a desktop
+        # component, and this suite has none of the three.
+        doAssert manager.getFirstCommandTarget(commandFind).isNil(),
+                 "a manager with no target found one anyway"
+
+        var target = newCustomApplicationCommandTarget()
+        let asTarget = cast[ptr ApplicationCommandTarget](target)
+        manager.setFirstCommandTarget(asTarget)
+        doAssert manager.getFirstCommandTarget(commandFind) == asTarget,
+                 "the first target is not the one that was set"
+        doAssert manager.getFirstCommandTarget(999999.cint) == asTarget,
+                 "an unregistered id changed the answer, so the id was read"
+
+        manager.setFirstCommandTarget(nil)
+        doAssert manager.getFirstCommandTarget(commandFind).isNil(),
+                 "clearing the first target left one in place"
+        cdelete target
+
+    shutdownJuce_GUI()
+
+testApplicationCommandManagerRegistration()
+
+# The default key mappings ====================================================
+#
+# A command carries the keystrokes it wants; the mapping set is where they end
+# up. registerCommand installs them itself
+# (juce_ApplicationCommandManager.cpp:85), and the two reset methods are how an
+# application throws a user's edits away and gets those defaults back.
+#
+# keyStateChanged is what globalFocusChanged forwards to
+# (juce_KeyPressMappingSet.cpp:421-425), and juce::Component's own body for it
+# is `return false` with no state behind it (juce_Component.cpp:3251), so the
+# call is only observable through a subclass that overrides it.
+
+defineCppClass KeyStateProbeComponent of CustomComponent:
+    include "juce_gui_basics/juce_gui_basics.h"
+    proc keyStateChanged(isKeyDown: bool): bool = discard
+
+proc constructKeyStateProbeComponent(): KeyStateProbeComponent =
+    KeyStateProbeComponent()
+
+proc testKeyPressMappingSetDefaults() =
+    initialiseJuce_GUI()
+
+    block:
+        var manager = makeApplicationCommandManager()
+
+        let commandModifier = makeModifierKeys(cint(ModifierKeysFlags_commandModifier))
+        var info = makeApplicationCommandInfo(commandFind)
+        info.setInfo(makeString("Find"), makeString("Finds the next match"),
+                     makeString("Searching"), 0.cint)
+        info.addDefaultKeypress(ord('f').cint, commandModifier)
+        manager.registerCommand(info)
+
+        let mappings = manager.getKeyMappings()
+        doAssert not mappings.isNil(), "the manager has no key mappings"
+
+        # By address. Two managers holding the same one command would compare
+        # equal on every property they expose, so only the identity of the
+        # object says the set points back at the manager that owns it.
+        doAssert addr(mappings[].getCommandManager()) == addr(manager),
+                 "the mapping set reports a different manager as its owner"
+
+        let keyF = makeKeyPress(ord('f').cint, commandModifier, WChar(ord('f')))
+        doAssert mappings[].containsMapping(commandFind, keyF),
+                 "registering the command did not install its default keypress"
+
+        mappings[].clearAllKeyPresses()
+        doAssert not mappings[].containsMapping(commandFind, keyF),
+                 "clearing left the default mapping in place"
+
+        mappings[].resetToDefaultMapping(commandFind)
+        doAssert mappings[].containsMapping(commandFind, keyF),
+                 "resetToDefaultMapping did not bring the default back"
+
+        # resetToDefaultMappings empties the whole set before rebuilding it from
+        # the command table (juce_KeyPressMappingSet.cpp:113-121), so a
+        # keystroke a user added and the command never asked for is dropped.
+        let keyG = makeKeyPress(ord('g').cint, commandModifier, WChar(ord('g')))
+        mappings[].addKeyPress(commandFind, keyG)
+        let bothAssigned = mappings[].getKeyPressesAssignedToCommand(commandFind).size()
+        doAssert bothAssigned == 2,
+                 "the command has " & $bothAssigned & " keystrokes, not two"
+
+        mappings[].resetToDefaultMappings()
+        let afterReset = mappings[].getKeyPressesAssignedToCommand(commandFind).size()
+        doAssert afterReset == 1,
+                 "after the reset the command has " & $afterReset & " keystrokes"
+        doAssert mappings[].containsMapping(commandFind, keyF),
+                 "the reset dropped the command's own default"
+        doAssert not mappings[].containsMapping(commandFind, keyG),
+                 "the reset kept a keystroke that is not a default"
+
+        # globalFocusChanged tells the newly focused component that the key
+        # state changed, with isKeyDown false.
+        var toldKeyState: seq[bool] = @[]
+        let probe = cnew constructKeyStateProbeComponent()
+        probe[].onKeyStateChanged = bindClosure(proc(isKeyDown: bool): bool =
+            toldKeyState.add(isKeyDown)
+            false)
+
+        mappings[].globalFocusChanged(cast[ptr Component](probe))
+        doAssert toldKeyState == @[false],
+                 "the focused component was told " & $toldKeyState
+
+        # nil is the guarded branch of the same method: nothing is called at
+        # all, which is why passing it is legal.
+        mappings[].globalFocusChanged(nil)
+        doAssert toldKeyState == @[false],
+                 "a nil focus change still reached a component: " & $toldKeyState
+
+        cdelete probe
+
+    shutdownJuce_GUI()
+
+testKeyPressMappingSetDefaults()
+
+# Closing a document ==========================================================
+#
+# tryToCloseDocumentAsync is the pure virtual an application fills in to ask the
+# user whether a document may go (juce_MultiDocumentPanel.h:345), and
+# closeDocumentAsync is what calls it. The subclass is reached through the base
+# pointer, which is how JUCE reaches it.
+#
+# Both take a std::function the panel answers on, so the assertion is on what
+# the callback was told, not on the call having been made.
+
+proc testMultiDocumentPanelClosing() =
+    initialiseJuce_GUI()
+
+    block:
+        var asked: seq[string] = @[]
+        var permission = true
+
+        let panel = newCustomMultiDocumentPanel()
+        panel[].setBounds(makeRectangle(0.cint, 0.cint, 400.cint, 300.cint))
+        panel[].setTryToCloseDocumentAsyncHandler(
+            proc(component: ptr Component, callback: CppFunctionObjectN1[bool]) =
+                asked.add($component[].getName())
+                var reply = callback
+                reply(permission))
+
+        var base = cast[ptr MultiDocumentPanel](panel)
+
+        let doc = newCustomComponent()
+        doc[].setName(makeString("doc"))
+        doAssert panel[].addDocument(cast[ptr Component](doc), Colours_white, false),
+                 "the document was refused"
+
+        # On its own it only asks. Removing the document is closeDocumentAsync's
+        # job, not this one's.
+        var toldDirectly: seq[bool] = @[]
+        base[].tryToCloseDocumentAsync(cast[ptr Component](doc),
+                                       bindClosure(proc(ok: bool) = toldDirectly.add(ok)))
+        doAssert asked == @["doc"], "the subclass was asked about " & $asked
+        doAssert toldDirectly == @[true],
+                 "the callback was told " & $toldDirectly
+        doAssert panel[].getNumDocuments() == 1,
+                 "asking whether a document may close closed it"
+
+        # checkItsOkToCloseFirst routes through the subclass, and a refusal is
+        # passed on to the caller's callback unchanged
+        # (juce_MultiDocumentPanel.cpp:450-465).
+        permission = false
+        var refused: seq[bool] = @[]
+        base[].closeDocumentAsync(cast[ptr Component](doc), true,
+                                  bindClosure(proc(ok: bool) = refused.add(ok)))
+        doAssert asked == @["doc", "doc"],
+                 "the subclass was asked about " & $asked
+        doAssert refused == @[false],
+                 "the refused close reported " & $refused
+        doAssert panel[].getNumDocuments() == 1,
+                 "a refused close removed the document anyway"
+
+        permission = true
+        var accepted: seq[bool] = @[]
+        base[].closeDocumentAsync(cast[ptr Component](doc), true,
+                                  bindClosure(proc(ok: bool) = accepted.add(ok)))
+        doAssert accepted == @[true],
+                 "the accepted close reported " & $accepted
+        doAssert panel[].getNumDocuments() == 0,
+                 "the accepted close left " & $panel[].getNumDocuments() &
+                 " documents"
+        doAssert asked.len == 3, "the subclass was asked " & $asked.len & " times"
+
+        # With the check turned off the subclass is not consulted at all, and
+        # the callback is told true regardless.
+        doAssert panel[].addDocument(cast[ptr Component](doc), Colours_white, false),
+                 "the document could not be added back"
+        var direct: seq[bool] = @[]
+        base[].closeDocumentAsync(cast[ptr Component](doc), false,
+                                  bindClosure(proc(ok: bool) = direct.add(ok)))
+        doAssert asked.len == 3,
+                 "closing without the check still asked the subclass; asked " &
+                 $asked.len & " times"
+        doAssert direct == @[true], "the unchecked close reported " & $direct
+        doAssert panel[].getNumDocuments() == 0,
+                 "the unchecked close left " & $panel[].getNumDocuments() &
+                 " documents"
+
+        # A nil component is answered true and goes no further
+        # (juce_MultiDocumentPanel.cpp:443-447).
+        var forNothing: seq[bool] = @[]
+        base[].closeDocumentAsync(nil, true,
+                                  bindClosure(proc(ok: bool) = forNothing.add(ok)))
+        doAssert forNothing == @[true],
+                 "closing nothing reported " & $forNothing
+        doAssert asked.len == 3,
+                 "closing nothing asked the subclass; asked " & $asked.len & " times"
+
+        # activeDocumentChanged is an empty body on the base
+        # (juce_MultiDocumentPanel.cpp:524-526): JUCE calls it after the active
+        # document has already changed and leaves the work to a subclass. The
+        # panel therefore has to come out of it exactly as it went in.
+        doAssert panel[].addDocument(cast[ptr Component](doc), Colours_white, false),
+                 "the document could not be added back a second time"
+        let activeBefore = panel[].getActiveDocument()
+        doAssert activeBefore == cast[ptr Component](doc),
+                 "the only document is not the active one"
+        base[].activeDocumentChanged()
+        doAssert panel[].getActiveDocument() == activeBefore,
+                 "the notification changed which document is active"
+        doAssert panel[].getNumDocuments() == 1,
+                 "the notification left " & $panel[].getNumDocuments() & " documents"
+
+        panel[].closeAllDocumentsAsync(false, bindClosure(proc(ok: bool) = discard))
+        cdelete doc
+        cdelete panel
+
+    shutdownJuce_GUI()
+
+testMultiDocumentPanelClosing()
+
+# createNewDocumentWindow =====================================================
+#
+# macOS only, for the reason the MultiDocumentPanelWindow test gives: the window
+# it builds is a top-level window and the headless Linux container segfaults on
+# one.
+#
+# The window is `new MultiDocumentPanelWindow (backgroundColour)` and nothing
+# attaches it (juce_MultiDocumentPanel.cpp:175-178), so the caller owns what
+# comes back and the panel's own colour is what identifies it as the panel's.
+
+when defined(macosx):
+    proc testCreateNewDocumentWindow() =
+        initialiseJuce_GUI()
+
+        block:
+            let panel = newCustomMultiDocumentPanel()
+            panel[].setTryToCloseDocumentAsyncHandler(
+                proc(component: ptr Component, callback: CppFunctionObjectN1[bool]) = discard)
+            panel[].setBackgroundColour(Colours_darkslategrey)
+
+            var base = cast[ptr MultiDocumentPanel](panel)
+            let window = base[].createNewDocumentWindow()
+            doAssert not window.isNil(), "createNewDocumentWindow built nothing"
+            doAssert window[].getBackgroundColour() == Colours_darkslategrey,
+                     "the window is coloured " & $window[].getBackgroundColour() &
+                     " rather than the panel's background"
+
+            # Unattached: it is not a child of the panel that made it, which is
+            # what addWindow does afterwards and this does not.
+            doAssert window[].getParentComponent().isNil(),
+                     "a freshly made window already has a parent"
+            doAssert panel[].getNumChildComponents() == 0,
+                     "the panel gained " & $panel[].getNumChildComponents() &
+                     " children from making a window"
+
+            # A second call is a second window, not the same one handed back.
+            let another = base[].createNewDocumentWindow()
+            doAssert another != window,
+                     "the second call returned the first window"
+
+            cdelete another
+            cdelete window
+            cdelete panel
+
+        shutdownJuce_GUI()
+
+    testCreateNewDocumentWindow()
