@@ -2178,6 +2178,40 @@ countries: pi
 
 testLocalisedStringsFallback()
 
+
+# The fallback can be loaded from a file as well as from text. Both spellings
+# of newLocalisedStrings are used here on purpose: an importcpp proc reaches
+# the C++ compiler only where it is called, so an overload with no call site
+# is never compiled at all.
+
+proc testLocalisedStringsFallbackFromFile() =
+    let root = june.File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                   .getNonexistentChildFile(makeString("june-lang"), makeString(""))
+    doAssert root.createDirectory().wasOk(), "could not make the temp directory"
+    defer: discard root.deleteRecursively(false)
+
+    block:
+        let langFile = root.getChildFile(makeStringRef("backup.lang"))
+        doAssert langFile.replaceWithText(makeString("""language: Pirate
+countries: pi
+
+"Quit" = "Abandon ship"
+""")), "could not write the language file"
+
+        var strings = makeLocalisedStrings(makeString("""language: Pirate
+countries: pi
+
+"Open" = "Broach"
+"""), false)
+        strings.setFallback(newLocalisedStrings(langFile, false))
+
+        doAssert $strings.translate(makeString("Quit")) == "Abandon ship",
+                 "the fallback read from a file was not consulted"
+        doAssert $strings.translate(makeString("Open")) == "Broach",
+                 "the file fallback displaced an entry the table holds itself"
+
+testLocalisedStringsFallbackFromFile()
+
 # The GZIP streams and SubregionStream ========================================
 #
 # A compress-then-decompress round trip, so the assertion is that the bytes
