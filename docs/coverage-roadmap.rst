@@ -59,12 +59,18 @@ classes   uncalled methods
      11                  1
 =======  =================
 
-No class has four or more. That is the fact that governs how to spend effort
-here: the large blocks are gone, and what is left costs roughly the same
-per-class overhead as a large one did while returning a quarter as much. A
-class still has to be read in the JUCE source, its real behaviour established
-rather than assumed, and any ownership rule found the hard way before a test
-can assert anything true about it.
+No class has three or more, and none of what is left is waiting to be written.
+Every method in the table is one a test MUST NOT call, for a reason recorded
+below rather than for want of someone to write it: it would set the machine
+clock, open a browser, beep, enter a loop that never returns, run every
+UnitTest in the process, strand a singleton, double-free a callback, add a site
+to the assertion ledger, or want a desktop window. The two the generator cannot
+reach are there too.
+
+So the number to watch is no longer this one. It moves again when the bindings
+grow - a new module, or a generator change that emits methods nobody has
+written a test for yet - and the guidance below is for that, not for the table
+above it.
 
 By module:
 
