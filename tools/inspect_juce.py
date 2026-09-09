@@ -121,6 +121,17 @@ nim_field_setter_def = """{comment}proc `{raw_name}=`*(this: var {class_name}, v
 # not reported as a deleted method.
 move_only_wrappers = ("UniquePtr[", "OptionalScopedPointer[")
 
+
+def ctor_moves(nim_type, cpp_type):
+    """A constructor parameter Nim must hand over rather than copy.
+
+    Two shapes need it: a C++ `T&&`, which will not bind to the lvalue Nim
+    passes, and a move-only wrapper taken by value, whose copy constructor is
+    deleted. The method path applies both halves of this rule already.
+    """
+    return (nim_type.startswith(move_only_wrappers)
+            or cpp_type.rstrip().endswith("&&"))
+
 # A static method has no receiver, so it takes the class as a typedesc and is
 # called as Time.currentTimeMillis(). That is the spelling juce_events_lifting
 # already used for MessageManager.getInstance.
@@ -2141,16 +2152,22 @@ def run_main(juce_module_name, juce_class_name_to_export):
             if ctor_cpp_types and ctor.spelling in scalar_overloaded_ctors:
                 ctor_juce_args = ", ".join(f"({cpp_type}) #"
                                            for cpp_type in ctor_cpp_types)
-            elif any(c.rstrip().endswith("&&") for c in ctor_cpp_types):
+            elif any(ctor_moves(nim_type, cpp_type) for nim_type, cpp_type
+                     in zip(ctor_types, ctor_cpp_types)):
                 # An rvalue reference will not bind to an lvalue, and Nim hands
                 # over an lvalue, so a parameter declared `T&&` needs the move
                 # here for the same reason the method path gives it one. Without
                 # it the binding is emitted, compiles as a declaration, and
                 # fails at every call site - which is where
                 # MemoryInputStream(MemoryBlock&&) sat until something called it.
+                # A move-only wrapper taken BY VALUE needs it for the same
+                # reason, and this asked only about `&&` until ToolbarButton,
+                # whose two unique_ptr parameters made every call site a copy of
+                # a deleted copy constructor.
                 ctor_juce_args = ", ".join(
-                    "std::move(#)" if c.rstrip().endswith("&&") else "#"
-                    for c in ctor_cpp_types)
+                    "std::move(#)" if ctor_moves(nim_type, cpp_type) else "#"
+                    for nim_type, cpp_type
+                    in zip(ctor_types, ctor_cpp_types))
             else:
                 ctor_juce_args = "@"
 
