@@ -8152,3 +8152,79 @@ proc testDynamicObjectJsonCloneAndUnknownMethod() =
         doAssert json.contains("\"count\""), "the JSON has no count field: " & json
 
 testDynamicObjectJsonCloneAndUnknownMethod()
+
+# DirectoryEntry, walked by hand ===============================================
+#
+# There is no items() over a RangedDirectoryIterator, so the walk is the C++
+# shape spelled out: dereference for the entry, inc to advance, and a
+# default-built iterator as the end. Two files of KNOWN and different sizes,
+# because a getFileSize wired to a constant would pass against one.
+
+proc testDirectoryEntryFields() =
+    let directory = File.getSpecialLocation(
+            FileSpecialLocationType_tempDirectory)
+        .getNonexistentChildFile(makeString("june-entries"), makeString(""))
+    doAssert directory.createDirectory().wasOk(),
+             "could not make the temp directory"
+    defer: discard directory.deleteRecursively()
+
+    doAssert directory.getChildFile(makeString("short.txt"))
+        .replaceWithText(makeString("ab")), "could not write the short file"
+    doAssert directory.getChildFile(makeString("longer.txt"))
+        .replaceWithText(makeString("abcdefgh")), "could not write the long file"
+
+    block:
+        var walk = makeRangedDirectoryIterator(
+            directory, false, makeString("*"),
+            FileTypesOfFileToFind_findFiles.cint, FileFollowSymlinks_no)
+        let stop = makeRangedDirectoryIterator()
+
+        var seen = 0
+        var shortSize = -1'i64
+        var longSize = -1'i64
+        let now = Time.getCurrentTime()
+        while not (walk == stop):
+            let entry = `*`(walk)
+            seen += 1
+            let name = $entry.getFile().getFileName()
+            if name == "short.txt": shortSize = entry.getFileSize()
+            if name == "longer.txt": longSize = entry.getFileSize()
+
+            # Written moments ago, so the entry's stamp cannot be in the future.
+            doAssert entry.getModificationTime() <= now,
+                     name & " was modified in the future"
+            # The progress through a scan is a fraction, whatever it is.
+            doAssert entry.getEstimatedProgress() >= 0.0'f32 and
+                     entry.getEstimatedProgress() <= 1.0'f32,
+                     name & " reports progress " & $entry.getEstimatedProgress()
+            discard inc(walk)
+
+        doAssert seen == 2, "the walk saw " & $seen & " files, not two"
+        doAssert shortSize == 2'i64,
+                 "the two-byte file measured " & $shortSize
+        doAssert longSize == 8'i64,
+                 "the eight-byte file measured " & $longSize
+
+testDirectoryEntryFields()
+
+# AndroidDocumentPermission's defaults =========================================
+#
+# The class is Android's, but it is a plain value with three readers over
+# members JUCE initialises in the header - `int64 time = 0` and
+# `bool read = false, write = false` (juce_AndroidDocument.h:213-215). A default
+# built one therefore has an answer on every platform, and pinning those three
+# is what a reader wired to the wrong member would fail: the two booleans differ
+# from the number, and neither is left indeterminate.
+
+proc testAndroidDocumentPermissionDefaults() =
+    block:
+        let permission = makeAndroidDocumentPermission()
+        doAssert not permission.isReadPermission(),
+                 "a default permission grants read"
+        doAssert not permission.isWritePermission(),
+                 "a default permission grants write"
+        doAssert permission.getPersistedTime() == 0'i64,
+                 "a default permission was persisted at " &
+                 $permission.getPersistedTime()
+
+testAndroidDocumentPermissionDefaults()
