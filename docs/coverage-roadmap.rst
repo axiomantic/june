@@ -200,6 +200,28 @@ spelling and only the first had a call site; the second had never been
 compiled. Give every overload its own call site, and do not read a green gate
 as evidence that one exists.
 
+**Never pin a number the platform produces.** Rasterising a shape and shaping
+text both give answers that belong to the host's rasteriser, font resolution
+and text shaper rather than to the binding under test. Three assertions on this
+branch pinned one: a pointer covering exactly 300 pixels, "Hello" laying out to
+exactly 5 glyphs, and - after the first was found - a claim that the pointer's
+four rotations cover the SAME count, which is the trap in its subtlest form.
+That last one was argued from the geometry, correctly: the rotation is exactly
+ninety degrees about the shape's centre, so the vertices map onto themselves.
+It still does not follow, because what is anti-aliased is the rotated PATH, and
+its coverage of a boundary pixel is not orientation-invariant. Ubuntu measures
+292 and 296 where macOS measures 300 four times.
+
+Assert relative properties instead: something rather than nothing, containment
+inside a region, an exact colour only at a pixel whose whole area is inside an
+integer-aligned fill, a difference between two renders on the same machine, or
+an ordering. Where a count is genuinely wanted, count something the INPUT
+determines - the layout is now held to covering all five characters of "Hello",
+which the text fixes and the font cannot change - rather than something the
+output produced. Note that a development machine cannot catch this class by
+construction: every one of these passed locally and failed, or would have
+failed, only on the other platform's CI.
+
 **``doAssert cond, msg`` evaluates ``msg`` only when ``cond`` fails.** A call
 placed inside the message string is therefore not made on the passing path. A
 counter asserted against a number that includes such a call is wrong in the
