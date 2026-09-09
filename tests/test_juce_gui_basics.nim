@@ -2822,6 +2822,27 @@ proc testRelativeGeometry() =
         doAssert fixed != makeRelativeCoordinate(13.0),
                  "coordinates of different numbers are equal"
 
+        # getExpression hands back the Expression the coordinate holds, and an
+        # absolute one evaluates to its own number without any scope at all.
+        doAssert fixed.getExpression().evaluate() == 12.5,
+                 "the expression evaluates to " &
+                 $fixed.getExpression().evaluate()
+
+        # An absolute coordinate names nothing, so it cannot refer back to
+        # itself however it is scoped - nil included.
+        doAssert not fixed.isRecursive(nil),
+                 "a plain number called itself recursive"
+
+        # moveToAbsolute rewrites the coordinate to the position asked for,
+        # which resolve then reports. Asserted from a DIFFERENT starting number,
+        # so a no-op would leave 5.0 behind rather than pass.
+        var movable = makeRelativeCoordinate(5.0)
+        doAssert movable.resolve(nil) == 5.0,
+                 "the movable coordinate started at " & $movable.resolve(nil)
+        movable.moveToAbsolute(20.0, nil)
+        doAssert movable.resolve(nil) == 20.0,
+                 "after moving it resolves to " & $movable.resolve(nil)
+
         # A coordinate written as an expression that names another coordinate is
         # dynamic, because it cannot be resolved without a scope.
         let named = makeRelativeCoordinate(makeString("parent.width / 2"))
@@ -3072,6 +3093,40 @@ proc testTabReordering() =
         # The bar builds a TabBarButton per tab, and it carries the name.
         let button = bar.getTabButton(0.cint)
         doAssert button != nil, "the first tab has no button"
+
+        # indexOfTabButton is getTabButton's inverse, which is what makes this
+        # pair falsifiable: a binding returning a constant would fail one of
+        # them. A button the bar does not own answers -1 rather than guessing.
+        doAssert bar.indexOfTabButton(button) == 0,
+                 "the first tab's button reports index " &
+                 $bar.indexOfTabButton(button)
+        doAssert bar.indexOfTabButton(bar.getTabButton(2.cint)) == 2,
+                 "the third tab's button reports index " &
+                 $bar.indexOfTabButton(bar.getTabButton(2.cint))
+        doAssert bar.indexOfTabButton(nil) == -1,
+                 "a button the bar does not own reports " &
+                 $bar.indexOfTabButton(nil)
+
+        # The bar has never been laid out, so the target bounds are whatever a
+        # zero-sized bar gives - what is asserted is that the three tabs do not
+        # all get the SAME answer once the bar has a size, which is the failure
+        # a constant would produce.
+        bar.setBounds(0.cint, 0.cint, 300.cint, 30.cint)
+        let first = bar.getTargetBounds(bar.getTabButton(0.cint))
+        let third = bar.getTargetBounds(bar.getTabButton(2.cint))
+        doAssert first != third,
+                 "every tab targets the same bounds, " & $first.getX() & "," &
+                 $first.getWidth()
+        doAssert first.getWidth() > 0 and first.getHeight() > 0,
+                 "the first tab targets a " & $first.getWidth() & "x" &
+                 $first.getHeight() & " rectangle"
+
+        # setMinimumTabScaleFactor returns void and has no getter. It bounds how
+        # far JUCE may shrink tabs to fit, so what is asserted is that setting
+        # it leaves the bounds above answerable rather than any particular size.
+        bar.setMinimumTabScaleFactor(0.5)
+        doAssert bar.getTargetBounds(bar.getTabButton(0.cint)).getHeight() > 0,
+                 "after setting the minimum scale the first tab has no height"
         doAssert $button[].getButtonText() == "Second",
                  "the button reads " & $button[].getButtonText()
 
