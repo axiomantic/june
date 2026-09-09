@@ -19129,7 +19129,6 @@ proc testLookAndFeelV4DrawPointer() =
         # The shape drawn for each of the four directions, sampled over the
         # 21x21 square the pointer was told to occupy.
         var signatures: seq[string] = @[]
-        var covered: seq[int] = @[]
 
         for direction in 0.cint .. 3.cint:
             let image = makeImage(ImagePixelFormat_ARGB, 80.cint, 60.cint, true)
@@ -19155,7 +19154,6 @@ proc testLookAndFeelV4DrawPointer() =
                         shape.add(if lit: '#' else: '.')
             signatures.add(shape)
 
-            covered.add(opaque)
             doAssert opaque > 0,
                      "direction " & $direction & " painted nothing"
             doAssert outsideRequestedArea == 0,
@@ -19170,18 +19168,16 @@ proc testLookAndFeelV4DrawPointer() =
                      $centre.getRed() & "," & $centre.getGreen() & "," &
                      $centre.getBlue() & "," & $centre.getAlpha()
 
-        # The four directions cover the same number of pixels -- the triangle
-        # is only rotated -- so a count alone would pass even if `direction`
-        # were ignored. Comparing the shapes is what proves it is honoured.
+        # Nothing here holds the covered pixel COUNT to a number. How many
+        # pixels a rotated triangle covers is the platform rasteriser's answer,
+        # not this method's: the same call covered 300 on macOS and 292 on
+        # Linux, and on Linux the four directions do not even agree with each
+        # other (292 and 296), because the anti-aliasing of a rotated path is
+        # not orientation-invariant. Only that each direction painted SOMETHING,
+        # inside the area it was given, is asserted above.
         #
-        # How many pixels that is belongs to the platform's rasteriser rather
-        # than to this method: the same call covers 300 on macOS and 292 on
-        # Linux. So the count is held to being the SAME across the four, not to
-        # a number measured on one machine.
-        for i in 1 .. 3:
-            doAssert covered[i] == covered[0],
-                     "direction " & $i & " covered " & $covered[i] &
-                     " pixels but direction 0 covered " & $covered[0]
+        # Comparing the four shapes is what proves `direction` is honoured --
+        # a count would pass even if the argument were ignored.
         for i in 0 .. 3:
             for j in i + 1 .. 3:
                 doAssert signatures[i] != signatures[j],
