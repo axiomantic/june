@@ -19129,6 +19129,7 @@ proc testLookAndFeelV4DrawPointer() =
         # The shape drawn for each of the four directions, sampled over the
         # 21x21 square the pointer was told to occupy.
         var signatures: seq[string] = @[]
+        var covered: seq[int] = @[]
 
         for direction in 0.cint .. 3.cint:
             let image = makeImage(ImagePixelFormat_ARGB, 80.cint, 60.cint, true)
@@ -19154,8 +19155,9 @@ proc testLookAndFeelV4DrawPointer() =
                         shape.add(if lit: '#' else: '.')
             signatures.add(shape)
 
-            doAssert opaque == 300,
-                     "direction " & $direction & " covered " & $opaque & " pixels"
+            covered.add(opaque)
+            doAssert opaque > 0,
+                     "direction " & $direction & " painted nothing"
             doAssert outsideRequestedArea == 0,
                      "direction " & $direction & " painted " &
                      $outsideRequestedArea & " pixels outside the area it was given"
@@ -19171,6 +19173,15 @@ proc testLookAndFeelV4DrawPointer() =
         # The four directions cover the same number of pixels -- the triangle
         # is only rotated -- so a count alone would pass even if `direction`
         # were ignored. Comparing the shapes is what proves it is honoured.
+        #
+        # How many pixels that is belongs to the platform's rasteriser rather
+        # than to this method: the same call covers 300 on macOS and 292 on
+        # Linux. So the count is held to being the SAME across the four, not to
+        # a number measured on one machine.
+        for i in 1 .. 3:
+            doAssert covered[i] == covered[0],
+                     "direction " & $i & " covered " & $covered[i] &
+                     " pixels but direction 0 covered " & $covered[0]
         for i in 0 .. 3:
             for j in i + 1 .. 3:
                 doAssert signatures[i] != signatures[j],
@@ -19469,3 +19480,134 @@ proc testComponentScopeVisitRelativeScope() =
 
 
 testComponentScopeVisitRelativeScope()
+
+
+# FileChooserDialogBox.centreWithDefaultSize =================================
+#
+# juce_FileChooserDialogBox.cpp:158-161 is one call:
+#     centreAroundComponent (componentToCentreAround, getDefaultWidth(), 500);
+# so the height is always the literal 500 and the width is getDefaultWidth()
+# (juce_FileChooserDialogBox.cpp:163-169), which is 600 with no preview
+# component and 400 + the preview's width with one. getBounds reads the
+# placement back.
+#
+# A nil parentComponent puts the box on the desktop and then it wants a real
+# window, so every block gives it a parent and keeps it an ordinary child
+# component - the same thing that makes CallOutBox testable headless.
+# juce_FileChooserDialogBox.cpp:104 passes (parentComp == nullptr) as
+# ResizableWindow's addToDesktop flag, so a parent keeps it off the desktop.
+#
+# The browser is NOT adopted: juce_FileChooserDialogBox.cpp:106-107 hands it
+# to a ContentComponent that only holds a reference, and the destructor at
+# :129-131 calls removeListener on it, so the browser must outlive the box.
+# It is declared first for that reason. The preview component is not adopted
+# either (juce_FileBrowserComponent.cpp:45,127-128).
+proc testFileChooserDialogBoxCentreWithDefaultSize() =
+    initialiseJuce_GUI()
+
+    let root = File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+
+    template withBox(preview: ptr FilePreviewComponent, body: untyped) =
+        block:
+            var parent = newCustomComponent()
+            parent[].setBounds(makeRectangle(0.cint, 0.cint, 1000.cint, 800.cint))
+            var target = newCustomComponent()
+            target[].setBounds(makeRectangle(300.cint, 200.cint, 200.cint, 200.cint))
+            parent[].addAndMakeVisible(cast[ptr Component](target))
+            var browser {.inject.} = makeFileBrowserComponent(
+                cint(FileBrowserComponentFileChooserFlags_openMode) or
+                cint(FileBrowserComponentFileChooserFlags_canSelectFiles),
+                root, nil, preview)
+            var box {.inject.} = makeFileChooserDialogBox(
+                makeString("Choose a file"), makeString("Pick one"),
+                browser, false,
+                makeColour(200'u8, 200'u8, 200'u8, 255'u8),
+                cast[ptr Component](parent))
+            let targetAsComponent {.inject.} = cast[ptr Component](target)
+            body
+            cdelete target
+            cdelete parent
+
+    withBox(nil):
+        # The target is 200x200 at (300,200) inside a 1000x800 parent, so its
+        # centre is (400,300) in the parent's coordinates - and with no peer
+        # anywhere in the chain, localPointToGlobal leaves those coordinates
+        # alone (juce_TopLevelWindow.cpp:206-215). A 600x500 rectangle centred
+        # on (400,300) is (100,50,600,500), which fits inside the parent's
+        # bounds reduced by 12 (juce_TopLevelWindow.cpp:217-219), so it is not
+        # clamped and the CENTRING is what the position shows.
+        box.centreWithDefaultSize(targetAsComponent)
+        let centred = box.getBounds()
+        doAssert centred == makeRectangle(100.cint, 50.cint, 600.cint, 500.cint),
+                 "centring a preview-less box on (400,300) put it at " & $centred
+
+    withBox(nil):
+        # Moving the target moves the box with it: a target centred on
+        # (600,400) yields (300,150,600,500). The size is unchanged and only
+        # the position tracks the target, so an implementation that ignored
+        # the argument would fail this and pass the block above by accident.
+        targetAsComponent[].setBounds(makeRectangle(500.cint, 300.cint,
+                                                    200.cint, 200.cint))
+        box.centreWithDefaultSize(targetAsComponent)
+        let moved = box.getBounds()
+        doAssert moved == makeRectangle(300.cint, 150.cint, 600.cint, 500.cint),
+                 "centring on (600,400) put the box at " & $moved
+
+    withBox(nil):
+        # The centring is CONSTRAINED, not obeyed blindly: the rectangle is
+        # constrainedWithin the parent area reduced by 12
+        # (juce_TopLevelWindow.cpp:217-219). A target centred on (700,600)
+        # asks for (400,350,600,500), whose right and bottom edges - 1000 and
+        # 850 - are outside the (12,12,976,776) limit, so JUCE slides the box
+        # back to 988-600 = 388 and 788-500 = 288 rather than centring it.
+        # The size still does not change.
+        targetAsComponent[].setBounds(makeRectangle(600.cint, 500.cint,
+                                                    200.cint, 200.cint))
+        box.centreWithDefaultSize(targetAsComponent)
+        let clamped = box.getBounds()
+        doAssert clamped == makeRectangle(388.cint, 288.cint, 600.cint, 500.cint),
+                 "centring on (700,600) put the box at " & $clamped
+
+    withBox(nil):
+        # The default argument is nil, which takes the c == nullptr path at
+        # juce_TopLevelWindow.cpp:197-202: with no active top-level window, or
+        # with one whose bounds are still empty, it falls through to
+        # centreWithSize, which centres in the parent (juce_Component.cpp:
+        # 1225-1233). A 600x500 box in a 1000x800 parent is (200,150,600,500).
+        box.centreWithDefaultSize()
+        let defaulted = box.getBounds()
+        doAssert defaulted == makeRectangle(200.cint, 150.cint, 600.cint, 500.cint),
+                 "the default argument put the box at " & $defaulted
+
+    block:
+        # With a preview component the width is 400 + the preview's width
+        # rather than the flat 600, which is what shows the width really comes
+        # from getDefaultWidth(). The preview is sized immediately before the
+        # call because laying the browser out resizes it.
+        let preview = newCustomFilePreviewComponent()
+        withBox(cast[ptr FilePreviewComponent](preview)):
+            # The box starts at the constrainer's 300x300 minimum, which the
+            # constructor forces at juce_FileChooserDialogBox.cpp:114 -
+            # setResizeLimits(300,300,1200,1000) ends in
+            # setBoundsConstrained(getBounds())
+            # (juce_ResizableWindow.cpp:314-320). So neither 650 nor 500 is
+            # there before the call, and the call is what produces them.
+            let beforeCentring = box.getBounds()
+            doAssert beforeCentring.getWidth() == 300 and
+                     beforeCentring.getHeight() == 300,
+                     "the box did not start at 300x300: " & $beforeCentring
+            preview[].setSize(250.cint, 100.cint)
+            let previewWidth = browser.getPreviewComponent()[].getWidth()
+            doAssert previewWidth == 250,
+                     "the preview is " & $previewWidth & " wide, not 250"
+
+            box.centreWithDefaultSize(targetAsComponent)
+            let withPreview = box.getBounds()
+            doAssert withPreview == makeRectangle(75.cint, 50.cint, 650.cint, 500.cint),
+                     "a 250-wide preview made the box " & $withPreview
+        cdelete preview
+
+    shutdownJuce_GUI()
+
+
+testFileChooserDialogBoxCentreWithDefaultSize()
