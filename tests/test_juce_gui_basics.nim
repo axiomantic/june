@@ -17444,14 +17444,6 @@ testFocusOutlineOutlineWindowPropertiesOverrides()
 # site. These take the receiver non-var, which is the only way to select the
 # non-var overload -- a `let` copy is impossible, as neither Slider nor Label
 # can be copied.
-# The const-reference std::function form has no `invoke`, only the call
-# operator, and it takes its argument by pointer. This is that call under a
-# name, so the field can be read and invoked in one dotted expression the way
-# the non-ref fields are.
-proc invokeWith(f: var CppFunctionObjectR1Ref[cdouble, String],
-                text: ptr String): cdouble =
-    `()`(f, text)
-
 proc copyOfTextFromValueFunction(s: Slider): CppFunctionObjectR1[String, cdouble] =
     s.textFromValueFunction
 
@@ -17551,7 +17543,7 @@ proc testSliderTextConversionFunctions() =
                  "getValueFromText returned " & $parsed
 
         var textForField = makeString("99")
-        let directValue = slider.valueFromTextFunction.invokeWith(addr textForField)
+        let directValue = slider.valueFromTextFunction.invoke(addr textForField)
         doAssert valueCalls == 2,
                  "invoking the field left the count at " & $valueCalls
         doAssert directValue == 42.5,
@@ -17561,7 +17553,7 @@ proc testSliderTextConversionFunctions() =
 
         var copiedValue = copyOfValueFromTextFunction(slider)
         var textForCopy = makeString("abc")
-        discard copiedValue.invokeWith(addr textForCopy)
+        discard copiedValue.invoke(addr textForCopy)
         doAssert valueCalls == 3,
                  "invoking the copied field left the count at " & $valueCalls
         doAssert valueSaw == @["17", "99", "abc"],

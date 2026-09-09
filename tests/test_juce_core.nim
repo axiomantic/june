@@ -3050,6 +3050,14 @@ proc testConstReferenceFunctionObjects() =
         doAssert received == "june",
                  "the command saw the executable as " & received
 
+        # invoke is the named spelling of the call operator above and reaches
+        # the same std::invoke. Both are kept: an importcpp proc is compiled
+        # only where it is called, so dropping either spelling would leave that
+        # one unbuilt.
+        held.invoke(addr arguments)
+        doAssert seen == 2,
+                 "invoking the held command by name ran it " & $seen & " times"
+
 testConstReferenceFunctionObjects()
 
 # What a closure may capture ===================================================
