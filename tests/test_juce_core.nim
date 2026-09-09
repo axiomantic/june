@@ -8771,3 +8771,327 @@ proc testStringToNimRoundTrip() =
         doAssert ($empty).len == 0, "`$` invented bytes for an empty string"
 
 testStringToNimRoundTrip()
+
+# The abstract bases, reached through the BASE pointer ========================
+#
+# Each of these is a virtual that JUCE itself calls on a base-class reference.
+# Setting the handler on the generated subclass only proves the setter
+# type-checks; calling through `ptr Base` is what proves the Nim override is
+# in the C++ vtable and that JUCE's own call site would reach it.
+#
+# Every one is invoked synchronously here. Thread::run is called without
+# starting a thread, and the timer callback without starting a timer, so what
+# the assertion reads is a value written before it, not a value raced against
+# a scheduler on a machine that is also compiling.
+
+proc testAbstractBasesThroughBasePointer() =
+    block:
+        var ran = 0
+        var thread = newCustomThread(makeString("june-run-direct"), 0.csize_t)
+        thread[].setRunHandler(proc() = ran += 1)
+        var base = cast[ptr june.Thread](thread)
+
+        doAssert not base[].isThreadRunning(),
+                 "a thread nobody started is running"
+        base[].run()
+        doAssert ran == 1, "the thread body ran " & $ran & " times"
+        doAssert not base[].isThreadRunning(),
+                 "calling run directly started a thread"
+        cdelete thread
+
+    block:
+        var told = 0
+        var listener = newCustomThreadListener()
+        listener[].setExitSignalSentHandler(proc() = told += 1)
+        var base = cast[ptr ThreadListener](listener)
+
+        base[].exitSignalSent()
+        doAssert told == 1, "the listener was told " & $told & " times"
+        base[].exitSignalSent()
+        doAssert told == 2, "the listener was told " & $told & " times"
+        cdelete listener
+
+    block:
+        # The selector answers for the job it is handed, so the handler reads
+        # the name back: a selector that received a different job, or a null
+        # one, would not agree with the answer.
+        var asked = 0
+        var seenName = ""
+        var selector = newCustomThreadPoolJobSelector()
+        selector[].setIsJobSuitableHandler(proc(job: ptr ThreadPoolJob): bool =
+            asked += 1
+            seenName = $job[].getJobName()
+            seenName == "wanted")
+        var base = cast[ptr ThreadPoolJobSelector](selector)
+
+        var wanted = newCustomThreadPoolJob(makeString("wanted"))
+        var other = newCustomThreadPoolJob(makeString("other"))
+
+        doAssert base[].isJobSuitable(cast[ptr ThreadPoolJob](wanted)),
+                 "the selector rejected the job it was meant to pick"
+        doAssert seenName == "wanted",
+                 "the selector was handed a job called " & seenName
+        doAssert not base[].isJobSuitable(cast[ptr ThreadPoolJob](other)),
+                 "the selector accepted the job it was meant to reject"
+        doAssert seenName == "other",
+                 "the selector was handed a job called " & seenName
+        doAssert asked == 2, "the selector was asked " & $asked & " times"
+
+        cdelete wanted
+        cdelete other
+        cdelete selector
+
+    block:
+        # useTimeSlice returns the milliseconds to wait before the next call,
+        # or a negative number to be dropped. Both are returned here, so a
+        # forwarder that discarded the value and returned a constant fails.
+        var calls = 0
+        var answer = 25.cint
+        var client = newCustomTimeSliceClient()
+        client[].setUseTimeSliceHandler(proc(): cint =
+            calls += 1
+            answer)
+        var base = cast[ptr TimeSliceClient](client)
+
+        let waited = base[].useTimeSlice()
+        doAssert waited == 25.cint,
+                 "the client asked to wait " & $waited & " ms"
+        answer = -1.cint
+        let dropped = base[].useTimeSlice()
+        doAssert dropped == -1.cint,
+                 "the client that asked to be dropped returned " & $dropped
+        doAssert calls == 2, "the client was called " & $calls & " times"
+        cdelete client
+
+    block:
+        var ticks = 0
+        var hiRes = newCustomHighResolutionTimer()
+        hiRes[].setHiResTimerCallbackHandler(proc() = ticks += 1)
+        var base = cast[ptr HighResolutionTimer](hiRes)
+
+        # No timer is started, so the callback count is what this test put
+        # there rather than a function of how long the machine took.
+        doAssert not base[].isTimerRunning(),
+                 "a timer nobody started is running"
+        base[].hiResTimerCallback()
+        base[].hiResTimerCallback()
+        doAssert ticks == 2, "the timer callback ran " & $ticks & " times"
+        cdelete hiRes
+
+    block:
+        var visits = 0
+        var sawScope = false
+        var uid = "absent"
+        var visitor = newCustomExpressionScopeVisitor()
+        visitor[].setVisitHandler(proc(arg0: ptr ExpressionScope) =
+            visits += 1
+            sawScope = not arg0.isNil()
+            if sawScope:
+                uid = $arg0[].getScopeUID())
+        var base = cast[ptr ExpressionScopeVisitor](visitor)
+
+        var scope = makeExpressionScope()
+        base[].visit(scope)
+        doAssert visits == 1, "the visitor was visited " & $visits & " times"
+        doAssert sawScope, "the visitor was handed no scope"
+        # Expression::Scope::getScopeUID returns an empty String, so the base
+        # scope arriving intact is what an empty answer means here.
+        doAssert uid == "", "the scope identifies itself as " & uid
+        cdelete visitor
+
+testAbstractBasesThroughBasePointer()
+
+# ArgumentList's non-existing-file lookup =====================================
+#
+# getExistingFileForOptionAndRemove is covered above. This is the variant that
+# does NOT require the file to be there, which is the whole difference between
+# them, so the path named here is deliberately one that does not exist.
+
+proc testArgumentListFileForOptionAndRemove() =
+    block:
+        let absent = File.getSpecialLocation(
+                FileSpecialLocationType_tempDirectory)
+            .getNonexistentChildFile(makeString("june-absent"),
+                                     makeString(".txt"))
+        doAssert not absent.exists(),
+                 "the path meant to be missing is " &
+                 $absent.getFullPathName()
+
+        var args = makeArgumentList(
+            makeString("june"),
+            makeString("--out=" & $absent.getFullPathName() & " --keep"))
+        let sizeBefore = args.size()
+
+        doAssert args.containsOption(makeString("--out")),
+                 "the option was not parsed"
+        doAssert args.getFileForOptionAndRemove(makeString("--out")) == absent,
+                 "the lookup gave " &
+                 $args.getFileForOptionAndRemove(makeString("--out"))
+                     .getFullPathName()
+
+        # And it consumed the argument, leaving the other one alone.
+        doAssert not args.containsOption(makeString("--out")),
+                 "the option survived the removing lookup"
+        doAssert args.size() == sizeBefore - 1,
+                 "the list holds " & $args.size() & " arguments"
+        doAssert args.containsOption(makeString("--keep")),
+                 "the removing lookup took the other option too"
+
+testArgumentListFileForOptionAndRemove()
+
+# ZipFile::Builder::addEntry ==================================================
+#
+# addFile is covered by the round trip above. addEntry takes a STREAM instead,
+# and takes ownership of it, so the archive is written from something that was
+# never named as a file on disk. The entry is read back out of the finished
+# archive, which is what proves the stream was actually consumed.
+
+proc testZipFileBuilderAddEntry() =
+    block:
+        let directory = File.getSpecialLocation(
+                FileSpecialLocationType_tempDirectory)
+            .getNonexistentChildFile(makeString("june-addentry"),
+                                     makeString(""))
+        doAssert directory.createDirectory().wasOk(),
+                 "could not make the temp directory"
+        defer: discard directory.deleteRecursively()
+
+        let payload = directory.getChildFile(makeString("june_payload.txt"))
+        doAssert payload.replaceWithText(makeString("entry contents here")),
+                 "the payload could not be written"
+
+        # FileInputSource::createInputStream returns an InputStream the caller
+        # owns, which is the one shape that fits the unique_ptr overload
+        # without a heap construction the bindings cannot spell.
+        var source = newFileInputSource(payload)
+        var stream = source[].createInputStream()
+        doAssert not stream.isNil(), "the payload gave no stream"
+
+        var builder = makeZipFileBuilder()
+        builder.addEntry(makeUniquePtr[InputStream](stream), 9.cint,
+                         makeString("stored/name.txt"),
+                         Time.getCurrentTime())
+
+        let archive = directory.getChildFile(makeString("june_addentry.zip"))
+        block:
+            var output = makeFileOutputStream(archive, 0'u64)
+            doAssert builder.writeToStream(output, nil),
+                     "the archive could not be written"
+            output.flush()
+        doAssert archive.existsAsFile(), "the archive was not created"
+
+        var zip = makeZipFile(archive)
+        doAssert zip.getNumEntries() == 1,
+                 "the archive holds " & $zip.getNumEntries() & " entries"
+        doAssert $zip.getEntry(0.cint)[].filename() == "stored/name.txt",
+                 "the entry is called " & $zip.getEntry(0.cint)[].filename()
+        doAssert zip.getEntry(0.cint)[].uncompressedSize() == 19'i64,
+                 "the entry uncompresses to " &
+                 $zip.getEntry(0.cint)[].uncompressedSize() & " bytes"
+
+        cdelete source
+
+testZipFileBuilderAddEntry()
+
+# TimedDiagnostic::createTimer ================================================
+#
+# The returned measurement writes the elapsed time into the diagnostic when it
+# goes out of scope, so what is asserted is the diagnostic BEFORE and AFTER
+# that scope rather than the duration itself, which no test can pin down.
+
+proc testTimedDiagnosticCreateTimer() =
+    block:
+        var timed = makeTimedDiagnostic()
+        doAssert timed.isEmpty(),
+                 "a fresh diagnostic already holds a measurement"
+
+        block:
+            let timer = timed.createTimer()
+            discard timer
+            # Long enough that no clock granularity can round the elapsed
+            # time back down to exactly zero, which is what isEmpty asks.
+            june.Thread.sleep(20.cint)
+
+        doAssert not timed.isEmpty(),
+                 "the timer left the diagnostic empty"
+
+testTimedDiagnosticCreateTimer()
+
+# XmlElement::macroBasedForLoop ===============================================
+#
+# The deprecated forEachXmlChildElement macro calls this in a comma expression
+# before taking the iterator. JUCE gives it an empty body, so what it must do
+# is nothing: the element is asserted unchanged around the call, and the
+# iteration the macro would then perform still yields every child.
+
+proc testXmlMacroBasedForLoop() =
+    block:
+        var root = makeXmlElement(makeString("root"))
+        root.setAttribute(makeIdentifier(makeString("kept")),
+                          makeString("yes"))
+        root.addChildElement(cnew makeXmlElement(makeString("first")))
+        root.addChildElement(cnew makeXmlElement(makeString("second")))
+
+        root.macroBasedForLoop()
+
+        doAssert root.getNumChildElements() == 2,
+                 "the element has " & $root.getNumChildElements() & " children"
+        doAssert $root.getAttributeValue(0.cint) == "yes",
+                 "the attribute is now " & $root.getAttributeValue(0.cint)
+        doAssert $root.getChildElement(0.cint)[].getTagName() == "first",
+                 "the first child is " &
+                 $root.getChildElement(0.cint)[].getTagName()
+        doAssert $root.getChildElement(1.cint)[].getTagName() == "second",
+                 "the second child is " &
+                 $root.getChildElement(1.cint)[].getTagName()
+
+testXmlMacroBasedForLoop()
+
+# UnitTestRunner::runTestsInCategory ==========================================
+#
+# The category is one this test invents, and the only UnitTest in it is the one
+# built here, so the run is bounded to a single test body. runAllTests is NOT
+# called: it runs every juce::UnitTest registered anywhere in the process.
+
+proc testUnitTestRunnerByCategory() =
+    block:
+        var ran = 0
+        var subject = newCustomUnitTest(makeString("june-category-member"),
+                                        makeString("june-core-category"))
+        subject[].setRunTestHandler(proc() =
+            ran += 1
+            var self = cast[ptr UnitTest](subject)
+            self[].beginTest(makeString("one expectation"))
+            self[].expect(true, makeString("a true expectation failed")))
+
+        var runner = makeUnitTestRunner()
+        runner.setAssertOnFailure(false)
+        runner.setPassesAreLogged(false)
+
+        # A category nothing was registered under runs nothing, which is what
+        # shows the category is really the filter rather than the run being
+        # everything with a label on it.
+        runner.runTestsInCategory(makeString("june-category-with-no-tests"))
+        doAssert ran == 0, "an empty category ran " & $ran & " test bodies"
+        doAssert runner.getNumResults() == 0,
+                 "an empty category produced " & $runner.getNumResults() &
+                 " results"
+
+        runner.runTestsInCategory(makeString("june-core-category"))
+        doAssert ran == 1, "the test body ran " & $ran & " times"
+        doAssert runner.getNumResults() == 1,
+                 "the runner produced " & $runner.getNumResults() & " results"
+
+        let outcome = runner.getResult(0.cint)
+        doAssert not outcome.isNil(), "the runner has no result to read"
+        doAssert $outcome[].unitTestName() == "june-category-member",
+                 "the result is for " & $outcome[].unitTestName()
+        doAssert outcome[].failures() == 0.cint,
+                 "the run reported " & $outcome[].failures() & " failures"
+        doAssert outcome[].passes() == 1.cint,
+                 "the run reported " & $outcome[].passes() & " passes"
+
+        # Unregisters it, so a later runner in this process cannot find it.
+        cdelete subject
+
+testUnitTestRunnerByCategory()
