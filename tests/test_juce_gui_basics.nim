@@ -19018,3 +19018,100 @@ proc testModalComponentManagerCallbackBase() =
 
 
 testModalComponentManagerCallbackBase()
+
+
+# CallOutBox: repositioning, dismissal, and the consumed-click flag ==========
+#
+# A nil parent puts the box on the desktop and needs a real window, so every
+# block here gives it a parent and keeps it an ordinary child component.
+proc testCallOutBoxPositionAndDismissal() =
+    initialiseJuce_GUI()
+
+    template withBox(body: untyped) =
+        block:
+            var parent = newCustomComponent()
+            parent[].setBounds(makeRectangle(0.cint, 0.cint, 400.cint, 400.cint))
+            var content = newCustomComponent()
+            content[].setSize(60.cint, 40.cint)
+            var box {.inject.} = makeCallOutBox(
+                content[], makeRectangle(300.cint, 300.cint, 10.cint, 10.cint),
+                cast[ptr Component](parent))
+            let parentAsComponent {.inject.} = cast[ptr Component](parent)
+            body
+            cdelete content
+            cdelete parent
+
+    withBox:
+        # juce_CallOutBox.cpp:199-209 stores the target and available areas and
+        # then recomputes the bounds from the content size plus twice the
+        # border. The 60x40 content therefore always yields a 100x80 box: the
+        # SIZE is fixed by the content, and only the POSITION tracks the target.
+        doAssert box.getBounds() == makeRectangle(255.cint, 306.cint, 100.cint, 80.cint),
+                 "the box built pointing at (300,300) sits at " & $box.getBounds()
+
+        box.updatePosition(makeRectangle(100.cint, 100.cint, 20.cint, 20.cint),
+                           makeRectangle(0.cint, 0.cint, 400.cint, 400.cint))
+        doAssert box.getBounds() == makeRectangle(60.cint, 116.cint, 100.cint, 80.cint),
+                 "after pointing at (100,100) the box sits at " & $box.getBounds()
+
+        # A target near the origin cannot be honoured without leaving the
+        # available area, so the box is clamped into it rather than following
+        # the target outside. The size is unchanged, which is what shows the
+        # border arithmetic did not move.
+        box.updatePosition(makeRectangle(10.cint, 10.cint, 10.cint, 10.cint),
+                           makeRectangle(0.cint, 0.cint, 400.cint, 400.cint))
+        doAssert box.getBounds() == makeRectangle(0.cint, 0.cint, 100.cint, 80.cint),
+                 "a target at the origin put the box at " & $box.getBounds()
+
+        # A smaller available area confines the box: the same target now
+        # produces a position inside the narrower rectangle.
+        box.updatePosition(makeRectangle(300.cint, 300.cint, 10.cint, 10.cint),
+                           makeRectangle(0.cint, 0.cint, 200.cint, 200.cint))
+        let confined = box.getBounds()
+        doAssert confined.getRight() <= 200 and confined.getBottom() <= 200,
+                 "the box escaped a 200x200 available area at " & $confined
+        doAssert confined.getWidth() == 100 and confined.getHeight() == 80,
+                 "confining the box changed its size to " & $confined
+
+    withBox:
+        # juce_CallOutBox.cpp:183-186 is only postCommandMessage(...): dismiss
+        # POSTS and returns. Delivery is asynchronous and this suite runs no
+        # dispatch loop, so the box must still be alive and parented
+        # afterwards. An implementation that deleted it synchronously, or that
+        # detached it here, would fail this.
+        let before = box.getBounds()
+        doAssert box.getParentComponent() == parentAsComponent,
+                 "the box was not parented before dismiss was called"
+
+        box.dismiss()
+
+        doAssert box.getParentComponent() == parentAsComponent,
+                 "dismiss detached the box synchronously"
+        doAssert box.getBounds() == before,
+                 "dismiss moved the box from " & $before & " to " & $box.getBounds()
+
+    withBox:
+        # The flag's only reader is inputAttemptWhenModal
+        # (juce_CallOutBox.cpp:140-163). With the flag CLEAR and the click
+        # outside the target area, the else branch runs exitModalState and
+        # setVisible(false). With the flag SET, the first branch runs instead
+        # and only asks for an asynchronous dismissal -- and even that is
+        # skipped while the box is under 200ms old -- so the box stays visible.
+        # Visibility is therefore what distinguishes the two settings.
+        box.setVisible(true)
+        box.setDismissalMouseClicksAreAlwaysConsumed(false)
+        box.inputAttemptWhenModal()
+        doAssert not box.isVisible(),
+                 "with clicks not always consumed the box stayed visible"
+
+    withBox:
+        box.setVisible(true)
+        box.setDismissalMouseClicksAreAlwaysConsumed(true)
+        box.inputAttemptWhenModal()
+        doAssert box.isVisible(),
+                 "with clicks always consumed the box hid itself anyway"
+
+    shutdownJuce_GUI()
+
+
+testCallOutBoxPositionAndDismissal()
