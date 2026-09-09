@@ -18423,3 +18423,268 @@ proc testButtonStateChanged() =
 
 
 testButtonStateChanged()
+
+
+# Plain queries and simple state =============================================
+
+# The two lists a MarkerListHolder hands out, kept at module scope so the
+# handler below reads globals rather than capturing them.
+var holderXMarkers: ptr MarkerList = nil
+var holderYMarkers: ptr MarkerList = nil
+
+proc testMarkerListQueries() =
+    initialiseJuce_GUI()
+
+    block:
+        # MarkerList::getMarkerPosition resolves the marker's coordinate; with
+        # a null parent it resolves against no scope, and with a parent it
+        # builds a ComponentScope so names like "width" mean that component
+        # (juce_MarkerList.cpp:256-263).
+        var markers = makeMarkerList()
+        markers.setMarker(makeString("fixed"), makeRelativeCoordinate(37.5))
+        markers.setMarker(makeString("half"),
+                          makeRelativeCoordinate(makeString("width / 2")))
+
+        let fixed = markers.getMarker(makeString("fixed"))
+        doAssert not fixed.isNil(), "the list lost the marker it was given"
+        doAssert markers.getMarkerPosition(fixed[], nil) == 37.5,
+                 "the fixed marker resolved to " &
+                 $markers.getMarkerPosition(fixed[], nil)
+
+        let parent = newCustomComponent()
+        parent[].setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 80.cint))
+        let half = markers.getMarker(makeString("half"))
+        doAssert not half.isNil(), "the list lost the symbolic marker"
+        doAssert markers.getMarkerPosition(half[],
+                                           cast[ptr Component](parent)) == 100.0,
+                 "half the parent's width resolved to " &
+                 $markers.getMarkerPosition(half[], cast[ptr Component](parent))
+
+        # The parent is what supplies "width", so a wider parent moves it.
+        parent[].setBounds(makeRectangle(0.cint, 0.cint, 60.cint, 80.cint))
+        doAssert markers.getMarkerPosition(half[],
+                                           cast[ptr Component](parent)) == 30.0,
+                 "after resizing the parent it resolved to " &
+                 $markers.getMarkerPosition(half[], cast[ptr Component](parent))
+
+        cdelete parent
+
+    block:
+        # A MarkerListHolder is asked for one list per axis, and the axis flag
+        # is what picks between them.
+        var xMarkers = makeMarkerList()
+        xMarkers.setMarker(makeString("across"), makeRelativeCoordinate(11.0))
+        var yMarkers = makeMarkerList()
+        yMarkers.setMarker(makeString("down"), makeRelativeCoordinate(22.0))
+        yMarkers.setMarker(makeString("further"), makeRelativeCoordinate(33.0))
+        holderXMarkers = addr xMarkers
+        holderYMarkers = addr yMarkers
+
+        let holder = newCustomMarkerListMarkerListHolder()
+        holder[].setGetMarkersHandler(proc(xAxis: bool): ptr MarkerList =
+            if xAxis: holderXMarkers else: holderYMarkers)
+
+        let alongX = holder[].getMarkers(true)
+        doAssert alongX == holderXMarkers,
+                 "the holder handed back the wrong list for the x axis"
+        doAssert alongX[].getNumMarkers() == 1,
+                 "the x list holds " & $alongX[].getNumMarkers() & " markers"
+
+        let alongY = holder[].getMarkers(false)
+        doAssert alongY == holderYMarkers,
+                 "the holder handed back the wrong list for the y axis"
+        doAssert alongY[].getNumMarkers() == 2,
+                 "the y list holds " & $alongY[].getNumMarkers() & " markers"
+
+        cdelete holder
+        holderXMarkers = nil
+        holderYMarkers = nil
+
+    block:
+        # ValueTreeWrapper::readFrom is applyTo's inverse: it clears the tree
+        # and writes one child per marker (juce_MarkerList.cpp:285-291). The
+        # clearing is the half a naive implementation drops, so the tree
+        # starts with a marker that is not in the list.
+        var tree = makeValueTree(makeIdentifier(makeString("MARKERS")))
+        var wrapper = makeMarkerListValueTreeWrapper(tree)
+        wrapper.setMarker(makeMarkerListMarker(makeString("stale"),
+                                               makeRelativeCoordinate(5.0)), nil)
+        doAssert wrapper.getNumMarkers() == 1,
+                 "the wrapper did not take the stale marker"
+
+        var source = makeMarkerList()
+        source.setMarker(makeString("left"), makeRelativeCoordinate(10.0))
+        source.setMarker(makeString("right"), makeRelativeCoordinate(90.0))
+
+        wrapper.readFrom(source, nil)
+        doAssert wrapper.getNumMarkers() == 2,
+                 "after readFrom the wrapper holds " &
+                 $wrapper.getNumMarkers() & " markers"
+        doAssert tree.getNumChildren() == 2,
+                 "the tree carries " & $tree.getNumChildren() & " children"
+        let staleState = wrapper.getMarkerState(makeString("stale"))
+        doAssert not staleState.isValid(),
+                 "readFrom left the stale marker in the tree"
+        let rightState = wrapper.getMarkerState(makeString("right"))
+        doAssert rightState.isValid(), "readFrom did not write the right marker"
+        doAssert wrapper.getMarker(rightState).position().resolve(nil) == 90.0,
+                 "the marker readFrom wrote sits at " &
+                 $wrapper.getMarker(rightState).position().resolve(nil)
+
+    shutdownJuce_GUI()
+
+
+testMarkerListQueries()
+
+
+proc testAssortedSimpleState() =
+    initialiseJuce_GUI()
+
+    block:
+        # DrawableComposite::resetBoundingBoxToContentArea is
+        # setBoundingBox (contentArea) (juce_DrawableComposite.cpp:104-107), so
+        # the bounding box has to follow the content area rather than stay
+        # where it was put.
+        var composite = makeDrawableComposite()
+        composite.setBoundingBox(makeRectangle(0.0'f32, 0.0'f32,
+                                               10.0'f32, 10.0'f32))
+        composite.setContentArea(makeRectangle(3.0'f32, 4.0'f32,
+                                               50.0'f32, 60.0'f32))
+        let before = composite.getBoundingBox()
+        doAssert before.getWidth() == 10.0'f32,
+                 "the bounding box started " & $before.getWidth() & " wide"
+
+        composite.resetBoundingBoxToContentArea()
+        let after = composite.getBoundingBox()
+        doAssert (after.topLeft().getX(), after.topLeft().getY()) ==
+                 (3.0'f32, 4.0'f32),
+                 "the bounding box now starts at " &
+                 $after.topLeft().getX() & "," & $after.topLeft().getY()
+        doAssert (after.getWidth(), after.getHeight()) == (50.0'f32, 60.0'f32),
+                 "the bounding box is " & $after.getWidth() & " by " &
+                 $after.getHeight()
+        # The content area is the source, so it is unchanged by the reset.
+        doAssert composite.getContentArea().getWidth() == 50.0'f32,
+                 "the reset moved the content area too"
+
+    block:
+        # StretchableLayoutResizerBar::hasBeenMoved calls resized() on its
+        # parent, and does nothing at all without one
+        # (juce_StretchableLayoutResizerBar.cpp:82-86). Counting the parent's
+        # resized calls is what tells the two branches apart.
+        var layout = makeStretchableLayoutManager()
+        layout.setItemLayout(0.cint, 10.0, 100.0, 50.0)
+        layout.setItemLayout(1.cint, 5.0, 5.0, 5.0)
+        layout.setItemLayout(2.cint, 10.0, 100.0, 50.0)
+
+        let parent = newCustomComponent()
+        let resizes = new(int)
+        parent[].onResized = bindClosure(proc() = resizes[] += 1)
+        parent[].setBounds(makeRectangle(0.cint, 0.cint, 105.cint, 40.cint))
+
+        var bar = makeStretchableLayoutResizerBar(addr layout, 1.cint, true)
+        parent[].addAndMakeVisible(bar)
+
+        let beforeMove = resizes[]
+        bar.hasBeenMoved()
+        doAssert resizes[] == beforeMove + 1,
+                 "hasBeenMoved produced " & $(resizes[] - beforeMove) &
+                 " parent resizes"
+
+        # Detached, the same call reaches no parent and so does nothing.
+        parent[].removeChildComponent(cast[ptr Component](addr bar))
+        let beforeOrphaned = resizes[]
+        bar.hasBeenMoved()
+        doAssert resizes[] == beforeOrphaned,
+                 "an orphaned bar still resized something"
+
+        cdelete parent
+
+    block:
+        # TextButton::getBestWidthForHeight asks the look and feel how wide the
+        # text needs to be (juce_TextButton.cpp:81-84), so a longer label needs
+        # a wider button and the answer depends on the text rather than being a
+        # function of the height alone.
+        var short = makeTextButton(makeString("OK"))
+        var long = makeTextButton(
+            makeString("A considerably longer piece of button text"))
+
+        let shortWidth = short.getBestWidthForHeight(24.cint)
+        let longWidth = long.getBestWidthForHeight(24.cint)
+        doAssert shortWidth > 0,
+                 "the short button wants " & $shortWidth & " pixels"
+        doAssert longWidth > shortWidth,
+                 "the long label wants " & $longWidth &
+                 " pixels against the short one's " & $shortWidth
+
+        # Taller means bigger text, so the same label needs more room.
+        let taller = short.getBestWidthForHeight(48.cint)
+        doAssert taller > shortWidth,
+                 "at twice the height the same label wants " & $taller &
+                 " pixels against " & $shortWidth
+
+    block:
+        # KeyPress::getTextDescriptionWithIcons replaces the spelled-out
+        # modifiers with symbols on Apple platforms and is getTextDescription
+        # verbatim everywhere else (juce_KeyPress.cpp:283-296).
+        let combo = makeKeyPress(KeyPress.returnKey(),
+                                 makeModifierKeys(
+                                     ModifierKeysFlags_shiftModifier.cint or
+                                     ModifierKeysFlags_ctrlModifier.cint),
+                                 0.WChar)
+        let spelled = $combo.getTextDescription()
+        let withIcons = $combo.getTextDescriptionWithIcons()
+        # ctrl and shift are spelled out and joined with " + ", and the
+        # return key is named.
+        doAssert spelled == "ctrl + shift + return",
+                 "the plain description is " & spelled
+
+        when defined(macosx) or defined(ios):
+            # Each of the three is replaced by its symbol, and the " + "
+            # joiners go with them because they are part of the replaced text
+            # (juce_KeyPress.cpp:166-176).
+            doAssert withIcons == "\u2303\u21e7\u21b5",
+                     "the icon description is " & withIcons
+        else:
+            doAssert withIcons == spelled,
+                     "off Apple platforms the two descriptions differ: " &
+                     withIcons & " against " & spelled
+
+    block:
+        # AccessibilityActions::addAction stores the callback under its type
+        # and returns the same object so calls chain. Two actions with
+        # different callbacks say the type is what selects one.
+        var presses = 0
+        var toggles = 0
+        var actions = makeAccessibilityActions()
+        doAssert not actions.contains(AccessibilityActionType_press),
+                 "a fresh action set already has a press action"
+
+        discard actions
+            .addAction(AccessibilityActionType_press,
+                       bindClosure(proc() = presses += 1))
+            .addAction(AccessibilityActionType_toggle,
+                       bindClosure(proc() = toggles += 1))
+
+        doAssert actions.contains(AccessibilityActionType_press),
+                 "the press action did not stick"
+        doAssert actions.contains(AccessibilityActionType_toggle),
+                 "the chained toggle action did not stick"
+        doAssert not actions.contains(AccessibilityActionType_showMenu),
+                 "an action nobody added is present"
+
+        doAssert actions.invoke(AccessibilityActionType_press),
+                 "invoking the press action reported nothing to invoke"
+        doAssert (presses, toggles) == (1, 0),
+                 "after one press invoke the counts are " & $presses & "," &
+                 $toggles
+        doAssert actions.invoke(AccessibilityActionType_toggle),
+                 "invoking the toggle action reported nothing to invoke"
+        doAssert (presses, toggles) == (1, 1),
+                 "after the toggle invoke the counts are " & $presses & "," &
+                 $toggles
+
+    shutdownJuce_GUI()
+
+
+testAssortedSimpleState()
