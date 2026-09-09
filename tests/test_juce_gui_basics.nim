@@ -18188,3 +18188,238 @@ proc testFileChooserURLResults() =
 
 
 testFileChooserURLResults()
+
+
+# RelativePointPath element control points ====================================
+#
+# getControlPoints writes the element's point count into its var parameter and
+# returns the array those points live in. The count differs per element type,
+# which is what makes it discriminating: StartSubPath 1, CloseSubPath 0,
+# LineTo 1, QuadraticTo 2, CubicTo 3 (juce_RelativePointPath.cpp lines 165,
+# 187, 209, 234 and 262). Asserting the returned points as well as the count
+# is what rules out an element that counted right and stored the wrong points.
+
+# A module-level home for the point the Custom element hands back, so the
+# handler below reads a global rather than capturing into a closure.
+var customElementControlPoint: ptr RelativePoint = nil
+
+proc testRelativePointPathControlPoints() =
+    initialiseJuce_GUI()
+
+    template pointsOf(p: ptr RelativePoint): ptr UncheckedArray[RelativePoint] =
+        cast[ptr UncheckedArray[RelativePoint]](p)
+
+    block:
+        # StartSubPath keeps exactly its one start position.
+        var start = makeRelativePointPathStartSubPath(
+            makeRelativePoint(11.0'f32, 12.0'f32))
+        var startCount = -1.cint
+        let startPoints = start.getControlPoints(startCount)
+        doAssert startCount == 1,
+                 "StartSubPath reported " & $startCount & " control points"
+        doAssert not startPoints.isNil(),
+                 "StartSubPath returned no control point array"
+        let startResolved = pointsOf(startPoints)[0].resolve(nil)
+        doAssert (startResolved.getX(), startResolved.getY()) ==
+                 (11.0'f32, 12.0'f32),
+                 "StartSubPath's control point is at " &
+                 $startResolved.getX() & "," & $startResolved.getY()
+
+    block:
+        # CloseSubPath has nothing to store, and says so with a null array.
+        var closing = makeRelativePointPathCloseSubPath()
+        var closeCount = -1.cint
+        let closePoints = closing.getControlPoints(closeCount)
+        doAssert closeCount == 0,
+                 "CloseSubPath reported " & $closeCount & " control points"
+        doAssert closePoints.isNil(),
+                 "CloseSubPath returned a control point array"
+
+    block:
+        # LineTo keeps its one end point.
+        var line = makeRelativePointPathLineTo(
+            makeRelativePoint(21.0'f32, 22.0'f32))
+        var lineCount = -1.cint
+        let linePoints = line.getControlPoints(lineCount)
+        doAssert lineCount == 1,
+                 "LineTo reported " & $lineCount & " control points"
+        let lineResolved = pointsOf(linePoints)[0].resolve(nil)
+        doAssert (lineResolved.getX(), lineResolved.getY()) ==
+                 (21.0'f32, 22.0'f32),
+                 "LineTo's control point is at " &
+                 $lineResolved.getX() & "," & $lineResolved.getY()
+
+    block:
+        # QuadraticTo stores control point then end point, in that order.
+        var quadratic = makeRelativePointPathQuadraticTo(
+            makeRelativePoint(31.0'f32, 32.0'f32),
+            makeRelativePoint(33.0'f32, 34.0'f32))
+        var quadraticCount = -1.cint
+        let quadraticPoints = quadratic.getControlPoints(quadraticCount)
+        doAssert quadraticCount == 2,
+                 "QuadraticTo reported " & $quadraticCount & " control points"
+        let quadraticControl = pointsOf(quadraticPoints)[0].resolve(nil)
+        let quadraticEnd = pointsOf(quadraticPoints)[1].resolve(nil)
+        doAssert (quadraticControl.getX(), quadraticControl.getY()) ==
+                 (31.0'f32, 32.0'f32),
+                 "QuadraticTo's control point is at " &
+                 $quadraticControl.getX() & "," & $quadraticControl.getY()
+        doAssert (quadraticEnd.getX(), quadraticEnd.getY()) ==
+                 (33.0'f32, 34.0'f32),
+                 "QuadraticTo's end point is at " &
+                 $quadraticEnd.getX() & "," & $quadraticEnd.getY()
+
+    block:
+        # CubicTo stores both control points and then the end point.
+        var cubic = makeRelativePointPathCubicTo(
+            makeRelativePoint(41.0'f32, 42.0'f32),
+            makeRelativePoint(43.0'f32, 44.0'f32),
+            makeRelativePoint(45.0'f32, 46.0'f32))
+        var cubicCount = -1.cint
+        let cubicPoints = cubic.getControlPoints(cubicCount)
+        doAssert cubicCount == 3,
+                 "CubicTo reported " & $cubicCount & " control points"
+        let cubicFirst = pointsOf(cubicPoints)[0].resolve(nil)
+        let cubicSecond = pointsOf(cubicPoints)[1].resolve(nil)
+        let cubicEnd = pointsOf(cubicPoints)[2].resolve(nil)
+        doAssert (cubicFirst.getX(), cubicFirst.getY()) == (41.0'f32, 42.0'f32),
+                 "CubicTo's first control point is at " &
+                 $cubicFirst.getX() & "," & $cubicFirst.getY()
+        doAssert (cubicSecond.getX(), cubicSecond.getY()) ==
+                 (43.0'f32, 44.0'f32),
+                 "CubicTo's second control point is at " &
+                 $cubicSecond.getX() & "," & $cubicSecond.getY()
+        doAssert (cubicEnd.getX(), cubicEnd.getY()) == (45.0'f32, 46.0'f32),
+                 "CubicTo's end point is at " &
+                 $cubicEnd.getX() & "," & $cubicEnd.getY()
+
+    block:
+        # ElementBase itself is abstract and its getControlPoints is pure
+        # virtual (juce_RelativePointPath.h:94), so the only way to reach the
+        # binding declared on the base is through a subclass that implements
+        # it. A count no concrete element uses proves the call arrived here.
+        var customStorage = makeRelativePoint(51.0'f32, 52.0'f32)
+        customElementControlPoint = addr customStorage
+        let custom = newCustomRelativePointPathElementBase(
+            RelativePointPathElementType_lineToElement)
+        custom[].setAddToPathHandler(
+            proc(path: ptr Path, arg1: ptr ExpressionScope) = discard)
+        custom[].setCloneHandler(
+            proc(): ptr RelativePointPathElementBase = nil)
+        custom[].setGetControlPointsHandler(proc(numPoints: ptr cint): ptr RelativePoint =
+            numPoints[] = 5.cint
+            customElementControlPoint)
+
+        var base = cast[ptr RelativePointPathElementBase](custom)
+        var customCount = -1.cint
+        let customPoints = base[].getControlPoints(customCount)
+        doAssert customCount == 5,
+                 "the custom element reported " & $customCount &
+                 " control points"
+        doAssert customPoints == customElementControlPoint,
+                 "the custom element returned a different array"
+        let customResolved = pointsOf(customPoints)[0].resolve(nil)
+        doAssert (customResolved.getX(), customResolved.getY()) ==
+                 (51.0'f32, 52.0'f32),
+                 "the custom element's point is at " &
+                 $customResolved.getX() & "," & $customResolved.getY()
+
+        cdelete custom
+        customElementControlPoint = nil
+
+    shutdownJuce_GUI()
+
+
+testRelativePointPathControlPoints()
+
+
+# buttonStateChanged on the two buttons that really implement it =============
+#
+# Button::buttonStateChanged is an empty-bodied virtual, but DrawableButton and
+# ToolbarButton override it with real work and neither takes an argument - do
+# not confuse either with ButtonListener::buttonStateChanged(Button*).
+#
+# DrawableButton::buttonStateChanged (juce_DrawableButton.cpp:150-186) picks
+# the drawable to display: enabled takes getCurrentImage(), otherwise the
+# toggle state chooses between disabledImageOn and disabledImage. The chosen
+# drawable is then made a child of the button, so the button's one child is
+# what says which face was picked. setImages stores COPIES
+# (juce_DrawableButton.cpp:66-73), so the faces are told apart by the identity
+# of the copies the button holds, not of the drawables handed to it.
+
+proc testButtonStateChanged() =
+    initialiseJuce_GUI()
+
+    block:
+        template rect(w: float32, r, g, b: uint8): ptr DrawableRectangle =
+            let d = cnew(makeDrawableRectangle())
+            d[].setRectangle(makeParallelogram(
+                makeRectangle(0.0'f32, 0.0'f32, w, w)))
+            d[].setFill(makeFillType(makeColour(r, g, b, 255'u8)))
+            d
+
+        let normalFace = rect(20.0'f32, 255'u8, 0'u8, 0'u8)
+        let disabledFace = rect(24.0'f32, 0'u8, 255'u8, 0'u8)
+        let disabledOnFace = rect(28.0'f32, 0'u8, 0'u8, 255'u8)
+
+        var button = makeDrawableButton(makeString("faces"),
+                                        DrawableButtonButtonStyle_ImageFitted)
+        button.setBounds(makeRectangle(0.cint, 0.cint, 40.cint, 40.cint))
+        button.setImages(cast[ptr Drawable](normalFace), nil, nil,
+                         cast[ptr Drawable](disabledFace), nil, nil, nil,
+                         cast[ptr Drawable](disabledOnFace))
+
+        # Enabled: the branch that takes getCurrentImage(), which with no
+        # mouse over it is the normal face.
+        button.buttonStateChanged()
+        doAssert button.getNumChildComponents() == 1,
+                 "the button displays " & $button.getNumChildComponents() &
+                 " drawables"
+        let whenEnabled = button.getChildComponent(0.cint)
+        doAssert whenEnabled == cast[ptr Component](button.getNormalImage()),
+                 "the enabled button is not displaying its normal face"
+
+        # Disabled with the toggle off: the disabledImage branch. It is a
+        # different drawable from the normal face, which is the whole point of
+        # the branch.
+        button.setEnabled(false)
+        button.buttonStateChanged()
+        let whenDisabled = button.getChildComponent(0.cint)
+        doAssert whenDisabled != whenEnabled,
+                 "disabling the button left the normal face on display"
+
+        # Disabled with the toggle on: disabledImageOn instead. Setting BOTH
+        # disabled faces is what tells this branch from the one above.
+        button.setToggleState(true, NotificationType_dontSendNotification)
+        button.buttonStateChanged()
+        let whenDisabledOn = button.getChildComponent(0.cint)
+        doAssert whenDisabledOn != whenDisabled,
+                 "the toggle made no difference to the disabled face"
+        doAssert whenDisabledOn != whenEnabled,
+                 "the toggled-on disabled face is the normal face"
+
+        # And back: re-enabling returns to the getCurrentImage() branch, so
+        # the three faces are a cycle rather than a one-way drift.
+        button.setEnabled(true)
+        button.buttonStateChanged()
+        doAssert button.getChildComponent(0.cint) ==
+                 cast[ptr Component](button.getNormalImage()),
+                 "re-enabling did not restore the normal face"
+
+        cdelete normalFace
+        cdelete disabledFace
+        cdelete disabledOnFace
+
+    # ToolbarButton::buttonStateChanged (juce_ToolbarButton.cpp:117) belongs
+    # here too, but no test can reach it: the only constructor takes two
+    # std::unique_ptr<Drawable> BY VALUE, and its binding is
+    # importcpp: "juce::ToolbarButton(@)" with no std::move around the
+    # arguments (juce_gui_basics.nim:3847), so every call site asks clang for
+    # unique_ptr's deleted copy constructor. Compare addEntry
+    # (juce_core.nim:2614), whose pattern is "#.addEntry(std::move(#), ...)"
+    # and which is callable. Fixing that is a bindings change.
+
+    shutdownJuce_GUI()
+
+
+testButtonStateChanged()
