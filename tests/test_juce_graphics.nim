@@ -1015,6 +1015,7 @@ proc testTextLayoutRuns() =
 
         var glyphs = 0
         var runs = 0
+        var covered = 0
         var lastAnchorX = -1.0'f32
         for line in layout:
             # Chained rather than bound to a local. OwnedArray and
@@ -1025,8 +1026,9 @@ proc testTextLayoutRuns() =
             # needed and the accessor hands back the reference it holds.
             for runIndex in 0 ..< line.runs().size():
                 runs += 1
-                doAssert line.runs()[runIndex][].stringRange().getLength() > 0,
-                         "a run covers no characters"
+                let span = line.runs()[runIndex][].stringRange().getLength()
+                doAssert span > 0, "a run covers no characters"
+                covered += int(span)
                 doAssert line.runs()[runIndex][].colour().getRed() == 255'u8,
                          "the run lost the colour it was given"
                 for glyphIndex in 0 ..< line.runs()[runIndex][].glyphs().size():
@@ -1045,8 +1047,20 @@ proc testTextLayoutRuns() =
                     lastAnchorX = anchorX
 
         doAssert runs >= 1, "the line holds " & $runs & " runs"
-        doAssert glyphs == 5,
-                 "the five characters produced " & $glyphs & " glyphs"
+
+        # The runs between them cover the whole string. That is a claim about
+        # the layout, which indexes the text it was given, so five is the
+        # length of "Hello" and nothing else.
+        #
+        # How many GLYPHS those five characters become is the shaper's answer
+        # rather than this binding's -- a ligature or a fallback split changes
+        # it without anything here being wrong -- so the glyph count is only
+        # held to being non-zero. What proves the nested iteration reaches real
+        # glyphs is above: each one has a positive width and sits right of the
+        # one before.
+        doAssert covered == 5,
+                 "the runs cover " & $covered & " characters of the five given"
+        doAssert glyphs > 0, "the runs hold no glyphs"
 
     block:
         # Built by hand rather than laid out, so the fields are exactly what
