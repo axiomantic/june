@@ -701,6 +701,13 @@ expands to ``new T(args)``, so ``cnew(makeDrawableRectangle())`` works and
 pattern". Where the object needs configuring before it is handed over, build it
 with ``cnew`` first and configure it through the pointer.
 
+``cnew`` also splices the constructor's arguments without a separator between
+the first and the rest, so it can only express a one-argument construction. A
+class whose only usable constructor takes more, and whose instance must be
+handed to a method that takes ownership, needs the heap form written out.
+``newFileInputSource`` and ``newLocalisedStrings`` in ``juce_core_lifting.nim``
+are that form: each is an ``importcpp`` of ``(new juce::T(@))``.
+
 ``Array[T]``'s ``[]`` returns by value, and Nim builds a temporary for that,
 which needs ``T`` to be default-constructible. ``juce::TextLayout::Glyph`` is
 not, so every element of a laid-out run was unreachable. ``getReference`` is
