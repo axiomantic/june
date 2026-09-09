@@ -1536,6 +1536,34 @@ proc testImplicitDefaultConstructors() =
         doAssert $download.extraHeaders() == "X-Test: 1",
                  "the options hold " & $download.extraHeaders()
 
+        # The three remaining with- builders. Each returns a COPY, so the
+        # original is asserted UNCHANGED as well: that is what tells a builder
+        # from a setter, and an implementation that mutated in place would pass
+        # the first assertion of each pair on its own.
+        let plain = makeURLDownloadTaskOptions()
+        doAssert not plain.usePost(), "a fresh options struct posts"
+        doAssert plain.listener() == nil,
+                 "a fresh options struct already names a listener"
+
+        let posting = plain.withUsePost(true)
+        doAssert posting.usePost(), "withUsePost did not take"
+        doAssert not plain.usePost(), "withUsePost changed the original"
+
+        let contained = plain.withSharedContainer(makeString("group.june"))
+        doAssert $contained.sharedContainer() == "group.june",
+                 "withSharedContainer gave " & $contained.sharedContainer()
+        doAssert $plain.sharedContainer() != "group.june",
+                 "withSharedContainer changed the original"
+
+        let heard = newCustomURLDownloadTaskListener()
+        let listening = plain.withListener(
+            cast[ptr URLDownloadTaskListener](heard))
+        doAssert listening.listener() ==
+                 cast[ptr URLDownloadTaskListener](heard),
+                 "withListener did not store the listener it was given"
+        doAssert plain.listener() == nil, "withListener changed the original"
+        cdelete heard
+
         var attribute = makeXmlAttribute()
         attribute.value = makeString("42")
         doAssert $attribute.value() == "42", "the attribute holds " & $attribute.value()

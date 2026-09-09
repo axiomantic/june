@@ -15644,3 +15644,93 @@ proc testApplicationConstruction() =
     shutdownJuce_GUI()
 
 testApplicationConstruction()
+
+# TextEditor::Listener, in behaviour ===========================================
+#
+# All four methods have EMPTY bodies in JUCE (juce_TextEditor.h:333-342), so no
+# Custom subclass is generated for this class - there is nothing to override.
+# What is worth pinning is the DEFAULT each one gives, because that is what a
+# caller who overrides only one of them relies on: the base does nothing at all
+# to the editor it is handed.
+
+proc testTextEditorListenerDefaults() =
+    initialiseJuce_GUI()
+
+    block:
+        var editor = makeTextEditor(makeString("listener"), 0'u16)
+        editor.setText(makeString("unchanged"), false)
+        editor.setCaretPosition(3.cint)
+        let text = $editor.getText()
+        let caret = editor.getCaretPosition()
+
+        var listener = makeTextEditorListener()
+        listener.textEditorTextChanged(editor)
+        listener.textEditorReturnKeyPressed(editor)
+        listener.textEditorEscapeKeyPressed(editor)
+        listener.textEditorFocusLost(editor)
+
+        doAssert $editor.getText() == text,
+                 "a default listener changed the text to " & $editor.getText()
+        doAssert editor.getCaretPosition() == caret,
+                 "a default listener moved the caret to " &
+                 $editor.getCaretPosition()
+
+    shutdownJuce_GUI()
+
+testTextEditorListenerDefaults()
+
+# ToolbarItemFactory, in behaviour =============================================
+#
+# All three methods are PURE virtual in JUCE (juce_ToolbarItemFactory.h:92, 102
+# and 115), so the generated Custom subclass is the only way to have one at all.
+# Every call below goes through the BASE pointer, which is what shows the Nim
+# override really reached C++ rather than being installed and forgotten - the
+# pattern the roadmap records for this shape.
+
+proc testToolbarItemFactoryOverrides() =
+    initialiseJuce_GUI()
+
+    block:
+        var factory = newCustomToolbarItemFactory()
+        var askedForAll = 0
+        var askedForDefaults = 0
+        var createdFor = -1
+
+        factory[].setGetAllToolbarItemIdsHandler(proc(ids: ptr Array[cint]) =
+            askedForAll += 1
+            ids[].add(11.cint)
+            ids[].add(12.cint))
+        factory[].setGetDefaultItemSetHandler(proc(ids: ptr Array[cint]) =
+            askedForDefaults += 1
+            ids[].add(11.cint))
+        factory[].setCreateItemHandler(proc(itemId: cint): ptr ToolbarItemComponent =
+            createdFor = int(itemId)
+            nil)
+
+        let base = cast[ptr ToolbarItemFactory](factory)
+
+        var all = makeArray[cint]()
+        base[].getAllToolbarItemIds(all)
+        doAssert askedForAll == 1,
+                 "the override ran " & $askedForAll & " times, not once"
+        doAssert all.size() == 2,
+                 "the override filled " & $all.size() & " ids, not two"
+
+        var defaults = makeArray[cint]()
+        base[].getDefaultItemSet(defaults)
+        doAssert askedForDefaults == 1,
+                 "the default-set override ran " & $askedForDefaults & " times"
+        doAssert defaults.size() == 1,
+                 "the default set holds " & $defaults.size() & " ids, not one"
+
+        # Returning nil is a real answer here: JUCE lets a factory decline an id.
+        doAssert base[].createItem(7.cint) == nil,
+                 "createItem invented a component the override did not return"
+        doAssert createdFor == 7,
+                 "the override was asked for item " & $createdFor & ", not 7"
+
+        cdelete factory
+
+    shutdownJuce_GUI()
+
+testToolbarItemFactoryOverrides()

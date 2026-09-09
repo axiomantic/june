@@ -4960,3 +4960,41 @@ proc testFillTypeKinds() =
     shutdownJuce_GUI()
 
 testFillTypeKinds()
+
+# TextLayout::Line's derived bounds ============================================
+#
+# The three are pure arithmetic over the fields, so a Line built by hand pins
+# them exactly and needs no font, no layout and no display. With no runs,
+# getLineBoundsX is an EMPTY range shifted to the origin's x - an empty
+# Range<float> plus lineOrigin.x (juce_TextLayout.cpp:96-117) - and
+# getLineBoundsY opens the origin's y out by the ascent above and the descent
+# below (:119-123). getLineBounds is the two composed as x, y, width, height
+# (:125-131), so its height is ascent + descent and its width is zero here.
+
+proc testTextLayoutLineBounds() =
+    block:
+        let line = makeTextLayoutLine(
+            makeRange(0.cint, 4.cint), makePoint(10.0'f32, 50.0'f32),
+            12.0'f32, 3.0'f32, 1.0'f32, 0.cint)
+
+        let x = line.getLineBoundsX()
+        doAssert x.getStart() == 10.0'f32 and x.getEnd() == 10.0'f32,
+                 "a line with no runs spans " & $x.getStart() & ".." & $x.getEnd()
+
+        let y = line.getLineBoundsY()
+        doAssert y.getStart() == 38.0'f32,
+                 "the top is " & $y.getStart() & ", not the origin less the ascent"
+        doAssert y.getEnd() == 53.0'f32,
+                 "the bottom is " & $y.getEnd() & ", not the origin plus the descent"
+
+        # The leading is NOT part of the bounds: it is spacing to the next line,
+        # so a line with leading 1 is still ascent + descent tall.
+        let bounds = line.getLineBounds()
+        doAssert bounds.getX() == x.getStart() and bounds.getY() == y.getStart(),
+                 "the bounds start at " & $bounds.getX() & "," & $bounds.getY()
+        doAssert bounds.getWidth() == 0.0'f32,
+                 "a line with no runs is " & $bounds.getWidth() & " wide"
+        doAssert bounds.getHeight() == 15.0'f32,
+                 "the bounds are " & $bounds.getHeight() & " tall, not ascent + descent"
+
+testTextLayoutLineBounds()
