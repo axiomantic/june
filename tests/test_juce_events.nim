@@ -895,3 +895,201 @@ proc testChildProcessPairWithoutAPair() =
     shutdownJuce_GUI()
 
 testChildProcessPairWithoutAPair()
+
+# Overrides reached through the base pointer ==================================
+#
+# Each of these is a pure virtual whose only implementation is the generated
+# subclass's, so calling it through the BASE class is what shows the vtable
+# entry reaches Nim. The queue is not involved: nothing here posts, because
+# nothing in this suite can dispatch what it posts.
+
+proc testEventsOverridesThroughTheBase() =
+    initialiseJuce_GUI()
+
+    block:
+        var handled = 0
+        var handledNil = true
+        let listener = newCustomMessageListener()
+        listener[].setHandleMessageHandler(proc(message: ptr Message) =
+            handledNil = message.isNil
+            handled += 1)
+
+        var base = cast[ptr MessageListener](listener)
+        base[].handleMessage(makeMessage())
+        doAssert handled == 1,
+                 "handleMessage did not reach the override; handled is " & $handled
+        doAssert not handledNil, "the override was handed a nil message"
+
+        # postMessage hands the message to the queue, which deletes it once
+        # delivered - so it is built on the heap and never touched again.
+        # Nothing drains the queue here, so the count must not move.
+        base[].postMessage(cnew(makeMessage()))
+        doAssert handled == 1,
+                 "a posted message was delivered inline; handled is " & $handled
+
+        cdelete listener
+
+    block:
+        var sources: seq[ptr ChangeBroadcaster] = @[]
+        let listener = newCustomChangeListener()
+        listener[].setChangeListenerCallbackHandler(
+            proc(source: ptr ChangeBroadcaster) = sources.add(source))
+
+        var broadcaster = makeChangeBroadcaster()
+        cast[ptr ChangeListener](listener)[].changeListenerCallback(
+            addr broadcaster)
+        doAssert sources.len == 1,
+                 "changeListenerCallback reached the override " &
+                 $sources.len & " times"
+        doAssert sources[0] == addr broadcaster,
+                 "the override was handed a different broadcaster"
+
+        cdelete listener
+
+    block:
+        var ran = 0
+        let message = newCustomCallbackMessage()
+        message[].setMessageCallbackHandler(proc() = ran += 1)
+        cast[ptr CallbackMessage](message)[].messageCallback()
+        doAssert ran == 1,
+                 "CallbackMessage's messageCallback did not reach the " &
+                 "override; ran is " & $ran
+        cdelete message
+
+    block:
+        var ran = 0
+        let message = newCustomMessageManagerMessageBase()
+        message[].setMessageCallbackHandler(proc() = ran += 1)
+        cast[ptr MessageManagerMessageBase](message)[].messageCallback()
+        doAssert ran == 1,
+                 "MessageBase's messageCallback did not reach the override; " &
+                 "ran is " & $ran
+        cdelete message
+
+    shutdownJuce_GUI()
+
+testEventsOverridesThroughTheBase()
+
+# Clearing an ActionBroadcaster's listeners ===================================
+#
+# A broadcast is posted rather than delivered, so an emptied list cannot be
+# shown by a message that fails to arrive - nothing arrives either way. What
+# distinguishes clearing the list from destroying its contents is that the
+# listeners outlive it, which is the whole of the broadcaster's ownership
+# contract, and that is what is checked here.
+
+proc testRemoveAllActionListeners() =
+    initialiseJuce_GUI()
+
+    block:
+        var heard = 0
+        let first = newCustomActionListener()
+        let second = newCustomActionListener()
+        first[].setActionListenerCallbackHandler(
+            proc(message: ptr String) = heard += 1)
+        second[].setActionListenerCallbackHandler(
+            proc(message: ptr String) = heard += 1)
+
+        var broadcaster = makeActionBroadcaster()
+        broadcaster.addActionListener(cast[ptr ActionListener](first))
+        broadcaster.addActionListener(cast[ptr ActionListener](second))
+        broadcaster.removeAllActionListeners()
+
+        cast[ptr ActionListener](first)[].actionListenerCallback(
+            makeString("direct"))
+        cast[ptr ActionListener](second)[].actionListenerCallback(
+            makeString("direct"))
+        doAssert heard == 2,
+                 "a listener did not survive removeAllActionListeners; " &
+                 "heard is " & $heard
+
+        # Removing what is no longer there is a no-op, and the broadcaster
+        # takes listeners again afterwards.
+        broadcaster.removeActionListener(cast[ptr ActionListener](first))
+        broadcaster.addActionListener(cast[ptr ActionListener](first))
+        broadcaster.sendActionMessage(makeString("after clearing"))
+        doAssert heard == 2,
+                 "a broadcast was delivered inline; heard is " & $heard
+        broadcaster.removeAllActionListeners()
+
+        cdelete first
+        cdelete second
+
+    shutdownJuce_GUI()
+
+testRemoveAllActionListeners()
+
+# ChildProcessManager without a child ==========================================
+#
+# clearSingletonInstance is left alone: JUCE's macro clears the pointer without
+# deleting the object, so calling it on a live instance strands one and the
+# leak gate that runs after every test would report it.
+
+proc testChildProcessManagerWithoutAChild() =
+    initialiseJuce_GUI()
+
+    block:
+        var manager = ChildProcessManager.getInstance()
+        doAssert not manager.isNil, "there is no child process manager"
+        doAssert not manager[].hasRunningProcess(),
+                 "the manager reports a running process before one was started"
+        ChildProcessManager.deleteInstance()
+
+    shutdownJuce_GUI()
+
+testChildProcessManagerWithoutAChild()
+
+# NetworkServiceDiscovery::AvailableServiceList ================================
+#
+# The list listens on a broadcast port for advertisers. Nothing advertises
+# here, so what is checked is that a fresh list starts empty and hands back a
+# vector rather than nothing.
+
+proc testAvailableServiceList() =
+    initialiseJuce_GUI()
+
+    block:
+        var list = makeNetworkServiceDiscoveryAvailableServiceList(
+            makeString("june-test-service"), 45716.cint)
+        let services = list.getServices()
+        doAssert services.size() == 0,
+                 "a fresh service list holds " & $services.size() & " services"
+
+    shutdownJuce_GUI()
+
+testAvailableServiceList()
+
+# A server on a real socket ====================================================
+#
+# Port zero asks the operating system for a free one, so the test cannot
+# collide with anything else on the machine, and the bound port is read back to
+# see which one it got.
+
+proc testServerWaitingForASocket() =
+    initialiseJuce_GUI()
+
+    block:
+        let server = newCustomInterprocessConnectionServer()
+        server[].setCreateConnectionObjectHandler(
+            proc(): ptr InterprocessConnection = nil)
+
+        var base = cast[ptr InterprocessConnectionServer](server)
+        doAssert base[].getBoundPort() == -1,
+                 "an unbound server reports port " & $base[].getBoundPort()
+        doAssert base[].beginWaitingForSocket(0.cint,
+                                              makeString("127.0.0.1")),
+                 "the server did not begin waiting on an ephemeral port"
+
+        let port = base[].getBoundPort()
+        doAssert port > 0,
+                 "a listening server reports port " & $port
+
+        base[].stop()
+        doAssert base[].getBoundPort() == -1,
+                 "a stopped server still reports port " & $base[].getBoundPort()
+
+        cdelete server
+
+    shutdownJuce_GUI()
+
+testServerWaitingForASocket()
