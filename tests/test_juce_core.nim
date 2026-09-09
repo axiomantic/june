@@ -7886,3 +7886,59 @@ proc testFileOsIntegration() =
                  "trashing a file that is not there reported failure"
 
 testFileOsIntegration()
+
+# TemporaryFile, both ways out =================================================
+#
+# The point of the class is that the target is replaced ATOMICALLY or not at
+# all, so the test asserts the target's contents BEFORE the overwrite as well as
+# after: an implementation that wrote straight through would pass the after
+# assertion on its own. Both exits are covered - overwriteTargetFileWithTemporary
+# keeps the work, deleteTemporaryFile throws it away and must leave the target
+# alone. A private subdirectory, because the names below are fixed.
+
+proc testTemporaryFileBothExits() =
+    let directory = File.getSpecialLocation(
+            FileSpecialLocationType_tempDirectory)
+        .getNonexistentChildFile(makeString("june-temporary"), makeString(""))
+    doAssert directory.createDirectory().wasOk(),
+             "could not make the temp directory"
+    defer: discard directory.deleteRecursively()
+
+    let target = directory.getChildFile(makeString("settings.txt"))
+    doAssert target.replaceWithText(makeString("old")),
+             "could not write the target file"
+
+    block:
+        let temp = makeTemporaryFile(target)
+        doAssert $temp.getTargetFile().getFullPathName() ==
+                 $target.getFullPathName(),
+                 "the temporary names " & $temp.getTargetFile().getFullPathName()
+        doAssert $temp.getFile().getFullPathName() != $target.getFullPathName(),
+                 "the temporary file IS the target, so nothing is atomic"
+
+        doAssert temp.getFile().replaceWithText(makeString("new")),
+                 "could not write the temporary file"
+        doAssert $target.loadFileAsString() == "old",
+                 "the target changed before the overwrite: " &
+                 $target.loadFileAsString()
+
+        doAssert temp.overwriteTargetFileWithTemporary(),
+                 "the overwrite reported failure"
+        doAssert $target.loadFileAsString() == "new",
+                 "the target holds " & $target.loadFileAsString()
+        doAssert not temp.getFile().existsAsFile(),
+                 "the temporary file survived the overwrite"
+
+    block:
+        # The other exit: the work is discarded and the target is untouched.
+        let temp = makeTemporaryFile(target)
+        doAssert temp.getFile().replaceWithText(makeString("discarded")),
+                 "could not write the second temporary file"
+        doAssert temp.deleteTemporaryFile(), "the delete reported failure"
+        doAssert not temp.getFile().existsAsFile(),
+                 "the temporary file outlived deleteTemporaryFile"
+        doAssert $target.loadFileAsString() == "new",
+                 "deleteTemporaryFile changed the target to " &
+                 $target.loadFileAsString()
+
+testTemporaryFileBothExits()

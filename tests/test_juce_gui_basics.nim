@@ -15770,3 +15770,50 @@ proc testTextPropertyComponentEditorShape() =
     shutdownJuce_GUI()
 
 testTextPropertyComponentEditorShape()
+
+# ShapeButton's two colour sets ================================================
+#
+# All three methods return void and there is no getter for any of them, so the
+# only honest way to verify them is through what gets PAINTED. JUCE picks the
+# on-colour when `getToggleState() && useOnColours` (juce_ShapeButton.cpp:133-135),
+# so with the toggle held ON, flipping shouldUseOnColours is the one thing that
+# changes - which is what makes the two paints comparable.
+
+proc testShapeButtonColourSets() =
+    initialiseJuce_GUI()
+
+    block:
+        var shape = makePath()
+        shape.addRectangle(0.0'f32, 0.0'f32, 20.0'f32, 20.0'f32)
+
+        let off = makeColour(255'u8, 0'u8, 0'u8, 255'u8)
+        let on = makeColour(0'u8, 0'u8, 255'u8, 255'u8)
+        var button = makeShapeButton(makeString("shape"), off, off, off)
+        button.setShape(shape, false, true, false)
+        button.setBounds(0.cint, 0.cint, 20.cint, 20.cint)
+        button.setColours(off, off, off)
+        button.setOnColours(on, on, on)
+        button.setToggleState(true, NotificationType_dontSendNotification)
+
+        # A template, not a proc: a nested proc would CAPTURE the button, and
+        # Nim default-constructs a captured value into the closure environment -
+        # which juce::ShapeButton has no constructor for.
+        template paintedRed(): uint8 =
+            let image = makeImage(ImagePixelFormat_ARGB, 20.cint, 20.cint, true)
+            var graphics = makeGraphics(image)
+            button.paintEntireComponent(graphics, false)
+            image.getPixelAt(10.cint, 10.cint).getRed()
+
+        button.shouldUseOnColours(false)
+        let plainRed = paintedRed()
+        doAssert plainRed == 255'u8,
+                 "with the on-colours off the button painted red " & $plainRed
+
+        button.shouldUseOnColours(true)
+        let onRed = paintedRed()
+        doAssert onRed == 0'u8,
+                 "with the on-colours on the button still painted red " & $onRed
+
+    shutdownJuce_GUI()
+
+testShapeButtonColourSets()
