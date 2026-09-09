@@ -8228,3 +8228,70 @@ proc testAndroidDocumentPermissionDefaults() =
                  $permission.getPersistedTime()
 
 testAndroidDocumentPermissionDefaults()
+
+# ReadWriteLock's two entries, and FileSearchPath's raw form ===================
+#
+# The lock is entered and left on ONE thread, which is all that can be asserted
+# without a second one - but it is not nothing: a read lock is shared, so
+# tryEnterRead succeeds while one is held, and a write lock is exclusive, so
+# tryEnterWrite fails against it. That asymmetry is the whole point of the class
+# and it is what an implementation that treated both alike would fail.
+
+proc testReadWriteLockEntries() =
+    block:
+        let lock = makeReadWriteLock()
+
+        # A read lock is shared, so a second one is granted.
+        lock.enterRead()
+        doAssert lock.tryEnterRead(),
+                 "a second reader could not join a held read lock"
+        lock.exitRead()
+
+        # And the writer gets in TOO, which is the surprising part: JUCE grants
+        # the write lock when the only reader is the current thread
+        # (juce_ReadWriteLock.cpp:129-141), so the lock is re-entrant rather
+        # than strictly exclusive. Exclusion against ANOTHER thread cannot be
+        # shown from one thread, and asserting it here would assert the opposite
+        # of what JUCE does.
+        doAssert lock.tryEnterWrite(),
+                 "the sole reader was refused the write lock"
+        lock.exitWrite()
+        lock.exitRead()
+
+        # With nothing held at all, the writer takes it outright.
+        lock.enterWrite()
+        lock.exitWrite()
+        doAssert lock.tryEnterRead(),
+                 "a reader could not take a free lock"
+        lock.exitRead()
+
+testReadWriteLockEntries()
+
+# FileSearchPath's raw entries ==================================================
+#
+# getRawString hands back what was PUT IN, before any resolution of "~" or of a
+# relative path, which is what separates it from the resolved File that
+# getNumPaths counts. toStringWithSeparator joins the same entries with whatever
+# separator is asked for, so joining with two different ones is what shows the
+# argument is used rather than a built-in default.
+
+proc testFileSearchPathRawAndSeparator() =
+    block:
+        var path = makeFileSearchPath()
+        let temp = File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+        path.add(temp)
+        path.add(temp.getChildFile(makeString("june-search-child")))
+
+        doAssert path.getNumPaths() == 2,
+                 "the path holds " & $path.getNumPaths() & " entries"
+        doAssert $path.getRawString(0.cint) == $temp.getFullPathName(),
+                 "the first raw entry is " & $path.getRawString(0.cint)
+
+        let joined = $path.toStringWithSeparator(makeStringRef("|"))
+        doAssert joined.contains("|"),
+                 "joining with a bar gave " & joined
+        let semicolons = $path.toStringWithSeparator(makeStringRef(";"))
+        doAssert semicolons.contains(";") and not semicolons.contains("|"),
+                 "joining with a semicolon gave " & semicolons
+
+testFileSearchPathRawAndSeparator()
