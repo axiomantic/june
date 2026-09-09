@@ -139,6 +139,22 @@ proc testValue() =
   var separate = makeValue(makejuce_var(makeString("other")))
   doAssert not separate.refersToSameSourceAs(first), "an unrelated Value shared the source"
 
+  # toJuce_var is the conversion the Value carries, so it answers what the
+  # Value holds NOW - asserted after the write above, which is what separates it
+  # from a snapshot taken when the Value was made.
+  doAssert $first.toJuce_var().toString() == "changed",
+           "the var conversion gave " & $first.toJuce_var().toString()
+  doAssert $separate.toJuce_var().toString() == "other",
+           "the unrelated var conversion gave " & $separate.toJuce_var().toString()
+
+  # getValueSource reaches the shared object behind the two Values, so the ones
+  # that refer to each other reach the SAME one and the unrelated one does not.
+  # Comparing addresses is the check; comparing values would pass either way.
+  doAssert (addr first.getValueSource()) == (addr second.getValueSource()),
+           "two Values sharing a source reached different ones"
+  doAssert (addr first.getValueSource()) != (addr separate.getValueSource()),
+           "an unrelated Value reached the same source"
+
 # ValueTreePropertyWithDefault ================================================
 #
 # A property that falls back to a default until something writes to it. The
@@ -1292,3 +1308,30 @@ proc testValueTreePropertyWithDefaultAccessors() =
 
 testValueTreeListenerDefaults()
 testValueTreePropertyWithDefaultAccessors()
+
+# UndoableAction's two base answers ============================================
+#
+# Neither is overridden by the generated subclass - there is nothing to override
+# usefully - so what is pinned is the DEFAULT each gives, which is what an
+# action that implements only perform and undo inherits. getSizeInUnits answers
+# ten (juce_UndoableAction.h:97) and createCoalescedAction refuses, returning
+# nullptr, so coalescing is opt-in rather than something that happens by
+# accident. Both are reached through the BASE pointer.
+
+proc testUndoableActionBaseDefaults() =
+    block:
+        let action = newCustomUndoableAction()
+        let base = cast[ptr UndoableAction](action)
+
+        doAssert base[].getSizeInUnits() == 10,
+                 "the base size is " & $base[].getSizeInUnits() & ", not JUCE's ten"
+
+        let other = newCustomUndoableAction()
+        doAssert base[].createCoalescedAction(
+                     cast[ptr UndoableAction](other)) == nil,
+                 "the base merged itself with the next action"
+
+        cdelete other
+        cdelete action
+
+testUndoableActionBaseDefaults()
