@@ -15872,3 +15872,43 @@ proc testShapeButtonColourSets() =
     shutdownJuce_GUI()
 
 testShapeButtonColourSets()
+
+# Grid's counts and its gap ====================================================
+#
+# getNumberOfColumns and getNumberOfRows read the TEMPLATES, not the items - two
+# columns and one row here against two items, so a count wired to the wrong list
+# would answer two for the rows and fail.
+#
+# setGap is asserted through the LAYOUT. Grid::Px carries a long double the
+# generator cannot spell, so its pixels accessor is withheld and it has no ==;
+# laying the same grid out twice, once without a gap and once with, moves the
+# second column by exactly the gap, which nothing else would do. This grid is
+# its own, because the Grid test above pins exact positions that a gap moves.
+
+proc testGridCountsAndGap() =
+    initialiseJuce_GUI()
+
+    block:
+        var grid = makeGrid()
+        grid.templateColumns.add(makeGridTrackInfo(makeGridPx(40.0'f32)))
+        grid.templateColumns.add(makeGridTrackInfo(makeGridPx(40.0'f32)))
+        grid.templateRows.add(makeGridTrackInfo(makeGridPx(30.0'f32)))
+        grid.items.add(makeGridItem())
+        grid.items.add(makeGridItem())
+
+        doAssert grid.getNumberOfColumns() == 2,
+                 "the grid reports " & $grid.getNumberOfColumns() & " columns"
+        doAssert grid.getNumberOfRows() == 1,
+                 "the grid reports " & $grid.getNumberOfRows() & " rows"
+
+        grid.performLayout(makeRectangle(0.cint, 0.cint, 200.cint, 200.cint))
+        let before = grid.items[1.cint].currentBounds.getX()
+        grid.setGap(makeGridPx(7.0'f32))
+        grid.performLayout(makeRectangle(0.cint, 0.cint, 200.cint, 200.cint))
+        let after = grid.items[1.cint].currentBounds.getX()
+        doAssert abs((after - before) - 7.0'f32) < 1.0e-3'f32,
+                 "a seven pixel gap moved the second column by " & $(after - before)
+
+    shutdownJuce_GUI()
+
+testGridCountsAndGap()
