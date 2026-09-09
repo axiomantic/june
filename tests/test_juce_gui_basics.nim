@@ -18888,3 +18888,133 @@ proc testAccessibleValueRangeBounds() =
 
 
 testAccessibleValueRangeBounds()
+
+
+# Listener bases reached through the base pointer =============================
+#
+# ComponentPeer::ScaleFactorListener and ComponentPeer::VBlankListener are
+# separate classes from ComponentPeer itself, which has no public constructor
+# and is unreachable from a test. The listeners are reachable: a generated
+# Custom subclass overrides the virtual, and calling it through a pointer to
+# the BASE dispatches into that override. That dispatch is the whole contract
+# of a listener interface, so it is what these assert.
+proc testComponentPeerListenerBases() =
+    initialiseJuce_GUI()
+
+    block:
+        var seenScales: seq[float64] = @[]
+        let scaleListener = newCustomComponentPeerScaleFactorListener()
+        scaleListener[].setNativeScaleFactorChangedHandler(proc(newScaleFactor: cdouble) =
+            seenScales.add(newScaleFactor.float64))
+
+        let asBase = cast[ptr ComponentPeerScaleFactorListener](scaleListener)
+        asBase[].nativeScaleFactorChanged(2.0)
+        doAssert seenScales == @[2.0],
+                 "calling through the base pointer delivered " & $seenScales
+
+        # A second call with a different factor: the argument is carried
+        # through, so the handler is not being invoked with a constant.
+        asBase[].nativeScaleFactorChanged(1.25)
+        doAssert seenScales == @[2.0, 1.25],
+                 "the second scale factor arrived as " & $seenScales
+
+        cdelete scaleListener
+
+    block:
+        var ticks = 0
+        var lastTimestamp = -1.0
+        let vblankListener = newCustomComponentPeerVBlankListener()
+        vblankListener[].setOnVBlankHandler(proc(timestampSec: cdouble) =
+            ticks += 1
+            lastTimestamp = timestampSec.float64)
+
+        let asBase = cast[ptr ComponentPeerVBlankListener](vblankListener)
+        asBase[].onVBlank(0.5)
+        doAssert ticks == 1, "onVBlank through the base pointer fired " & $ticks & " times"
+        doAssert lastTimestamp == 0.5,
+                 "the vblank timestamp arrived as " & $lastTimestamp
+
+        asBase[].onVBlank(1.75)
+        doAssert ticks == 2, "the second onVBlank fired " & $ticks & " times in total"
+        doAssert lastTimestamp == 1.75,
+                 "the second vblank timestamp arrived as " & $lastTimestamp
+
+        cdelete vblankListener
+
+    shutdownJuce_GUI()
+
+
+testComponentPeerListenerBases()
+
+
+# TextPropertyComponent::Listener reached through the base pointer. The
+# component the change is reported for is passed as an argument rather than
+# being implied, so the handler can tell two components apart; that is what
+# distinguishes a working dispatch from one that fires with a null subject.
+proc testTextPropertyComponentListenerBase() =
+    initialiseJuce_GUI()
+
+    block:
+        var reportedNames: seq[string] = @[]
+        let listener = newCustomTextPropertyComponentListener()
+        listener[].setTextPropertyComponentChangedHandler(
+            proc(changed: ptr TextPropertyComponent) =
+                reportedNames.add($changed[].getName()))
+
+        var firstValue = makeValue()
+        var secondValue = makeValue()
+        var first = makeTextPropertyComponent(
+            firstValue, makeString("alpha"), 32.cint, false)
+        var second = makeTextPropertyComponent(
+            secondValue, makeString("beta"), 32.cint, false)
+
+        let asBase = cast[ptr TextPropertyComponentListener](listener)
+        asBase[].textPropertyComponentChanged(addr first)
+        doAssert reportedNames == @["alpha"],
+                 "the base-pointer call reported " & $reportedNames
+
+        asBase[].textPropertyComponentChanged(addr second)
+        doAssert reportedNames == @["alpha", "beta"],
+                 "the second component was reported as " & $reportedNames
+
+        cdelete listener
+
+    shutdownJuce_GUI()
+
+
+testTextPropertyComponentListenerBase()
+
+
+# ModalComponentManager::Callback carries the modal result back to whoever
+# asked for it. It is called DIRECTLY through the base pointer here and NOT
+# handed to ModalComponentManager::attachCallback: that method deletes the
+# callback outright unless the component is already modal
+# (juce_ModalComponentManager.cpp:121-135), so routing this through it would
+# be a double free against the cdelete below.
+proc testModalComponentManagerCallbackBase() =
+    initialiseJuce_GUI()
+
+    block:
+        var results: seq[cint] = @[]
+        let callback = newCustomModalComponentManagerCallback()
+        callback[].setModalStateFinishedHandler(proc(returnValue: cint) =
+            results.add(returnValue))
+
+        let asBase = cast[ptr ModalComponentManagerCallback](callback)
+        asBase[].modalStateFinished(0.cint)
+        doAssert results == @[0.cint],
+                 "the first modal result arrived as " & $results
+
+        # A non-zero result, and a negative one: the value is carried through
+        # rather than the handler firing with whatever it was built with.
+        asBase[].modalStateFinished(7.cint)
+        asBase[].modalStateFinished(-3.cint)
+        doAssert results == @[0.cint, 7.cint, -3.cint],
+                 "the modal results arrived as " & $results
+
+        cdelete callback
+
+    shutdownJuce_GUI()
+
+
+testModalComponentManagerCallbackBase()
