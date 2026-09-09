@@ -273,6 +273,13 @@ proc invoke*(f: var CppFunctionObjectN0) {.importcpp: "std::invoke(@)", header: 
 proc invoke*[R](f: var CppFunctionObjectR0[R]): R {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc invoke*[T](f: var CppFunctionObjectN1[T], a: T) {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc invoke*[R, T](f: var CppFunctionObjectR1[R, T], a: T): R {.importcpp: "std::invoke(@)", header: "<functional>".}
+
+# The const-reference forms have no invoke until here, only the call operator
+# above, so a caller could invoke every other shape by name and these two only
+# by spelling `()`. That also hid them from the coverage report, which reads a
+# dotted call and cannot see a name followed by a comma.
+proc invoke*[R, T](f: var CppFunctionObjectR1Ref[R, T], a: ptr T): R {.importcpp: "std::invoke(#, *#)", header: "<functional>".}
+proc invoke*[T](f: var CppFunctionObjectN1Ref[T], a: ptr T) {.importcpp: "std::invoke(#, *#)", header: "<functional>".}
 proc invoke*[T1, T2](f: var CppFunctionObjectN2[T1, T2], a1: T1, a2: T2) {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc invoke*[R, T1, T2](f: var CppFunctionObjectR2[R, T1, T2], a1: T1, a2: T2): R {.importcpp: "std::invoke(@)", header: "<functional>".}
 proc invoke*[T1, T2, T3](f: var CppFunctionObjectN3[T1, T2, T3], a1: T1, a2: T2, a3: T3) {.importcpp: "std::invoke(@)", header: "<functional>".}

@@ -2822,6 +2822,27 @@ proc testRelativeGeometry() =
         doAssert fixed != makeRelativeCoordinate(13.0),
                  "coordinates of different numbers are equal"
 
+        # getExpression hands back the Expression the coordinate holds, and an
+        # absolute one evaluates to its own number without any scope at all.
+        doAssert fixed.getExpression().evaluate() == 12.5,
+                 "the expression evaluates to " &
+                 $fixed.getExpression().evaluate()
+
+        # An absolute coordinate names nothing, so it cannot refer back to
+        # itself however it is scoped - nil included.
+        doAssert not fixed.isRecursive(nil),
+                 "a plain number called itself recursive"
+
+        # moveToAbsolute rewrites the coordinate to the position asked for,
+        # which resolve then reports. Asserted from a DIFFERENT starting number,
+        # so a no-op would leave 5.0 behind rather than pass.
+        var movable = makeRelativeCoordinate(5.0)
+        doAssert movable.resolve(nil) == 5.0,
+                 "the movable coordinate started at " & $movable.resolve(nil)
+        movable.moveToAbsolute(20.0, nil)
+        doAssert movable.resolve(nil) == 20.0,
+                 "after moving it resolves to " & $movable.resolve(nil)
+
         # A coordinate written as an expression that names another coordinate is
         # dynamic, because it cannot be resolved without a scope.
         let named = makeRelativeCoordinate(makeString("parent.width / 2"))
@@ -3072,6 +3093,40 @@ proc testTabReordering() =
         # The bar builds a TabBarButton per tab, and it carries the name.
         let button = bar.getTabButton(0.cint)
         doAssert button != nil, "the first tab has no button"
+
+        # indexOfTabButton is getTabButton's inverse, which is what makes this
+        # pair falsifiable: a binding returning a constant would fail one of
+        # them. A button the bar does not own answers -1 rather than guessing.
+        doAssert bar.indexOfTabButton(button) == 0,
+                 "the first tab's button reports index " &
+                 $bar.indexOfTabButton(button)
+        doAssert bar.indexOfTabButton(bar.getTabButton(2.cint)) == 2,
+                 "the third tab's button reports index " &
+                 $bar.indexOfTabButton(bar.getTabButton(2.cint))
+        doAssert bar.indexOfTabButton(nil) == -1,
+                 "a button the bar does not own reports " &
+                 $bar.indexOfTabButton(nil)
+
+        # The bar has never been laid out, so the target bounds are whatever a
+        # zero-sized bar gives - what is asserted is that the three tabs do not
+        # all get the SAME answer once the bar has a size, which is the failure
+        # a constant would produce.
+        bar.setBounds(0.cint, 0.cint, 300.cint, 30.cint)
+        let first = bar.getTargetBounds(bar.getTabButton(0.cint))
+        let third = bar.getTargetBounds(bar.getTabButton(2.cint))
+        doAssert first != third,
+                 "every tab targets the same bounds, " & $first.getX() & "," &
+                 $first.getWidth()
+        doAssert first.getWidth() > 0 and first.getHeight() > 0,
+                 "the first tab targets a " & $first.getWidth() & "x" &
+                 $first.getHeight() & " rectangle"
+
+        # setMinimumTabScaleFactor returns void and has no getter. It bounds how
+        # far JUCE may shrink tabs to fit, so what is asserted is that setting
+        # it leaves the bounds above answerable rather than any particular size.
+        bar.setMinimumTabScaleFactor(0.5)
+        doAssert bar.getTargetBounds(bar.getTabButton(0.cint)).getHeight() > 0,
+                 "after setting the minimum scale the first tab has no height"
         doAssert $button[].getButtonText() == "Second",
                  "the button reads " & $button[].getButtonText()
 
@@ -7369,6 +7424,12 @@ testRemainingGuiFields()
 # its own getter where no constructor can build one, or an instance JUCE hands
 # out where the class has no constructor at all.
 
+# The non-var getter overload needs a call site of its own, and selecting it
+# takes a non-var receiver: MultiChoicePropertyComponent cannot be copied into
+# a `let`.
+proc copyOfOnHeightChange(c: MultiChoicePropertyComponent): CppFunctionObjectN0 =
+    c.onHeightChange
+
 proc testLastFields() =
     initialiseJuce_GUI()
 
@@ -7436,6 +7497,18 @@ proc testLastFields() =
         var resized = 0
         component.onHeightChange = bindClosure(proc() = resized += 1)
         doAssert resized == 0, "the height closure ran before any resize"
+
+        # Assigning the field and reading it back are separate bindings, so
+        # invoking what the getter returns is what proves the closure reached
+        # the field at all.
+        component.onHeightChange.invoke()
+        doAssert resized == 1,
+                 "invoking the stored height closure produced " & $resized & " calls"
+
+        var copiedHeightChange = copyOfOnHeightChange(component)
+        copiedHeightChange.invoke()
+        doAssert resized == 2,
+                 "invoking the copied height closure left the count at " & $resized
 
     shutdownJuce_GUI()
 
@@ -15644,3 +15717,3933 @@ proc testApplicationConstruction() =
     shutdownJuce_GUI()
 
 testApplicationConstruction()
+
+# TextEditor::Listener, in behaviour ===========================================
+#
+# All four methods have EMPTY bodies in JUCE (juce_TextEditor.h:333-342), so no
+# Custom subclass is generated for this class - there is nothing to override.
+# What is worth pinning is the DEFAULT each one gives, because that is what a
+# caller who overrides only one of them relies on: the base does nothing at all
+# to the editor it is handed.
+
+proc testTextEditorListenerDefaults() =
+    initialiseJuce_GUI()
+
+    block:
+        var editor = makeTextEditor(makeString("listener"), 0'u16)
+        editor.setText(makeString("unchanged"), false)
+        editor.setCaretPosition(3.cint)
+        let text = $editor.getText()
+        let caret = editor.getCaretPosition()
+
+        var listener = makeTextEditorListener()
+        listener.textEditorTextChanged(editor)
+        listener.textEditorReturnKeyPressed(editor)
+        listener.textEditorEscapeKeyPressed(editor)
+        listener.textEditorFocusLost(editor)
+
+        doAssert $editor.getText() == text,
+                 "a default listener changed the text to " & $editor.getText()
+        doAssert editor.getCaretPosition() == caret,
+                 "a default listener moved the caret to " &
+                 $editor.getCaretPosition()
+
+    shutdownJuce_GUI()
+
+testTextEditorListenerDefaults()
+
+# ToolbarItemFactory, in behaviour =============================================
+#
+# All three methods are PURE virtual in JUCE (juce_ToolbarItemFactory.h:92, 102
+# and 115), so the generated Custom subclass is the only way to have one at all.
+# Every call below goes through the BASE pointer, which is what shows the Nim
+# override really reached C++ rather than being installed and forgotten - the
+# pattern the roadmap records for this shape.
+
+proc testToolbarItemFactoryOverrides() =
+    initialiseJuce_GUI()
+
+    block:
+        var factory = newCustomToolbarItemFactory()
+        var askedForAll = 0
+        var askedForDefaults = 0
+        var createdFor = -1
+
+        factory[].setGetAllToolbarItemIdsHandler(proc(ids: ptr Array[cint]) =
+            askedForAll += 1
+            ids[].add(11.cint)
+            ids[].add(12.cint))
+        factory[].setGetDefaultItemSetHandler(proc(ids: ptr Array[cint]) =
+            askedForDefaults += 1
+            ids[].add(11.cint))
+        factory[].setCreateItemHandler(proc(itemId: cint): ptr ToolbarItemComponent =
+            createdFor = int(itemId)
+            nil)
+
+        let base = cast[ptr ToolbarItemFactory](factory)
+
+        var all = makeArray[cint]()
+        base[].getAllToolbarItemIds(all)
+        doAssert askedForAll == 1,
+                 "the override ran " & $askedForAll & " times, not once"
+        doAssert all.size() == 2,
+                 "the override filled " & $all.size() & " ids, not two"
+
+        var defaults = makeArray[cint]()
+        base[].getDefaultItemSet(defaults)
+        doAssert askedForDefaults == 1,
+                 "the default-set override ran " & $askedForDefaults & " times"
+        doAssert defaults.size() == 1,
+                 "the default set holds " & $defaults.size() & " ids, not one"
+
+        # Returning nil is a real answer here: JUCE lets a factory decline an id.
+        doAssert base[].createItem(7.cint) == nil,
+                 "createItem invented a component the override did not return"
+        doAssert createdFor == 7,
+                 "the override was asked for item " & $createdFor & ", not 7"
+
+        cdelete factory
+
+    shutdownJuce_GUI()
+
+testToolbarItemFactoryOverrides()
+
+# TextPropertyComponent's editor shape =========================================
+#
+# isTextEditorMultiLine reports what the CONSTRUCTOR was told, so two components
+# built the two ways answer differently - which is the only way to tell it from
+# a binding wired to a constant. textWasEdited exposes nothing to read back, but
+# it ends in callListeners, so a registered listener is what sees it happen.
+
+proc testTextPropertyComponentEditorShape() =
+    initialiseJuce_GUI()
+
+    var edits = 0
+    var editedName = ""
+
+    block:
+        var oneLineValue = makeValue()
+        var manyLineValue = makeValue()
+        var oneLine = makeTextPropertyComponent(
+            oneLineValue, makeString("single"), 32.cint, false)
+        var manyLines = makeTextPropertyComponent(
+            manyLineValue, makeString("multi"), 512.cint, true)
+
+        doAssert not oneLine.isTextEditorMultiLine(),
+                 "a component built single-line reports multi-line"
+        doAssert manyLines.isTextEditorMultiLine(),
+                 "a component built multi-line reports single-line"
+
+        let listener = newCustomTextPropertyComponentListener()
+        listener[].setTextPropertyComponentChangedHandler(
+            proc(changed: ptr TextPropertyComponent) =
+                edits += 1
+                editedName = $changed[].getName())
+
+        oneLine.addListener(cast[ptr TextPropertyComponentListener](listener))
+        manyLines.addListener(cast[ptr TextPropertyComponentListener](listener))
+
+        manyLines.textWasEdited()
+        doAssert edits == 1, "the listener saw " & $edits & " edits"
+        doAssert editedName == "multi",
+                 "the edit was reported against " & editedName
+
+        oneLine.textWasEdited()
+        doAssert edits == 2, "one listener should hear both components"
+        doAssert editedName == "single",
+                 "the second edit was reported against " & editedName
+
+        manyLines.removeListener(cast[ptr TextPropertyComponentListener](listener))
+        manyLines.textWasEdited()
+        doAssert edits == 2, "removeListener did not detach it"
+
+        oneLine.removeListener(cast[ptr TextPropertyComponentListener](listener))
+        cdelete listener
+
+    shutdownJuce_GUI()
+
+testTextPropertyComponentEditorShape()
+
+# ShapeButton's two colour sets ================================================
+#
+# All three methods return void and there is no getter for any of them, so the
+# only honest way to verify them is through what gets PAINTED. JUCE picks the
+# on-colour when `getToggleState() && useOnColours` (juce_ShapeButton.cpp:133-135),
+# so with the toggle held ON, flipping shouldUseOnColours is the one thing that
+# changes - which is what makes the two paints comparable.
+
+proc testShapeButtonColourSets() =
+    initialiseJuce_GUI()
+
+    block:
+        var shape = makePath()
+        shape.addRectangle(0.0'f32, 0.0'f32, 20.0'f32, 20.0'f32)
+
+        let off = makeColour(255'u8, 0'u8, 0'u8, 255'u8)
+        let on = makeColour(0'u8, 0'u8, 255'u8, 255'u8)
+        var button = makeShapeButton(makeString("shape"), off, off, off)
+        button.setShape(shape, false, true, false)
+        button.setBounds(0.cint, 0.cint, 20.cint, 20.cint)
+        button.setColours(off, off, off)
+        button.setOnColours(on, on, on)
+        button.setToggleState(true, NotificationType_dontSendNotification)
+
+        # A template, not a proc: a nested proc would CAPTURE the button, and
+        # Nim default-constructs a captured value into the closure environment -
+        # which juce::ShapeButton has no constructor for.
+        template paintedRed(): uint8 =
+            let image = makeImage(ImagePixelFormat_ARGB, 20.cint, 20.cint, true)
+            var graphics = makeGraphics(image)
+            button.paintEntireComponent(graphics, false)
+            image.getPixelAt(10.cint, 10.cint).getRed()
+
+        button.shouldUseOnColours(false)
+        let plainRed = paintedRed()
+        doAssert plainRed == 255'u8,
+                 "with the on-colours off the button painted red " & $plainRed
+
+        button.shouldUseOnColours(true)
+        let onRed = paintedRed()
+        doAssert onRed == 0'u8,
+                 "with the on-colours on the button still painted red " & $onRed
+
+    shutdownJuce_GUI()
+
+testShapeButtonColourSets()
+
+# Grid's counts and its gap ====================================================
+#
+# getNumberOfColumns and getNumberOfRows read the TEMPLATES, not the items - two
+# columns and one row here against two items, so a count wired to the wrong list
+# would answer two for the rows and fail.
+#
+# setGap is asserted through the LAYOUT. Grid::Px carries a long double the
+# generator cannot spell, so its pixels accessor is withheld and it has no ==;
+# laying the same grid out twice, once without a gap and once with, moves the
+# second column by exactly the gap, which nothing else would do. This grid is
+# its own, because the Grid test above pins exact positions that a gap moves.
+
+proc testGridCountsAndGap() =
+    initialiseJuce_GUI()
+
+    block:
+        var grid = makeGrid()
+        grid.templateColumns.add(makeGridTrackInfo(makeGridPx(40.0'f32)))
+        grid.templateColumns.add(makeGridTrackInfo(makeGridPx(40.0'f32)))
+        grid.templateRows.add(makeGridTrackInfo(makeGridPx(30.0'f32)))
+        grid.items.add(makeGridItem())
+        grid.items.add(makeGridItem())
+
+        doAssert grid.getNumberOfColumns() == 2,
+                 "the grid reports " & $grid.getNumberOfColumns() & " columns"
+        doAssert grid.getNumberOfRows() == 1,
+                 "the grid reports " & $grid.getNumberOfRows() & " rows"
+
+        grid.performLayout(makeRectangle(0.cint, 0.cint, 200.cint, 200.cint))
+        let before = grid.items[1.cint].currentBounds.getX()
+        grid.setGap(makeGridPx(7.0'f32))
+        grid.performLayout(makeRectangle(0.cint, 0.cint, 200.cint, 200.cint))
+        let after = grid.items[1.cint].currentBounds.getX()
+        doAssert abs((after - before) - 7.0'f32) < 1.0e-3'f32,
+                 "a seven pixel gap moved the second column by " & $(after - before)
+
+    shutdownJuce_GUI()
+
+testGridCountsAndGap()
+
+# Label::Listener, both shapes in one class =====================================
+#
+# labelTextChanged is PURE virtual in JUCE (juce_Label.h:200), so the generated
+# subclass overrides it and the call through the BASE pointer is what shows the
+# Nim override reached C++. editorShown and editorHidden are `{}` (:203, :206),
+# so nothing overrides them and what is pinned is that the defaults do NOTHING -
+# asserted by the same counter not moving, which is the only way to tell an
+# empty body from one that quietly reached the wrong handler.
+
+proc testLabelListenerOverrideAndDefaults() =
+    initialiseJuce_GUI()
+
+    block:
+        var listener = newCustomLabelListener()
+        var told = 0
+        listener[].setLabelTextChangedHandler(proc(which: ptr Label) = told += 1)
+
+        var label = makeLabel(makeString("name"), makeString("text"))
+        var editor = makeTextEditor(makeString("editor"), 0'u16)
+        let base = cast[ptr LabelListener](listener)
+
+        base[].labelTextChanged(addr label)
+        doAssert told == 1,
+                 "the override ran " & $told & " times, not once"
+
+        # The two empty defaults: they run, and they leave the counter alone.
+        base[].editorShown(addr label, editor)
+        base[].editorHidden(addr label, editor)
+        doAssert told == 1,
+                 "an empty default reached the text-changed handler; told is " & $told
+
+        cdelete listener
+
+    shutdownJuce_GUI()
+
+testLabelListenerOverrideAndDefaults()
+
+# HyperlinkButton's URL and its fitted width ====================================
+#
+# setURL and getURL round trip, asserted from a DIFFERENT starting URL so a
+# getter wired to a constant fails. changeWidthToFitText sizes the button to its
+# text, and the fitted width depends on the host's font - so what is asserted is
+# that it MOVED away from a width the text plainly does not need, and that the
+# height is left alone, rather than any particular number.
+
+proc testHyperlinkButtonUrlAndWidth() =
+    initialiseJuce_GUI()
+
+    block:
+        let first = makeURL(makeString("https://example.invalid/one"))
+        let second = makeURL(makeString("https://example.invalid/two"))
+        var link = makeHyperlinkButton(makeString("a link with some width"), first)
+
+        doAssert $link.getURL().toString(false) == "https://example.invalid/one",
+                 "the button starts at " & $link.getURL().toString(false)
+        link.setURL(second)
+        doAssert $link.getURL().toString(false) == "https://example.invalid/two",
+                 "after setURL the button holds " & $link.getURL().toString(false)
+
+        # A width the text cannot possibly want, so any real fitting moves it.
+        link.setBounds(0.cint, 0.cint, 1000.cint, 24.cint)
+        link.changeWidthToFitText()
+        doAssert link.getWidth() != 1000,
+                 "fitting the text left the button 1000 wide"
+        doAssert link.getWidth() > 0,
+                 "fitting the text gave a width of " & $link.getWidth()
+        doAssert link.getHeight() == 24,
+                 "fitting the width changed the height to " & $link.getHeight()
+
+    shutdownJuce_GUI()
+
+testHyperlinkButtonUrlAndWidth()
+
+# RelativeParallelogram resolved against a known rectangle ======================
+#
+# Built from a plain rectangle, the three corners it stores are that rectangle's,
+# so resolving is exact arithmetic and needs no scope - nil is passed for one.
+# resolveFourCorners fills FOUR points and resolveThreePoints fills three, which
+# is the difference between them: the fourth corner is derived, and asserting it
+# is what a resolver that filled only three would fail.
+
+proc testRelativeParallelogramResolution() =
+    initialiseJuce_GUI()
+
+    block:
+        var shape = makeRelativeParallelogram(
+            makeRectangle(10.0'f32, 20.0'f32, 40.0'f32, 30.0'f32))
+
+        var corners: array[4, Point[cfloat]]
+        shape.resolveFourCorners(corners[0].addr, nil)
+        doAssert corners[0].getX() == 10.0'f32 and corners[0].getY() == 20.0'f32,
+                 "the top left resolved to " & $corners[0].getX() & "," &
+                 $corners[0].getY()
+        doAssert corners[1].getX() == 50.0'f32 and corners[1].getY() == 20.0'f32,
+                 "the top right resolved to " & $corners[1].getX() & "," &
+                 $corners[1].getY()
+        doAssert corners[2].getX() == 10.0'f32 and corners[2].getY() == 50.0'f32,
+                 "the bottom left resolved to " & $corners[2].getX() & "," &
+                 $corners[2].getY()
+        # The fourth is DERIVED from the other three rather than stored, which is
+        # what makes a parallelogram a parallelogram.
+        doAssert corners[3].getX() == 50.0'f32 and corners[3].getY() == 50.0'f32,
+                 "the derived corner resolved to " & $corners[3].getX() & "," &
+                 $corners[3].getY()
+
+        var three: array[3, Point[cfloat]]
+        shape.resolveThreePoints(three[0].addr, nil)
+        doAssert three[0].getX() == 10.0'f32 and three[2].getY() == 50.0'f32,
+                 "three points resolved to a different shape"
+
+        # Perpendicular already: squaring it up leaves the corners alone, so the
+        # transform is asked for and the shape re-resolved to show that.
+        discard shape.resetToPerpendicular(nil)
+        shape.resolveFourCorners(corners[0].addr, nil)
+        doAssert corners[0].getX() == 10.0'f32 and corners[1].getX() == 50.0'f32,
+                 "squaring up an already square shape moved it to " &
+                 $corners[0].getX() & ".." & $corners[1].getX()
+
+    shutdownJuce_GUI()
+
+testRelativeParallelogramResolution()
+
+# ProgressBar's resolved style and its text ====================================
+#
+# getResolvedStyle answers the style the bar will actually use, so a bar built
+# with an EXPLICIT style answers that one and a bar built without answers
+# whatever the LookAndFeel supplies. Building both and comparing is what shows
+# the explicit style is honoured rather than ignored - one bar alone could not
+# tell the two apart.
+#
+# setPercentageDisplay and setTextToDisplay have no getters, but the paint path
+# reads both to build the string it draws, so the rendered pixels are the only
+# place their effect is visible.
+
+proc renderedProgressBar(bar: var ProgressBar): uint64 =
+    let image = makeImage(ImagePixelFormat_ARGB, 120.cint, 24.cint, true)
+    var context = makeGraphics(image)
+    bar.paintEntireComponent(context, false)
+    for y in 0 ..< 24:
+        for x in 0 ..< 120:
+            result = result * 31 + image.getPixelAt(x.cint, y.cint).getARGB().uint64
+
+proc testProgressBarStyleAndText() =
+    initialiseJuce_GUI()
+
+    block:
+        var progress = 0.25
+        var circular = makeProgressBar(
+            progress, makeProgressBarStyle(ProgressBarStyle_circular))
+        doAssert circular.getResolvedStyle() == ProgressBarStyle_circular,
+                 "a bar asked for circular resolved to something else"
+
+        var linear = makeProgressBar(
+            progress, makeProgressBarStyle(ProgressBarStyle_linear))
+        doAssert linear.getResolvedStyle() == ProgressBarStyle_linear,
+                 "a bar asked for linear resolved to something else"
+
+        linear.setBounds(makeRectangle(0.cint, 0.cint, 120.cint, 24.cint))
+        let asPercentage = renderedProgressBar(linear)
+
+        linear.setTextToDisplay(makeString("loading"))
+        let asMessage = renderedProgressBar(linear)
+        doAssert asMessage != asPercentage,
+                 "a bar showing a message drew the same pixels as one showing " &
+                 "a percentage"
+
+        linear.setTextToDisplay(makeString("loading"))
+        doAssert renderedProgressBar(linear) == asMessage,
+                 "the same message drew differently the second time"
+
+        linear.setTextToDisplay(makeString("saving"))
+        doAssert renderedProgressBar(linear) != asMessage,
+                 "two different messages drew the same pixels"
+
+        linear.setPercentageDisplay(true)
+        doAssert renderedProgressBar(linear) == asPercentage,
+                 "turning the percentage back on did not restore what it drew"
+
+    shutdownJuce_GUI()
+
+testProgressBarStyleAndText()
+
+# DrawableImage overlay and DrawableRectangle corner size ======================
+#
+# Both are settings that change what the drawable PAINTS, so the destination
+# surface is asked rather than the getter alone. An opaque overlay makes JUCE
+# skip drawing the image itself and stencil it in the overlay colour instead,
+# which is why a red source comes out blue.
+
+proc testDrawableOverlayAndCornerSize() =
+    initialiseJuce_GUI()
+
+    block:
+        let source = makeImage(ImagePixelFormat_ARGB, 4.cint, 4.cint, true)
+        block:
+            var sourceContext = makeGraphics(source)
+            sourceContext.setColour(makeColour(255'u8, 0'u8, 0'u8, 255'u8))
+            sourceContext.fillAll()
+
+        var drawable = makeDrawableImage(source)
+        doAssert drawable.getOverlayColour().getARGB() == 0'u32,
+                 "a fresh drawable has an overlay of " &
+                 $drawable.getOverlayColour().getARGB()
+
+        let plain = makeImage(ImagePixelFormat_ARGB, 8.cint, 8.cint, true)
+        var plainContext = makeGraphics(plain)
+        drawable.drawAt(plainContext, 0.0'f32, 0.0'f32, 1.0'f32)
+        doAssert plain.getPixelAt(1.cint, 1.cint).getRed() == 255'u8,
+                 "without an overlay the drawable painted red " &
+                 $plain.getPixelAt(1.cint, 1.cint).getRed()
+
+        let blue = makeColour(0'u8, 0'u8, 255'u8, 255'u8)
+        drawable.setOverlayColour(blue)
+        doAssert drawable.getOverlayColour().getARGB() == blue.getARGB(),
+                 "the overlay read back as " &
+                 $drawable.getOverlayColour().getARGB()
+
+        let tinted = makeImage(ImagePixelFormat_ARGB, 8.cint, 8.cint, true)
+        var tintedContext = makeGraphics(tinted)
+        drawable.drawAt(tintedContext, 0.0'f32, 0.0'f32, 1.0'f32)
+        doAssert tinted.getPixelAt(1.cint, 1.cint).getBlue() == 255'u8,
+                 "the overlaid drawable painted blue " &
+                 $tinted.getPixelAt(1.cint, 1.cint).getBlue()
+        doAssert tinted.getPixelAt(1.cint, 1.cint).getRed() == 0'u8,
+                 "the overlay left red " & $tinted.getPixelAt(1.cint, 1.cint).getRed() &
+                 " behind"
+
+    block:
+        var rectangle = makeDrawableRectangle()
+        doAssert rectangle.getCornerSize().getX() == 0.0'f32 and
+                 rectangle.getCornerSize().getY() == 0.0'f32,
+                 "a fresh rectangle has corners of " &
+                 $rectangle.getCornerSize().getX() & "," &
+                 $rectangle.getCornerSize().getY()
+
+        rectangle.setRectangle(makeParallelogram(
+            makeRectangle(0.0'f32, 0.0'f32, 8.0'f32, 8.0'f32)))
+        rectangle.setFill(makeFillType(makeColour(0'u8, 255'u8, 0'u8, 255'u8)))
+
+        let square = makeImage(ImagePixelFormat_ARGB, 10.cint, 10.cint, true)
+        var squareContext = makeGraphics(square)
+        rectangle.drawAt(squareContext, 0.0'f32, 0.0'f32, 1.0'f32)
+        doAssert square.getPixelAt(0.cint, 0.cint).getAlpha() == 255'u8,
+                 "a square rectangle left its corner unpainted"
+
+        rectangle.setCornerSize(makePoint(4.0'f32, 4.0'f32))
+        doAssert rectangle.getCornerSize().getX() == 4.0'f32 and
+                 rectangle.getCornerSize().getY() == 4.0'f32,
+                 "the corner size read back as " &
+                 $rectangle.getCornerSize().getX() & "," &
+                 $rectangle.getCornerSize().getY()
+
+        let rounded = makeImage(ImagePixelFormat_ARGB, 10.cint, 10.cint, true)
+        var roundedContext = makeGraphics(rounded)
+        rectangle.drawAt(roundedContext, 0.0'f32, 0.0'f32, 1.0'f32)
+        doAssert rounded.getPixelAt(0.cint, 0.cint).getAlpha() == 0'u8,
+                 "rounding the corners still painted the corner pixel at alpha " &
+                 $rounded.getPixelAt(0.cint, 0.cint).getAlpha()
+        doAssert rounded.getPixelAt(4.cint, 4.cint).getGreen() == 255'u8,
+                 "rounding the corners emptied the middle too"
+
+    shutdownJuce_GUI()
+
+testDrawableOverlayAndCornerSize()
+
+# Label position, image placement and property height =========================
+#
+# Three settings whose constructors pick a non-zero default, so the default is
+# pinned first: a getter that returned a fixed value would agree with the value
+# that was set but disagree with the default.
+
+proc testWidgetPlacementDefaults() =
+    initialiseJuce_GUI()
+
+    block:
+        var group = makeGroupComponent(makeString("group"), makeString("Options"))
+        doAssert group.getTextLabelPosition().getFlags() ==
+                 JustificationFlags_left.cint,
+                 "a fresh group labels at " & $group.getTextLabelPosition().getFlags()
+
+        group.setTextLabelPosition(makeJustification(JustificationFlags_centred.cint))
+        doAssert group.getTextLabelPosition().getFlags() ==
+                 JustificationFlags_centred.cint,
+                 "the label position read back as " &
+                 $group.getTextLabelPosition().getFlags()
+
+    block:
+        var image = makeImageComponent(makeString("art"))
+        doAssert image.getImagePlacement().getFlags() ==
+                 RectanglePlacementFlags_centred.cint,
+                 "a fresh image component places at " &
+                 $image.getImagePlacement().getFlags()
+
+        image.setImagePlacement(
+            makeRectanglePlacement(RectanglePlacementFlags_stretchToFit.cint))
+        doAssert image.getImagePlacement().getFlags() ==
+                 RectanglePlacementFlags_stretchToFit.cint,
+                 "the placement read back as " & $image.getImagePlacement().getFlags()
+
+    block:
+        # PropertyComponent is abstract, so the height is reached through the
+        # generated subclass and called on the base, which is how a PropertyPanel
+        # asks for it.
+        let custom = newCustomPropertyComponent(makeString("Gain"), 42.cint)
+        var base = cast[ptr PropertyComponent](custom)
+        doAssert base[].getPreferredHeight() == 42,
+                 "the component was built 42 high and reports " &
+                 $base[].getPreferredHeight()
+
+        base[].setPreferredHeight(17.cint)
+        doAssert base[].getPreferredHeight() == 17,
+                 "the height read back as " & $base[].getPreferredHeight()
+        cdelete custom
+
+    shutdownJuce_GUI()
+
+testWidgetPlacementDefaults()
+
+# ChoicePropertyComponent's choices and MessageBoxOptions' component ==========
+#
+# withAssociatedComponent is a BUILDER: it returns a new options object and
+# leaves the one it was called on alone. Asserting the original is still empty
+# is what separates a builder from a mutator, and one of the two alone could
+# not tell them apart.
+#
+# ChoicePropertyComponent's setIndex is deliberately left uncalled: on the base
+# class it is a jassertfalse that tells you to override it, and JUCE has no
+# concrete subclass here to override it in.
+
+proc testChoicesAndMessageBoxComponent() =
+    initialiseJuce_GUI()
+
+    block:
+        var choices = makeStringArray()
+        choices.add(makeString("Off"))
+        choices.add(makeString("On"))
+
+        var values = makeArray[juce_var]()
+        values.add(makejuce_var(0.cint))
+        values.add(makejuce_var(1.cint))
+
+        var backing = makeValue(makejuce_var(0.cint))
+        var chooser = makeChoicePropertyComponent(
+            backing, makeString("Mode"), choices, values)
+
+        let reported = chooser.getChoices()
+        doAssert reported.size() == 2,
+                 "the component reports " & $reported.size() & " choices"
+        doAssert $reported[0.cint] == "Off",
+                 "the first choice is " & $reported[0.cint]
+        doAssert $reported[1.cint] == "On",
+                 "the second choice is " & $reported[1.cint]
+
+    block:
+        var owner = makeComponent(makeString("owner"))
+
+        let plain = makeMessageBoxOptions()
+        doAssert plain.getAssociatedComponent() == nil,
+                 "fresh options already name an associated component"
+
+        let attached = plain.withAssociatedComponent(owner.addr)
+        doAssert attached.getAssociatedComponent() == owner.addr,
+                 "the options came back naming a different component"
+        doAssert plain.getAssociatedComponent() == nil,
+                 "withAssociatedComponent mutated the options it was called on"
+
+    shutdownJuce_GUI()
+
+testChoicesAndMessageBoxComponent()
+
+# StretchableObjectResizer ====================================================
+#
+# resizeToFit distributes the target across the items in proportion to the room
+# each one has left, and it will not push an item past the minimum it was given.
+# Growing and then over-shrinking is what shows both halves: a resizer that
+# merely scaled would sail past the minimum on the second call.
+
+proc testStretchableObjectResizer() =
+    var resizer = makeStretchableObjectResizer()
+    resizer.addItem(100.0, 50.0, 200.0)
+    resizer.addItem(100.0, 50.0, 200.0)
+    doAssert resizer.getNumItems() == 2,
+             "the resizer holds " & $resizer.getNumItems() & " items"
+
+    resizer.resizeToFit(300.0)
+    doAssert resizer.getItemSize(0.cint) == 150.0,
+             "after growing to 300 the first item is " & $resizer.getItemSize(0.cint)
+    doAssert resizer.getItemSize(1.cint) == 150.0,
+             "after growing to 300 the second item is " & $resizer.getItemSize(1.cint)
+
+    # 50 is below the two minimums added together, so the minimums win.
+    resizer.resizeToFit(50.0)
+    doAssert resizer.getItemSize(0.cint) == 50.0,
+             "shrinking past the minimum left the first item at " &
+             $resizer.getItemSize(0.cint)
+    doAssert resizer.getItemSize(1.cint) == 50.0,
+             "shrinking past the minimum left the second item at " &
+             $resizer.getItemSize(1.cint)
+
+    doAssert resizer.getItemSize(9.cint) == 0.0,
+             "an index past the end answered " & $resizer.getItemSize(9.cint)
+
+testStretchableObjectResizer()
+
+# ApplicationCommandInfo's flags and default keypresses =======================
+#
+# setActive writes a single bit of the flags word rather than replacing it, so
+# a flag set beforehand has to survive being disabled and re-enabled.
+
+proc testApplicationCommandInfo() =
+    var info = makeApplicationCommandInfo(77.cint)
+    doAssert info.commandID() == 77, "the command is " & $info.commandID()
+    doAssert info.flags() == 0, "a fresh command carries flags " & $info.flags()
+
+    info.setTicked(true)
+    info.setActive(false)
+    doAssert (info.flags() and ApplicationCommandInfoCommandFlags_isDisabled.cint) != 0,
+             "the command was disabled and its flags are " & $info.flags()
+    doAssert (info.flags() and ApplicationCommandInfoCommandFlags_isTicked.cint) != 0,
+             "disabling the command cleared its tick"
+
+    info.setActive(true)
+    doAssert (info.flags() and ApplicationCommandInfoCommandFlags_isDisabled.cint) == 0,
+             "the command stayed disabled with flags " & $info.flags()
+    doAssert (info.flags() and ApplicationCommandInfoCommandFlags_isTicked.cint) != 0,
+             "re-enabling the command cleared its tick"
+
+    doAssert info.defaultKeypresses().size() == 0,
+             "a fresh command already has " & $info.defaultKeypresses().size() &
+             " keypresses"
+
+    info.addDefaultKeypress(ord('s').cint,
+                            makeModifierKeys(ModifierKeysFlags_commandModifier.cint))
+    info.addDefaultKeypress(ord('w').cint, makeModifierKeys())
+    doAssert info.defaultKeypresses().size() == 2,
+             "the command has " & $info.defaultKeypresses().size() & " keypresses"
+    doAssert info.defaultKeypresses()[0.cint].getKeyCode() == ord('s').cint,
+             "the first keypress is " & $info.defaultKeypresses()[0.cint].getKeyCode()
+    doAssert info.defaultKeypresses()[0.cint].getModifiers().isCommandDown(),
+             "the first keypress lost its command modifier"
+    doAssert info.defaultKeypresses()[1.cint].getKeyCode() == ord('w').cint,
+             "the second keypress is " & $info.defaultKeypresses()[1.cint].getKeyCode()
+    doAssert not info.defaultKeypresses()[1.cint].getModifiers().isCommandDown(),
+             "the second keypress gained a command modifier"
+
+testApplicationCommandInfo()
+
+# DirectoryContentsList's hidden files and its thread =========================
+#
+# ignoresHiddenFiles is a bit of the type flags rather than a stored bool, and
+# clearing it re-scans, so the count of files found is what says the flag took
+# effect. getTimeSliceThread has to hand back the very thread the list was
+# built with, which its name identifies.
+
+proc testDirectoryContentsListHiddenFiles() =
+    initialiseJuce_GUI()
+
+    block:
+        let root = june.File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+                       .getNonexistentChildFile(makeString("june-hidden"), makeString(""))
+        doAssert root.createDirectory().wasOk(), "could not make the temp directory"
+        defer: discard root.deleteRecursively()
+
+        doAssert root.getChildFile(makeStringRef("visible.txt"))
+                     .replaceWithText(makeString("seen")), "could not write visible.txt"
+        doAssert root.getChildFile(makeStringRef(".hidden.txt"))
+                     .replaceWithText(makeString("unseen")), "could not write .hidden.txt"
+
+        var scanner = makeTimeSliceThread(makeString("june-hidden-scan"))
+        doAssert scanner.startThread(), "the scanning thread did not start"
+
+        var listing = makeDirectoryContentsList(nil, scanner)
+        doAssert $listing.getTimeSliceThread().getThreadName() == "june-hidden-scan",
+                 "the listing named its thread " &
+                 $listing.getTimeSliceThread().getThreadName()
+        doAssert listing.ignoresHiddenFiles(),
+                 "a fresh listing does not ignore hidden files"
+
+        # june.Thread, not Thread: inside a template the bare name binds to
+        # Nim's own generic system.Thread instead.
+        template waitForScan() =
+            var waited = 0
+            while listing.isStillLoading() and waited < 5000:
+                june.Thread.sleep(10.cint)
+                waited += 10
+            doAssert not listing.isStillLoading(),
+                     "the scan was still running after " & $waited & "ms"
+
+        listing.setDirectory(root, false, true)
+        listing.refresh()
+        waitForScan()
+        doAssert listing.getNumFiles() == 1,
+                 "ignoring hidden files the listing holds " & $listing.getNumFiles()
+
+        listing.setIgnoresHiddenFiles(false)
+        doAssert not listing.ignoresHiddenFiles(),
+                 "the listing still ignores hidden files"
+        waitForScan()
+        doAssert listing.getNumFiles() == 2,
+                 "including hidden files the listing holds " & $listing.getNumFiles()
+
+        listing.clear()
+        doAssert scanner.stopThread(2000.cint), "the scanning thread did not stop"
+
+    shutdownJuce_GUI()
+
+testDirectoryContentsListHiddenFiles()
+
+# BorderedComponentBoundsConstrainer ==========================================
+#
+# Both methods are virtual and the class is abstract, so the generated subclass
+# supplies them and they are read back through the base pointer, which is where
+# JUCE itself calls them from.
+
+proc testBorderedComponentBoundsConstrainer() =
+    initialiseJuce_GUI()
+
+    block:
+        var wrapped = makeComponentBoundsConstrainer()
+        wrapped.setMinimumWidth(31.cint)
+        # The handler captures the POINTER: capturing the constrainer itself
+        # would copy it into the closure environment and hand back the copy.
+        let wrappedPtr = wrapped.addr
+
+        let bordered = newCustomBorderedComponentBoundsConstrainer()
+        bordered[].setGetWrappedConstrainerHandler(
+            proc(): ptr ComponentBoundsConstrainer = wrappedPtr)
+        bordered[].setGetAdditionalBorderHandler(
+            proc(): BorderSize[cint] = makeBorderSize(3.cint, 5.cint, 7.cint, 9.cint))
+
+        var base = cast[ptr BorderedComponentBoundsConstrainer](bordered)
+        doAssert base[].getWrappedConstrainer() == wrappedPtr,
+                 "the constrainer wrapped something else"
+        doAssert base[].getWrappedConstrainer()[].getMinimumWidth() == 31,
+                 "the wrapped constrainer has a minimum width of " &
+                 $base[].getWrappedConstrainer()[].getMinimumWidth()
+
+        let border = base[].getAdditionalBorder()
+        doAssert border.getTop() == 3 and border.getLeft() == 5,
+                 "the additional border is " & $border.getTop() & "," & $border.getLeft()
+
+        cdelete bordered
+
+    shutdownJuce_GUI()
+
+testBorderedComponentBoundsConstrainer()
+
+# ResizableBorderComponent's zone and border thickness ========================
+#
+# The border thickness decides which zone a point on the component falls in, so
+# the same point is classified against two different thicknesses. Reading the
+# zone back from a fresh component pins the centre default, which is what a
+# component nobody has moved the mouse over reports.
+
+proc testResizableBorderComponentZone() =
+    initialiseJuce_GUI()
+
+    block:
+        var target = makeComponent(makeString("resizable"))
+        target.setBounds(makeRectangle(0.cint, 0.cint, 100.cint, 100.cint))
+
+        var border = makeResizableBorderComponent(target.addr, nil)
+        doAssert border.getBorderThickness().getTop() == 5,
+                 "a fresh border is " & $border.getBorderThickness().getTop() & " thick"
+        doAssert border.getCurrentZone().isDraggingWholeObject(),
+                 "a component nobody has touched reports an edge zone"
+
+        border.setBorderThickness(makeBorderSize(12.cint))
+        doAssert border.getBorderThickness().getTop() == 12,
+                 "the thickness read back as " & $border.getBorderThickness().getTop()
+        doAssert border.getCurrentZone().isDraggingWholeObject(),
+                 "changing the thickness moved the current zone off centre"
+
+        # x = 8 is inside a 12px border and outside a 5px one.
+        let bounds = makeRectangle(0.cint, 0.cint, 100.cint, 100.cint)
+        let position = makePoint(8.cint, 50.cint)
+        let thick = ResizableBorderComponentZone.fromPositionOnBorder(
+            bounds, makeBorderSize(12.cint), position)
+        doAssert thick.isDraggingLeftEdge(),
+                 "8px into a 12px border is not the left edge"
+        let thin = ResizableBorderComponentZone.fromPositionOnBorder(
+            bounds, makeBorderSize(5.cint), position)
+        doAssert thin.isDraggingWholeObject(),
+                 "8px into a 5px border is not the middle"
+
+    shutdownJuce_GUI()
+
+testResizableBorderComponentZone()
+
+# Slider::RotaryParameters ====================================================
+#
+# The struct's members have no default initialisers, so a bare one holds
+# whatever was on the stack. A Slider fills one in, which is why the defaults
+# are read from a slider rather than from a fresh struct.
+
+proc testSliderRotaryParameters() =
+    initialiseJuce_GUI()
+
+    block:
+        var slider = makeSlider(makeString("knob"))
+        let defaults = slider.getRotaryParameters()
+        doAssert defaults.stopAtEnd(), "a fresh slider does not stop at the end"
+        doAssert defaults.endAngleRadians() > defaults.startAngleRadians(),
+                 "the sweep ends at " & $defaults.endAngleRadians() &
+                 " and starts at " & $defaults.startAngleRadians()
+
+        var params = makeSliderRotaryParameters()
+        params.startAngleRadians = 1.0'f32
+        params.endAngleRadians = 4.0'f32
+        params.stopAtEnd = false
+        slider.setRotaryParameters(params)
+
+        let applied = slider.getRotaryParameters()
+        doAssert applied.endAngleRadians() == 4.0'f32,
+                 "the sweep ends at " & $applied.endAngleRadians()
+        doAssert not applied.stopAtEnd(), "the slider still stops at the end"
+
+    shutdownJuce_GUI()
+
+testSliderRotaryParameters()
+
+# MouseInactivityDetector::Listener through a base pointer =====================
+#
+# Both callbacks are pure virtual, so the C++ vtable slot can only be the Nim
+# override. The detector itself is not driven: it wakes on a MouseEvent, which
+# cannot be constructed here, so the callbacks are invoked the way JUCE's own
+# call site would - through a base pointer.
+#
+# Two counters rather than one: a forwarder wired to the wrong slot moves the
+# other counter, which a single counter could not tell from a correct call.
+
+proc testMouseInactivityDetectorListenerCallbacks() =
+    initialiseJuce_GUI()
+
+    block:
+        var active = 0
+        var inactive = 0
+        var listener = newCustomMouseInactivityDetectorListener()
+        listener[].setMouseBecameActiveHandler(proc() = active += 1)
+        listener[].setMouseBecameInactiveHandler(proc() = inactive += 1)
+
+        var base = cast[ptr MouseInactivityDetectorListener](listener)
+
+        base[].mouseBecameActive()
+        doAssert active == 1,
+                 "the active handler ran " & $active & " times, not once"
+        doAssert inactive == 0,
+                 "becoming active reached the inactive handler " &
+                 $inactive & " times"
+
+        base[].mouseBecameInactive()
+        doAssert inactive == 1,
+                 "the inactive handler ran " & $inactive & " times, not once"
+        doAssert active == 1,
+                 "becoming inactive reached the active handler again; " &
+                 "active is " & $active
+
+        base[].mouseBecameActive()
+        doAssert active == 2,
+                 "the active handler ran " & $active & " times, not twice"
+
+        cdelete listener
+
+    shutdownJuce_GUI()
+
+testMouseInactivityDetectorListenerCallbacks()
+
+# registerCommand and the command table =======================================
+#
+# registerAllCommandsForTarget is a loop around registerCommand, so the direct
+# call is the same path with the target left out - and it is the only way to
+# reach the branch that overwrites an entry that is already there.
+#
+# The two branches differ in one flag. A command the manager has not seen is
+# copied with isTicked cleared (juce_ApplicationCommandManager.cpp:81-83); a
+# command that is already registered is assigned over
+# (juce_ApplicationCommandManager.cpp:78) and keeps whatever it arrives with.
+
+const commandFind = 1003.cint
+
+proc testApplicationCommandManagerRegistration() =
+    initialiseJuce_GUI()
+
+    block:
+        var manager = makeApplicationCommandManager()
+
+        var info = makeApplicationCommandInfo(commandFind)
+        info.setInfo(makeString("Find"), makeString("Finds the next match"),
+                     makeString("Searching"), 0.cint)
+        info.setTicked(true)
+        manager.registerCommand(info)
+
+        doAssert manager.getNumCommands() == 1,
+                 "after one registerCommand the manager holds " &
+                 $manager.getNumCommands() & " commands"
+
+        # getCommandForIndex reads the table by position rather than by id, and
+        # hands back the manager's own copy, not the struct passed in.
+        let stored = manager.getCommandForIndex(0.cint)
+        doAssert not stored.isNil(), "the manager has no entry at index 0"
+        doAssert stored[].commandID() == commandFind,
+                 "entry 0 is for command " & $stored[].commandID()
+        doAssert $stored[].shortName() == "Find",
+                 "entry 0 is named " & $stored[].shortName()
+        doAssert $stored[].categoryName() == "Searching",
+                 "entry 0 is in category " & $stored[].categoryName()
+        doAssert $stored[].description() == "Finds the next match",
+                 "entry 0 is described as " & $stored[].description()
+
+        # The tick did not survive the copy: a newly registered command is
+        # forced unticked (juce_ApplicationCommandManager.cpp:83).
+        doAssert (stored[].flags() and
+                  ApplicationCommandInfoCommandFlags_isTicked.cint) == 0,
+                 "registerCommand kept isTicked on a command it had not seen"
+
+        # An index outside the table is nil rather than a fault: the body is an
+        # OwnedArray subscript (juce_ApplicationCommandManager.h:162).
+        doAssert manager.getCommandForIndex(1.cint).isNil(),
+                 "there is an entry one past the end of the table"
+        doAssert manager.getCommandForIndex(-1.cint).isNil(),
+                 "there is an entry before the start of the table"
+
+        # The other branch. Same name, category and default keypresses, so the
+        # assertion inside registerCommand that guards against a typo is not
+        # tripped; only the tick differs, and this time it is kept.
+        var again = makeApplicationCommandInfo(commandFind)
+        again.setInfo(makeString("Find"), makeString("Finds the next match"),
+                      makeString("Searching"), 0.cint)
+        again.setTicked(true)
+        manager.registerCommand(again)
+
+        doAssert manager.getNumCommands() == 1,
+                 "re-registering the same id left " & $manager.getNumCommands() &
+                 " commands"
+        let updated = manager.getCommandForIndex(0.cint)
+        doAssert (updated[].flags() and
+                  ApplicationCommandInfoCommandFlags_isTicked.cint) != 0,
+                 "re-registering dropped isTicked as though the command were new"
+
+        # commandStatusChanged only asks for an asynchronous refresh
+        # (juce_ApplicationCommandManager.cpp:125-128). The pending flag lives
+        # on AsyncUpdater, which the manager inherits privately
+        # (juce_ApplicationCommandManager.h:95), so what is observable is that
+        # the notification leaves the command table alone.
+        manager.commandStatusChanged()
+        doAssert manager.getNumCommands() == 1,
+                 "the status notification left " & $manager.getNumCommands() &
+                 " commands"
+        let afterNotify = manager.getCommandForIndex(0.cint)
+        doAssert not afterNotify.isNil(),
+                 "the status notification emptied the command table"
+        doAssert afterNotify[].commandID() == commandFind,
+                 "entry 0 is now for command " & $afterNotify[].commandID()
+        doAssert $afterNotify[].shortName() == "Find",
+                 "entry 0 is now named " & $afterNotify[].shortName()
+
+        # getFirstCommandTarget ignores the id it is given and answers with
+        # firstTarget, falling through to findDefaultComponentTarget when there
+        # is none (juce_ApplicationCommandManager.cpp:215-218). That fallback
+        # wants a focused component, an active top level window or a desktop
+        # component, and this suite has none of the three.
+        doAssert manager.getFirstCommandTarget(commandFind).isNil(),
+                 "a manager with no target found one anyway"
+
+        var target = newCustomApplicationCommandTarget()
+        let asTarget = cast[ptr ApplicationCommandTarget](target)
+        manager.setFirstCommandTarget(asTarget)
+        doAssert manager.getFirstCommandTarget(commandFind) == asTarget,
+                 "the first target is not the one that was set"
+        doAssert manager.getFirstCommandTarget(999999.cint) == asTarget,
+                 "an unregistered id changed the answer, so the id was read"
+
+        manager.setFirstCommandTarget(nil)
+        doAssert manager.getFirstCommandTarget(commandFind).isNil(),
+                 "clearing the first target left one in place"
+        cdelete target
+
+    shutdownJuce_GUI()
+
+testApplicationCommandManagerRegistration()
+
+# The default key mappings ====================================================
+#
+# A command carries the keystrokes it wants; the mapping set is where they end
+# up. registerCommand installs them itself
+# (juce_ApplicationCommandManager.cpp:85), and the two reset methods are how an
+# application throws a user's edits away and gets those defaults back.
+#
+# keyStateChanged is what globalFocusChanged forwards to
+# (juce_KeyPressMappingSet.cpp:421-425), and juce::Component's own body for it
+# is `return false` with no state behind it (juce_Component.cpp:3251), so the
+# call is only observable through a subclass that overrides it.
+
+defineCppClass KeyStateProbeComponent of CustomComponent:
+    include "juce_gui_basics/juce_gui_basics.h"
+    proc keyStateChanged(isKeyDown: bool): bool = discard
+
+proc constructKeyStateProbeComponent(): KeyStateProbeComponent =
+    KeyStateProbeComponent()
+
+proc testKeyPressMappingSetDefaults() =
+    initialiseJuce_GUI()
+
+    block:
+        var manager = makeApplicationCommandManager()
+
+        let commandModifier = makeModifierKeys(cint(ModifierKeysFlags_commandModifier))
+        var info = makeApplicationCommandInfo(commandFind)
+        info.setInfo(makeString("Find"), makeString("Finds the next match"),
+                     makeString("Searching"), 0.cint)
+        info.addDefaultKeypress(ord('f').cint, commandModifier)
+        manager.registerCommand(info)
+
+        let mappings = manager.getKeyMappings()
+        doAssert not mappings.isNil(), "the manager has no key mappings"
+
+        # By address. Two managers holding the same one command would compare
+        # equal on every property they expose, so only the identity of the
+        # object says the set points back at the manager that owns it.
+        doAssert addr(mappings[].getCommandManager()) == addr(manager),
+                 "the mapping set reports a different manager as its owner"
+
+        let keyF = makeKeyPress(ord('f').cint, commandModifier, WChar(ord('f')))
+        doAssert mappings[].containsMapping(commandFind, keyF),
+                 "registering the command did not install its default keypress"
+
+        mappings[].clearAllKeyPresses()
+        doAssert not mappings[].containsMapping(commandFind, keyF),
+                 "clearing left the default mapping in place"
+
+        mappings[].resetToDefaultMapping(commandFind)
+        doAssert mappings[].containsMapping(commandFind, keyF),
+                 "resetToDefaultMapping did not bring the default back"
+
+        # resetToDefaultMappings empties the whole set before rebuilding it from
+        # the command table (juce_KeyPressMappingSet.cpp:113-121), so a
+        # keystroke a user added and the command never asked for is dropped.
+        let keyG = makeKeyPress(ord('g').cint, commandModifier, WChar(ord('g')))
+        mappings[].addKeyPress(commandFind, keyG)
+        let bothAssigned = mappings[].getKeyPressesAssignedToCommand(commandFind).size()
+        doAssert bothAssigned == 2,
+                 "the command has " & $bothAssigned & " keystrokes, not two"
+
+        mappings[].resetToDefaultMappings()
+        let afterReset = mappings[].getKeyPressesAssignedToCommand(commandFind).size()
+        doAssert afterReset == 1,
+                 "after the reset the command has " & $afterReset & " keystrokes"
+        doAssert mappings[].containsMapping(commandFind, keyF),
+                 "the reset dropped the command's own default"
+        doAssert not mappings[].containsMapping(commandFind, keyG),
+                 "the reset kept a keystroke that is not a default"
+
+        # globalFocusChanged tells the newly focused component that the key
+        # state changed, with isKeyDown false.
+        var toldKeyState: seq[bool] = @[]
+        let probe = cnew constructKeyStateProbeComponent()
+        probe[].onKeyStateChanged = bindClosure(proc(isKeyDown: bool): bool =
+            toldKeyState.add(isKeyDown)
+            false)
+
+        mappings[].globalFocusChanged(cast[ptr Component](probe))
+        doAssert toldKeyState == @[false],
+                 "the focused component was told " & $toldKeyState
+
+        # nil is the guarded branch of the same method: nothing is called at
+        # all, which is why passing it is legal.
+        mappings[].globalFocusChanged(nil)
+        doAssert toldKeyState == @[false],
+                 "a nil focus change still reached a component: " & $toldKeyState
+
+        cdelete probe
+
+    shutdownJuce_GUI()
+
+testKeyPressMappingSetDefaults()
+
+# Closing a document ==========================================================
+#
+# tryToCloseDocumentAsync is the pure virtual an application fills in to ask the
+# user whether a document may go (juce_MultiDocumentPanel.h:345), and
+# closeDocumentAsync is what calls it. The subclass is reached through the base
+# pointer, which is how JUCE reaches it.
+#
+# Both take a std::function the panel answers on, so the assertion is on what
+# the callback was told, not on the call having been made.
+
+proc testMultiDocumentPanelClosing() =
+    initialiseJuce_GUI()
+
+    block:
+        var asked: seq[string] = @[]
+        var permission = true
+
+        let panel = newCustomMultiDocumentPanel()
+        panel[].setBounds(makeRectangle(0.cint, 0.cint, 400.cint, 300.cint))
+        panel[].setTryToCloseDocumentAsyncHandler(
+            proc(component: ptr Component, callback: CppFunctionObjectN1[bool]) =
+                asked.add($component[].getName())
+                var reply = callback
+                reply(permission))
+
+        var base = cast[ptr MultiDocumentPanel](panel)
+
+        let doc = newCustomComponent()
+        doc[].setName(makeString("doc"))
+        doAssert panel[].addDocument(cast[ptr Component](doc), Colours_white, false),
+                 "the document was refused"
+
+        # On its own it only asks. Removing the document is closeDocumentAsync's
+        # job, not this one's.
+        var toldDirectly: seq[bool] = @[]
+        base[].tryToCloseDocumentAsync(cast[ptr Component](doc),
+                                       bindClosure(proc(ok: bool) = toldDirectly.add(ok)))
+        doAssert asked == @["doc"], "the subclass was asked about " & $asked
+        doAssert toldDirectly == @[true],
+                 "the callback was told " & $toldDirectly
+        doAssert panel[].getNumDocuments() == 1,
+                 "asking whether a document may close closed it"
+
+        # checkItsOkToCloseFirst routes through the subclass, and a refusal is
+        # passed on to the caller's callback unchanged
+        # (juce_MultiDocumentPanel.cpp:450-465).
+        permission = false
+        var refused: seq[bool] = @[]
+        base[].closeDocumentAsync(cast[ptr Component](doc), true,
+                                  bindClosure(proc(ok: bool) = refused.add(ok)))
+        doAssert asked == @["doc", "doc"],
+                 "the subclass was asked about " & $asked
+        doAssert refused == @[false],
+                 "the refused close reported " & $refused
+        doAssert panel[].getNumDocuments() == 1,
+                 "a refused close removed the document anyway"
+
+        permission = true
+        var accepted: seq[bool] = @[]
+        base[].closeDocumentAsync(cast[ptr Component](doc), true,
+                                  bindClosure(proc(ok: bool) = accepted.add(ok)))
+        doAssert accepted == @[true],
+                 "the accepted close reported " & $accepted
+        doAssert panel[].getNumDocuments() == 0,
+                 "the accepted close left " & $panel[].getNumDocuments() &
+                 " documents"
+        doAssert asked.len == 3, "the subclass was asked " & $asked.len & " times"
+
+        # With the check turned off the subclass is not consulted at all, and
+        # the callback is told true regardless.
+        doAssert panel[].addDocument(cast[ptr Component](doc), Colours_white, false),
+                 "the document could not be added back"
+        var direct: seq[bool] = @[]
+        base[].closeDocumentAsync(cast[ptr Component](doc), false,
+                                  bindClosure(proc(ok: bool) = direct.add(ok)))
+        doAssert asked.len == 3,
+                 "closing without the check still asked the subclass; asked " &
+                 $asked.len & " times"
+        doAssert direct == @[true], "the unchecked close reported " & $direct
+        doAssert panel[].getNumDocuments() == 0,
+                 "the unchecked close left " & $panel[].getNumDocuments() &
+                 " documents"
+
+        # A nil component is answered true and goes no further
+        # (juce_MultiDocumentPanel.cpp:443-447).
+        var forNothing: seq[bool] = @[]
+        base[].closeDocumentAsync(nil, true,
+                                  bindClosure(proc(ok: bool) = forNothing.add(ok)))
+        doAssert forNothing == @[true],
+                 "closing nothing reported " & $forNothing
+        doAssert asked.len == 3,
+                 "closing nothing asked the subclass; asked " & $asked.len & " times"
+
+        # activeDocumentChanged is an empty body on the base
+        # (juce_MultiDocumentPanel.cpp:524-526): JUCE calls it after the active
+        # document has already changed and leaves the work to a subclass. The
+        # panel therefore has to come out of it exactly as it went in.
+        doAssert panel[].addDocument(cast[ptr Component](doc), Colours_white, false),
+                 "the document could not be added back a second time"
+        let activeBefore = panel[].getActiveDocument()
+        doAssert activeBefore == cast[ptr Component](doc),
+                 "the only document is not the active one"
+        base[].activeDocumentChanged()
+        doAssert panel[].getActiveDocument() == activeBefore,
+                 "the notification changed which document is active"
+        doAssert panel[].getNumDocuments() == 1,
+                 "the notification left " & $panel[].getNumDocuments() & " documents"
+
+        panel[].closeAllDocumentsAsync(false, bindClosure(proc(ok: bool) = discard))
+        cdelete doc
+        cdelete panel
+
+    shutdownJuce_GUI()
+
+testMultiDocumentPanelClosing()
+
+# createNewDocumentWindow =====================================================
+#
+# macOS only, for the reason the MultiDocumentPanelWindow test gives: the window
+# it builds is a top-level window and the headless Linux container segfaults on
+# one.
+#
+# The window is `new MultiDocumentPanelWindow (backgroundColour)` and nothing
+# attaches it (juce_MultiDocumentPanel.cpp:175-178), so the caller owns what
+# comes back and the panel's own colour is what identifies it as the panel's.
+
+when defined(macosx):
+    proc testCreateNewDocumentWindow() =
+        initialiseJuce_GUI()
+
+        block:
+            let panel = newCustomMultiDocumentPanel()
+            panel[].setTryToCloseDocumentAsyncHandler(
+                proc(component: ptr Component, callback: CppFunctionObjectN1[bool]) = discard)
+            panel[].setBackgroundColour(Colours_darkslategrey)
+
+            var base = cast[ptr MultiDocumentPanel](panel)
+            let window = base[].createNewDocumentWindow()
+            doAssert not window.isNil(), "createNewDocumentWindow built nothing"
+            doAssert window[].getBackgroundColour() == Colours_darkslategrey,
+                     "the window is coloured " & $window[].getBackgroundColour() &
+                     " rather than the panel's background"
+
+            # Unattached: it is not a child of the panel that made it, which is
+            # what addWindow does afterwards and this does not.
+            doAssert window[].getParentComponent().isNil(),
+                     "a freshly made window already has a parent"
+            doAssert panel[].getNumChildComponents() == 0,
+                     "the panel gained " & $panel[].getNumChildComponents() &
+                     " children from making a window"
+
+            # A second call is a second window, not the same one handed back.
+            let another = base[].createNewDocumentWindow()
+            doAssert another != window,
+                     "the second call returned the first window"
+
+            cdelete another
+            cdelete window
+            cdelete panel
+
+        shutdownJuce_GUI()
+
+    testCreateNewDocumentWindow()
+
+
+# Overrides installed from Nim, then called through the BASE pointer ==========
+#
+# Each class below has a generated june:: subclass whose overrides are
+# std::function slots. Setting a slot proves only that the setter compiled.
+# Calling the method through a pointer to the ABSTRACT BASE is what proves the
+# override occupies the base's vtable slot and that C++ dispatch reaches Nim.
+# Where a class has more than one override, each gets its own counter: one
+# counter cannot tell a correctly wired pair from a subclass that routed both
+# overrides to the same slot.
+
+proc testComponentTraverserOverrides() =
+    initialiseJuce_GUI()
+
+    block:
+        let parent = newCustomComponent()
+        let first = newCustomComponent()
+        let second = newCustomComponent()
+        let third = newCustomComponent()
+        let parentAsComponent = cast[ptr Component](parent)
+        let firstAsComponent = cast[ptr Component](first)
+        let secondAsComponent = cast[ptr Component](second)
+        let thirdAsComponent = cast[ptr Component](third)
+
+        var defaultCalls = 0
+        var nextCalls = 0
+        var previousCalls = 0
+        var defaultSaw: ptr Component = nil
+        var nextSaw: ptr Component = nil
+        var previousSaw: ptr Component = nil
+
+        let traverser = newCustomComponentTraverser()
+        traverser[].setGetDefaultComponentHandler(
+            proc(parentComponent: ptr Component): ptr Component =
+                defaultCalls += 1
+                defaultSaw = parentComponent
+                firstAsComponent)
+        traverser[].setGetNextComponentHandler(
+            proc(current: ptr Component): ptr Component =
+                nextCalls += 1
+                nextSaw = current
+                secondAsComponent)
+        traverser[].setGetPreviousComponentHandler(
+            proc(current: ptr Component): ptr Component =
+                previousCalls += 1
+                previousSaw = current
+                thirdAsComponent)
+
+        var base = cast[ptr ComponentTraverser](traverser)
+
+        let gotDefault = base[].getDefaultComponent(parentAsComponent)
+        doAssert defaultCalls == 1,
+                 "getDefaultComponent reached the override " & $defaultCalls & " times"
+        doAssert nextCalls == 0 and previousCalls == 0,
+                 "getDefaultComponent also moved next=" & $nextCalls &
+                 " previous=" & $previousCalls
+        doAssert defaultSaw == parentAsComponent,
+                 "getDefaultComponent was handed a component other than the parent"
+        doAssert gotDefault == firstAsComponent,
+                 "getDefaultComponent returned a component the override did not name"
+
+        let gotNext = base[].getNextComponent(firstAsComponent)
+        doAssert nextCalls == 1,
+                 "getNextComponent reached the override " & $nextCalls & " times"
+        doAssert defaultCalls == 1 and previousCalls == 0,
+                 "getNextComponent also moved default=" & $defaultCalls &
+                 " previous=" & $previousCalls
+        doAssert nextSaw == firstAsComponent,
+                 "getNextComponent was handed a component other than the current one"
+        doAssert gotNext == secondAsComponent,
+                 "getNextComponent returned a component the override did not name"
+
+        let gotPrevious = base[].getPreviousComponent(secondAsComponent)
+        doAssert previousCalls == 1,
+                 "getPreviousComponent reached the override " & $previousCalls & " times"
+        doAssert defaultCalls == 1 and nextCalls == 1,
+                 "getPreviousComponent also moved default=" & $defaultCalls &
+                 " next=" & $nextCalls
+        doAssert previousSaw == secondAsComponent,
+                 "getPreviousComponent was handed a component other than the current one"
+        doAssert gotPrevious == thirdAsComponent,
+                 "getPreviousComponent returned a component the override did not name"
+
+        cdelete traverser
+        cdelete third
+        cdelete second
+        cdelete first
+        cdelete parent
+
+    shutdownJuce_GUI()
+
+
+testComponentTraverserOverrides()
+
+
+proc testButtonListenerOverride() =
+    initialiseJuce_GUI()
+
+    block:
+        var button = makeTextButton(makeString("Go"))
+        let buttonAsButton = cast[ptr Button](addr button)
+
+        var clicks = 0
+        var clickedSaw: ptr Button = nil
+
+        let listener = newCustomButtonListener()
+        listener[].setButtonClickedHandler(proc(arg0: ptr Button) =
+            clicks += 1
+            clickedSaw = arg0)
+
+        var base = cast[ptr ButtonListener](listener)
+        base[].buttonClicked(buttonAsButton)
+        doAssert clicks == 1,
+                 "buttonClicked reached the override " & $clicks & " times"
+        doAssert clickedSaw == buttonAsButton,
+                 "buttonClicked was handed a button other than the one passed"
+
+        # A second call is a second delivery, not a latched first one.
+        base[].buttonClicked(buttonAsButton)
+        doAssert clicks == 2,
+                 "a second buttonClicked left the count at " & $clicks
+
+        cdelete listener
+
+    shutdownJuce_GUI()
+
+
+testButtonListenerOverride()
+
+
+proc testMenuBarModelListenerOverrides() =
+    initialiseJuce_GUI()
+
+    block:
+        let model = newCustomMenuBarModel()
+        model[].setGetMenuBarNamesHandler(proc(): StringArray = makeStringArray())
+        model[].setGetMenuForIndexHandler(proc(topLevelMenuIndex: cint,
+                                               menuName: ptr String): PopupMenu =
+            makePopupMenu())
+        model[].setMenuItemSelectedHandler(proc(menuItemID: cint,
+                                                topLevelMenuIndex: cint) = discard)
+        let modelAsModel = cast[ptr MenuBarModel](model)
+
+        var itemsChanged = 0
+        var commandsInvoked = 0
+        var itemsSaw: ptr MenuBarModel = nil
+        var commandSaw: ptr MenuBarModel = nil
+        var commandIds: seq[cint] = @[]
+
+        let listener = newCustomMenuBarModelListener()
+        listener[].setMenuBarItemsChangedHandler(proc(m: ptr MenuBarModel) =
+            itemsChanged += 1
+            itemsSaw = m)
+        listener[].setMenuCommandInvokedHandler(
+            proc(m: ptr MenuBarModel,
+                 info: ptr ApplicationCommandTargetInvocationInfo) =
+                commandsInvoked += 1
+                commandSaw = m
+                commandIds.add(info[].commandID()))
+
+        var base = cast[ptr MenuBarModelListener](listener)
+
+        base[].menuBarItemsChanged(modelAsModel)
+        doAssert itemsChanged == 1,
+                 "menuBarItemsChanged reached the override " & $itemsChanged & " times"
+        doAssert commandsInvoked == 0,
+                 "menuBarItemsChanged also moved the invoked count to " &
+                 $commandsInvoked
+        doAssert itemsSaw == modelAsModel,
+                 "menuBarItemsChanged was told about another model"
+
+        base[].menuCommandInvoked(modelAsModel,
+                                  makeApplicationCommandTargetInvocationInfo(42.cint))
+        doAssert commandsInvoked == 1,
+                 "menuCommandInvoked reached the override " & $commandsInvoked & " times"
+        doAssert itemsChanged == 1,
+                 "menuCommandInvoked also moved the items count to " & $itemsChanged
+        doAssert commandSaw == modelAsModel,
+                 "menuCommandInvoked was told about another model"
+        doAssert commandIds == @[42.cint],
+                 "menuCommandInvoked carried " & $commandIds
+
+        cdelete listener
+        cdelete model
+
+    shutdownJuce_GUI()
+
+
+testMenuBarModelListenerOverrides()
+
+
+proc testCachedComponentImageOverrides() =
+    initialiseJuce_GUI()
+
+    block:
+        var invalidateCalls = 0
+        var invalidateAllCalls = 0
+        var releaseCalls = 0
+        var sawX = 0
+        var sawY = 0
+        var sawW = 0
+        var sawH = 0
+
+        # Not handed to a Component: setCachedComponentImage adopts into a
+        # std::unique_ptr (juce_Component.cpp:829), so a component that was
+        # given this would delete it and the cdelete below would be a second
+        # delete. Calling the base directly needs no owner.
+        let cached = newCustomCachedComponentImage()
+        cached[].setInvalidateHandler(proc(area: ptr Rectangle[cint]): bool =
+            invalidateCalls += 1
+            sawX = area[].getX().int
+            sawY = area[].getY().int
+            sawW = area[].getWidth().int
+            sawH = area[].getHeight().int
+            true)
+        cached[].setInvalidateAllHandler(proc(): bool =
+            invalidateAllCalls += 1
+            false)
+        cached[].setReleaseResourcesHandler(proc() =
+            releaseCalls += 1)
+
+        var base = cast[ptr CachedComponentImage](cached)
+
+        let invalidated = base[].invalidate(
+            makeRectangle(3.cint, 5.cint, 7.cint, 11.cint))
+        doAssert invalidateCalls == 1,
+                 "invalidate reached the override " & $invalidateCalls & " times"
+        doAssert invalidateAllCalls == 0 and releaseCalls == 0,
+                 "invalidate also moved invalidateAll=" & $invalidateAllCalls &
+                 " releaseResources=" & $releaseCalls
+        doAssert (sawX, sawY, sawW, sawH) == (3, 5, 7, 11),
+                 "invalidate was handed the area " &
+                 $(sawX, sawY, sawW, sawH)
+        doAssert invalidated,
+                 "invalidate returned false where the override returned true"
+
+        # invalidateAll returns the opposite of invalidate, so a subclass that
+        # wired both names to one slot cannot pass both of these.
+        let invalidatedAll = base[].invalidateAll()
+        doAssert invalidateAllCalls == 1,
+                 "invalidateAll reached the override " & $invalidateAllCalls & " times"
+        doAssert invalidateCalls == 1 and releaseCalls == 0,
+                 "invalidateAll also moved invalidate=" & $invalidateCalls &
+                 " releaseResources=" & $releaseCalls
+        doAssert not invalidatedAll,
+                 "invalidateAll returned true where the override returned false"
+
+        base[].releaseResources()
+        doAssert releaseCalls == 1,
+                 "releaseResources reached the override " & $releaseCalls & " times"
+        doAssert invalidateCalls == 1 and invalidateAllCalls == 1,
+                 "releaseResources also moved invalidate=" & $invalidateCalls &
+                 " invalidateAll=" & $invalidateAllCalls
+
+        cdelete cached
+
+    shutdownJuce_GUI()
+
+
+testCachedComponentImageOverrides()
+
+
+proc testAccessibilityValueInterfaceOverrides() =
+    initialiseJuce_GUI()
+
+    block:
+        var currentValueCalls = 0
+        var asStringCalls = 0
+        var setAsStringCalls = 0
+        var setAsStringSaw = ""
+
+        let value = newCustomAccessibilityValueInterface()
+        value[].setGetCurrentValueHandler(proc(): cdouble =
+            currentValueCalls += 1
+            0.25)
+        value[].setGetCurrentValueAsStringHandler(proc(): String =
+            asStringCalls += 1
+            makeString("a quarter"))
+        value[].setSetValueAsStringHandler(proc(newValue: ptr String) =
+            setAsStringCalls += 1
+            setAsStringSaw = $newValue[])
+
+        var base = cast[ptr AccessibilityValueInterface](value)
+
+        let current = base[].getCurrentValue()
+        doAssert currentValueCalls == 1,
+                 "getCurrentValue reached the override " & $currentValueCalls & " times"
+        doAssert asStringCalls == 0 and setAsStringCalls == 0,
+                 "getCurrentValue also moved asString=" & $asStringCalls &
+                 " setAsString=" & $setAsStringCalls
+        doAssert current == 0.25,
+                 "getCurrentValue returned " & $current &
+                 " where the override returned 0.25"
+
+        let asText = $base[].getCurrentValueAsString()
+        doAssert asStringCalls == 1,
+                 "getCurrentValueAsString reached the override " & $asStringCalls & " times"
+        doAssert currentValueCalls == 1,
+                 "getCurrentValueAsString also moved getCurrentValue to " &
+                 $currentValueCalls
+        doAssert asText == "a quarter",
+                 "getCurrentValueAsString returned " & asText
+
+        base[].setValueAsString(makeString("three quarters"))
+        doAssert setAsStringCalls == 1,
+                 "setValueAsString reached the override " & $setAsStringCalls & " times"
+        doAssert currentValueCalls == 1 and asStringCalls == 1,
+                 "setValueAsString also moved getCurrentValue=" & $currentValueCalls &
+                 " getCurrentValueAsString=" & $asStringCalls
+        doAssert setAsStringSaw == "three quarters",
+                 "setValueAsString was handed " & setAsStringSaw
+
+        cdelete value
+
+    shutdownJuce_GUI()
+
+
+testAccessibilityValueInterfaceOverrides()
+
+
+proc testAccessibilityCellInterfaceOverrides() =
+    initialiseJuce_GUI()
+
+    block:
+        let component = newCustomComponent()
+        var wrapped = cast[ptr Component](component)
+        var tableHandler = makeAccessibilityHandler(
+            wrapped[], AccessibilityRole_table, makeAccessibilityActions(),
+            makeAccessibilityHandlerInterfaces())
+        # Captured as a pointer, not as the handler: a closure environment
+        # default-constructs what it captures, and AccessibilityHandler has no
+        # default constructor.
+        let tableHandlerPtr = addr tableHandler
+
+        var levelCalls = 0
+        var handlerCalls = 0
+
+        let cell = newCustomAccessibilityCellInterface()
+        cell[].setGetDisclosureLevelHandler(proc(): cint =
+            levelCalls += 1
+            4.cint)
+        cell[].setGetTableHandlerHandler(proc(): ptr AccessibilityHandler =
+            handlerCalls += 1
+            tableHandlerPtr)
+
+        let base = cast[ptr AccessibilityCellInterface](cell)
+
+        let level = base[].getDisclosureLevel()
+        doAssert levelCalls == 1,
+                 "getDisclosureLevel reached the override " & $levelCalls & " times"
+        doAssert handlerCalls == 0,
+                 "getDisclosureLevel also moved getTableHandler to " & $handlerCalls
+        doAssert level == 4,
+                 "getDisclosureLevel returned " & $level &
+                 " where the override returned 4"
+
+        # getTableHandler is declared to return a const AccessibilityHandler*,
+        # so the binding hands back a ConstPtr; it compares equal to the plain
+        # pointer the override returned.
+        let table = base[].getTableHandler()
+        doAssert handlerCalls == 1,
+                 "getTableHandler reached the override " & $handlerCalls & " times"
+        doAssert levelCalls == 1,
+                 "getTableHandler also moved getDisclosureLevel to " & $levelCalls
+        doAssert not table.isNil(),
+                 "getTableHandler returned null where the override returned a handler"
+        doAssert table == tableHandlerPtr,
+                 "getTableHandler returned a handler other than the one the override named"
+
+        cdelete cell
+        cdelete component
+
+    shutdownJuce_GUI()
+
+
+testAccessibilityCellInterfaceOverrides()
+
+
+proc testFocusOutlineOutlineWindowPropertiesOverrides() =
+    initialiseJuce_GUI()
+
+    block:
+        let component = newCustomComponent()
+        var wrapped = cast[ptr Component](component)
+        let componentAsComponent = cast[ptr Component](component)
+
+        var boundsCalls = 0
+        var drawCalls = 0
+        var boundsSaw: ptr Component = nil
+        var drawWidth = 0
+        var drawHeight = 0
+
+        let properties = newCustomFocusOutlineOutlineWindowProperties()
+        properties[].setGetOutlineBoundsHandler(
+            proc(focusedComponent: ptr Component): Rectangle[cint] =
+                boundsCalls += 1
+                boundsSaw = focusedComponent
+                makeRectangle(12.cint, 13.cint, 14.cint, 15.cint))
+        properties[].setDrawOutlineHandler(
+            proc(g: ptr Graphics, width: cint, height: cint) =
+                drawCalls += 1
+                drawWidth = width.int
+                drawHeight = height.int
+                g[].setColour(makeColour(0'u8, 255'u8, 0'u8, 255'u8))
+                g[].fillRect(makeRectangle(0.cint, 0.cint, 4.cint, 4.cint)))
+
+        var base = cast[ptr FocusOutlineOutlineWindowProperties](properties)
+
+        let outline = base[].getOutlineBounds(wrapped[])
+        doAssert boundsCalls == 1,
+                 "getOutlineBounds reached the override " & $boundsCalls & " times"
+        doAssert drawCalls == 0,
+                 "getOutlineBounds also moved drawOutline to " & $drawCalls
+        doAssert boundsSaw == componentAsComponent,
+                 "getOutlineBounds was handed a component other than the focused one"
+        doAssert (outline.getX(), outline.getY(),
+                  outline.getWidth(), outline.getHeight()) ==
+                 (12.cint, 13.cint, 14.cint, 15.cint),
+                 "getOutlineBounds returned " & $outline.getX() & "," &
+                 $outline.getY() & "," & $outline.getWidth() & "," &
+                 $outline.getHeight()
+
+        let image = makeImage(ImagePixelFormat_ARGB, 20.cint, 20.cint, true)
+        var graphics = makeGraphics(image)
+        base[].drawOutline(graphics, 20.cint, 18.cint)
+        doAssert drawCalls == 1,
+                 "drawOutline reached the override " & $drawCalls & " times"
+        doAssert boundsCalls == 1,
+                 "drawOutline also moved getOutlineBounds to " & $boundsCalls
+        doAssert (drawWidth, drawHeight) == (20, 18),
+                 "drawOutline was handed " & $(drawWidth, drawHeight)
+
+        # The Graphics the override was handed is the one drawing into this
+        # image, so what Nim painted is in the pixels.
+        doAssert image.getPixelAt(2.cint, 2.cint).getGreen() == 255,
+                 "the override's fill did not reach the image"
+        doAssert image.getPixelAt(10.cint, 10.cint).getGreen() == 0,
+                 "the override's fill covered more than it drew"
+
+        cdelete properties
+        cdelete component
+
+    shutdownJuce_GUI()
+
+
+testFocusOutlineOutlineWindowPropertiesOverrides()
+
+
+# The field getters come in a var and a non-var form, and an importcpp proc
+# reaches the C++ compiler only where it is called, so each form needs a call
+# site. These take the receiver non-var, which is the only way to select the
+# non-var overload -- a `let` copy is impossible, as neither Slider nor Label
+# can be copied.
+proc copyOfTextFromValueFunction(s: Slider): CppFunctionObjectR1[String, cdouble] =
+    s.textFromValueFunction
+
+proc copyOfValueFromTextFunction(s: Slider): CppFunctionObjectR1Ref[cdouble, String] =
+    s.valueFromTextFunction
+
+proc copyOfOnEditorShow(l: Label): CppFunctionObjectN0 =
+    l.onEditorShow
+
+proc copyOfOnEditorHide(l: Label): CppFunctionObjectN0 =
+    l.onEditorHide
+
+
+proc testSliderTextConversionFunctions() =
+    initialiseJuce_GUI()
+
+    block:
+        var slider = makeSlider(makeString("dial"))
+
+        # Without a function installed, Slider::getTextFromValue formats to
+        # getNumDecimalPlacesToDisplay() places (juce_Slider.cpp:1654-1655),
+        # which a default slider reports as 7. That is the baseline the
+        # installed function has to displace.
+        let plain = $slider.getTextFromValue(3.5)
+        doAssert plain == "3.5000000", "the stock getTextFromValue gave " & plain
+
+        var textCalls = 0
+        var textSaw: seq[float64] = @[]
+        slider.textFromValueFunction = bindClosure(proc(v: cdouble): String =
+            textCalls += 1
+            textSaw.add(v.float64)
+            makeString("v<" & $int(v * 2.0) & ">"))
+
+        let converted = $slider.getTextFromValue(3.5)
+        doAssert textCalls == 1,
+                 "getTextFromValue reached the installed function " & $textCalls & " times"
+        doAssert textSaw == @[3.5],
+                 "the function was handed " & $textSaw
+        doAssert converted == "v<7>",
+                 "getTextFromValue returned " & converted
+
+        # The suffix is appended to whatever the function returned
+        # (juce_Slider.cpp:1660), so it proves the function's result is used
+        # rather than replaced.
+        # setTextValueSuffix refreshes the slider's own text box, which routes
+        # through getTextFromValue too, so the count moves without an explicit
+        # call here. Take the baseline after it settles.
+        slider.setTextValueSuffix(makeString(" Hz"))
+        let callsBeforeSuffixed = textCalls
+        let suffixed = $slider.getTextFromValue(1.0)
+        doAssert textCalls == callsBeforeSuffixed + 1,
+                 "the suffixed getTextFromValue moved the count by " &
+                 $(textCalls - callsBeforeSuffixed)
+        doAssert suffixed == "v<2> Hz",
+                 "getTextFromValue with a suffix returned " & suffixed
+
+        # Assigning the field and reading it back are separate bindings.
+        # Invoking what the getter returns is what proves the callable landed
+        # in the field, rather than only that getTextFromValue behaved. The
+        # field's own result carries no suffix -- getTextFromValue appends that
+        # afterwards (juce_Slider.cpp:1660) -- so the two results differ.
+        let callsBeforeDirect = textCalls
+        let direct = $slider.textFromValueFunction.invoke(3.5)
+        doAssert textCalls == callsBeforeDirect + 1,
+                 "invoking the field moved the count by " &
+                 $(textCalls - callsBeforeDirect)
+        doAssert direct == "v<7>",
+                 "the field returned " & direct
+        doAssert direct != suffixed,
+                 "the field's result already carried the suffix"
+
+        var copiedText = copyOfTextFromValueFunction(slider)
+        let copiedResult = $copiedText.invoke(4.0)
+        doAssert textCalls == callsBeforeDirect + 2,
+                 "invoking the copied field moved the count by " &
+                 $(textCalls - callsBeforeDirect)
+        doAssert copiedResult == "v<8>",
+                 "the copied field returned " & copiedResult
+
+        var valueCalls = 0
+        var valueSaw: seq[string] = @[]
+        slider.valueFromTextFunction = bindConstRefClosure(proc(t: ptr String): cdouble =
+            valueCalls += 1
+            valueSaw.add($t[])
+            42.5)
+
+        # getValueFromText strips the suffix before calling the function
+        # (juce_Slider.cpp:1667-1668).
+        let parsed = slider.getValueFromText(makeString("  17 Hz"))
+        doAssert valueCalls == 1,
+                 "getValueFromText reached the installed function " & $valueCalls & " times"
+        doAssert textCalls == callsBeforeDirect + 2,
+                 "getValueFromText also moved the text count to " & $textCalls
+        doAssert valueSaw == @["17"],
+                 "the function was handed " & $valueSaw
+        doAssert parsed == 42.5,
+                 "getValueFromText returned " & $parsed
+
+        var textForField = makeString("99")
+        let directValue = slider.valueFromTextFunction.invoke(addr textForField)
+        doAssert valueCalls == 2,
+                 "invoking the field left the count at " & $valueCalls
+        doAssert directValue == 42.5,
+                 "the field returned " & $directValue
+        doAssert valueSaw == @["17", "99"],
+                 "the field was handed " & $valueSaw
+
+        var copiedValue = copyOfValueFromTextFunction(slider)
+        var textForCopy = makeString("abc")
+        discard copiedValue.invoke(addr textForCopy)
+        doAssert valueCalls == 3,
+                 "invoking the copied field left the count at " & $valueCalls
+        doAssert valueSaw == @["17", "99", "abc"],
+                 "the copied field was handed " & $valueSaw
+
+    shutdownJuce_GUI()
+
+
+testSliderTextConversionFunctions()
+
+
+proc testLabelEditorCallbacks() =
+    initialiseJuce_GUI()
+
+    block:
+        var label = makeLabel(makeString("nameLabel"), makeString("before"))
+        label.setBounds(makeRectangle(0.cint, 0.cint, 80.cint, 24.cint))
+        label.setEditable(true, true, false)
+
+        var shows = 0
+        var hides = 0
+        # The editor exists for the duration of onEditorShow and is already
+        # detached by onEditorHide (juce_Label.cpp:248 vs 284-288), so
+        # recording it proves which side of the swap each callback ran on.
+        var editorLiveAtShow = false
+        var editorLiveAtHide = true
+
+        # Capture a pointer, never the Label: a nested proc pulls what it names
+        # into a closure environment, and Label's copy-assignment is deleted
+        # (juce_Label.h:375), so naming `label` here would not compile.
+        let labelPtr = addr label
+        label.onEditorShow = bindClosure(proc() =
+            shows += 1
+            editorLiveAtShow = not labelPtr[].getCurrentTextEditor().isNil())
+        label.onEditorHide = bindClosure(proc() =
+            hides += 1
+            editorLiveAtHide = not labelPtr[].getCurrentTextEditor().isNil())
+
+        doAssert label.getCurrentTextEditor().isNil(),
+                 "the label had an editor before showEditor was called"
+
+        label.showEditor()
+        doAssert shows == 1,
+                 "showEditor reached onEditorShow " & $shows & " times"
+        doAssert hides == 0,
+                 "showEditor also moved onEditorHide to " & $hides
+        doAssert editorLiveAtShow,
+                 "onEditorShow ran without the editor in place"
+        doAssert not label.getCurrentTextEditor().isNil(),
+                 "showEditor left the label without an editor"
+
+        # A second showEditor is a no-op: the guard at juce_Label.cpp:230 only
+        # builds an editor when there is none.
+        label.showEditor()
+        doAssert shows == 1,
+                 "a second showEditor moved onEditorShow to " & $shows
+
+        label.hideEditor(true)
+        doAssert hides == 1,
+                 "hideEditor reached onEditorHide " & $hides & " times"
+        doAssert shows == 1,
+                 "hideEditor also moved onEditorShow to " & $shows
+        doAssert not editorLiveAtHide,
+                 "onEditorHide ran while the label still owned the editor"
+        doAssert label.getCurrentTextEditor().isNil(),
+                 "hideEditor left the editor in place"
+
+        # discardCurrentEditorContents was true, so the text is untouched
+        # (juce_Label.cpp:286-287).
+        let kept = $label.getText()
+        doAssert kept == "before", "hideEditor(true) left the text as " & kept
+
+        # And a second hideEditor has no editor to hide.
+        label.hideEditor(true)
+        doAssert hides == 1,
+                 "a second hideEditor moved onEditorHide to " & $hides
+
+        # Assigning a field and reading it back are separate bindings, so
+        # invoking what the getter returns is what proves the callable reached
+        # the field rather than only that showEditor/hideEditor behaved. There
+        # is no editor now, so both callbacks report one being absent.
+        label.onEditorShow.invoke()
+        doAssert shows == 2,
+                 "invoking onEditorShow left the count at " & $shows
+        doAssert not editorLiveAtShow,
+                 "onEditorShow saw an editor where the label has none"
+
+        label.onEditorHide.invoke()
+        doAssert hides == 2,
+                 "invoking onEditorHide left the count at " & $hides
+
+        var copiedShow = copyOfOnEditorShow(label)
+        copiedShow.invoke()
+        doAssert shows == 3,
+                 "invoking the copied onEditorShow left the count at " & $shows
+
+        var copiedHide = copyOfOnEditorHide(label)
+        copiedHide.invoke()
+        doAssert hides == 3,
+                 "invoking the copied onEditorHide left the count at " & $hides
+
+    shutdownJuce_GUI()
+
+
+testLabelEditorCallbacks()
+
+
+proc testLookAndFeelV4SetColourScheme() =
+    initialiseJuce_GUI()
+
+    block:
+        var lookAndFeel = makeLookAndFeel_V4(LookAndFeel_V4.getLightColourScheme())
+        let backgroundId = ResizableWindowColourIds_backgroundColourId.cint
+
+        # setColourScheme does more than store the scheme: it runs
+        # initialiseColours(), which maps windowBackground onto
+        # ResizableWindow::backgroundColourId (juce_LookAndFeel_V4.cpp:1419).
+        # Reading that id back is what proves the scheme was applied rather
+        # than merely held.
+        let lightBackground = lookAndFeel.findColour(backgroundId)
+        let lightScheme = LookAndFeel_V4.getLightColourScheme()
+        doAssert lightBackground ==
+                 lightScheme.getUIColour(LookAndFeel_V4ColourSchemeUIColour_windowBackground),
+                 "the light scheme's background did not reach the colour map"
+
+        var scheme = LookAndFeel_V4.getMidnightColourScheme()
+        let wanted = makeColour(9'u8, 200'u8, 31'u8, 255'u8)
+        scheme.setUIColour(LookAndFeel_V4ColourSchemeUIColour_windowBackground, wanted)
+
+        lookAndFeel.setColourScheme(scheme)
+
+        let applied = lookAndFeel.findColour(backgroundId)
+        doAssert applied == wanted,
+                 "after setColourScheme the background reads back as " & $applied
+        doAssert applied != lightBackground,
+                 "setColourScheme left the previous background in place"
+
+        # The scheme the object now reports is the one that was handed to it,
+        # and the entries that were not overridden came from midnight.
+        var current = lookAndFeel.getCurrentColourScheme()
+        doAssert current.getUIColour(LookAndFeel_V4ColourSchemeUIColour_windowBackground) == wanted,
+                 "getCurrentColourScheme disagrees with what was set"
+        let midnight = LookAndFeel_V4.getMidnightColourScheme()
+        doAssert current.getUIColour(LookAndFeel_V4ColourSchemeUIColour_defaultText) ==
+                 midnight.getUIColour(LookAndFeel_V4ColourSchemeUIColour_defaultText),
+                 "an entry that was never overridden did not come from the midnight scheme"
+
+    shutdownJuce_GUI()
+
+
+testLookAndFeelV4SetColourScheme()
+
+
+proc testDrawableButtonGetImageBounds() =
+    initialiseJuce_GUI()
+
+    block:
+        # Every figure below is computed from juce_DrawableButton.cpp:98-120,
+        # which is the whole of getImageBounds.
+        var button = makeDrawableButton(makeString("icon"),
+                                        DrawableButtonButtonStyle_ImageStretched)
+        button.setBounds(makeRectangle(0.cint, 0.cint, 100.cint, 80.cint))
+        button.setEdgeIndent(10.cint)
+
+        # ImageStretched takes the early exit: no indent is applied at all, so
+        # the image bounds are the local bounds even with an edge indent set.
+        let stretched = button.getImageBounds()
+        doAssert (stretched.getX(), stretched.getY(),
+                  stretched.getWidth(), stretched.getHeight()) ==
+                 (0.0'f32, 0.0'f32, 100.0'f32, 80.0'f32),
+                 "ImageStretched gave " & $stretched.getX() & "," &
+                 $stretched.getY() & "," & $stretched.getWidth() & "," &
+                 $stretched.getHeight()
+
+        # ImageFitted does not draw a background, so the indent is
+        # jmin(10, 30) by jmin(10, 24) -- the edge indent wins on both axes.
+        button.setButtonStyle(DrawableButtonButtonStyle_ImageFitted)
+        let fitted = button.getImageBounds()
+        doAssert (fitted.getX(), fitted.getY(),
+                  fitted.getWidth(), fitted.getHeight()) ==
+                 (10.0'f32, 10.0'f32, 80.0'f32, 60.0'f32),
+                 "ImageFitted gave " & $fitted.getX() & "," & $fitted.getY() &
+                 "," & $fitted.getWidth() & "," & $fitted.getHeight()
+
+        # ImageOnButtonBackground draws a background, so the indent is raised
+        # to a quarter of each edge: jmax(100/4, 10) by jmax(80/4, 10).
+        button.setButtonStyle(DrawableButtonButtonStyle_ImageOnButtonBackground)
+        let onBackground = button.getImageBounds()
+        doAssert (onBackground.getX(), onBackground.getY(),
+                  onBackground.getWidth(), onBackground.getHeight()) ==
+                 (25.0'f32, 20.0'f32, 50.0'f32, 40.0'f32),
+                 "ImageOnButtonBackground gave " & $onBackground.getX() & "," &
+                 $onBackground.getY() & "," & $onBackground.getWidth() & "," &
+                 $onBackground.getHeight()
+
+        # ImageAboveTextLabel trims the bottom by jmin(16, 80/4) before the
+        # indent is applied, which is the only style that loses height without
+        # losing the matching amount at the top.
+        button.setButtonStyle(DrawableButtonButtonStyle_ImageAboveTextLabel)
+        let aboveText = button.getImageBounds()
+        doAssert (aboveText.getX(), aboveText.getY(),
+                  aboveText.getWidth(), aboveText.getHeight()) ==
+                 (10.0'f32, 10.0'f32, 80.0'f32, 44.0'f32),
+                 "ImageAboveTextLabel gave " & $aboveText.getX() & "," &
+                 $aboveText.getY() & "," & $aboveText.getWidth() & "," &
+                 $aboveText.getHeight()
+
+        # The indent is a jmin against 30% of the width, so a large edge indent
+        # is clamped rather than obeyed.
+        button.setButtonStyle(DrawableButtonButtonStyle_ImageFitted)
+        button.setEdgeIndent(1000.cint)
+        let clamped = button.getImageBounds()
+        doAssert (clamped.getX(), clamped.getY(),
+                  clamped.getWidth(), clamped.getHeight()) ==
+                 (30.0'f32, 24.0'f32, 40.0'f32, 32.0'f32),
+                 "a 1000px edge indent gave " & $clamped.getX() & "," &
+                 $clamped.getY() & "," & $clamped.getWidth() & "," &
+                 $clamped.getHeight()
+
+    shutdownJuce_GUI()
+
+
+testDrawableButtonGetImageBounds()
+
+
+proc testTableListBoxModelPaintOverrides() =
+    initialiseJuce_GUI()
+
+    block:
+        var backgroundCalls = 0
+        var cellCalls = 0
+        var backgroundArgs: seq[(int, int, int, bool)] = @[]
+        var cellArgs: seq[(int, int, int, int, bool)] = @[]
+
+        let model = newCustomTableListBoxModel()
+        model[].setGetNumRowsHandler(proc(): cint = 3)
+        model[].setPaintRowBackgroundHandler(
+            proc(g: ptr Graphics, rowNumber: cint, width: cint, height: cint,
+                 rowIsSelected: bool) =
+                backgroundCalls += 1
+                backgroundArgs.add((rowNumber.int, width.int, height.int,
+                                    rowIsSelected))
+                g[].setColour(makeColour(255'u8, 0'u8, 0'u8, 255'u8))
+                g[].fillRect(makeRectangle(0.cint, 0.cint, width, height)))
+        model[].setPaintCellHandler(
+            proc(g: ptr Graphics, rowNumber: cint, columnId: cint, width: cint,
+                 height: cint, rowIsSelected: bool) =
+                cellCalls += 1
+                cellArgs.add((rowNumber.int, columnId.int, width.int,
+                              height.int, rowIsSelected))
+                g[].setColour(makeColour(0'u8, 0'u8, 255'u8, 255'u8))
+                g[].fillRect(makeRectangle(0.cint, 0.cint, 4.cint, 4.cint)))
+
+        var base = cast[ptr TableListBoxModel](model)
+
+        let image = makeImage(ImagePixelFormat_ARGB, 40.cint, 20.cint, true)
+        var graphics = makeGraphics(image)
+
+        base[].paintRowBackground(graphics, 2.cint, 30.cint, 12.cint, true)
+        doAssert backgroundCalls == 1,
+                 "paintRowBackground reached the override " & $backgroundCalls & " times"
+        doAssert cellCalls == 0,
+                 "paintRowBackground also moved paintCell to " & $cellCalls
+        doAssert backgroundArgs == @[(2, 30, 12, true)],
+                 "paintRowBackground was handed " & $backgroundArgs
+
+        # The Graphics handed to the override draws into this image, so the
+        # 30x12 fill it made is readable back out of the pixels.
+        doAssert image.getPixelAt(1.cint, 1.cint).getRed() == 255,
+                 "the row background fill did not reach the image"
+        doAssert image.getPixelAt(29.cint, 11.cint).getRed() == 255,
+                 "the row background fill stopped short of the width it was given"
+        doAssert image.getPixelAt(31.cint, 1.cint).getRed() == 0,
+                 "the row background fill ran past the width it was given"
+        doAssert image.getPixelAt(1.cint, 13.cint).getRed() == 0,
+                 "the row background fill ran past the height it was given"
+
+        base[].paintCell(graphics, 1.cint, 7.cint, 25.cint, 9.cint, false)
+        doAssert cellCalls == 1,
+                 "paintCell reached the override " & $cellCalls & " times"
+        doAssert backgroundCalls == 1,
+                 "paintCell also moved paintRowBackground to " & $backgroundCalls
+        doAssert cellArgs == @[(1, 7, 25, 9, false)],
+                 "paintCell was handed " & $cellArgs
+
+        # The cell painted blue over the red row background in its own corner.
+        let corner = image.getPixelAt(1.cint, 1.cint)
+        doAssert (corner.getRed(), corner.getBlue()) == (0'u8, 255'u8),
+                 "the cell fill did not replace the row background"
+        let outside = image.getPixelAt(10.cint, 1.cint)
+        doAssert (outside.getRed(), outside.getBlue()) == (255'u8, 0'u8),
+                 "the cell fill covered more than the 4x4 it drew"
+
+        cdelete model
+
+    shutdownJuce_GUI()
+
+
+testTableListBoxModelPaintOverrides()
+
+
+proc testComboBoxListenerOverride() =
+    initialiseJuce_GUI()
+
+    block:
+        var box = makeComboBox(makeString("choices"))
+        box.addItem(makeString("first"), 1.cint)
+        box.addItem(makeString("second"), 2.cint)
+        let boxAsBox = addr box
+
+        var changes = 0
+        var saw: ptr ComboBox = nil
+        var selectedWhenTold: seq[cint] = @[]
+
+        let listener = newCustomComboBoxListener()
+        listener[].setComboBoxChangedHandler(proc(arg0: ptr ComboBox) =
+            changes += 1
+            saw = arg0
+            selectedWhenTold.add(arg0[].getSelectedId()))
+
+        var base = cast[ptr ComboBoxListener](listener)
+
+        box.setSelectedId(2.cint, NotificationType_dontSendNotification)
+        base[].comboBoxChanged(boxAsBox)
+        doAssert changes == 1,
+                 "comboBoxChanged reached the override " & $changes & " times"
+        doAssert saw == boxAsBox,
+                 "comboBoxChanged was handed a box other than the one passed"
+        doAssert selectedWhenTold == @[2.cint],
+                 "the override read a selection of " & $selectedWhenTold
+
+        # The pointer is live inside the override, so a different selection is
+        # what the next delivery reports.
+        box.setSelectedId(1.cint, NotificationType_dontSendNotification)
+        base[].comboBoxChanged(boxAsBox)
+        doAssert changes == 2,
+                 "a second comboBoxChanged left the count at " & $changes
+        doAssert selectedWhenTold == @[2.cint, 1.cint],
+                 "the override read " & $selectedWhenTold
+
+        cdelete listener
+
+    shutdownJuce_GUI()
+
+
+testComboBoxListenerOverride()
+
+
+proc testDarkModeSettingListenerOverride() =
+    initialiseJuce_GUI()
+
+    block:
+        var changes = 0
+
+        let listener = newCustomDarkModeSettingListener()
+        listener[].setDarkModeSettingChangedHandler(proc() =
+            changes += 1)
+
+        var base = cast[ptr DarkModeSettingListener](listener)
+
+        base[].darkModeSettingChanged()
+        doAssert changes == 1,
+                 "darkModeSettingChanged reached the override " & $changes & " times"
+
+        base[].darkModeSettingChanged()
+        base[].darkModeSettingChanged()
+        doAssert changes == 3,
+                 "three deliveries left the count at " & $changes
+
+        cdelete listener
+
+    shutdownJuce_GUI()
+
+
+testDarkModeSettingListenerOverride()
+
+
+proc testFilePreviewComponentOverride() =
+    initialiseJuce_GUI()
+
+    block:
+        var changes = 0
+        var namesSeen: seq[string] = @[]
+
+        let preview = newCustomFilePreviewComponent()
+        preview[].setSelectedFileChangedHandler(proc(newSelectedFile: ptr june.File) =
+            changes += 1
+            namesSeen.add($newSelectedFile[].getFileName()))
+
+        var base = cast[ptr FilePreviewComponent](preview)
+
+        base[].selectedFileChanged(makeFile(makeString("/tmp/june-preview.txt")))
+        doAssert changes == 1,
+                 "selectedFileChanged reached the override " & $changes & " times"
+        doAssert namesSeen == @["june-preview.txt"],
+                 "the override was handed " & $namesSeen
+
+        # A different file is a different delivery, so the override reads the
+        # argument rather than anything it latched the first time.
+        base[].selectedFileChanged(makeFile(makeString("/tmp/other.wav")))
+        doAssert changes == 2,
+                 "a second selectedFileChanged left the count at " & $changes
+        doAssert namesSeen == @["june-preview.txt", "other.wav"],
+                 "the override was handed " & $namesSeen
+
+        cdelete preview
+
+    shutdownJuce_GUI()
+
+
+testFilePreviewComponentOverride()
+
+
+proc testFilenameComponentListenerOverride() =
+    initialiseJuce_GUI()
+
+    block:
+        var chooser = makeFilenameComponent(makeString("file"),
+                                            makeFile(makeString("/tmp/june-a.txt")),
+                                            true, false, false,
+                                            makeString("*.txt"),
+                                            makeString(""),
+                                            makeString("none"))
+        let chooserPtr = addr chooser
+
+        var changes = 0
+        var saw: ptr FilenameComponent = nil
+        var namesSeen: seq[string] = @[]
+
+        let listener = newCustomFilenameComponentListener()
+        listener[].setFilenameComponentChangedHandler(
+            proc(arg0: ptr FilenameComponent) =
+                changes += 1
+                saw = arg0
+                namesSeen.add($arg0[].getCurrentFile().getFileName()))
+
+        var base = cast[ptr FilenameComponentListener](listener)
+
+        base[].filenameComponentChanged(chooserPtr)
+        doAssert changes == 1,
+                 "filenameComponentChanged reached the override " & $changes & " times"
+        doAssert saw == chooserPtr,
+                 "the override was handed a component other than the one passed"
+        doAssert namesSeen == @["june-a.txt"],
+                 "the override read " & $namesSeen
+
+        # The component the override is handed is live, so a file set in
+        # between is what the next delivery reports.
+        chooser.setCurrentFile(makeFile(makeString("/tmp/june-b.txt")), true,
+                               NotificationType_dontSendNotification)
+        base[].filenameComponentChanged(chooserPtr)
+        doAssert changes == 2,
+                 "a second filenameComponentChanged left the count at " & $changes
+        doAssert namesSeen == @["june-a.txt", "june-b.txt"],
+                 "the override read " & $namesSeen
+
+        cdelete listener
+
+    shutdownJuce_GUI()
+
+
+testFilenameComponentListenerOverride()
+
+
+proc testButtonPropertyComponentButtonClicked() =
+    initialiseJuce_GUI()
+
+    block:
+        var clicks = 0
+        var textCalls = 0
+
+        let property = newCustomButtonPropertyComponent(makeString("Reset"), false)
+        property[].setButtonClickedHandler(proc() =
+            clicks += 1)
+        property[].setGetButtonTextHandler(proc(): String =
+            textCalls += 1
+            makeString("do it " & $clicks))
+
+        var base = cast[ptr ButtonPropertyComponent](property)
+
+        let textBefore = $base[].getButtonText()
+        doAssert textCalls == 1,
+                 "getButtonText reached the override " & $textCalls & " times"
+        doAssert textBefore == "do it 0",
+                 "getButtonText returned " & textBefore
+        doAssert clicks == 0,
+                 "getButtonText also moved the click count to " & $clicks
+
+        base[].buttonClicked()
+        doAssert clicks == 1,
+                 "buttonClicked reached the override " & $clicks & " times"
+
+        # getButtonText reads the click count, so the text moving is the click
+        # having actually landed in the Nim override rather than nowhere.
+        let textAfter = $base[].getButtonText()
+        doAssert textAfter == "do it 1",
+                 "after the click getButtonText returned " & textAfter
+
+        base[].buttonClicked()
+        doAssert clicks == 2,
+                 "a second buttonClicked left the count at " & $clicks
+
+        cdelete property
+
+    shutdownJuce_GUI()
+
+
+testButtonPropertyComponentButtonClicked()
+
+
+proc testComponentMovementWatcherPeerChanged() =
+    initialiseJuce_GUI()
+
+    block:
+        let watched = newCustomComponent()
+        watched[].setBounds(makeRectangle(0.cint, 0.cint, 30.cint, 20.cint))
+
+        var peerChanges = 0
+        var movedOrResized = 0
+        var visibilityChanges = 0
+
+        let watcher = newCustomComponentMovementWatcher(cast[ptr Component](watched))
+        watcher[].setComponentPeerChangedHandler(proc() =
+            peerChanges += 1)
+        watcher[].setComponentMovedOrResizedHandler(proc(wasMoved: bool,
+                                                          wasResized: bool) =
+            movedOrResized += 1)
+        watcher[].setComponentVisibilityChangedHandler(proc() =
+            visibilityChanges += 1)
+
+        var base = cast[ptr ComponentMovementWatcher](watcher)
+
+        base[].componentPeerChanged()
+        doAssert peerChanges == 1,
+                 "componentPeerChanged reached the override " & $peerChanges & " times"
+        doAssert movedOrResized == 0,
+                 "componentPeerChanged also moved the move count to " & $movedOrResized
+        doAssert visibilityChanges == 0,
+                 "componentPeerChanged also moved the visibility count to " &
+                 $visibilityChanges
+
+        base[].componentPeerChanged()
+        doAssert peerChanges == 2,
+                 "a second componentPeerChanged left the count at " & $peerChanges
+
+        cdelete watcher
+        cdelete watched
+
+    shutdownJuce_GUI()
+
+
+testComponentMovementWatcherPeerChanged()
+
+
+proc testRelativeRectangleApplyToComponent() =
+    initialiseJuce_GUI()
+
+    block:
+        let component = newCustomComponent()
+        component[].setBounds(makeRectangle(1.cint, 2.cint, 3.cint, 4.cint))
+        doAssert component[].getPositioner().isNil(),
+                 "a fresh component already has a positioner"
+
+        # A RelativeRectangle built from a plain rectangle is not dynamic, so
+        # applyToComponent takes the branch at juce_RelativeRectangle.cpp:281-282:
+        # it clears the positioner and sets the bounds to the resolved
+        # rectangle's smallest integer container.
+        let rect = makeRelativeRectangle(makeRectangle(10.5'f32, 20.25'f32,
+                                                       30.5'f32, 40.75'f32))
+        rect.applyToComponent(component[])
+
+        let bounds = component[].getBounds()
+        doAssert (bounds.getX(), bounds.getY(),
+                  bounds.getWidth(), bounds.getHeight()) ==
+                 (10.cint, 20.cint, 31.cint, 41.cint),
+                 "applyToComponent gave " & $bounds.getX() & "," &
+                 $bounds.getY() & "," & $bounds.getWidth() & "," &
+                 $bounds.getHeight()
+        doAssert component[].getPositioner().isNil(),
+                 "the static branch installed a positioner"
+
+        # A second, different rectangle moves the component again, so the
+        # bounds come from the rectangle applied rather than from one apply.
+        let other = makeRelativeRectangle(makeRectangle(0.0'f32, 0.0'f32,
+                                                        7.0'f32, 9.0'f32))
+        other.applyToComponent(component[])
+        let moved = component[].getBounds()
+        doAssert (moved.getX(), moved.getY(),
+                  moved.getWidth(), moved.getHeight()) ==
+                 (0.cint, 0.cint, 7.cint, 9.cint),
+                 "the second applyToComponent gave " & $moved.getX() & "," &
+                 $moved.getY() & "," & $moved.getWidth() & "," &
+                 $moved.getHeight()
+
+        cdelete component
+
+    shutdownJuce_GUI()
+
+
+testRelativeRectangleApplyToComponent()
+
+
+proc testFileChooserURLResults() =
+    initialiseJuce_GUI()
+
+    block:
+        var chooser = makeFileChooser(makeString("pick a file"), june.File(),
+                                      makeString("*"), true, false, nil)
+
+        # There is no headless path to a dialog, so the honest fact about an
+        # un-run chooser is that it yields nothing. FileChooser::getURLResult
+        # asserts results.size() <= 1 (juce_FileChooser.cpp:264), which holds
+        # at zero, so this reaches the real method without provoking it.
+        let urls = chooser.getURLResults()
+        doAssert urls.size() == 0,
+                 "a chooser nobody ran has " & $urls.size() & " URL results"
+
+        # getURLResult returns results.getFirst() through that same empty
+        # array, which is a default-constructed URL: empty, and not a file.
+        let url = chooser.getURLResult()
+        doAssert url.isEmpty(),
+                 "an un-run chooser's URL result is " & $url.toString(true)
+        doAssert not url.isLocalFile(),
+                 "an un-run chooser's URL result claims to be a local file"
+
+        # The plain-File side agrees, so the two views of "nothing chosen" are
+        # consistent rather than one of them merely being unimplemented.
+        doAssert chooser.getResults().size() == 0,
+                 "the File results disagree with the URL results"
+
+    shutdownJuce_GUI()
+
+
+testFileChooserURLResults()
+
+
+# RelativePointPath element control points ====================================
+#
+# getControlPoints writes the element's point count into its var parameter and
+# returns the array those points live in. The count differs per element type,
+# which is what makes it discriminating: StartSubPath 1, CloseSubPath 0,
+# LineTo 1, QuadraticTo 2, CubicTo 3 (juce_RelativePointPath.cpp lines 165,
+# 187, 209, 234 and 262). Asserting the returned points as well as the count
+# is what rules out an element that counted right and stored the wrong points.
+
+# A module-level home for the point the Custom element hands back, so the
+# handler below reads a global rather than capturing into a closure.
+var customElementControlPoint: ptr RelativePoint = nil
+
+proc testRelativePointPathControlPoints() =
+    initialiseJuce_GUI()
+
+    template pointsOf(p: ptr RelativePoint): ptr UncheckedArray[RelativePoint] =
+        cast[ptr UncheckedArray[RelativePoint]](p)
+
+    block:
+        # StartSubPath keeps exactly its one start position.
+        var start = makeRelativePointPathStartSubPath(
+            makeRelativePoint(11.0'f32, 12.0'f32))
+        var startCount = -1.cint
+        let startPoints = start.getControlPoints(startCount)
+        doAssert startCount == 1,
+                 "StartSubPath reported " & $startCount & " control points"
+        doAssert not startPoints.isNil(),
+                 "StartSubPath returned no control point array"
+        let startResolved = pointsOf(startPoints)[0].resolve(nil)
+        doAssert (startResolved.getX(), startResolved.getY()) ==
+                 (11.0'f32, 12.0'f32),
+                 "StartSubPath's control point is at " &
+                 $startResolved.getX() & "," & $startResolved.getY()
+
+    block:
+        # CloseSubPath has nothing to store, and says so with a null array.
+        var closing = makeRelativePointPathCloseSubPath()
+        var closeCount = -1.cint
+        let closePoints = closing.getControlPoints(closeCount)
+        doAssert closeCount == 0,
+                 "CloseSubPath reported " & $closeCount & " control points"
+        doAssert closePoints.isNil(),
+                 "CloseSubPath returned a control point array"
+
+    block:
+        # LineTo keeps its one end point.
+        var line = makeRelativePointPathLineTo(
+            makeRelativePoint(21.0'f32, 22.0'f32))
+        var lineCount = -1.cint
+        let linePoints = line.getControlPoints(lineCount)
+        doAssert lineCount == 1,
+                 "LineTo reported " & $lineCount & " control points"
+        let lineResolved = pointsOf(linePoints)[0].resolve(nil)
+        doAssert (lineResolved.getX(), lineResolved.getY()) ==
+                 (21.0'f32, 22.0'f32),
+                 "LineTo's control point is at " &
+                 $lineResolved.getX() & "," & $lineResolved.getY()
+
+    block:
+        # QuadraticTo stores control point then end point, in that order.
+        var quadratic = makeRelativePointPathQuadraticTo(
+            makeRelativePoint(31.0'f32, 32.0'f32),
+            makeRelativePoint(33.0'f32, 34.0'f32))
+        var quadraticCount = -1.cint
+        let quadraticPoints = quadratic.getControlPoints(quadraticCount)
+        doAssert quadraticCount == 2,
+                 "QuadraticTo reported " & $quadraticCount & " control points"
+        let quadraticControl = pointsOf(quadraticPoints)[0].resolve(nil)
+        let quadraticEnd = pointsOf(quadraticPoints)[1].resolve(nil)
+        doAssert (quadraticControl.getX(), quadraticControl.getY()) ==
+                 (31.0'f32, 32.0'f32),
+                 "QuadraticTo's control point is at " &
+                 $quadraticControl.getX() & "," & $quadraticControl.getY()
+        doAssert (quadraticEnd.getX(), quadraticEnd.getY()) ==
+                 (33.0'f32, 34.0'f32),
+                 "QuadraticTo's end point is at " &
+                 $quadraticEnd.getX() & "," & $quadraticEnd.getY()
+
+    block:
+        # CubicTo stores both control points and then the end point.
+        var cubic = makeRelativePointPathCubicTo(
+            makeRelativePoint(41.0'f32, 42.0'f32),
+            makeRelativePoint(43.0'f32, 44.0'f32),
+            makeRelativePoint(45.0'f32, 46.0'f32))
+        var cubicCount = -1.cint
+        let cubicPoints = cubic.getControlPoints(cubicCount)
+        doAssert cubicCount == 3,
+                 "CubicTo reported " & $cubicCount & " control points"
+        let cubicFirst = pointsOf(cubicPoints)[0].resolve(nil)
+        let cubicSecond = pointsOf(cubicPoints)[1].resolve(nil)
+        let cubicEnd = pointsOf(cubicPoints)[2].resolve(nil)
+        doAssert (cubicFirst.getX(), cubicFirst.getY()) == (41.0'f32, 42.0'f32),
+                 "CubicTo's first control point is at " &
+                 $cubicFirst.getX() & "," & $cubicFirst.getY()
+        doAssert (cubicSecond.getX(), cubicSecond.getY()) ==
+                 (43.0'f32, 44.0'f32),
+                 "CubicTo's second control point is at " &
+                 $cubicSecond.getX() & "," & $cubicSecond.getY()
+        doAssert (cubicEnd.getX(), cubicEnd.getY()) == (45.0'f32, 46.0'f32),
+                 "CubicTo's end point is at " &
+                 $cubicEnd.getX() & "," & $cubicEnd.getY()
+
+    block:
+        # ElementBase itself is abstract and its getControlPoints is pure
+        # virtual (juce_RelativePointPath.h:94), so the only way to reach the
+        # binding declared on the base is through a subclass that implements
+        # it. A count no concrete element uses proves the call arrived here.
+        var customStorage = makeRelativePoint(51.0'f32, 52.0'f32)
+        customElementControlPoint = addr customStorage
+        let custom = newCustomRelativePointPathElementBase(
+            RelativePointPathElementType_lineToElement)
+        custom[].setAddToPathHandler(
+            proc(path: ptr Path, arg1: ptr ExpressionScope) = discard)
+        custom[].setCloneHandler(
+            proc(): ptr RelativePointPathElementBase = nil)
+        custom[].setGetControlPointsHandler(proc(numPoints: ptr cint): ptr RelativePoint =
+            numPoints[] = 5.cint
+            customElementControlPoint)
+
+        var base = cast[ptr RelativePointPathElementBase](custom)
+        var customCount = -1.cint
+        let customPoints = base[].getControlPoints(customCount)
+        doAssert customCount == 5,
+                 "the custom element reported " & $customCount &
+                 " control points"
+        doAssert customPoints == customElementControlPoint,
+                 "the custom element returned a different array"
+        let customResolved = pointsOf(customPoints)[0].resolve(nil)
+        doAssert (customResolved.getX(), customResolved.getY()) ==
+                 (51.0'f32, 52.0'f32),
+                 "the custom element's point is at " &
+                 $customResolved.getX() & "," & $customResolved.getY()
+
+        cdelete custom
+        customElementControlPoint = nil
+
+    shutdownJuce_GUI()
+
+
+testRelativePointPathControlPoints()
+
+
+# buttonStateChanged on the two buttons that really implement it =============
+#
+# Button::buttonStateChanged is an empty-bodied virtual, but DrawableButton and
+# ToolbarButton override it with real work and neither takes an argument - do
+# not confuse either with ButtonListener::buttonStateChanged(Button*).
+#
+# DrawableButton::buttonStateChanged (juce_DrawableButton.cpp:150-186) picks
+# the drawable to display: enabled takes getCurrentImage(), otherwise the
+# toggle state chooses between disabledImageOn and disabledImage. The chosen
+# drawable is then made a child of the button, so the button's one child is
+# what says which face was picked. setImages stores COPIES
+# (juce_DrawableButton.cpp:66-73), so the faces are told apart by the identity
+# of the copies the button holds, not of the drawables handed to it.
+
+proc testButtonStateChanged() =
+    initialiseJuce_GUI()
+
+    block:
+        template rect(w: float32, r, g, b: uint8): ptr DrawableRectangle =
+            let d = cnew(makeDrawableRectangle())
+            d[].setRectangle(makeParallelogram(
+                makeRectangle(0.0'f32, 0.0'f32, w, w)))
+            d[].setFill(makeFillType(makeColour(r, g, b, 255'u8)))
+            d
+
+        let normalFace = rect(20.0'f32, 255'u8, 0'u8, 0'u8)
+        let disabledFace = rect(24.0'f32, 0'u8, 255'u8, 0'u8)
+        let disabledOnFace = rect(28.0'f32, 0'u8, 0'u8, 255'u8)
+
+        var button = makeDrawableButton(makeString("faces"),
+                                        DrawableButtonButtonStyle_ImageFitted)
+        button.setBounds(makeRectangle(0.cint, 0.cint, 40.cint, 40.cint))
+        button.setImages(cast[ptr Drawable](normalFace), nil, nil,
+                         cast[ptr Drawable](disabledFace), nil, nil, nil,
+                         cast[ptr Drawable](disabledOnFace))
+
+        # Enabled: the branch that takes getCurrentImage(), which with no
+        # mouse over it is the normal face.
+        button.buttonStateChanged()
+        doAssert button.getNumChildComponents() == 1,
+                 "the button displays " & $button.getNumChildComponents() &
+                 " drawables"
+        let whenEnabled = button.getChildComponent(0.cint)
+        doAssert whenEnabled == cast[ptr Component](button.getNormalImage()),
+                 "the enabled button is not displaying its normal face"
+
+        # Disabled with the toggle off: the disabledImage branch. It is a
+        # different drawable from the normal face, which is the whole point of
+        # the branch.
+        button.setEnabled(false)
+        button.buttonStateChanged()
+        let whenDisabled = button.getChildComponent(0.cint)
+        doAssert whenDisabled != whenEnabled,
+                 "disabling the button left the normal face on display"
+
+        # Disabled with the toggle on: disabledImageOn instead. Setting BOTH
+        # disabled faces is what tells this branch from the one above.
+        button.setToggleState(true, NotificationType_dontSendNotification)
+        button.buttonStateChanged()
+        let whenDisabledOn = button.getChildComponent(0.cint)
+        doAssert whenDisabledOn != whenDisabled,
+                 "the toggle made no difference to the disabled face"
+        doAssert whenDisabledOn != whenEnabled,
+                 "the toggled-on disabled face is the normal face"
+
+        # And back: re-enabling returns to the getCurrentImage() branch, so
+        # the three faces are a cycle rather than a one-way drift.
+        button.setEnabled(true)
+        button.buttonStateChanged()
+        doAssert button.getChildComponent(0.cint) ==
+                 cast[ptr Component](button.getNormalImage()),
+                 "re-enabling did not restore the normal face"
+
+        cdelete normalFace
+        cdelete disabledFace
+        cdelete disabledOnFace
+
+    block:
+        # ToolbarButton::buttonStateChanged (juce_ToolbarButton.cpp:117) is
+        # setCurrentImage(getImageToUse()), and getImageToUse
+        # (juce_ToolbarButton.cpp:107-115) answers toggledOnImage when the
+        # toggle is on and normalImage otherwise. Unlike DrawableButton the
+        # button OWNS the two drawables through unique_ptr
+        # (juce_ToolbarButton.cpp:41-42), so the drawable that was handed over
+        # is the one that appears as the child, and identity says which face
+        # was picked.
+        template rect(w: float32, r, g, b: uint8): ptr DrawableRectangle =
+            let d = cnew(makeDrawableRectangle())
+            d[].setRectangle(makeParallelogram(
+                makeRectangle(0.0'f32, 0.0'f32, w, w)))
+            d[].setFill(makeFillType(makeColour(r, g, b, 255'u8)))
+            d
+
+        let normalFace = rect(16.0'f32, 255'u8, 0'u8, 0'u8)
+        let toggledFace = rect(18.0'f32, 0'u8, 0'u8, 255'u8)
+
+        var button = makeToolbarButton(
+            7.cint, makeString("tool"),
+            rawToUniquePtr(cast[ptr Drawable](normalFace)),
+            rawToUniquePtr(cast[ptr Drawable](toggledFace)))
+        button.setBounds(makeRectangle(0.cint, 0.cint, 40.cint, 40.cint))
+
+        # The style defaults to Toolbar::iconsOnly
+        # (juce_ToolbarItemComponent.cpp:48), so getImageToUse does not take
+        # the textOnly branch that would answer nullptr.
+        button.setToggleState(false, NotificationType_dontSendNotification)
+        button.buttonStateChanged()
+        doAssert button.getNumChildComponents() == 1.cint,
+                 "the toolbar button displays " &
+                 $button.getNumChildComponents() & " drawables"
+        doAssert button.getChildComponent(0.cint) ==
+                 cast[ptr Component](normalFace),
+                 "the untoggled toolbar button is not displaying its normal face"
+
+        button.setToggleState(true, NotificationType_dontSendNotification)
+        button.buttonStateChanged()
+        doAssert button.getNumChildComponents() == 1.cint,
+                 "toggling left " & $button.getNumChildComponents() &
+                 " drawables on the toolbar button"
+        doAssert button.getChildComponent(0.cint) ==
+                 cast[ptr Component](toggledFace),
+                 "the toggled-on toolbar button is not displaying its toggled face"
+
+        # And back, so the two faces are a swap rather than a one-way drift.
+        button.setToggleState(false, NotificationType_dontSendNotification)
+        button.buttonStateChanged()
+        doAssert button.getChildComponent(0.cint) ==
+                 cast[ptr Component](normalFace),
+                 "un-toggling did not restore the normal face"
+
+        # The unique_ptrs own both drawables, so neither is deleted here.
+
+    shutdownJuce_GUI()
+
+
+testButtonStateChanged()
+
+
+# Plain queries and simple state =============================================
+
+# The two lists a MarkerListHolder hands out, kept at module scope so the
+# handler below reads globals rather than capturing them.
+var holderXMarkers: ptr MarkerList = nil
+var holderYMarkers: ptr MarkerList = nil
+
+proc testMarkerListQueries() =
+    initialiseJuce_GUI()
+
+    block:
+        # MarkerList::getMarkerPosition resolves the marker's coordinate; with
+        # a null parent it resolves against no scope, and with a parent it
+        # builds a ComponentScope so names like "width" mean that component
+        # (juce_MarkerList.cpp:256-263).
+        var markers = makeMarkerList()
+        markers.setMarker(makeString("fixed"), makeRelativeCoordinate(37.5))
+        markers.setMarker(makeString("half"),
+                          makeRelativeCoordinate(makeString("width / 2")))
+
+        let fixed = markers.getMarker(makeString("fixed"))
+        doAssert not fixed.isNil(), "the list lost the marker it was given"
+        doAssert markers.getMarkerPosition(fixed[], nil) == 37.5,
+                 "the fixed marker resolved to " &
+                 $markers.getMarkerPosition(fixed[], nil)
+
+        let parent = newCustomComponent()
+        parent[].setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 80.cint))
+        let half = markers.getMarker(makeString("half"))
+        doAssert not half.isNil(), "the list lost the symbolic marker"
+        doAssert markers.getMarkerPosition(half[],
+                                           cast[ptr Component](parent)) == 100.0,
+                 "half the parent's width resolved to " &
+                 $markers.getMarkerPosition(half[], cast[ptr Component](parent))
+
+        # The parent is what supplies "width", so a wider parent moves it.
+        parent[].setBounds(makeRectangle(0.cint, 0.cint, 60.cint, 80.cint))
+        doAssert markers.getMarkerPosition(half[],
+                                           cast[ptr Component](parent)) == 30.0,
+                 "after resizing the parent it resolved to " &
+                 $markers.getMarkerPosition(half[], cast[ptr Component](parent))
+
+        cdelete parent
+
+    block:
+        # A MarkerListHolder is asked for one list per axis, and the axis flag
+        # is what picks between them.
+        var xMarkers = makeMarkerList()
+        xMarkers.setMarker(makeString("across"), makeRelativeCoordinate(11.0))
+        var yMarkers = makeMarkerList()
+        yMarkers.setMarker(makeString("down"), makeRelativeCoordinate(22.0))
+        yMarkers.setMarker(makeString("further"), makeRelativeCoordinate(33.0))
+        holderXMarkers = addr xMarkers
+        holderYMarkers = addr yMarkers
+
+        let holder = newCustomMarkerListMarkerListHolder()
+        holder[].setGetMarkersHandler(proc(xAxis: bool): ptr MarkerList =
+            if xAxis: holderXMarkers else: holderYMarkers)
+
+        let alongX = holder[].getMarkers(true)
+        doAssert alongX == holderXMarkers,
+                 "the holder handed back the wrong list for the x axis"
+        doAssert alongX[].getNumMarkers() == 1,
+                 "the x list holds " & $alongX[].getNumMarkers() & " markers"
+
+        let alongY = holder[].getMarkers(false)
+        doAssert alongY == holderYMarkers,
+                 "the holder handed back the wrong list for the y axis"
+        doAssert alongY[].getNumMarkers() == 2,
+                 "the y list holds " & $alongY[].getNumMarkers() & " markers"
+
+        cdelete holder
+        holderXMarkers = nil
+        holderYMarkers = nil
+
+    block:
+        # ValueTreeWrapper::readFrom is applyTo's inverse: it clears the tree
+        # and writes one child per marker (juce_MarkerList.cpp:285-291). The
+        # clearing is the half a naive implementation drops, so the tree
+        # starts with a marker that is not in the list.
+        var tree = makeValueTree(makeIdentifier(makeString("MARKERS")))
+        var wrapper = makeMarkerListValueTreeWrapper(tree)
+        wrapper.setMarker(makeMarkerListMarker(makeString("stale"),
+                                               makeRelativeCoordinate(5.0)), nil)
+        doAssert wrapper.getNumMarkers() == 1,
+                 "the wrapper did not take the stale marker"
+
+        var source = makeMarkerList()
+        source.setMarker(makeString("left"), makeRelativeCoordinate(10.0))
+        source.setMarker(makeString("right"), makeRelativeCoordinate(90.0))
+
+        wrapper.readFrom(source, nil)
+        doAssert wrapper.getNumMarkers() == 2,
+                 "after readFrom the wrapper holds " &
+                 $wrapper.getNumMarkers() & " markers"
+        doAssert tree.getNumChildren() == 2,
+                 "the tree carries " & $tree.getNumChildren() & " children"
+        let staleState = wrapper.getMarkerState(makeString("stale"))
+        doAssert not staleState.isValid(),
+                 "readFrom left the stale marker in the tree"
+        let rightState = wrapper.getMarkerState(makeString("right"))
+        doAssert rightState.isValid(), "readFrom did not write the right marker"
+        doAssert wrapper.getMarker(rightState).position().resolve(nil) == 90.0,
+                 "the marker readFrom wrote sits at " &
+                 $wrapper.getMarker(rightState).position().resolve(nil)
+
+    shutdownJuce_GUI()
+
+
+testMarkerListQueries()
+
+
+proc testAssortedSimpleState() =
+    initialiseJuce_GUI()
+
+    block:
+        # DrawableComposite::resetBoundingBoxToContentArea is
+        # setBoundingBox (contentArea) (juce_DrawableComposite.cpp:104-107), so
+        # the bounding box has to follow the content area rather than stay
+        # where it was put.
+        var composite = makeDrawableComposite()
+        composite.setBoundingBox(makeRectangle(0.0'f32, 0.0'f32,
+                                               10.0'f32, 10.0'f32))
+        composite.setContentArea(makeRectangle(3.0'f32, 4.0'f32,
+                                               50.0'f32, 60.0'f32))
+        let before = composite.getBoundingBox()
+        doAssert before.getWidth() == 10.0'f32,
+                 "the bounding box started " & $before.getWidth() & " wide"
+
+        composite.resetBoundingBoxToContentArea()
+        let after = composite.getBoundingBox()
+        doAssert (after.topLeft().getX(), after.topLeft().getY()) ==
+                 (3.0'f32, 4.0'f32),
+                 "the bounding box now starts at " &
+                 $after.topLeft().getX() & "," & $after.topLeft().getY()
+        doAssert (after.getWidth(), after.getHeight()) == (50.0'f32, 60.0'f32),
+                 "the bounding box is " & $after.getWidth() & " by " &
+                 $after.getHeight()
+        # The content area is the source, so it is unchanged by the reset.
+        doAssert composite.getContentArea().getWidth() == 50.0'f32,
+                 "the reset moved the content area too"
+
+    block:
+        # StretchableLayoutResizerBar::hasBeenMoved calls resized() on its
+        # parent, and does nothing at all without one
+        # (juce_StretchableLayoutResizerBar.cpp:82-86). Counting the parent's
+        # resized calls is what tells the two branches apart.
+        var layout = makeStretchableLayoutManager()
+        layout.setItemLayout(0.cint, 10.0, 100.0, 50.0)
+        layout.setItemLayout(1.cint, 5.0, 5.0, 5.0)
+        layout.setItemLayout(2.cint, 10.0, 100.0, 50.0)
+
+        let parent = newCustomComponent()
+        let resizes = new(int)
+        parent[].onResized = bindClosure(proc() = resizes[] += 1)
+        parent[].setBounds(makeRectangle(0.cint, 0.cint, 105.cint, 40.cint))
+
+        var bar = makeStretchableLayoutResizerBar(addr layout, 1.cint, true)
+        parent[].addAndMakeVisible(bar)
+
+        let beforeMove = resizes[]
+        bar.hasBeenMoved()
+        doAssert resizes[] == beforeMove + 1,
+                 "hasBeenMoved produced " & $(resizes[] - beforeMove) &
+                 " parent resizes"
+
+        # Detached, the same call reaches no parent and so does nothing.
+        parent[].removeChildComponent(cast[ptr Component](addr bar))
+        let beforeOrphaned = resizes[]
+        bar.hasBeenMoved()
+        doAssert resizes[] == beforeOrphaned,
+                 "an orphaned bar still resized something"
+
+        cdelete parent
+
+    block:
+        # TextButton::getBestWidthForHeight asks the look and feel how wide the
+        # text needs to be (juce_TextButton.cpp:81-84), so a longer label needs
+        # a wider button and the answer depends on the text rather than being a
+        # function of the height alone.
+        var short = makeTextButton(makeString("OK"))
+        var long = makeTextButton(
+            makeString("A considerably longer piece of button text"))
+
+        let shortWidth = short.getBestWidthForHeight(24.cint)
+        let longWidth = long.getBestWidthForHeight(24.cint)
+        doAssert shortWidth > 0,
+                 "the short button wants " & $shortWidth & " pixels"
+        doAssert longWidth > shortWidth,
+                 "the long label wants " & $longWidth &
+                 " pixels against the short one's " & $shortWidth
+
+        # Taller means bigger text, so the same label needs more room.
+        let taller = short.getBestWidthForHeight(48.cint)
+        doAssert taller > shortWidth,
+                 "at twice the height the same label wants " & $taller &
+                 " pixels against " & $shortWidth
+
+    block:
+        # KeyPress::getTextDescriptionWithIcons replaces the spelled-out
+        # modifiers with symbols on Apple platforms and is getTextDescription
+        # verbatim everywhere else (juce_KeyPress.cpp:283-296).
+        let combo = makeKeyPress(KeyPress.returnKey(),
+                                 makeModifierKeys(
+                                     ModifierKeysFlags_shiftModifier.cint or
+                                     ModifierKeysFlags_ctrlModifier.cint),
+                                 0.WChar)
+        let spelled = $combo.getTextDescription()
+        let withIcons = $combo.getTextDescriptionWithIcons()
+        # ctrl and shift are spelled out and joined with " + ", and the
+        # return key is named.
+        doAssert spelled == "ctrl + shift + return",
+                 "the plain description is " & spelled
+
+        when defined(macosx) or defined(ios):
+            # Each of the three is replaced by its symbol, and the " + "
+            # joiners go with them because they are part of the replaced text
+            # (juce_KeyPress.cpp:166-176).
+            doAssert withIcons == "\u2303\u21e7\u21b5",
+                     "the icon description is " & withIcons
+        else:
+            doAssert withIcons == spelled,
+                     "off Apple platforms the two descriptions differ: " &
+                     withIcons & " against " & spelled
+
+    block:
+        # AccessibilityActions::addAction stores the callback under its type
+        # and returns the same object so calls chain. Two actions with
+        # different callbacks say the type is what selects one.
+        var presses = 0
+        var toggles = 0
+        var actions = makeAccessibilityActions()
+        doAssert not actions.contains(AccessibilityActionType_press),
+                 "a fresh action set already has a press action"
+
+        discard actions
+            .addAction(AccessibilityActionType_press,
+                       bindClosure(proc() = presses += 1))
+            .addAction(AccessibilityActionType_toggle,
+                       bindClosure(proc() = toggles += 1))
+
+        doAssert actions.contains(AccessibilityActionType_press),
+                 "the press action did not stick"
+        doAssert actions.contains(AccessibilityActionType_toggle),
+                 "the chained toggle action did not stick"
+        doAssert not actions.contains(AccessibilityActionType_showMenu),
+                 "an action nobody added is present"
+
+        doAssert actions.invoke(AccessibilityActionType_press),
+                 "invoking the press action reported nothing to invoke"
+        doAssert (presses, toggles) == (1, 0),
+                 "after one press invoke the counts are " & $presses & "," &
+                 $toggles
+        doAssert actions.invoke(AccessibilityActionType_toggle),
+                 "invoking the toggle action reported nothing to invoke"
+        doAssert (presses, toggles) == (1, 1),
+                 "after the toggle invoke the counts are " & $presses & "," &
+                 $toggles
+
+    shutdownJuce_GUI()
+
+
+testAssortedSimpleState()
+
+
+# BubbleComponent::setAllowedPlacement restricts which side setPosition may
+# choose. juce_BubbleComponent.cpp:100-108 turns each disallowed side's
+# available space into -1, so a single allowed flag forces that side, and
+# lines 121-155 derive the final bounds from the winning side's arrow tip.
+proc testBubbleComponentAllowedPlacement() =
+    initialiseJuce_GUI()
+
+    block:
+        let parent = newCustomComponent()
+        parent[].setBounds(makeRectangle(0.cint, 0.cint, 400.cint, 400.cint))
+
+        let bubble = newCustomBubbleComponent()
+        bubble[].setGetContentSizeHandler(proc(width: ptr cint, height: ptr cint) =
+            width[] = 100.cint
+            height[] = 20.cint)
+        bubble[].setPaintContentHandler(proc(g: ptr Graphics, width: cint,
+                                             height: cint) = discard)
+
+        parent[].addAndMakeVisible(cast[ptr Component](bubble))
+
+        # A square target in the middle of the parent, so none of the four
+        # sides is favoured by the elongation rule at lines 110-118 and the
+        # space on all four sides is equal. Only the allowed-placement mask
+        # decides.
+        let target = makeRectangle(180.cint, 180.cint, 40.cint, 40.cint)
+        var base = cast[ptr BubbleComponent](bubble)
+
+        template placedAt(flag: BubbleComponentBubblePlacement): (cint, cint, cint, cint) =
+            base[].setAllowedPlacement(flag.cint)
+            base[].setPosition(target, 15.cint, 10.cint)
+            (base[].getX(), base[].getY(), base[].getWidth(), base[].getHeight())
+
+        # Content 100x20 inset by distanceFromTarget 15 on every side gives a
+        # 130x50 bubble in each case; only the origin moves.
+        let above = placedAt(BubbleComponentBubblePlacement_above)
+        doAssert above == (135.cint, 135.cint, 130.cint, 50.cint),
+                 "restricted to above, the bubble sits at " & $above
+
+        let below = placedAt(BubbleComponentBubblePlacement_below)
+        doAssert below == (135.cint, 215.cint, 130.cint, 50.cint),
+                 "restricted to below, the bubble sits at " & $below
+
+        let toLeft = placedAt(BubbleComponentBubblePlacement_left)
+        doAssert toLeft == (55.cint, 175.cint, 130.cint, 50.cint),
+                 "restricted to left, the bubble sits at " & $toLeft
+
+        let toRight = placedAt(BubbleComponentBubblePlacement_right)
+        doAssert toRight == (215.cint, 175.cint, 130.cint, 50.cint),
+                 "restricted to right, the bubble sits at " & $toRight
+
+        # The four restrictions really do straddle the target rather than
+        # landing in the same place by coincidence.
+        doAssert above[1] < below[1],
+                 "the above and below placements have y " & $above[1] & " and " & $below[1]
+        doAssert toLeft[0] < toRight[0],
+                 "the left and right placements have x " & $toLeft[0] & " and " & $toRight[0]
+        # The bubble is not clear of the target: the arrow tip is placed
+        # arrowLength beyond the content edge, so the outer 5 pixels of the
+        # 130-wide bubble sit over the target on either side
+        # (juce_BubbleComponent.cpp:145 and :152).
+        doAssert toLeft[0] + toLeft[2] == target.getX() + 5,
+                 "the left placement ends at " & $(toLeft[0] + toLeft[2]) &
+                 " rather than 5 past the target's left edge"
+        doAssert toRight[0] == target.getRight() - 5,
+                 "the right placement starts at " & $toRight[0] &
+                 " rather than 5 before the target's right edge"
+
+        # Allowing two sides lets setPosition pick between them again: with
+        # above and left permitted, the space comparison at line 121 prefers
+        # the vertical pair on a tie, so this matches the above-only result.
+        let bothVertical = placedAt(
+            BubbleComponentBubblePlacement(BubbleComponentBubblePlacement_above.cint or
+                                           BubbleComponentBubblePlacement_left.cint))
+        doAssert bothVertical == above,
+                 "with above and left allowed the bubble sits at " & $bothVertical
+
+        cdelete bubble
+        cdelete parent
+
+    shutdownJuce_GUI()
+
+
+testBubbleComponentAllowedPlacement()
+
+
+# AccessibilityValueInterface::AccessibleValueRange keeps the MinAndMax it was
+# built from and reports the two ends through getMinimumValue and
+# getMaximumValue (juce_AccessibilityValueInterface.h:111-127). The default
+# constructor leaves range value-initialised, so both ends read back as zero
+# and the range is invalid (:131-133).
+proc testAccessibleValueRangeBounds() =
+    initialiseJuce_GUI()
+
+    block:
+        var bounds = makeAccessibilityValueInterfaceAccessibleValueRangeMinAndMax()
+        bounds.min = -12.5
+        bounds.max = 37.25
+
+        let ranged = makeAccessibilityValueInterfaceAccessibleValueRange(bounds, 0.25)
+        let low = ranged.getMinimumValue()
+        let high = ranged.getMaximumValue()
+        doAssert low == -12.5,
+                 "the range's minimum came back as " & $low
+        doAssert high == 37.25,
+                 "the range's maximum came back as " & $high
+        doAssert high - low == 49.75,
+                 "the two ends span " & $(high - low)
+        doAssert ranged.getInterval() == 0.25,
+                 "the range's interval came back as " & $ranged.getInterval()
+        doAssert ranged.isValid(),
+                 "a range built from an explicit MinAndMax reports itself invalid"
+
+        # The bounds travel by value: editing the MinAndMax afterwards leaves
+        # the range alone, so getMinimumValue is reading the range's own copy
+        # rather than the object it was handed.
+        bounds.min = 900.0
+        bounds.max = 901.0
+        doAssert ranged.getMinimumValue() == -12.5,
+                 "after editing the source bounds the range's minimum is " &
+                 $ranged.getMinimumValue()
+        doAssert ranged.getMaximumValue() == 37.25,
+                 "after editing the source bounds the range's maximum is " &
+                 $ranged.getMaximumValue()
+
+        # A second range from the same type must answer differently, so the
+        # getters are not returning a constant.
+        var other = makeAccessibilityValueInterfaceAccessibleValueRangeMinAndMax()
+        other.min = 1.0
+        other.max = 2.0
+        let narrow = makeAccessibilityValueInterfaceAccessibleValueRange(other, 0.5)
+        doAssert narrow.getMinimumValue() == 1.0 and narrow.getMaximumValue() == 2.0,
+                 "the second range reads " & $narrow.getMinimumValue() & " to " &
+                 $narrow.getMaximumValue()
+
+    block:
+        # What a caller who builds a range with no arguments gets: the private
+        # MinAndMax member is brace-initialised, so both ends are zero rather
+        # than any sentinel, and only isValid says the range means nothing.
+        let empty = makeAccessibilityValueInterfaceAccessibleValueRange()
+        doAssert not empty.isValid(),
+                 "the default-constructed range claims to be valid"
+        doAssert empty.getMinimumValue() == 0.0,
+                 "the default range's minimum is " & $empty.getMinimumValue()
+        doAssert empty.getMaximumValue() == 0.0,
+                 "the default range's maximum is " & $empty.getMaximumValue()
+        doAssert empty.getInterval() == 0.0,
+                 "the default range's interval is " & $empty.getInterval()
+
+    shutdownJuce_GUI()
+
+
+testAccessibleValueRangeBounds()
+
+
+# Listener bases reached through the base pointer =============================
+#
+# ComponentPeer::ScaleFactorListener and ComponentPeer::VBlankListener are
+# separate classes from ComponentPeer itself, which has no public constructor
+# and is unreachable from a test. The listeners are reachable: a generated
+# Custom subclass overrides the virtual, and calling it through a pointer to
+# the BASE dispatches into that override. That dispatch is the whole contract
+# of a listener interface, so it is what these assert.
+proc testComponentPeerListenerBases() =
+    initialiseJuce_GUI()
+
+    block:
+        var seenScales: seq[float64] = @[]
+        let scaleListener = newCustomComponentPeerScaleFactorListener()
+        scaleListener[].setNativeScaleFactorChangedHandler(proc(newScaleFactor: cdouble) =
+            seenScales.add(newScaleFactor.float64))
+
+        let asBase = cast[ptr ComponentPeerScaleFactorListener](scaleListener)
+        asBase[].nativeScaleFactorChanged(2.0)
+        doAssert seenScales == @[2.0],
+                 "calling through the base pointer delivered " & $seenScales
+
+        # A second call with a different factor: the argument is carried
+        # through, so the handler is not being invoked with a constant.
+        asBase[].nativeScaleFactorChanged(1.25)
+        doAssert seenScales == @[2.0, 1.25],
+                 "the second scale factor arrived as " & $seenScales
+
+        cdelete scaleListener
+
+    block:
+        var ticks = 0
+        var lastTimestamp = -1.0
+        let vblankListener = newCustomComponentPeerVBlankListener()
+        vblankListener[].setOnVBlankHandler(proc(timestampSec: cdouble) =
+            ticks += 1
+            lastTimestamp = timestampSec.float64)
+
+        let asBase = cast[ptr ComponentPeerVBlankListener](vblankListener)
+        asBase[].onVBlank(0.5)
+        doAssert ticks == 1, "onVBlank through the base pointer fired " & $ticks & " times"
+        doAssert lastTimestamp == 0.5,
+                 "the vblank timestamp arrived as " & $lastTimestamp
+
+        asBase[].onVBlank(1.75)
+        doAssert ticks == 2, "the second onVBlank fired " & $ticks & " times in total"
+        doAssert lastTimestamp == 1.75,
+                 "the second vblank timestamp arrived as " & $lastTimestamp
+
+        cdelete vblankListener
+
+    shutdownJuce_GUI()
+
+
+testComponentPeerListenerBases()
+
+
+# TextPropertyComponent::Listener reached through the base pointer. The
+# component the change is reported for is passed as an argument rather than
+# being implied, so the handler can tell two components apart; that is what
+# distinguishes a working dispatch from one that fires with a null subject.
+proc testTextPropertyComponentListenerBase() =
+    initialiseJuce_GUI()
+
+    block:
+        var reportedNames: seq[string] = @[]
+        let listener = newCustomTextPropertyComponentListener()
+        listener[].setTextPropertyComponentChangedHandler(
+            proc(changed: ptr TextPropertyComponent) =
+                reportedNames.add($changed[].getName()))
+
+        var firstValue = makeValue()
+        var secondValue = makeValue()
+        var first = makeTextPropertyComponent(
+            firstValue, makeString("alpha"), 32.cint, false)
+        var second = makeTextPropertyComponent(
+            secondValue, makeString("beta"), 32.cint, false)
+
+        let asBase = cast[ptr TextPropertyComponentListener](listener)
+        asBase[].textPropertyComponentChanged(addr first)
+        doAssert reportedNames == @["alpha"],
+                 "the base-pointer call reported " & $reportedNames
+
+        asBase[].textPropertyComponentChanged(addr second)
+        doAssert reportedNames == @["alpha", "beta"],
+                 "the second component was reported as " & $reportedNames
+
+        cdelete listener
+
+    shutdownJuce_GUI()
+
+
+testTextPropertyComponentListenerBase()
+
+
+# ModalComponentManager::Callback carries the modal result back to whoever
+# asked for it. It is called DIRECTLY through the base pointer here and NOT
+# handed to ModalComponentManager::attachCallback: that method deletes the
+# callback outright unless the component is already modal
+# (juce_ModalComponentManager.cpp:121-135), so routing this through it would
+# be a double free against the cdelete below.
+proc testModalComponentManagerCallbackBase() =
+    initialiseJuce_GUI()
+
+    block:
+        var results: seq[cint] = @[]
+        let callback = newCustomModalComponentManagerCallback()
+        callback[].setModalStateFinishedHandler(proc(returnValue: cint) =
+            results.add(returnValue))
+
+        let asBase = cast[ptr ModalComponentManagerCallback](callback)
+        asBase[].modalStateFinished(0.cint)
+        doAssert results == @[0.cint],
+                 "the first modal result arrived as " & $results
+
+        # A non-zero result, and a negative one: the value is carried through
+        # rather than the handler firing with whatever it was built with.
+        asBase[].modalStateFinished(7.cint)
+        asBase[].modalStateFinished(-3.cint)
+        doAssert results == @[0.cint, 7.cint, -3.cint],
+                 "the modal results arrived as " & $results
+
+        cdelete callback
+
+    shutdownJuce_GUI()
+
+
+testModalComponentManagerCallbackBase()
+
+
+# CallOutBox: repositioning, dismissal, and the consumed-click flag ==========
+#
+# A nil parent puts the box on the desktop and needs a real window, so every
+# block here gives it a parent and keeps it an ordinary child component.
+proc testCallOutBoxPositionAndDismissal() =
+    initialiseJuce_GUI()
+
+    template withBox(body: untyped) =
+        block:
+            var parent = newCustomComponent()
+            parent[].setBounds(makeRectangle(0.cint, 0.cint, 400.cint, 400.cint))
+            var content = newCustomComponent()
+            content[].setSize(60.cint, 40.cint)
+            var box {.inject.} = makeCallOutBox(
+                content[], makeRectangle(300.cint, 300.cint, 10.cint, 10.cint),
+                cast[ptr Component](parent))
+            let parentAsComponent {.inject.} = cast[ptr Component](parent)
+            body
+            cdelete content
+            cdelete parent
+
+    withBox:
+        # juce_CallOutBox.cpp:199-209 stores the target and available areas and
+        # then recomputes the bounds from the content size plus twice the
+        # border. The 60x40 content therefore always yields a 100x80 box: the
+        # SIZE is fixed by the content, and only the POSITION tracks the target.
+        doAssert box.getBounds() == makeRectangle(255.cint, 306.cint, 100.cint, 80.cint),
+                 "the box built pointing at (300,300) sits at " & $box.getBounds()
+
+        box.updatePosition(makeRectangle(100.cint, 100.cint, 20.cint, 20.cint),
+                           makeRectangle(0.cint, 0.cint, 400.cint, 400.cint))
+        doAssert box.getBounds() == makeRectangle(60.cint, 116.cint, 100.cint, 80.cint),
+                 "after pointing at (100,100) the box sits at " & $box.getBounds()
+
+        # A target near the origin cannot be honoured without leaving the
+        # available area, so the box is clamped into it rather than following
+        # the target outside. The size is unchanged, which is what shows the
+        # border arithmetic did not move.
+        box.updatePosition(makeRectangle(10.cint, 10.cint, 10.cint, 10.cint),
+                           makeRectangle(0.cint, 0.cint, 400.cint, 400.cint))
+        doAssert box.getBounds() == makeRectangle(0.cint, 0.cint, 100.cint, 80.cint),
+                 "a target at the origin put the box at " & $box.getBounds()
+
+        # A smaller available area confines the box: the same target now
+        # produces a position inside the narrower rectangle.
+        box.updatePosition(makeRectangle(300.cint, 300.cint, 10.cint, 10.cint),
+                           makeRectangle(0.cint, 0.cint, 200.cint, 200.cint))
+        let confined = box.getBounds()
+        doAssert confined.getRight() <= 200 and confined.getBottom() <= 200,
+                 "the box escaped a 200x200 available area at " & $confined
+        doAssert confined.getWidth() == 100 and confined.getHeight() == 80,
+                 "confining the box changed its size to " & $confined
+
+    withBox:
+        # juce_CallOutBox.cpp:183-186 is only postCommandMessage(...): dismiss
+        # POSTS and returns. Delivery is asynchronous and this suite runs no
+        # dispatch loop, so the box must still be alive and parented
+        # afterwards. An implementation that deleted it synchronously, or that
+        # detached it here, would fail this.
+        let before = box.getBounds()
+        doAssert box.getParentComponent() == parentAsComponent,
+                 "the box was not parented before dismiss was called"
+
+        box.dismiss()
+
+        doAssert box.getParentComponent() == parentAsComponent,
+                 "dismiss detached the box synchronously"
+        doAssert box.getBounds() == before,
+                 "dismiss moved the box from " & $before & " to " & $box.getBounds()
+
+    withBox:
+        # The flag's only reader is inputAttemptWhenModal
+        # (juce_CallOutBox.cpp:140-163). With the flag CLEAR and the click
+        # outside the target area, the else branch runs exitModalState and
+        # setVisible(false). With the flag SET, the first branch runs instead
+        # and only asks for an asynchronous dismissal -- and even that is
+        # skipped while the box is under 200ms old -- so the box stays visible.
+        # Visibility is therefore what distinguishes the two settings.
+        box.setVisible(true)
+        box.setDismissalMouseClicksAreAlwaysConsumed(false)
+        box.inputAttemptWhenModal()
+        doAssert not box.isVisible(),
+                 "with clicks not always consumed the box stayed visible"
+
+    withBox:
+        box.setVisible(true)
+        box.setDismissalMouseClicksAreAlwaysConsumed(true)
+        box.inputAttemptWhenModal()
+        doAssert box.isVisible(),
+                 "with clicks always consumed the box hid itself anyway"
+
+    shutdownJuce_GUI()
+
+
+testCallOutBoxPositionAndDismissal()
+
+
+# LookAndFeel_V4::drawPointer paints a small triangular arrow. It returns
+# nothing, so the only way to check it is to render into an image and read the
+# pixels back.
+proc testLookAndFeelV4DrawPointer() =
+    initialiseJuce_GUI()
+
+    block:
+        var feel = makeLookAndFeel_V4()
+
+        # The shape drawn for each of the four directions, sampled over the
+        # 21x21 square the pointer was told to occupy.
+        var signatures: seq[string] = @[]
+
+        for direction in 0.cint .. 3.cint:
+            let image = makeImage(ImagePixelFormat_ARGB, 80.cint, 60.cint, true)
+            var g = makeGraphics(image)
+
+            doAssert image.getPixelAt(20.cint, 20.cint).getAlpha() == 0'u8,
+                     "the image was not transparent before drawing"
+
+            feel.drawPointer(g, 10.0'f32, 10.0'f32, 20.0'f32,
+                             makeColour(255'u8, 0'u8, 0'u8, 255'u8), direction)
+
+            var opaque = 0
+            var outsideRequestedArea = 0
+            var shape = ""
+            for y in 0 ..< 60:
+                for x in 0 ..< 80:
+                    let lit = image.getPixelAt(x.cint, y.cint).getAlpha() > 0'u8
+                    if lit:
+                        opaque += 1
+                        if x < 10 or x > 30 or y < 10 or y > 30:
+                            outsideRequestedArea += 1
+                    if x >= 10 and x <= 30 and y >= 10 and y <= 30:
+                        shape.add(if lit: '#' else: '.')
+            signatures.add(shape)
+
+            doAssert opaque > 0,
+                     "direction " & $direction & " painted nothing"
+            doAssert outsideRequestedArea == 0,
+                     "direction " & $direction & " painted " &
+                     $outsideRequestedArea & " pixels outside the area it was given"
+
+            # It paints in the colour it was handed, not the look-and-feel's own.
+            let centre = image.getPixelAt(20.cint, 20.cint)
+            doAssert centre.getRed() == 255'u8 and centre.getGreen() == 0'u8 and
+                     centre.getBlue() == 0'u8 and centre.getAlpha() == 255'u8,
+                     "direction " & $direction & " painted the centre rgba " &
+                     $centre.getRed() & "," & $centre.getGreen() & "," &
+                     $centre.getBlue() & "," & $centre.getAlpha()
+
+        # Nothing here holds the covered pixel COUNT to a number. How many
+        # pixels a rotated triangle covers is the platform rasteriser's answer,
+        # not this method's: the same call covered 300 on macOS and 292 on
+        # Linux, and on Linux the four directions do not even agree with each
+        # other (292 and 296), because the anti-aliasing of a rotated path is
+        # not orientation-invariant. Only that each direction painted SOMETHING,
+        # inside the area it was given, is asserted above.
+        #
+        # Comparing the four shapes is what proves `direction` is honoured --
+        # a count would pass even if the argument were ignored.
+        for i in 0 .. 3:
+            for j in i + 1 .. 3:
+                doAssert signatures[i] != signatures[j],
+                         "directions " & $i & " and " & $j & " drew the same shape"
+
+    shutdownJuce_GUI()
+
+
+testLookAndFeelV4DrawPointer()
+
+
+# FileTreeComponent's drag-and-drop description is the value its items hand to
+# a drag-and-drop container as their drag source description
+# (juce_FileTreeComponent.cpp:122). It is plain stored state, and the getter is
+# a separate proc from the setter.
+proc testFileTreeComponentDragAndDropDescription() =
+    initialiseJuce_GUI()
+
+    block:
+        var scanner = makeTimeSliceThread(makeString("june-drag-desc-scan"))
+        doAssert scanner.startThread(), "the scanning thread did not start"
+        var listing = makeDirectoryContentsList(nil, scanner)
+        var tree = makeFileTreeComponent(listing)
+
+        doAssert $tree.getDragAndDropDescription() == "",
+                 "a fresh tree already describes its drags as [" &
+                 $tree.getDragAndDropDescription() & "]"
+
+        tree.setDragAndDropDescription(makeString("audio files"))
+        doAssert $tree.getDragAndDropDescription() == "audio files",
+                 "after setting it the description reads [" &
+                 $tree.getDragAndDropDescription() & "]"
+
+        # A second, different value: the getter reports what was last set
+        # rather than the first thing it saw.
+        tree.setDragAndDropDescription(makeString("presets"))
+        doAssert $tree.getDragAndDropDescription() == "presets",
+                 "after resetting it the description reads [" &
+                 $tree.getDragAndDropDescription() & "]"
+
+        tree.setDragAndDropDescription(makeString(""))
+        doAssert $tree.getDragAndDropDescription() == "",
+                 "the description could not be cleared; it reads [" &
+                 $tree.getDragAndDropDescription() & "]"
+
+        discard scanner.stopThread(2000.cint)
+
+    shutdownJuce_GUI()
+
+
+testFileTreeComponentDragAndDropDescription()
+
+
+# ListBox: row snapshots and modifier-driven selection ========================
+#
+# Neither of these needs a window; a model and a setBounds are enough.
+proc testListBoxSnapshotOfRows() =
+    initialiseJuce_GUI()
+
+    block:
+        var model = newCustomListBoxModel()
+        model[].setNumRowsHandler(proc(): cint = 10)
+        var box = makeListBox(makeString("snapshot"), cast[ptr ListBoxModel](model))
+        box.setBounds(makeRectangle(0.cint, 0.cint, 120.cint, 200.cint))
+        box.setRowHeight(20.cint)
+        box.updateContent()
+
+        var rows = makeSparseSet[cint]()
+        rows.addRange(makeRange(2.cint, 5.cint))
+
+        # Seeded with a value the method cannot legitimately produce, so an
+        # implementation that never wrote the out-parameters would be caught
+        # rather than matching by luck -- x really does come back as 0.
+        var x = -1.cint
+        var y = -1.cint
+        let snapshot = box.createSnapshotOfRows(rows, x, y)
+
+        doAssert x == 0, "the snapshot's x offset came back as " & $x
+        doAssert y == 40,
+                 "rows 2..4 start 40px down a 20px-row list, but y came back as " & $y
+
+        let image = snapshot.getImage()
+        doAssert image.isValid(), "the snapshot image is invalid"
+
+        # The scale follows the display, so the pixel dimensions are checked
+        # against it rather than pinned: the snapshot is the box's width by the
+        # three requested rows' height, in logical units.
+        let scale = snapshot.getScale()
+        doAssert scale > 0.0, "the snapshot's scale came back as " & $scale
+        doAssert image.getWidth() == cint(120.0 * scale),
+                 "the snapshot is " & $image.getWidth() & "px wide at scale " & $scale
+        doAssert image.getHeight() == cint(60.0 * scale),
+                 "three 20px rows produced a " & $image.getHeight() &
+                 "px image at scale " & $scale
+
+        # A different range moves the offset and changes the height, which is
+        # what shows the SparseSet is read rather than ignored.
+        var otherRows = makeSparseSet[cint]()
+        otherRows.addRange(makeRange(5.cint, 7.cint))
+        var otherX = -1.cint
+        var otherY = -1.cint
+        let otherSnapshot = box.createSnapshotOfRows(otherRows, otherX, otherY)
+        doAssert otherY == 100,
+                 "rows 5..6 start 100px down, but y came back as " & $otherY
+        doAssert otherSnapshot.getImage().getHeight() == cint(40.0 * scale),
+                 "two rows produced a " & $otherSnapshot.getImage().getHeight() & "px image"
+
+        cdelete model
+
+    shutdownJuce_GUI()
+
+
+testListBoxSnapshotOfRows()
+
+
+# selectRowsBasedOnModifierKeys takes a ModifierKeys VALUE rather than a mouse
+# event, and juce_ListBox.cpp:808-824 branches three ways on it. All three are
+# exercised here; one branch alone would pass even if the modifiers were
+# ignored entirely.
+proc testListBoxSelectRowsBasedOnModifierKeys() =
+    initialiseJuce_GUI()
+
+    block:
+        var model = newCustomListBoxModel()
+        model[].setNumRowsHandler(proc(): cint = 10)
+        var box = makeListBox(makeString("selection"), cast[ptr ListBoxModel](model))
+        box.setBounds(makeRectangle(0.cint, 0.cint, 120.cint, 200.cint))
+        box.setRowHeight(20.cint)
+        box.updateContent()
+        box.setMultipleSelectionEnabled(true)
+
+        # No modifiers: a plain selection replacing whatever was there.
+        box.selectRowsBasedOnModifierKeys(3.cint, makeModifierKeys(0.cint), false)
+        doAssert box.isRowSelected(3.cint), "a plain click did not select row 3"
+        doAssert box.getSelectedRows().size() == 1,
+                 "a plain click selected " & $box.getSelectedRows().size() & " rows"
+        doAssert box.getLastRowSelected() == 3,
+                 "the last selected row is " & $box.getLastRowSelected()
+
+        # Shift with a previous row: the range from the last selected row.
+        box.selectRowsBasedOnModifierKeys(
+            6.cint, makeModifierKeys(ModifierKeysFlags_shiftModifier.cint), false)
+        doAssert box.getSelectedRows().size() == 4,
+                 "shift-clicking row 6 after row 3 selected " &
+                 $box.getSelectedRows().size() & " rows, not the range 3..6"
+        for row in 3.cint .. 6.cint:
+            doAssert box.isRowSelected(row),
+                     "row " & $row & " is outside the shift-selected range"
+        doAssert not box.isRowSelected(2.cint),
+                 "the shift range reached below row 3"
+        doAssert not box.isRowSelected(7.cint),
+                 "the shift range reached above row 6"
+
+        # Command with multiple selection enabled: flip one row, leaving the
+        # rest alone. Doing it twice restores it, which is what makes this a
+        # flip rather than a deselect-all.
+        box.selectRowsBasedOnModifierKeys(
+            4.cint, makeModifierKeys(ModifierKeysFlags_commandModifier.cint), false)
+        doAssert not box.isRowSelected(4.cint),
+                 "command-clicking a selected row did not deselect it"
+        doAssert box.getSelectedRows().size() == 3,
+                 "the flip left " & $box.getSelectedRows().size() & " rows selected"
+        doAssert box.isRowSelected(3.cint) and box.isRowSelected(5.cint),
+                 "the flip disturbed the rows either side of row 4"
+
+        box.selectRowsBasedOnModifierKeys(
+            4.cint, makeModifierKeys(ModifierKeysFlags_commandModifier.cint), false)
+        doAssert box.isRowSelected(4.cint),
+                 "command-clicking row 4 twice did not restore it"
+        doAssert box.getSelectedRows().size() == 4,
+                 "after flipping back there are " & $box.getSelectedRows().size() & " rows"
+
+        cdelete model
+
+    shutdownJuce_GUI()
+
+
+testListBoxSelectRowsBasedOnModifierKeys()
+
+
+# RelativeRectangle::renameSymbol forwards each of the four coordinates to
+# Expression::withRenamedSymbol (juce_RelativeRectangle.cpp:200-206), so one
+# call rewrites every coordinate that mentions the symbol and leaves the rest
+# alone.
+#
+# Two things constrain what can be asked here. A term that is a plain symbol
+# never reaches Expression::Scope::visitRelativeScope, which throws, so the
+# coordinates below use plain symbols and a plain Scope is enough. And
+# juce_Expression.cpp:1066 asserts that the new name is lower-case alphanumeric
+# or underscore -- a capital, space or dot would print a fresh assertion site
+# while the run still exited 0 -- so every new name here obeys that.
+proc testRelativeRectangleRenameSymbol() =
+    initialiseJuce_GUI()
+
+    block:
+        var scope = makeExpressionScope()
+        var rect = makeRelativeRectangle(makeString("a, b, a + 30, b + 20"))
+        doAssert $rect.toString() == "a, b, a + 30, b + 20",
+                 "the rectangle parsed as [" & $rect.toString() & "]"
+
+        rect.renameSymbol(makeExpressionSymbol(makeString(""), makeString("a")),
+                          makeString("width"), scope)
+
+        # Both coordinates that mentioned `a` were rewritten, and the two that
+        # mentioned `b` were not: the rename is per-symbol, not wholesale.
+        doAssert $rect.toString() == "width, b, width + 30, b + 20",
+                 "after renaming a the rectangle reads [" & $rect.toString() & "]"
+
+        # Renaming the other symbol as well, to show the first rename did not
+        # leave the remaining coordinates unable to be renamed in turn.
+        rect.renameSymbol(makeExpressionSymbol(makeString(""), makeString("b")),
+                          makeString("height"), scope)
+        doAssert $rect.toString() == "width, height, width + 30, height + 20",
+                 "after renaming b the rectangle reads [" & $rect.toString() & "]"
+
+        # A symbol the rectangle does not mention changes nothing.
+        rect.renameSymbol(makeExpressionSymbol(makeString(""), makeString("depth")),
+                          makeString("other"), scope)
+        doAssert $rect.toString() == "width, height, width + 30, height + 20",
+                 "renaming an absent symbol changed the rectangle to [" &
+                 $rect.toString() & "]"
+
+    shutdownJuce_GUI()
+
+
+testRelativeRectangleRenameSymbol()
+
+
+# ComponentScope::visitRelativeScope resolves a scope NAME against the
+# component tree and hands the resulting scope to the visitor
+# (juce_RelativeCoordinatePositioner.cpp:143-151): "parent" reaches the
+# parent component, and any other name is looked up as a sibling's component
+# ID. Unlike the abstract base's version, which throws, both of those are
+# resolvable -- and this file is compiled without C++ exceptions, so only
+# resolvable names are used here.
+#
+# getScopeUID is the address of the component the scope wraps, so the UIDs are
+# compared against each other rather than against any literal.
+proc testComponentScopeVisitRelativeScope() =
+    initialiseJuce_GUI()
+
+    block:
+        var parent = newCustomComponent()
+        parent[].setBounds(makeRectangle(0.cint, 0.cint, 200.cint, 200.cint))
+        var child = newCustomComponent()
+        var sibling = newCustomComponent()
+        sibling[].setComponentID(makeString("sidebar"))
+        parent[].addAndMakeVisible(cast[ptr Component](child))
+        parent[].addAndMakeVisible(cast[ptr Component](sibling))
+
+        var visited: seq[string] = @[]
+        let visitor = newCustomExpressionScopeVisitor()
+        visitor[].setVisitHandler(proc(scope: ptr ExpressionScope) =
+            visited.add($scope[].getScopeUID()))
+
+        let childScope = makeRelativeCoordinatePositionerBaseComponentScope(
+            cast[ptr Component](child)[])
+        let parentScope = makeRelativeCoordinatePositionerBaseComponentScope(
+            cast[ptr Component](parent)[])
+        let siblingScope = makeRelativeCoordinatePositionerBaseComponentScope(
+            cast[ptr Component](sibling)[])
+
+        let childUID = $childScope.getScopeUID()
+        let parentUID = $parentScope.getScopeUID()
+        let siblingUID = $siblingScope.getScopeUID()
+        doAssert childUID != parentUID and childUID != siblingUID and
+                 parentUID != siblingUID,
+                 "three scopes over three components share a UID: " & childUID &
+                 ", " & parentUID & ", " & siblingUID
+
+        var asVisitor = cast[ptr ExpressionScopeVisitor](visitor)
+
+        childScope.visitRelativeScope(makeString("parent"), asVisitor[])
+        doAssert visited.len == 1,
+                 "visiting \"parent\" called the visitor " & $visited.len & " times"
+        doAssert visited[0] == parentUID,
+                 "visiting \"parent\" produced the scope " & visited[0] &
+                 " rather than the parent's " & parentUID
+
+        # Any other name is a sibling's component ID, which resolves to a
+        # different component again -- so the name is genuinely looked up
+        # rather than "parent" being the only thing that works.
+        childScope.visitRelativeScope(makeString("sidebar"), asVisitor[])
+        doAssert visited.len == 2,
+                 "visiting \"sidebar\" called the visitor " & $visited.len & " times in total"
+        doAssert visited[1] == siblingUID,
+                 "visiting \"sidebar\" produced the scope " & visited[1] &
+                 " rather than the sibling's " & siblingUID
+
+        cdelete visitor
+        cdelete sibling
+        cdelete child
+        cdelete parent
+
+    shutdownJuce_GUI()
+
+
+testComponentScopeVisitRelativeScope()
+
+
+# FileChooserDialogBox.centreWithDefaultSize =================================
+#
+# juce_FileChooserDialogBox.cpp:158-161 is one call:
+#     centreAroundComponent (componentToCentreAround, getDefaultWidth(), 500);
+# so the height is always the literal 500 and the width is getDefaultWidth()
+# (juce_FileChooserDialogBox.cpp:163-169), which is 600 with no preview
+# component and 400 + the preview's width with one. getBounds reads the
+# placement back.
+#
+# A nil parentComponent puts the box on the desktop and then it wants a real
+# window, so every block gives it a parent and keeps it an ordinary child
+# component - the same thing that makes CallOutBox testable headless.
+# juce_FileChooserDialogBox.cpp:104 passes (parentComp == nullptr) as
+# ResizableWindow's addToDesktop flag, so a parent keeps it off the desktop.
+#
+# The browser is NOT adopted: juce_FileChooserDialogBox.cpp:106-107 hands it
+# to a ContentComponent that only holds a reference, and the destructor at
+# :129-131 calls removeListener on it, so the browser must outlive the box.
+# It is declared first for that reason. The preview component is not adopted
+# either (juce_FileBrowserComponent.cpp:45,127-128).
+proc testFileChooserDialogBoxCentreWithDefaultSize() =
+    initialiseJuce_GUI()
+
+    let root = File.getSpecialLocation(FileSpecialLocationType_tempDirectory)
+
+    template withBox(preview: ptr FilePreviewComponent, body: untyped) =
+        block:
+            var parent = newCustomComponent()
+            parent[].setBounds(makeRectangle(0.cint, 0.cint, 1000.cint, 800.cint))
+            var target = newCustomComponent()
+            target[].setBounds(makeRectangle(300.cint, 200.cint, 200.cint, 200.cint))
+            parent[].addAndMakeVisible(cast[ptr Component](target))
+            var browser {.inject.} = makeFileBrowserComponent(
+                cint(FileBrowserComponentFileChooserFlags_openMode) or
+                cint(FileBrowserComponentFileChooserFlags_canSelectFiles),
+                root, nil, preview)
+            var box {.inject.} = makeFileChooserDialogBox(
+                makeString("Choose a file"), makeString("Pick one"),
+                browser, false,
+                makeColour(200'u8, 200'u8, 200'u8, 255'u8),
+                cast[ptr Component](parent))
+            let targetAsComponent {.inject.} = cast[ptr Component](target)
+            body
+            cdelete target
+            cdelete parent
+
+    withBox(nil):
+        # The target is 200x200 at (300,200) inside a 1000x800 parent, so its
+        # centre is (400,300) in the parent's coordinates - and with no peer
+        # anywhere in the chain, localPointToGlobal leaves those coordinates
+        # alone (juce_TopLevelWindow.cpp:206-215). A 600x500 rectangle centred
+        # on (400,300) is (100,50,600,500), which fits inside the parent's
+        # bounds reduced by 12 (juce_TopLevelWindow.cpp:217-219), so it is not
+        # clamped and the CENTRING is what the position shows.
+        box.centreWithDefaultSize(targetAsComponent)
+        let centred = box.getBounds()
+        doAssert centred == makeRectangle(100.cint, 50.cint, 600.cint, 500.cint),
+                 "centring a preview-less box on (400,300) put it at " & $centred
+
+    withBox(nil):
+        # Moving the target moves the box with it: a target centred on
+        # (600,400) yields (300,150,600,500). The size is unchanged and only
+        # the position tracks the target, so an implementation that ignored
+        # the argument would fail this and pass the block above by accident.
+        targetAsComponent[].setBounds(makeRectangle(500.cint, 300.cint,
+                                                    200.cint, 200.cint))
+        box.centreWithDefaultSize(targetAsComponent)
+        let moved = box.getBounds()
+        doAssert moved == makeRectangle(300.cint, 150.cint, 600.cint, 500.cint),
+                 "centring on (600,400) put the box at " & $moved
+
+    withBox(nil):
+        # The centring is CONSTRAINED, not obeyed blindly: the rectangle is
+        # constrainedWithin the parent area reduced by 12
+        # (juce_TopLevelWindow.cpp:217-219). A target centred on (700,600)
+        # asks for (400,350,600,500), whose right and bottom edges - 1000 and
+        # 850 - are outside the (12,12,976,776) limit, so JUCE slides the box
+        # back to 988-600 = 388 and 788-500 = 288 rather than centring it.
+        # The size still does not change.
+        targetAsComponent[].setBounds(makeRectangle(600.cint, 500.cint,
+                                                    200.cint, 200.cint))
+        box.centreWithDefaultSize(targetAsComponent)
+        let clamped = box.getBounds()
+        doAssert clamped == makeRectangle(388.cint, 288.cint, 600.cint, 500.cint),
+                 "centring on (700,600) put the box at " & $clamped
+
+    withBox(nil):
+        # The default argument is nil, which takes the c == nullptr path at
+        # juce_TopLevelWindow.cpp:197-202: with no active top-level window, or
+        # with one whose bounds are still empty, it falls through to
+        # centreWithSize, which centres in the parent (juce_Component.cpp:
+        # 1225-1233). A 600x500 box in a 1000x800 parent is (200,150,600,500).
+        box.centreWithDefaultSize()
+        let defaulted = box.getBounds()
+        doAssert defaulted == makeRectangle(200.cint, 150.cint, 600.cint, 500.cint),
+                 "the default argument put the box at " & $defaulted
+
+    block:
+        # With a preview component the width is 400 + the preview's width
+        # rather than the flat 600, which is what shows the width really comes
+        # from getDefaultWidth(). The preview is sized immediately before the
+        # call because laying the browser out resizes it.
+        let preview = newCustomFilePreviewComponent()
+        withBox(cast[ptr FilePreviewComponent](preview)):
+            # The box starts at the constrainer's 300x300 minimum, which the
+            # constructor forces at juce_FileChooserDialogBox.cpp:114 -
+            # setResizeLimits(300,300,1200,1000) ends in
+            # setBoundsConstrained(getBounds())
+            # (juce_ResizableWindow.cpp:314-320). So neither 650 nor 500 is
+            # there before the call, and the call is what produces them.
+            let beforeCentring = box.getBounds()
+            doAssert beforeCentring.getWidth() == 300 and
+                     beforeCentring.getHeight() == 300,
+                     "the box did not start at 300x300: " & $beforeCentring
+            preview[].setSize(250.cint, 100.cint)
+            let previewWidth = browser.getPreviewComponent()[].getWidth()
+            doAssert previewWidth == 250,
+                     "the preview is " & $previewWidth & " wide, not 250"
+
+            box.centreWithDefaultSize(targetAsComponent)
+            let withPreview = box.getBounds()
+            doAssert withPreview == makeRectangle(75.cint, 50.cint, 650.cint, 500.cint),
+                     "a 250-wide preview made the box " & $withPreview
+        cdelete preview
+
+    shutdownJuce_GUI()
+
+
+testFileChooserDialogBoxCentreWithDefaultSize()
+
+
+# DialogWindow::escapeKeyPressed is the whole of what the escape key does to a
+# dialog: if it was built to let escape stand in for the close button it hides
+# itself and answers true, and otherwise it answers false and leaves the window
+# alone (juce_DialogWindow.cpp:49-57). It touches no peer, so the window is
+# built with addToDesktop false and no display is needed.
+
+proc testDialogWindowEscapeKeyPressed() =
+    initialiseJuce_GUI()
+
+    block:
+        var triggering = makeDialogWindow(
+            makeString("closes on escape"),
+            makeColour(0'u8, 0'u8, 0'u8, 255'u8), true, false)
+        triggering.setVisible(true)
+        doAssert triggering.isVisible(),
+                 "the dialog was not visible before escape"
+
+        let handled = triggering.escapeKeyPressed()
+        doAssert handled, "escape was not treated as the close button"
+        doAssert not triggering.isVisible(),
+                 "escape did not hide a dialog that closes on escape"
+
+    block:
+        var ignoring = makeDialogWindow(
+            makeString("ignores escape"),
+            makeColour(0'u8, 0'u8, 0'u8, 255'u8), false, false)
+        ignoring.setVisible(true)
+
+        let handled = ignoring.escapeKeyPressed()
+        doAssert not handled,
+                 "escape was treated as the close button on a dialog built without it"
+        doAssert ignoring.isVisible(),
+                 "escape hid a dialog that does not close on escape"
+
+    shutdownJuce_GUI()
+
+
+testDialogWindowEscapeKeyPressed()

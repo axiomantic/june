@@ -2602,11 +2602,11 @@ proc getComponentForNativeChild*(this: typedesc[AccessibilityHandler], nativeChi
 proc `==`*(this: AccessibilityHandler, other: AccessibilityHandler): bool {.error: "juce::AccessibilityHandler defines no operator==; compare a property instead".}
 
 proc makeAccessibilityHandlerInterfaces*(): AccessibilityHandlerInterfaces {.header: juce_gui_basics, importcpp: "juce::AccessibilityHandler::Interfaces(@)".}
-proc makeAccessibilityHandlerInterfaces*(`ptr`: UniquePtr[AccessibilityValueInterface]): AccessibilityHandlerInterfaces {.header: juce_gui_basics, importcpp: "juce::AccessibilityHandler::Interfaces(@)".}
-proc makeAccessibilityHandlerInterfaces*(`ptr`: UniquePtr[AccessibilityTextInterface]): AccessibilityHandlerInterfaces {.header: juce_gui_basics, importcpp: "juce::AccessibilityHandler::Interfaces(@)".}
-proc makeAccessibilityHandlerInterfaces*(`ptr`: UniquePtr[AccessibilityTableInterface]): AccessibilityHandlerInterfaces {.header: juce_gui_basics, importcpp: "juce::AccessibilityHandler::Interfaces(@)".}
-proc makeAccessibilityHandlerInterfaces*(`ptr`: UniquePtr[AccessibilityCellInterface]): AccessibilityHandlerInterfaces {.header: juce_gui_basics, importcpp: "juce::AccessibilityHandler::Interfaces(@)".}
-proc makeAccessibilityHandlerInterfaces*(valueIn: UniquePtr[AccessibilityValueInterface], textIn: UniquePtr[AccessibilityTextInterface], tableIn: UniquePtr[AccessibilityTableInterface], cellIn: UniquePtr[AccessibilityCellInterface]): AccessibilityHandlerInterfaces {.header: juce_gui_basics, importcpp: "juce::AccessibilityHandler::Interfaces(@)".}
+proc makeAccessibilityHandlerInterfaces*(`ptr`: UniquePtr[AccessibilityValueInterface]): AccessibilityHandlerInterfaces {.header: juce_gui_basics, importcpp: "juce::AccessibilityHandler::Interfaces(std::move(#))".}
+proc makeAccessibilityHandlerInterfaces*(`ptr`: UniquePtr[AccessibilityTextInterface]): AccessibilityHandlerInterfaces {.header: juce_gui_basics, importcpp: "juce::AccessibilityHandler::Interfaces(std::move(#))".}
+proc makeAccessibilityHandlerInterfaces*(`ptr`: UniquePtr[AccessibilityTableInterface]): AccessibilityHandlerInterfaces {.header: juce_gui_basics, importcpp: "juce::AccessibilityHandler::Interfaces(std::move(#))".}
+proc makeAccessibilityHandlerInterfaces*(`ptr`: UniquePtr[AccessibilityCellInterface]): AccessibilityHandlerInterfaces {.header: juce_gui_basics, importcpp: "juce::AccessibilityHandler::Interfaces(std::move(#))".}
+proc makeAccessibilityHandlerInterfaces*(valueIn: UniquePtr[AccessibilityValueInterface], textIn: UniquePtr[AccessibilityTextInterface], tableIn: UniquePtr[AccessibilityTableInterface], cellIn: UniquePtr[AccessibilityCellInterface]): AccessibilityHandlerInterfaces {.header: juce_gui_basics, importcpp: "juce::AccessibilityHandler::Interfaces(std::move(#), std::move(#), std::move(#), std::move(#))".}
 proc value*(this: AccessibilityHandlerInterfaces): UniquePtr[AccessibilityValueInterface] {.header: juce_gui_basics, importcpp: "#.value".}
 proc value*(this: var AccessibilityHandlerInterfaces): var UniquePtr[AccessibilityValueInterface] {.header: juce_gui_basics, importcpp: "#.value".}
 proc `value=`*(this: var AccessibilityHandlerInterfaces, value: UniquePtr[AccessibilityValueInterface]) {.header: juce_gui_basics, importcpp: "#.value = std::move(#)".}
@@ -3844,7 +3844,7 @@ proc setModel*(this: var BurgerMenuComponent, newModel: ptr MenuBarModel) {.head
 proc getModel*(this: BurgerMenuComponent): ptr MenuBarModel {.header: juce_gui_basics, importcpp: "#.getModel()".}
 proc `==`*(this: BurgerMenuComponent, other: BurgerMenuComponent): bool {.error: "juce::BurgerMenuComponent defines no operator==; compare a property instead".}
 
-proc makeToolbarButton*(itemId: cint, labelText: String, normalImage: UniquePtr[Drawable], toggledOnImage: UniquePtr[Drawable]): ToolbarButton {.header: juce_gui_basics, importcpp: "juce::ToolbarButton(@)".}
+proc makeToolbarButton*(itemId: cint, labelText: String, normalImage: UniquePtr[Drawable], toggledOnImage: UniquePtr[Drawable]): ToolbarButton {.header: juce_gui_basics, importcpp: "juce::ToolbarButton(#, #, std::move(#), std::move(#))".}
 proc buttonStateChanged*(this: var ToolbarButton) {.header: juce_gui_basics, importcpp: "#.buttonStateChanged()".}
 proc `==`*(this: ToolbarButton, other: ToolbarButton): bool {.error: "juce::ToolbarButton defines no operator==; compare a property instead".}
 
@@ -3852,7 +3852,7 @@ proc makeDropShadower*(shadowType: DropShadow): DropShadower {.header: juce_gui_
 proc setOwner*(this: var DropShadower, componentToFollow: ptr Component) {.header: juce_gui_basics, importcpp: "#.setOwner(@)".}
 proc `==`*(this: DropShadower, other: DropShadower): bool {.error: "juce::DropShadower defines no operator==; compare a property instead".}
 
-proc makeFocusOutline*(props: UniquePtr[FocusOutlineOutlineWindowProperties]): FocusOutline {.header: juce_gui_basics, importcpp: "juce::FocusOutline(@)".}
+proc makeFocusOutline*(props: UniquePtr[FocusOutlineOutlineWindowProperties]): FocusOutline {.header: juce_gui_basics, importcpp: "juce::FocusOutline(std::move(#))".}
 proc setOwner*(this: var FocusOutline, componentToFollow: ptr Component) {.header: juce_gui_basics, importcpp: "#.setOwner(@)".}
 proc `==`*(this: FocusOutline, other: FocusOutline): bool {.error: "juce::FocusOutline defines no operator==; compare a property instead".}
 

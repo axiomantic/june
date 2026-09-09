@@ -1015,6 +1015,7 @@ proc testTextLayoutRuns() =
 
         var glyphs = 0
         var runs = 0
+        var covered = 0
         var lastAnchorX = -1.0'f32
         for line in layout:
             # Chained rather than bound to a local. OwnedArray and
@@ -1025,8 +1026,9 @@ proc testTextLayoutRuns() =
             # needed and the accessor hands back the reference it holds.
             for runIndex in 0 ..< line.runs().size():
                 runs += 1
-                doAssert line.runs()[runIndex][].stringRange().getLength() > 0,
-                         "a run covers no characters"
+                let span = line.runs()[runIndex][].stringRange().getLength()
+                doAssert span > 0, "a run covers no characters"
+                covered += int(span)
                 doAssert line.runs()[runIndex][].colour().getRed() == 255'u8,
                          "the run lost the colour it was given"
                 for glyphIndex in 0 ..< line.runs()[runIndex][].glyphs().size():
@@ -1045,8 +1047,20 @@ proc testTextLayoutRuns() =
                     lastAnchorX = anchorX
 
         doAssert runs >= 1, "the line holds " & $runs & " runs"
-        doAssert glyphs == 5,
-                 "the five characters produced " & $glyphs & " glyphs"
+
+        # The runs between them cover the whole string. That is a claim about
+        # the layout, which indexes the text it was given, so five is the
+        # length of "Hello" and nothing else.
+        #
+        # How many GLYPHS those five characters become is the shaper's answer
+        # rather than this binding's -- a ligature or a fallback split changes
+        # it without anything here being wrong -- so the glyph count is only
+        # held to being non-zero. What proves the nested iteration reaches real
+        # glyphs is above: each one has a positive width and sits right of the
+        # one before.
+        doAssert covered == 5,
+                 "the runs cover " & $covered & " characters of the five given"
+        doAssert glyphs > 0, "the runs hold no glyphs"
 
     block:
         # Built by hand rather than laid out, so the fields are exactly what
@@ -4960,3 +4974,958 @@ proc testFillTypeKinds() =
     shutdownJuce_GUI()
 
 testFillTypeKinds()
+
+# TextLayout::Line's derived bounds ============================================
+#
+# The three are pure arithmetic over the fields, so a Line built by hand pins
+# them exactly and needs no font, no layout and no display. With no runs,
+# getLineBoundsX is an EMPTY range shifted to the origin's x - an empty
+# Range<float> plus lineOrigin.x (juce_TextLayout.cpp:96-117) - and
+# getLineBoundsY opens the origin's y out by the ascent above and the descent
+# below (:119-123). getLineBounds is the two composed as x, y, width, height
+# (:125-131), so its height is ascent + descent and its width is zero here.
+
+proc testTextLayoutLineBounds() =
+    block:
+        let line = makeTextLayoutLine(
+            makeRange(0.cint, 4.cint), makePoint(10.0'f32, 50.0'f32),
+            12.0'f32, 3.0'f32, 1.0'f32, 0.cint)
+
+        let x = line.getLineBoundsX()
+        doAssert x.getStart() == 10.0'f32 and x.getEnd() == 10.0'f32,
+                 "a line with no runs spans " & $x.getStart() & ".." & $x.getEnd()
+
+        let y = line.getLineBoundsY()
+        doAssert y.getStart() == 38.0'f32,
+                 "the top is " & $y.getStart() & ", not the origin less the ascent"
+        doAssert y.getEnd() == 53.0'f32,
+                 "the bottom is " & $y.getEnd() & ", not the origin plus the descent"
+
+        # The leading is NOT part of the bounds: it is spacing to the next line,
+        # so a line with leading 1 is still ascent + descent tall.
+        let bounds = line.getLineBounds()
+        doAssert bounds.getX() == x.getStart() and bounds.getY() == y.getStart(),
+                 "the bounds start at " & $bounds.getX() & "," & $bounds.getY()
+        doAssert bounds.getWidth() == 0.0'f32,
+                 "a line with no runs is " & $bounds.getWidth() & " wide"
+        doAssert bounds.getHeight() == 15.0'f32,
+                 "the bounds are " & $bounds.getHeight() & " tall, not ascent + descent"
+
+testTextLayoutLineBounds()
+
+# ImagePixelData::BackupExtensions, in behaviour ===============================
+#
+# The real path to one of these is ImagePixelData::getBackupExtensions, which
+# answers a null pointer on every platform that does not back its images up - so
+# a test built on a real Image would assert nothing on macOS or Linux. The
+# generated Custom subclass gives a deterministic one instead, and every call
+# below goes through the BASE pointer, which is what shows the Nim override
+# reached C++ rather than being installed and forgotten.
+
+proc testImageBackupExtensionOverrides() =
+    block:
+        var extensions = newCustomImagePixelDataBackupExtensions()
+        var enabled = false
+        var backups = 0
+
+        extensions[].setSetBackupEnabledHandler(proc(value: bool) = enabled = value)
+        extensions[].setIsBackupEnabledHandler(proc(): bool = enabled)
+        extensions[].setBackupNowHandler(proc(): bool =
+            backups += 1
+            enabled)
+        extensions[].setNeedsBackupHandler(proc(): bool = not enabled)
+        extensions[].setCanBackupHandler(proc(): bool = true)
+
+        let base = cast[ptr ImagePixelDataBackupExtensions](extensions)
+        doAssert base[].canBackup(), "the canBackup override did not answer"
+        doAssert not base[].isBackupEnabled(),
+                 "backups are enabled before anything enabled them"
+        doAssert base[].needsBackup(),
+                 "a disabled extension does not report needing a backup"
+
+        # backupNow answers what the override answers, and the override reads
+        # the state the setter wrote - so this is the whole round trip through
+        # C++ and back, not one call in isolation.
+        doAssert not base[].backupNow(),
+                 "backupNow succeeded while backups were disabled"
+        doAssert backups == 1, "backupNow ran " & $backups & " times, not once"
+
+        base[].setBackupEnabled(true)
+        doAssert base[].isBackupEnabled(), "enabling backups did not reach the override"
+        doAssert not base[].needsBackup(),
+                 "an enabled extension still reports needing a backup"
+        doAssert base[].backupNow(), "backupNow failed while backups were enabled"
+        doAssert backups == 2, "backupNow ran " & $backups & " times, not twice"
+
+        cdelete extensions
+
+testImageBackupExtensionOverrides()
+
+# TextLayout built by hand, without a font =====================================
+#
+# addLine and recalculateSize are checkable without laying any text out at all:
+# a Line carries its own origin, ascent and descent, so a layout made of hand
+# built lines has an arithmetic size. That keeps this test off the font metrics,
+# which differ between the two platforms the suite runs on.
+
+proc testTextLayoutAddLineAndSize() =
+    block:
+        var layout = makeTextLayout()
+        doAssert layout.getNumLines() == 0,
+                 "a fresh layout holds " & $layout.getNumLines() & " lines"
+
+        # One line whose ink runs from y = 38 to y = 53, as the Line bounds test
+        # above establishes for these fields.
+        # The no-argument constructor and the field setters, not the six
+        # argument one: cnew splices a constructor's arguments with no separator
+        # between the first and the rest (june_common.nim), so it can only build
+        # a one-argument construction.
+        let first = cnew(makeTextLayoutLine())
+        first[].lineOrigin = makePoint(10.0'f32, 50.0'f32)
+        first[].ascent = 12.0'f32
+        first[].descent = 3.0'f32
+        layout.addLine(makeUniquePtr[TextLayoutLine](first))
+        doAssert layout.getNumLines() == 1,
+                 "after adding a line the layout holds " & $layout.getNumLines()
+
+        # The size is not recomputed until it is asked for: that is what
+        # recalculateSize is FOR, and asserting the height before and after is
+        # what shows the call did something rather than the layout having been
+        # right all along.
+        let before = layout.getHeight()
+        layout.recalculateSize()
+        let after = layout.getHeight()
+        doAssert after == 15.0'f32,
+                 "after recalculating, the layout is " & $after &
+                 " tall, not the ascent plus descent"
+        doAssert after >= before,
+                 "recalculating shrank the layout from " & $before & " to " & $after
+
+        # A second line does NOT make the layout taller, which is the
+        # surprising part and the reason it is written down. recalculateSize
+        # unions the line bounds (juce_TextLayout.cpp:525-539), and a line with
+        # no RUNS has zero width - so its rectangle is empty, and
+        # Rectangle::getUnion answers the other operand when one is empty. The
+        # count still rises, so addLine plainly did its work.
+        let second = cnew(makeTextLayoutLine())
+        second[].lineOrigin = makePoint(10.0'f32, 90.0'f32)
+        second[].ascent = 12.0'f32
+        second[].descent = 3.0'f32
+        layout.addLine(makeUniquePtr[TextLayoutLine](second))
+        layout.recalculateSize()
+        doAssert layout.getNumLines() == 2,
+                 "the layout holds " & $layout.getNumLines() & " lines"
+        doAssert layout.getHeight() == after,
+                 "a second run-less line changed the height from " & $after &
+                 " to " & $layout.getHeight()
+
+testTextLayoutAddLineAndSize()
+
+# ColourGradient's stops, read back and faded ==================================
+#
+# The three are pure value arithmetic over the stops, so no drawing is needed.
+# getColourPosition reads back the proportion a stop was ADDED at, which is what
+# separates it from the index; getColourAtPosition INTERPOLATES between stops,
+# so it is asked for a point halfway between two and the answer is the mixture
+# rather than either end; and multiplyOpacity scales every stop's alpha, which
+# is asserted on both stops because scaling only the first would pass on one.
+
+proc testColourGradientStops() =
+    block:
+        var gradient = makeColourGradient()
+        let black = makeColour(0'u8, 0'u8, 0'u8, 255'u8)
+        let white = makeColour(255'u8, 255'u8, 255'u8, 255'u8)
+        discard gradient.addColour(0.0, black)
+        discard gradient.addColour(1.0, white)
+
+        doAssert gradient.getColourPosition(0.cint) == 0.0,
+                 "the first stop sits at " & $gradient.getColourPosition(0.cint)
+        doAssert gradient.getColourPosition(1.cint) == 1.0,
+                 "the second stop sits at " & $gradient.getColourPosition(1.cint)
+
+        # Halfway between black and white is grey - neither end, which is what
+        # an implementation that returned the nearest stop would give.
+        let middle = gradient.getColourAtPosition(0.5)
+        doAssert middle.getRed() > 0'u8 and middle.getRed() < 255'u8,
+                 "halfway along the gradient is red " & $middle.getRed()
+
+        # Halving the opacity halves both stops' alpha, not just the first.
+        gradient.multiplyOpacity(0.5'f32)
+        doAssert gradient.getColour(0.cint).getAlpha() < 255'u8,
+                 "the first stop is still " & $gradient.getColour(0.cint).getAlpha()
+        doAssert gradient.getColour(1.cint).getAlpha() < 255'u8,
+                 "the second stop is still " & $gradient.getColour(1.cint).getAlpha()
+
+testColourGradientStops()
+
+# DropShadow's three drawing paths =============================================
+#
+# All three return void, so the only observable is what lands on the image. Each
+# is drawn into its OWN transparent image and the shadow's own area is asserted
+# to have picked up alpha while a far corner has not - a shadow that painted
+# everywhere, or nowhere, fails one of the two. The colour is opaque black and
+# the radius small, so the ink is where the geometry says rather than smeared
+# across the whole bitmap.
+
+proc testDropShadowDrawingPaths() =
+    block:
+        let shadow = makeDropShadow(makeColour(0'u8, 0'u8, 0'u8, 255'u8),
+                                    4.cint, makePoint(0.cint, 0.cint))
+
+        # A rectangle in the middle.
+        let forRect = makeImage(ImagePixelFormat_ARGB, 64.cint, 64.cint, true)
+        block:
+            var g = makeGraphics(forRect)
+            shadow.drawForRectangle(g, makeRectangle(20.cint, 20.cint, 24.cint, 24.cint))
+        doAssert forRect.getPixelAt(32.cint, 32.cint).getAlpha() > 0'u8,
+                 "the rectangle shadow left its own middle empty"
+        doAssert forRect.getPixelAt(2.cint, 2.cint).getAlpha() == 0'u8,
+                 "the rectangle shadow reached the far corner"
+
+        # The same shape as a path.
+        var path = makePath()
+        path.addRectangle(20.0'f32, 20.0'f32, 24.0'f32, 24.0'f32)
+        let forPath = makeImage(ImagePixelFormat_ARGB, 64.cint, 64.cint, true)
+        block:
+            var g = makeGraphics(forPath)
+            shadow.drawForPath(g, path)
+        doAssert forPath.getPixelAt(32.cint, 32.cint).getAlpha() > 0'u8,
+                 "the path shadow left its own middle empty"
+        doAssert forPath.getPixelAt(2.cint, 2.cint).getAlpha() == 0'u8,
+                 "the path shadow reached the far corner"
+
+        # And from an image's own alpha: a filled square in the middle.
+        let source = makeImage(ImagePixelFormat_ARGB, 64.cint, 64.cint, true)
+        block:
+            var g = makeGraphics(source)
+            g.setColour(makeColour(255'u8, 255'u8, 255'u8, 255'u8))
+            g.fillRect(makeRectangle(20.cint, 20.cint, 24.cint, 24.cint))
+        let forImage = makeImage(ImagePixelFormat_ARGB, 64.cint, 64.cint, true)
+        block:
+            var g = makeGraphics(forImage)
+            shadow.drawForImage(g, source)
+        doAssert forImage.getPixelAt(32.cint, 32.cint).getAlpha() > 0'u8,
+                 "the image shadow left the square's middle empty"
+        doAssert forImage.getPixelAt(2.cint, 2.cint).getAlpha() == 0'u8,
+                 "the image shadow reached the far corner"
+
+testDropShadowDrawingPaths()
+
+# Justification's two flag filters =============================================
+#
+# Each masks the flag word down to one axis, so a compound justification is the
+# case that discriminates: centredRight carries a horizontal AND a vertical
+# flag, and a filter that returned the whole word would fail both halves.
+
+proc testJustificationAxisFilters() =
+    block:
+        let centredRight = makeJustification(cint(JustificationFlags_centredRight))
+        doAssert centredRight.getOnlyHorizontalFlags() == cint(JustificationFlags_right),
+                 "centredRight's horizontal half is " &
+                 $centredRight.getOnlyHorizontalFlags()
+        doAssert centredRight.getOnlyVerticalFlags() == cint(JustificationFlags_verticallyCentred),
+                 "centredRight's vertical half is " &
+                 $centredRight.getOnlyVerticalFlags()
+
+        let topLeft = makeJustification(cint(JustificationFlags_topLeft))
+        doAssert topLeft.getOnlyHorizontalFlags() == cint(JustificationFlags_left),
+                 "topLeft's horizontal half is " & $topLeft.getOnlyHorizontalFlags()
+        doAssert topLeft.getOnlyVerticalFlags() == cint(JustificationFlags_top),
+                 "topLeft's vertical half is " & $topLeft.getOnlyVerticalFlags()
+
+        # The two halves put back together are the whole word, which says
+        # neither filter dropped a flag the other did not claim.
+        doAssert (topLeft.getOnlyHorizontalFlags() or topLeft.getOnlyVerticalFlags()) ==
+                 topLeft.getFlags(),
+                 "the two halves rebuild " &
+                 $(topLeft.getOnlyHorizontalFlags() or topLeft.getOnlyVerticalFlags()) &
+                 " rather than " & $topLeft.getFlags()
+
+testJustificationAxisFilters()
+
+# RectanglePlacement.getTransformToFit =========================================
+#
+# The transform that maps one rectangle onto another. Both the scale and the
+# translation are asserted: a transform that only scaled would land the source
+# at the origin rather than at the destination's corner.
+
+proc testRectanglePlacementTransformToFit() =
+    block:
+        let stretch = makeRectanglePlacement(cint(RectanglePlacementFlags_stretchToFit))
+        let doubled = stretch.getTransformToFit(
+            makeRectangle(0.0'f32, 0.0'f32, 10.0'f32, 10.0'f32),
+            makeRectangle(0.0'f32, 0.0'f32, 20.0'f32, 20.0'f32))
+        doAssert doubled.mat00() == 2.0'f32 and doubled.mat11() == 2.0'f32,
+                 "fitting 10x10 into 20x20 scaled by " & $doubled.mat00() &
+                 "," & $doubled.mat11()
+        doAssert doubled.getTranslationX() == 0.0'f32 and
+                 doubled.getTranslationY() == 0.0'f32,
+                 "a corner-to-corner fit translated by " &
+                 $doubled.getTranslationX() & "," & $doubled.getTranslationY()
+
+        # Same size, moved: no scale, and the translation is the offset.
+        let corner = makeRectanglePlacement(
+            cint(RectanglePlacementFlags_xLeft or RectanglePlacementFlags_yTop))
+        let moved = corner.getTransformToFit(
+            makeRectangle(0.0'f32, 0.0'f32, 10.0'f32, 10.0'f32),
+            makeRectangle(100.0'f32, 200.0'f32, 10.0'f32, 10.0'f32))
+        doAssert moved.isOnlyTranslation(),
+                 "a same-size fit did more than translate"
+        doAssert moved.getTranslationX() == 100.0'f32,
+                 "the fit translated x by " & $moved.getTranslationX()
+        doAssert moved.getTranslationY() == 200.0'f32,
+                 "the fit translated y by " & $moved.getTranslationY()
+
+testRectanglePlacementTransformToFit()
+
+# ScaledImage's scale and its bounds in points =================================
+#
+# getScaledBounds divides the pixel bounds by the scale, so an image at scale 2
+# covers half as many points as it has pixels.
+
+proc testScaledImageScaleAndBounds() =
+    block:
+        let image = makeImage(ImagePixelFormat_ARGB, 100.cint, 50.cint, true)
+
+        let retina = makeScaledImage(image, 2.0)
+        doAssert retina.getScale() == 2.0,
+                 "the scaled image reports a scale of " & $retina.getScale()
+        let bounds = retina.getScaledBounds()
+        doAssert bounds.getWidth() == 50.0 and bounds.getHeight() == 25.0,
+                 "100x50 pixels at scale 2 covers " & $bounds.getWidth() & "x" &
+                 $bounds.getHeight() & " points"
+
+        # At scale 1 the two coincide, which is what says the division is by
+        # the scale rather than by a constant.
+        let plain = makeScaledImage(image, 1.0)
+        doAssert plain.getScale() == 1.0,
+                 "the unscaled image reports a scale of " & $plain.getScale()
+        doAssert plain.getScaledBounds().getWidth() == 100.0,
+                 "at scale 1 the image covers " &
+                 $plain.getScaledBounds().getWidth() & " points"
+
+testScaledImageScaleAndBounds()
+
+# PathFlatteningIterator.isLastInSubpath =======================================
+#
+# True only on the final segment of each sub path. One rectangle gives four
+# segments with a single true; two rectangles give eight with two, which is
+# what separates "last in its sub path" from "last overall".
+
+proc testPathFlatteningIteratorIsLastInSubpath() =
+    block:
+        var one = makePath()
+        one.addRectangle(0.0'f32, 0.0'f32, 10.0'f32, 20.0'f32)
+
+        var walker = makePathFlatteningIterator(one, makeAffineTransform(), 1.0'f32)
+        var segments = 0
+        var lasts: seq[int] = @[]
+        while walker.next():
+            segments += 1
+            if walker.isLastInSubpath(): lasts.add segments
+
+        doAssert segments == 4,
+                 "the rectangle flattened to " & $segments & " segments"
+        doAssert lasts == @[4],
+                 "the segments ending a sub path were " & $lasts
+
+    block:
+        var two = makePath()
+        two.addRectangle(0.0'f32, 0.0'f32, 10.0'f32, 10.0'f32)
+        two.addRectangle(50.0'f32, 50.0'f32, 10.0'f32, 10.0'f32)
+
+        var walker = makePathFlatteningIterator(two, makeAffineTransform(), 1.0'f32)
+        var segments = 0
+        var lasts: seq[int] = @[]
+        while walker.next():
+            segments += 1
+            if walker.isLastInSubpath(): lasts.add segments
+
+        doAssert segments == 8,
+                 "two rectangles flattened to " & $segments & " segments"
+        doAssert lasts == @[4, 8],
+                 "the segments ending a sub path were " & $lasts
+
+testPathFlatteningIteratorIsLastInSubpath()
+
+# TextLayoutRun.getRunBoundsX ==================================================
+#
+# The union of every glyph's anchor-to-anchor-plus-width span. The glyphs are
+# placed by hand with a GAP between them, so a run that answered with only the
+# first glyph, or with the last, gives the wrong end.
+
+proc testTextLayoutRunBoundsX() =
+    block:
+        var run = makeTextLayoutRun()
+        doAssert run.getRunBoundsX().isEmpty(),
+                 "a run with no glyphs spans " & $run.getRunBoundsX().getLength()
+
+        run.glyphs().add(makeTextLayoutGlyph(1.cint, makePoint(10.0'f32, 0.0'f32), 5.0'f32))
+        doAssert run.getRunBoundsX().getStart() == 10.0'f32,
+                 "one glyph starts the run at " & $run.getRunBoundsX().getStart()
+        doAssert run.getRunBoundsX().getEnd() == 15.0'f32,
+                 "one glyph ends the run at " & $run.getRunBoundsX().getEnd()
+
+        run.glyphs().add(makeTextLayoutGlyph(2.cint, makePoint(30.0'f32, 0.0'f32), 5.0'f32))
+        let spread = run.getRunBoundsX()
+        doAssert spread.getStart() == 10.0'f32,
+                 "the run starts at " & $spread.getStart()
+        doAssert spread.getEnd() == 35.0'f32,
+                 "the run ends at " & $spread.getEnd()
+        doAssert spread.getLength() == 25.0'f32,
+                 "the run spans " & $spread.getLength()
+
+testTextLayoutRunBoundsX()
+
+# Image::BitmapData's raw pixel access =========================================
+#
+# The three that reach the bytes directly. getLinePointer is asserted against
+# the arithmetic JUCE documents rather than against a byte value, because the
+# channel ORDER inside a pixel is platform-dependent; what is portable is that
+# the line pointer is data plus y line strides, and that a pixel written
+# through setPixelColour reads back as the colour it was given.
+
+proc testImageBitmapDataRawAccess() =
+    block:
+        var image = makeImage(ImagePixelFormat_ARGB, 16.cint, 8.cint, true)
+        var pixels = makeImageBitmapData(image, ImageBitmapDataReadWriteMode_readWrite)
+
+        doAssert pixels.width() == 16 and pixels.height() == 8,
+                 "the bitmap covers " & $pixels.width() & "x" & $pixels.height()
+
+        let base = cast[uint](pixels.data())
+        doAssert cast[uint](pixels.getLinePointer(0.cint)) == base,
+                 "line 0 does not start at the data pointer"
+        doAssert cast[uint](pixels.getLinePointer(4.cint)) ==
+                 base + 4'u * cast[uint](pixels.lineStride()),
+                 "line 4 is " &
+                 $(cast[uint](pixels.getLinePointer(4.cint)) - base) &
+                 " bytes in, not four strides"
+
+        # The image was cleared, so every byte of the pixel starts at zero and
+        # cannot have been non-zero all along.
+        let pixelStart = cast[ptr UncheckedArray[uint8]](
+            cast[uint](pixels.getLinePointer(4.cint)) +
+            3'u * cast[uint](pixels.pixelStride()))
+        var beforeWrite = 0
+        for offset in 0 ..< pixels.pixelStride().int:
+            beforeWrite += pixelStart[offset].int
+        doAssert beforeWrite == 0,
+                 "the cleared pixel already held " & $beforeWrite
+
+        pixels.setPixelColour(3.cint, 4.cint, makeColour(0'u8, 255'u8, 0'u8, 255'u8))
+        doAssert pixels.getPixelColour(3.cint, 4.cint).getGreen() == 255'u8,
+                 "the pixel reads back green " &
+                 $pixels.getPixelColour(3.cint, 4.cint).getGreen()
+        doAssert pixels.getPixelColour(3.cint, 4.cint).getRed() == 0'u8,
+                 "the pixel reads back red " &
+                 $pixels.getPixelColour(3.cint, 4.cint).getRed()
+
+        var afterWrite = 0
+        for offset in 0 ..< pixels.pixelStride().int:
+            afterWrite += pixelStart[offset].int
+        doAssert afterWrite > 0,
+                 "the bytes the line pointer reaches stayed zero after the write"
+
+        # A neighbouring pixel was left alone, which a setter that filled the
+        # whole line could not manage.
+        doAssert pixels.getPixelColour(4.cint, 4.cint).getAlpha() == 0'u8,
+                 "the pixel next door came out with alpha " &
+                 $pixels.getPixelColour(4.cint, 4.cint).getAlpha()
+
+    block:
+        # convertFrom moves pixels between two formats. ARGB into RGB drops the
+        # alpha channel and keeps the colour, so the destination is asserted on
+        # both: the colour survived and the alpha came out opaque.
+        # The SOFTWARE image type, because a native one is free to back an
+        # image with whatever format it prefers, and then the two bitmaps
+        # would already match and nothing would be converted.
+        var argb = makeImage(ImagePixelFormat_ARGB, 8.cint, 8.cint, true,
+                             makeSoftwareImageType())
+        block:
+            var g = makeGraphics(argb)
+            g.setColour(makeColour(255'u8, 128'u8, 0'u8, 255'u8))
+            g.fillAll()
+
+        var rgb = makeImage(ImagePixelFormat_RGB, 8.cint, 8.cint, true,
+                            makeSoftwareImageType())
+
+        var source = makeImageBitmapData(argb, ImageBitmapDataReadWriteMode_readOnly)
+        var destination = makeImageBitmapData(rgb, ImageBitmapDataReadWriteMode_writeOnly)
+        doAssert source.pixelFormat() == ImagePixelFormat_ARGB,
+                 "the source bitmap is not ARGB"
+        doAssert destination.pixelFormat() == ImagePixelFormat_RGB,
+                 "the destination bitmap is not RGB"
+
+        doAssert destination.convertFrom(source),
+                 "converting ARGB pixels into an RGB bitmap failed"
+        let moved = destination.getPixelColour(2.cint, 2.cint)
+        doAssert moved.getRed() == 255'u8 and moved.getGreen() == 128'u8 and
+                 moved.getBlue() == 0'u8,
+                 "the converted pixel is " & $moved.getRed() & "," &
+                 $moved.getGreen() & "," & $moved.getBlue()
+
+testImageBitmapDataRawAccess()
+
+# Path.addArc ==================================================================
+#
+# JUCE measures the angle clockwise from twelve o'clock, so nought to pi sweeps
+# the RIGHT half of the ellipse. The bounds are asserted rather than a point
+# count, and they say the arc is half: a full ellipse would reach x=0.
+#
+# startAsNewSubPath is the second half. With it false the arc joins whatever
+# the path was already drawing, so the flattened result is one sub path; with
+# it true the arc is its own, and the iterator restarts its index.
+
+proc testPathAddArc() =
+    let halfTurn = 3.1415927'f32
+
+    proc countSubPaths(p: Path): int =
+        var walker = makePathFlatteningIterator(p, makeAffineTransform(), 1.0'f32)
+        result = 0
+        while walker.next():
+            if walker.subPathIndex() == 0: result += 1
+
+    block:
+        var half = makePath()
+        half.addArc(0.0'f32, 0.0'f32, 100.0'f32, 50.0'f32, 0.0'f32, halfTurn, true)
+        doAssert not half.isEmpty(), "addArc drew nothing"
+
+        let bounds = half.getBounds()
+        doAssert bounds.getX() >= 49.0'f32,
+                 "the right-half arc reaches back to x=" & $bounds.getX()
+        doAssert bounds.getRight() > 99.0'f32 and bounds.getRight() <= 100.5'f32,
+                 "the arc's right edge is " & $bounds.getRight()
+        doAssert bounds.getY() < 1.0'f32,
+                 "the arc's top is " & $bounds.getY()
+        doAssert bounds.getBottom() > 49.0'f32,
+                 "the arc's bottom is " & $bounds.getBottom()
+
+    block:
+        var joined = makePath()
+        joined.startNewSubPath(0.0'f32, 0.0'f32)
+        joined.lineTo(5.0'f32, 0.0'f32)
+        joined.addArc(0.0'f32, 0.0'f32, 100.0'f32, 50.0'f32, 0.0'f32, halfTurn, false)
+        doAssert countSubPaths(joined) == 1,
+                 "the joined arc left " & $countSubPaths(joined) & " sub paths"
+
+        var separate = makePath()
+        separate.startNewSubPath(0.0'f32, 0.0'f32)
+        separate.lineTo(5.0'f32, 0.0'f32)
+        separate.addArc(0.0'f32, 0.0'f32, 100.0'f32, 50.0'f32, 0.0'f32, halfTurn, true)
+        doAssert countSubPaths(separate) == 2,
+                 "the detached arc left " & $countSubPaths(separate) & " sub paths"
+
+testPathAddArc()
+
+# Font.setFeatureSetting =======================================================
+#
+# The in-place counterpart of FontOptions.withFeatureSetting. Setting the same
+# tag twice REPLACES rather than appends, which is what the second write is
+# for - a list that grew to two would pass a test that only looked at the head.
+
+proc testFontSetFeatureSetting() =
+    block:
+        var font = makeFont(makeFontOptions())
+        doAssert font.getFeatureSettings().size() == 0.csize_t,
+                 "a fresh font carries " &
+                 $font.getFeatureSettings().size().int & " settings"
+
+        let liga = makeFontFeatureTag(0x6C696761'u32)
+        font.setFeatureSetting(makeFontFeatureSetting(liga, 1'u32))
+        doAssert font.getFeatureSettings().size() == 1.csize_t,
+                 "after one setting the font carries " &
+                 $font.getFeatureSettings().size().int
+        doAssert $font.getFeatureSettings()[0.csize_t].tag().toString() == "liga",
+                 "the font carries " &
+                 $font.getFeatureSettings()[0.csize_t].tag().toString()
+        doAssert font.getFeatureSettings()[0.csize_t].value() == 1'u32,
+                 "the setting holds " &
+                 $font.getFeatureSettings()[0.csize_t].value()
+
+        font.setFeatureSetting(makeFontFeatureSetting(liga, 0'u32))
+        doAssert font.getFeatureSettings().size() == 1.csize_t,
+                 "rewriting the same tag left " &
+                 $font.getFeatureSettings().size().int & " settings"
+        doAssert font.getFeatureSettings()[0.csize_t].value() == 0'u32,
+                 "the rewritten setting holds " &
+                 $font.getFeatureSettings()[0.csize_t].value()
+
+        # A different tag is an addition rather than a replacement.
+        font.setFeatureSetting(
+            makeFontFeatureSetting(makeFontFeatureTag(0x6B65726E'u32), 1'u32))
+        doAssert font.getFeatureSettings().size() == 2.csize_t,
+                 "a second tag left " &
+                 $font.getFeatureSettings().size().int & " settings"
+
+testFontSetFeatureSetting()
+
+# JPEGImageFormat.setQuality ===================================================
+#
+# The setter returns void, so the observable is the size of what gets written.
+# The fixture is noise rather than flat colour: a flat image compresses to
+# nearly the same size at any quality, and the test would not discriminate.
+
+proc testJPEGSetQuality() =
+    proc noisy(): Image =
+        result = makeImage(ImagePixelFormat_RGB, 64.cint, 64.cint, true)
+        var pixels = makeImageBitmapData(result, ImageBitmapDataReadWriteMode_readWrite)
+        for y in 0 ..< 64:
+            for x in 0 ..< 64:
+                let value = uint8((x * 37 + y * 91 + x * y * 13) and 0xFF)
+                pixels.setPixelColour(x.cint, y.cint,
+                                      makeColour(value, uint8(255 - value.int),
+                                                 uint8((value.int * 3) and 0xFF), 255'u8))
+
+    let image = noisy()
+
+    var coarse = makeJPEGImageFormat()
+    coarse.setQuality(0.1'f32)
+    var coarseOut = makeMemoryOutputStream(0.uint64)
+    doAssert cast[ptr ImageFileFormat](coarse.addr)[].writeImageToStream(image, coarseOut),
+             "the low-quality JPEG was not written"
+
+    var fine = makeJPEGImageFormat()
+    fine.setQuality(1.0'f32)
+    var fineOut = makeMemoryOutputStream(0.uint64)
+    doAssert cast[ptr ImageFileFormat](fine.addr)[].writeImageToStream(image, fineOut),
+             "the high-quality JPEG was not written"
+
+    doAssert coarseOut.getDataSize() > 0'u64, "the low-quality JPEG is empty"
+    doAssert coarseOut.getDataSize() < fineOut.getDataSize(),
+             "quality 0.1 wrote " & $coarseOut.getDataSize() &
+             " bytes and quality 1.0 wrote " & $fineOut.getDataSize()
+
+testJPEGSetQuality()
+
+# Graphics.setFillType =========================================================
+#
+# Replaces whatever the context was going to paint with. It is set AFTER a
+# setColour so the pixels say which of the two won - a setFillType that did
+# nothing would leave the earlier red behind.
+
+proc testGraphicsSetFillType() =
+    block:
+        let image = makeImage(ImagePixelFormat_ARGB, 20.cint, 20.cint, true)
+        block:
+            var g = makeGraphics(image)
+            g.setColour(makeColour(255'u8, 0'u8, 0'u8, 255'u8))
+            g.setFillType(makeFillType(makeColour(0'u8, 0'u8, 255'u8, 255'u8)))
+            g.fillRect(makeRectangle(0.cint, 0.cint, 10.cint, 20.cint))
+
+        let painted = image.getPixelAt(5.cint, 5.cint)
+        doAssert painted.getBlue() == 255'u8,
+                 "the fill came out blue " & $painted.getBlue()
+        doAssert painted.getRed() == 0'u8,
+                 "the fill kept the earlier red at " & $painted.getRed()
+        doAssert image.getPixelAt(15.cint, 5.cint).getAlpha() == 0'u8,
+                 "the fill reached outside its rectangle"
+
+testGraphicsSetFillType()
+
+# ImageType.convert ============================================================
+#
+# Rebuilds an image on a different backing store. The pixels have to survive,
+# and the result has to be a live image of the same size - a convert that
+# handed back a default-constructed Image would fail on both.
+
+proc testImageTypeConvert() =
+    block:
+        let source = makeImage(ImagePixelFormat_ARGB, 8.cint, 8.cint, true)
+        block:
+            var g = makeGraphics(source)
+            g.setColour(Colours_red)
+            g.fillRect(makeRectangle(0.cint, 0.cint, 4.cint, 8.cint))
+            g.setColour(Colours_blue)
+            g.fillRect(makeRectangle(4.cint, 0.cint, 4.cint, 8.cint))
+
+        var software = makeSoftwareImageType()
+        let converted = cast[ptr ImageType](software.addr)[].convert(source)
+
+        doAssert converted.isValid(), "the converted image is not valid"
+        doAssert converted.getWidth() == 8 and converted.getHeight() == 8,
+                 "the converted image is " & $converted.getWidth() & "x" &
+                 $converted.getHeight()
+        # BOTH halves: an all-red result would pass a test that read only the left.
+        doAssert converted.getPixelAt(1.cint, 1.cint).getRed() == 255'u8,
+                 "the left half converted to red " &
+                 $converted.getPixelAt(1.cint, 1.cint).getRed()
+        doAssert converted.getPixelAt(6.cint, 1.cint).getBlue() == 255'u8,
+                 "the right half converted to blue " &
+                 $converted.getPixelAt(6.cint, 1.cint).getBlue()
+
+testImageTypeConvert()
+
+# The two image effect setters =================================================
+#
+# Both return void, so what they configured is read back through applyEffect,
+# reached on the BASE pointer. The OFFSET is what each assertion turns on: ink
+# lands where the offset says and not where the source square is, so an effect
+# that ignored the properties it was given fails rather than passing quietly.
+
+proc testImageEffectProperties() =
+    proc squareOnTransparent(): Image =
+        result = makeImage(ImagePixelFormat_ARGB, 64.cint, 64.cint, true)
+        var g = makeGraphics(result)
+        g.setColour(makeColour(255'u8, 255'u8, 255'u8, 255'u8))
+        g.fillRect(makeRectangle(20.cint, 20.cint, 24.cint, 24.cint))
+
+    block:
+        var source = squareOnTransparent()
+        doAssert source.getPixelAt(54.cint, 54.cint).getAlpha() == 0'u8,
+                 "the source square already covers the point the shadow is checked at"
+
+        var effect = makeDropShadowEffect()
+        effect.setShadowProperties(makeDropShadow(makeColour(0'u8, 0'u8, 0'u8, 255'u8),
+                                                  3.cint, makePoint(16.cint, 16.cint)))
+
+        let destination = makeImage(ImagePixelFormat_ARGB, 64.cint, 64.cint, true)
+        block:
+            var g = makeGraphics(destination)
+            cast[ptr ImageEffectFilter](effect.addr)[].applyEffect(source, g, 1.0'f32, 1.0'f32)
+
+        doAssert destination.getPixelAt(54.cint, 54.cint).getAlpha() > 0'u8,
+                 "nothing landed where the offset shadow should be"
+        doAssert destination.getPixelAt(2.cint, 2.cint).getAlpha() == 0'u8,
+                 "the shadow reached the far corner"
+        # applyEffect draws the source on top of its own shadow, so the square
+        # itself is still there and still white.
+        doAssert destination.getPixelAt(32.cint, 32.cint).getRed() == 255'u8,
+                 "the square came out " &
+                 $destination.getPixelAt(32.cint, 32.cint).getRed() & " red"
+
+    block:
+        var source = squareOnTransparent()
+
+        var effect = makeGlowEffect()
+        effect.setGlowProperties(6.0'f32, makeColour(0'u8, 255'u8, 0'u8, 255'u8),
+                                 makePoint(10.cint, 10.cint))
+
+        let destination = makeImage(ImagePixelFormat_ARGB, 64.cint, 64.cint, true)
+        block:
+            var g = makeGraphics(destination)
+            cast[ptr ImageEffectFilter](effect.addr)[].applyEffect(source, g, 1.0'f32, 1.0'f32)
+
+        # The square is drawn at the offset, so it now covers 30..54.
+        doAssert destination.getPixelAt(50.cint, 50.cint).getRed() == 255'u8,
+                 "the offset square is not at 50,50 - it came out " &
+                 $destination.getPixelAt(50.cint, 50.cint).getRed() & " red"
+        # The un-offset position carries GLOW rather than the square. It is
+        # checked on the red channel and not on alpha, because the blur
+        # spreads the halo well past the square it came from.
+        doAssert destination.getPixelAt(22.cint, 22.cint).getRed() == 0'u8,
+                 "22,22 came out " &
+                 $destination.getPixelAt(22.cint, 22.cint).getRed() &
+                 " red, so the square was drawn without its offset"
+
+        # Just outside the offset square is the blurred copy, painted in the
+        # glow colour rather than the source's white.
+        let halo = destination.getPixelAt(57.cint, 42.cint)
+        doAssert halo.getAlpha() > 0'u8, "the glow left no halo outside the square"
+        doAssert halo.getGreen() > halo.getRed(),
+                 "the halo is " & $halo.getRed() & " red and " &
+                 $halo.getGreen() & " green, so it is not the glow colour"
+
+        doAssert destination.getPixelAt(2.cint, 2.cint).getAlpha() == 0'u8,
+                 "the glow reached the far corner"
+
+testImageEffectProperties()
+
+# TextLayout.createLayoutWithBalancedLineLengths ===============================
+#
+# The balanced variant searches the WIDTH. It lays the text out repeatedly at
+# widths from maxWidth down towards maxWidth/2 and keeps whichever fills its
+# lines most evenly, scoring mean((1 - length/longest)^2) and preferring the
+# lower (juce_TextLayout.cpp:286-352). That score, recomputed here from the line
+# bounds, is the quantity the method optimises, so it is what gets asserted -
+# a comparison of widths or line counts alone would let a broken balancer pass.
+#
+# The comparison is <= rather than <, and that is deliberate. The search starts
+# from maxWidth, which is what plain createLayout uses, and only moves off it on
+# a STRICTLY better score, so "no worse than plain" is the invariant that holds
+# on every platform. Strict improvement is not: the loop breaks the moment a
+# score falls below 0.4, and with the fonts here every text tried scored under
+# that on the first probe, leaving the balanced layout identical to the plain
+# one. Pinning the strict form would pin this machine's font metrics.
+#
+# maxHeight is not part of the balancing. It is forwarded to createLayout, and
+# recalculateSize then overwrites the layout's height with the bounds it
+# measured, so a smaller cap does NOT drop lines - which is why the three
+# argument overload is pinned against the two argument one instead.
+
+proc testTextLayoutBalancedLineLengths() =
+    proc unevenness(layout: var TextLayout): float =
+        var longest = 0.0'f32
+        for index in 0 ..< layout.getNumLines():
+            longest = max(longest, layout.getLine(index).getLineBoundsX().getLength())
+        doAssert longest > 0.0'f32, "the layout's longest line has no length"
+
+        var total = 0.0
+        for index in 0 ..< layout.getNumLines():
+            let unused = 1.0 -
+                (layout.getLine(index).getLineBoundsX().getLength() / longest).float
+            total += unused * unused
+        result = total / layout.getNumLines().float
+
+    block:
+        var text = makeAttributedString(makeString(
+            "the quick brown fox jumps over the lazy dog and keeps on running"))
+
+        var plain = makeTextLayout()
+        plain.createLayout(text, 260.0'f32)
+        doAssert plain.getNumLines() > 1,
+                 "the plain layout fitted on " & $plain.getNumLines() & " line(s)"
+
+        var balanced = makeTextLayout()
+        balanced.createLayoutWithBalancedLineLengths(text, 260.0'f32)
+        doAssert balanced.getNumLines() > 1,
+                 "the balanced layout fitted on " & $balanced.getNumLines() & " line(s)"
+        doAssert balanced.getWidth() <= 260.0'f32,
+                 "the balanced layout is " & $balanced.getWidth() &
+                 " wide, past the 260 it was given"
+
+        doAssert unevenness(balanced) <= unevenness(plain),
+                 "the balanced lines score " & $unevenness(balanced) &
+                 " and the plain ones " & $unevenness(plain) &
+                 ", so balancing made them less even"
+
+    block:
+        # Text that does not wrap makes the method return before it balances
+        # anything, so it has to agree with createLayout exactly.
+        var text = makeAttributedString(makeString("short"))
+
+        var plain = makeTextLayout()
+        plain.createLayout(text, 400.0'f32)
+        var balanced = makeTextLayout()
+        balanced.createLayoutWithBalancedLineLengths(text, 400.0'f32)
+
+        doAssert plain.getNumLines() == 1,
+                 "the unwrapped text laid out on " & $plain.getNumLines() & " lines"
+        doAssert balanced.getNumLines() == 1,
+                 "the balanced unwrapped text laid out on " &
+                 $balanced.getNumLines() & " lines"
+        doAssert balanced.getWidth() == plain.getWidth(),
+                 "single-line text came out " & $balanced.getWidth() &
+                 " wide balanced and " & $plain.getWidth() & " wide plain"
+
+    block:
+        # The three argument overload against the two argument one, which JUCE
+        # defines as this one with a maxHeight of 1.0e7.
+        var text = makeAttributedString(makeString(
+            "the quick brown fox jumps over the lazy dog and keeps on running"))
+
+        var implicit = makeTextLayout()
+        implicit.createLayoutWithBalancedLineLengths(text, 260.0'f32)
+
+        var explicitHeight = makeTextLayout()
+        explicitHeight.createLayoutWithBalancedLineLengths(text, 260.0'f32, 1.0e7'f32)
+
+        doAssert implicit.getNumLines() == explicitHeight.getNumLines(),
+                 "the two overloads laid out " & $implicit.getNumLines() &
+                 " and " & $explicitHeight.getNumLines() & " lines"
+        doAssert implicit.getWidth() == explicitHeight.getWidth(),
+                 "the two overloads came out " & $implicit.getWidth() &
+                 " and " & $explicitHeight.getWidth() & " wide"
+        doAssert explicitHeight.getHeight() == implicit.getHeight(),
+                 "the two overloads came out " & $explicitHeight.getHeight() &
+                 " and " & $implicit.getHeight() & " tall"
+        doAssert explicitHeight.getHeight() < 1.0e7'f32,
+                 "the layout kept the height it was handed rather than the one it measured"
+
+# Bracketed, like the other tests that lay out real text: laying it out loads a
+# typeface into the shared cache, which the GUI shutdown is what tears down.
+initialiseJuce_GUI()
+testTextLayoutBalancedLineLengths()
+shutdownJuce_GUI()
+
+# ImagePixelData::Listener, in behaviour ======================================
+#
+# JUCE binds no way to register one: the ListenerList behind it has no name
+# outside the class, so both calls are made on the BASE pointer, which is what
+# shows the Nim override reached C++. What each handler is handed is the pixel
+# data of a real Image, and asserting on the pointer it caught - its address
+# and the size it describes - is what says the argument survived the crossing.
+
+proc testImagePixelDataListenerOverrides() =
+    block:
+        var image = makeImage(ImagePixelFormat_ARGB, 8.cint, 6.cint, true)
+        var pixels = image.getPixelData()
+        doAssert not pixels.isNil(), "the image carries no pixel data"
+        let subject = pixels.get()
+
+        var changed = 0
+        var deleted = 0
+        var changedWith: ptr ImagePixelData = nil
+        var deletedWith: ptr ImagePixelData = nil
+
+        var listener = newCustomImagePixelDataListener()
+        doAssert not listener.isNil(), "the listener was not built"
+        listener[].setImageDataChangedHandler(proc(arg0: ptr ImagePixelData) =
+            changed += 1
+            changedWith = arg0)
+        listener[].setImageDataBeingDeletedHandler(proc(arg0: ptr ImagePixelData) =
+            deleted += 1
+            deletedWith = arg0)
+
+        let base = cast[ptr ImagePixelDataListener](listener)
+
+        base[].imageDataChanged(subject)
+        doAssert changed == 1,
+                 "imageDataChanged reached the override " & $changed & " times"
+        doAssert deleted == 0,
+                 "imageDataChanged also ran the deletion override"
+        doAssert changedWith == subject,
+                 "imageDataChanged was handed a different address"
+        doAssert changedWith[].width() == 8 and changedWith[].height() == 6,
+                 "the pixel data it caught measures " & $changedWith[].width() &
+                 " by " & $changedWith[].height()
+
+        base[].imageDataBeingDeleted(subject)
+        doAssert deleted == 1,
+                 "imageDataBeingDeleted reached the override " & $deleted & " times"
+        doAssert changed == 1,
+                 "imageDataBeingDeleted also ran the change override"
+        doAssert deletedWith == subject,
+                 "imageDataBeingDeleted was handed a different address"
+
+        cdelete listener
+
+testImagePixelDataListenerOverrides()
+
+# Typeface.getNativeDetails ===================================================
+#
+# Native is opaque: JUCE declares the class in the header and defines it only
+# inside each platform's back end, so the only claim that holds everywhere is
+# about the POINTER. Every back end answers with a member it owns, and JUCE
+# dereferences the result without checking it, so a real typeface answers
+# non-null and answers the same address every time.
+
+proc testTypefaceNativeDetails() =
+    initialiseJuce_GUI()
+
+    block:
+        let font = makeFont(makeFontOptions(18.0'f32))
+        let typeface = font.getTypefacePtr()
+        doAssert not typeface.isNil(), "the font has no typeface behind it"
+
+        let details = typeface.get()[].getNativeDetails()
+        doAssert not details.isNil(), "the typeface reported no native details"
+        doAssert details == typeface.get()[].getNativeDetails(),
+                 "two calls answered with different addresses"
+
+        # That two named system fonts resolve to two different typefaces is a
+        # macOS guarantee, not a portable one.
+        when defined(macosx):
+            var monoFont = makeFont(makeFontOptions(18.0'f32))
+            monoFont.setTypefaceName(Font.getDefaultMonospacedFontName())
+            let monoTypeface = monoFont.getTypefacePtr()
+            doAssert not monoTypeface.isNil(),
+                     "the monospaced font has no typeface behind it"
+            doAssert monoTypeface.get() != typeface.get(),
+                     "the monospaced name resolved to the same typeface"
+            doAssert monoTypeface.get()[].getNativeDetails() != details,
+                     "two different typefaces share one set of native details"
+
+    shutdownJuce_GUI()
+
+testTypefaceNativeDetails()

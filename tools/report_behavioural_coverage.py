@@ -92,6 +92,10 @@ UNREACHABLE = {
     # juce_gui_basics_subclasses.nim records among the withheld ones. So the
     # only instance a test could reach comes from an AccessibilityHandler,
     # which needs a native window handle.
+    "ComponentBuilderImageProvider":
+        "abstract, and the generator withholds its subclass because the "
+        "const var& in getImageForIdentifier has no Nim spelling, so nothing "
+        "can produce one",
     "AccessibilityTableInterface": "abstract, and no subclass is generated",
 }
 
@@ -107,6 +111,37 @@ UNREACHABLE_METHODS = {
         "dereferences dragImageComponents[0], which is null with no live drag",
     "DragAndDropContainer.setCurrentDragImage":
         "dereferences dragImageComponents[0], which is null with no live drag",
+    # A MouseEvent needs a MouseInputSource, whose only non-copy constructor is
+    # private to ComponentPeer, Desktop and two detail classes. Nothing here can
+    # build one, which is why both classes are on the list above; a method that
+    # reaches its state only through a MouseEvent is unreachable for that reason.
+    "MouseInactivityDetector.setDelay":
+        "delayMs is read only inside wakeUp (const MouseEvent&)",
+    "MouseInactivityDetector.setMouseMoveTolerance":
+        "toleranceDistance is read only inside wakeUp (const MouseEvent&)",
+    "ListBox.startDragAndDrop": "takes a MouseEvent",
+    "Viewport.useMouseWheelMoveIfNeeded": "takes a MouseEvent",
+    "ComponentDragger.startDraggingComponent": "takes a const MouseEvent&",
+    "ComponentDragger.dragComponent": "takes a const MouseEvent&",
+    # check_handwritten_covered.py already records this one, with this reason.
+    # It belongs here too, or the two tools disagree about the same field.
+    # check_handwritten_covered.py records this one too, for the same reason.
+    "DirectoryContentsDisplayComponent.directoryContentsList":
+        "DirectoryContentsDisplayComponent is a secondary base of both "
+        "FileListComponent and FileTreeComponent, and Nim carries the other "
+        "parent for each, so no bound class reaches the field",
+    "ColourLayer.clip":
+        "belongs to ColourLayer, which holds an EdgeTable and so has no "
+        "default constructor, and nothing bound hands one out",
+    "TextPropertyComponent.setInterestedInFileDrag":
+        "forwards to the internal editor and is visible only through real "
+        "file-drag events",
+    "ModalComponentManager.startModal":
+        "juce::ModalComponentManager::Key has a private constructor and only "
+        "Component is its friend",
+    "ModalComponentManager.endModal":
+        "juce::ModalComponentManager::Key has a private constructor and only "
+        "Component is its friend",
 }
 
 
@@ -354,6 +389,23 @@ def main():
     print(f"{unreachable:>8}  uncalled, and unreachable without a window, "
           f"an input device or the app instance")
     print(f"{remaining:>8}  uncalled, and reachable")
+    print()
+
+    # How much room the by-name match leaves. The uncalled figure credits a
+    # method when a same-named one on any class was called, so it is a lower
+    # bound; this is the ceiling on how many could be credited that way. It is
+    # printed rather than written into the docs because it drifted once: it had
+    # been derived over the proc LINES, a larger population than the one the
+    # figures above live in, so it bounded a quantity it was not measured in.
+    shared = collections.Counter(name for names in per.values()
+                                 for name in names)
+    print(f"{'methods':>8}  room the by-name match leaves")
+    print(f"{total:>8}  bound methods with a receiver")
+    print(f"{len(shared):>8}  distinct names over them")
+    print(f"{sum(1 for k in shared.values() if k > 1):>8}  names bound on more "
+          f"than one class")
+    print(f"{total - len(shared):>8}  beyond one per shared name, the ceiling "
+          f"on what the match could credit unseen")
     print()
 
     reachable = sorted(((count, cls) for cls, count in uncalled.items()

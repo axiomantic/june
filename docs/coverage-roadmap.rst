@@ -24,16 +24,28 @@ was written it read:
 methods  what
 =======  =========================================================
    4528  bound methods with a receiver
-   4110  called by a behavioural test
-     82  uncalled, and unreachable without a window, an input device
+   4416  called by a behavioural test
+     95  uncalled, and unreachable without a window, an input device
          or the app instance
-    336  uncalled, and reachable
+     17  uncalled, and reachable
 =======  =========================================================
 
 One unit is one bound method on one class, and overloads collapse into one. The
 match is by NAME rather than by receiver, which makes the uncalled figure a
 lower bound: it may credit a method because a same-named one elsewhere was
-called, so the real gap is at least this big. It errs the other way too, though
+called, so the real gap is at least this big. The room for that is not small.
+``report_behavioural_coverage.py`` prints the room in a table beside the one
+above: the 4528 methods carry 3238 distinct names, 672 of those names are bound
+on more than one class, and 1290 methods sit beyond one per shared name. That
+is the ceiling on how many could be credited without their own receiver ever
+being called, not a claim about how many are - but it is the reason to read the
+figure as a floor rather than a measurement. The tool prints it rather than this
+document stating it because an earlier hand-derived version of these four
+numbers was measured over the receiver-taking proc LINES, a larger population
+than the 4528 the gap itself lives in, so it bounded a quantity it was not
+measured in. ``ToolbarButton::buttonStateChanged`` was exactly this: it
+dropped off the uncalled list when ``DrawableButton``'s method of the same name
+was covered, and a test for it had to be written afterwards. It errs the other way too, though
 far less often: a call spelled in a form the match cannot see reads as uncalled
 when a test does make it. README's "What Is Tested" section states the rest of
 the counting rules.
@@ -42,34 +54,38 @@ the counting rules.
 The shape of the remainder
 ==========================
 
-The 336 are spread across 208 classes:
+The 17 are spread across 14 classes:
 
 =======  =================
 classes   uncalled methods
 =======  =================
-      6                  4
-     31                  3
-     48                  2
-    123                  1
+      3                  2
+     11                  1
 =======  =================
 
-No class has five or more. That is the fact that governs how to spend effort
-here: the large blocks are gone, and what is left costs roughly the same
-per-class overhead as a large one did while returning a quarter as much. A
-class still has to be read in the JUCE source, its real behaviour established
-rather than assumed, and any ownership rule found the hard way before a test
-can assert anything true about it.
+No class has three or more, and none of what is left is waiting to be written.
+Every method in the table is one a test MUST NOT call, for a reason recorded
+below rather than for want of someone to write it: it would set the machine
+clock, open a browser, beep, enter a loop that never returns, run every
+UnitTest in the process, strand a singleton, double-free a callback, add a site
+to the assertion ledger, or want a desktop window. The two the generator cannot
+reach are there too.
+
+So the number to watch is no longer this one. It moves again when the bindings
+grow - a new module, or a generator change that emits methods nobody has
+written a test for yet - and the guidance below is for that, not for the table
+above it.
 
 By module:
 
 ====================  =========  =========
 module                 methods    classes
 ====================  =========  =========
-juce_gui_basics             197        117
-juce_core                    77         51
-juce_graphics                39         23
-juce_events                  15         12
-juce_data_structures          8          5
+juce_gui_basics               8          6
+juce_core                     6          5
+juce_events                   4          4
+juce_graphics                 0          0
+juce_data_structures          0          0
 ====================  =========  =========
 
 
@@ -98,6 +114,27 @@ outside the temporary directory. Some of those turn out to have exactly one
 path that does nothing - a disabled ``ComboBox``, a ``TableHeaderComponent``
 with no columns to offer - and that path is worth taking. The rest belong in
 the unreachable lists below.
+
+A handful are reachable and must still be left alone, which is why they are not
+in those lists: nothing stops a test calling them, and calling one damages the
+run. ``LookAndFeel::playAlertSound`` is ``NSBeep()`` on macOS and writes a BEL
+into stdout on Linux, which is the same stdout the assertion and leak gates
+read. ``Desktop::setKioskModeComponent`` carries a ``jassert`` that the outgoing
+kiosk component has a peer, so a component that was never on the desktop passes
+on the way in and fires it on the way out. ``ModalComponentManager::attachCallback``
+wraps its callback in a ``unique_ptr`` and only releases it if the component is
+already on the modal stack, so attaching to anything else deletes the callback
+and a later ``cdelete`` is a double free. ``ChoicePropertyComponent::setIndex``
+is ``jassertfalse`` on the base and no subclass is generated for it. Each of
+those would add a site to the assertion ledger, or a leak, or a crash, in
+exchange for a number.
+
+Being blocked by an input device is worth checking rather than assuming, since
+the name rarely settles it. ``ListBox::selectRowsBasedOnModifierKeys`` sounds
+like it needs a live keyboard and takes a ``ModifierKeys`` value that
+``makeModifierKeys`` builds, so its three branches are all assertable. Only the
+methods that actually take a ``MouseEvent`` are out of reach, because
+``MouseInputSource`` has no public constructor.
 
 
 Rules this branch learned the hard way
@@ -138,6 +175,70 @@ does not reclaim. ``PropertyPanel::addSection`` adopts its rows.
 crash or a leak first. The suite's leak gate catches them, but reading the JUCE
 source first is cheaper than reading a stack trace.
 
+
+**A call is not a test, and reaching for one hides an unreachable method.**
+Three tests called a setter whose value JUCE keeps private and then asserted
+something unrelated beside it. The method counted as called while the assertion
+could not fail if the method broke. Two of the three turned out to be genuinely
+unreachable once the implementation was read: ``MouseInactivityDetector``'s
+delay and tolerance are read only inside ``wakeUp (const MouseEvent&)``, and a
+``MouseEvent`` needs a ``MouseInputSource``, whose only non-copy constructor is
+private to ``ComponentPeer``, ``Desktop`` and two detail classes. When a value
+cannot be read back, ask whether the method can be reached at all before
+writing a test around it. If it cannot, it belongs in the list below with that
+reason; if it can, the effect is observable somewhere and that is what to
+assert. ``ProgressBar``'s two setters look identical to those three and are
+not: they feed the paint path, so rendering the bar and comparing the pixels
+holds them.
+
+**A second overload of a name already used is never compiled.** An
+``importcpp`` proc reaches the C++ compiler only where it is CALLED, and
+``check_handwritten_covered.py`` matches by NAME, so adding an overload to a
+name a test already calls satisfies the gate while the new overload is never
+built. ``newLocalisedStrings`` was added with a ``String`` and a ``File``
+spelling and only the first had a call site; the second had never been
+compiled. Give every overload its own call site, and do not read a green gate
+as evidence that one exists.
+
+**Never pin a number the platform produces.** Rasterising a shape and shaping
+text both give answers that belong to the host's rasteriser, font resolution
+and text shaper rather than to the binding under test. Three assertions on this
+branch pinned one: a pointer covering exactly 300 pixels, "Hello" laying out to
+exactly 5 glyphs, and - after the first was found - a claim that the pointer's
+four rotations cover the SAME count, which is the trap in its subtlest form.
+That last one was argued from the geometry, correctly: the rotation is exactly
+ninety degrees about the shape's centre, so the vertices map onto themselves.
+It still does not follow, because what is anti-aliased is the rotated PATH, and
+its coverage of a boundary pixel is not orientation-invariant. Ubuntu measures
+292 and 296 where macOS measures 300 four times.
+
+Assert relative properties instead: something rather than nothing, containment
+inside a region, an exact colour only at a pixel whose whole area is inside an
+integer-aligned fill, a difference between two renders on the same machine, or
+an ordering. Where a count is genuinely wanted, count something the INPUT
+determines - the layout is now held to covering all five characters of "Hello",
+which the text fixes and the font cannot change - rather than something the
+output produced. Note that a development machine cannot catch this class by
+construction: every one of these passed locally and failed, or would have
+failed, only on the other platform's CI.
+
+**``doAssert cond, msg`` evaluates ``msg`` only when ``cond`` fails.** A call
+placed inside the message string is therefore not made on the passing path. A
+counter asserted against a number that includes such a call is wrong in the
+direction that still passes. Bind each result to a ``let`` first, then assert.
+
+**Laying out text loads a typeface into a cache only ``shutdownJuce_GUI``
+releases.** A test that builds fonts or lays out a string leaks without the
+initialise and shutdown pair around it, and the run still exits zero, because
+the leak detector prints and carries on exactly as ``jassert`` does. Fourteen
+leaked objects hid behind a passing suite this way.
+
+**A binding can be wrong in a direction every existing test agrees with.**
+``toRawUTF8`` sized its buffer with ``juce::String::length()``, which counts
+characters, and then copied that many BYTES, so ``$`` truncated every string
+holding a multi-byte character. Each of the suite's several thousand ``$``
+assertions was ASCII, where the two counts agree, so all of them passed. A test
+whose inputs never separate two quantities cannot tell you they are different.
 
 What is deliberately not covered
 ================================

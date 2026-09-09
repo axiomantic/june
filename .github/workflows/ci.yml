@@ -55,6 +55,15 @@ jobs:
         # found that way.
         run: python3 tools/check_handwritten_covered.py
 
+      - name: The coverage lists still match the tree
+        # The report's exit status is not its coverage figures - a number
+        # moving is news, not a failure. It is two integrity checks: that
+        # every method the roadmap calls unreachable is still in the tree
+        # under that name, and that every receiver-taking proc line falls
+        # into one of the three shapes the report classifies. Both go stale
+        # silently, which is why they are checked rather than read.
+        run: python3 tools/report_behavioural_coverage.py --check
+
       - name: Regenerate and compare
         shell: bash
         run: |

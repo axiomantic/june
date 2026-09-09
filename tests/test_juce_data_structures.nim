@@ -139,6 +139,22 @@ proc testValue() =
   var separate = makeValue(makejuce_var(makeString("other")))
   doAssert not separate.refersToSameSourceAs(first), "an unrelated Value shared the source"
 
+  # toJuce_var is the conversion the Value carries, so it answers what the
+  # Value holds NOW - asserted after the write above, which is what separates it
+  # from a snapshot taken when the Value was made.
+  doAssert $first.toJuce_var().toString() == "changed",
+           "the var conversion gave " & $first.toJuce_var().toString()
+  doAssert $separate.toJuce_var().toString() == "other",
+           "the unrelated var conversion gave " & $separate.toJuce_var().toString()
+
+  # getValueSource reaches the shared object behind the two Values, so the ones
+  # that refer to each other reach the SAME one and the unrelated one does not.
+  # Comparing addresses is the check; comparing values would pass either way.
+  doAssert (addr first.getValueSource()) == (addr second.getValueSource()),
+           "two Values sharing a source reached different ones"
+  doAssert (addr first.getValueSource()) != (addr separate.getValueSource()),
+           "an unrelated Value reached the same source"
+
 # ValueTreePropertyWithDefault ================================================
 #
 # A property that falls back to a default until something writes to it. The
@@ -1292,3 +1308,221 @@ proc testValueTreePropertyWithDefaultAccessors() =
 
 testValueTreeListenerDefaults()
 testValueTreePropertyWithDefaultAccessors()
+
+# UndoableAction's two base answers ============================================
+#
+# Neither is overridden by the generated subclass - there is nothing to override
+# usefully - so what is pinned is the DEFAULT each gives, which is what an
+# action that implements only perform and undo inherits. getSizeInUnits answers
+# ten (juce_UndoableAction.h:97) and createCoalescedAction refuses, returning
+# nullptr, so coalescing is opt-in rather than something that happens by
+# accident. Both are reached through the BASE pointer.
+
+proc testUndoableActionBaseDefaults() =
+    block:
+        let action = newCustomUndoableAction()
+        let base = cast[ptr UndoableAction](action)
+
+        doAssert base[].getSizeInUnits() == 10,
+                 "the base size is " & $base[].getSizeInUnits() & ", not JUCE's ten"
+
+        let other = newCustomUndoableAction()
+        doAssert base[].createCoalescedAction(
+                     cast[ptr UndoableAction](other)) == nil,
+                 "the base merged itself with the next action"
+
+        cdelete other
+        cdelete action
+
+testUndoableActionBaseDefaults()
+
+# UndoManager.getTimeOfRedoTransaction =========================================
+#
+# The stamp on the transaction a redo would replay. JUCE answers with the
+# CURRENT time when there is nothing to redo (juce_UndoManager.cpp:342-348), so
+# the two states are told apart by whether the answer is in the past: a stored
+# stamp is older than now, and the fallback is not. The sleep is what makes
+# that difference bigger than the millisecond the clock is measured in.
+
+proc testUndoManagerTimeOfRedoTransaction() =
+  proc noopAction(): ptr CustomUndoableAction =
+    result = newCustomUndoableAction()
+    result[].setPerformHandler(proc(): bool = true)
+    result[].setUndoHandler(proc(): bool = true)
+
+  block:
+    var manager = makeUndoManager(30000.cint, 30.cint)
+
+    # Nothing to redo: the answer is the clock, not a stamp from the past.
+    doAssert not manager.canRedo(), "a new manager can redo"
+    let askedAt = Time.getCurrentTime().toMilliseconds()
+    doAssert manager.getTimeOfRedoTransaction().toMilliseconds() >= askedAt,
+             "with nothing to redo the answer is " &
+             $(manager.getTimeOfRedoTransaction().toMilliseconds() - askedAt) &
+             "ms before now, so it is not the clock"
+
+    manager.beginNewTransaction(makeString("edit"))
+    discard manager.perform(cast[ptr UndoableAction](noopAction()))
+    let stampedAt = manager.getTimeOfUndoTransaction().toMilliseconds()
+
+    Thread.sleep(30.cint)
+    doAssert manager.undo(), "the undo reported failure"
+    doAssert manager.canRedo(), "after undoing there is nothing to redo"
+
+    # The redoable transaction is the one that was just undone, so it carries
+    # the stamp it was given when it was still the undoable one.
+    let redoTime = manager.getTimeOfRedoTransaction().toMilliseconds()
+    doAssert redoTime == stampedAt,
+             "the redo transaction is stamped " & $redoTime &
+             " and the undo transaction was stamped " & $stampedAt
+
+    # And that stamp is in the past, which the fallback answer could not be.
+    doAssert redoTime < Time.getCurrentTime().toMilliseconds(),
+             "the redo stamp is not older than the clock, so it came from the fallback"
+
+    # Redoing it empties the redo side, and the answer goes back to the clock.
+    doAssert manager.redo(), "the redo reported failure"
+    doAssert not manager.canRedo(), "there is still something to redo"
+    doAssert manager.getTimeOfRedoTransaction().toMilliseconds() > redoTime,
+             "with nothing left to redo the answer is still the old stamp"
+
+testUndoManagerTimeOfRedoTransaction()
+
+# PropertiesFileOptions.getDefaultFile =========================================
+#
+# Where a PropertiesFile built from these options WOULD live. It is a pure
+# query, so nothing is written; only the path it computes is asserted, and only
+# the parts that are the same on every platform - the directory above it is the
+# folderName, and the leaf is the application name joined to the suffix. The
+# rest of the path is the per-platform preferences root.
+#
+# osxLibrarySubFolder is set because JUCE asserts on macOS when it is left at
+# its default (juce_PropertiesFile.cpp:69-89).
+
+proc testPropertiesFileOptionsDefaultFile() =
+  block:
+    var options = makePropertiesFileOptions()
+    options.applicationName = makeString("june-default-file")
+    options.filenameSuffix = makeString("settings")
+    options.folderName = makeString("june-default-folder")
+    options.osxLibrarySubFolder = makeString("Application Support")
+
+    let file = options.getDefaultFile()
+    doAssert $file.getFileName() == "june-default-file.settings",
+             "the default file is named " & $file.getFileName()
+    doAssert $file.getParentDirectory().getFileName() == "june-default-folder",
+             "the default file sits in " &
+             $file.getParentDirectory().getFileName()
+    doAssert not file.exists(),
+             "getDefaultFile created " & $file.getFullPathName()
+
+    # A suffix that already carries its dot is not doubled.
+    options.filenameSuffix = makeString(".cfg")
+    doAssert $options.getDefaultFile().getFileName() == "june-default-file.cfg",
+             "a dotted suffix produced " &
+             $options.getDefaultFile().getFileName()
+
+    # The name is read at every call rather than fixed when the options were
+    # built, which a getter that cached its answer would fail.
+    options.applicationName = makeString("renamed")
+    doAssert $options.getDefaultFile().getFileName() == "renamed.cfg",
+             "after renaming, the default file is " &
+             $options.getDefaultFile().getFileName()
+
+testPropertiesFileOptionsDefaultFile()
+
+# ValueTreeSynchroniser.sendFullSyncCallback ===================================
+#
+# Encodes the WHOLE tree and hands it to stateChanged. The bytes are caught by
+# the generated subclass's handler and then fed to applyChange on a second,
+# unrelated tree, which is what says the encoding is a real full sync rather
+# than an empty buffer: the target ends up with the source's type, its
+# property and its child, none of which it had before.
+#
+# The call is made on the BASE pointer, which is where the method lives.
+
+proc testValueTreeSynchroniserFullSync() =
+  block:
+    var captured: seq[byte] = @[]
+    var calls = 0
+
+    var source = makeValueTree(makeIdentifier(makeString("SOURCE")))
+    discard source.setProperty(makeIdentifier(makeString("volume")),
+                               makejuce_var(11.cint), nil)
+    source.addChild(makeValueTree(makeIdentifier(makeString("CHILD"))),
+                    -1.cint, nil)
+
+    var synchroniser = newCustomValueTreeSynchroniser(source)
+    synchroniser[].setStateChangedHandler(
+        proc(encodedChange: pointer, encodedChangeSize: csize_t) =
+          calls += 1
+          captured = newSeq[byte](encodedChangeSize.int)
+          if encodedChangeSize > 0.csize_t:
+            copyMem(captured[0].addr, encodedChange, encodedChangeSize.int))
+
+    cast[ptr ValueTreeSynchroniser](synchroniser)[].sendFullSyncCallback()
+
+    doAssert calls == 1,
+             "sendFullSyncCallback reached stateChanged " & $calls & " times"
+    doAssert captured.len > 0, "the full sync encoded no bytes"
+
+    # A second tree, sharing nothing with the first, is brought into line.
+    var target = makeValueTree(makeIdentifier(makeString("TARGET")))
+    doAssert $target.getType().toString() == "TARGET",
+             "the target started as " & $target.getType().toString()
+    doAssert not target.hasProperty(makeIdentifier(makeString("volume"))),
+             "the target already carried the property"
+
+    doAssert ValueTreeSynchroniser.applyChange(
+                 target, constPointer(captured[0].addr),
+                 captured.len.uint64, nil),
+             "applying the full sync failed"
+
+    doAssert $target.getType().toString() == "SOURCE",
+             "after the sync the target is a " & $target.getType().toString()
+    doAssert target.getProperty(makeIdentifier(makeString("volume"))).toInt() == 11,
+             "after the sync the target's property is " &
+             $target.getProperty(makeIdentifier(makeString("volume"))).toInt()
+    doAssert target.getNumChildren() == 1,
+             "after the sync the target holds " & $target.getNumChildren() & " children"
+    doAssert $target.getChild(0.cint).getType().toString() == "CHILD",
+             "the synced child is a " & $target.getChild(0.cint).getType().toString()
+
+    cdelete synchroniser
+
+testValueTreeSynchroniserFullSync()
+
+# ValueTreeSynchroniser.stateChanged ==========================================
+#
+# The other half of the pair above. There, JUCE calls stateChanged; here the
+# caller does, on the BASE pointer where the pure virtual lives, which is what
+# shows the generated override reached C++ rather than being installed and
+# forgotten. The bytes the handler catches are compared with the ones handed
+# in, so a binding that lost the length or passed a different address fails.
+
+proc testValueTreeSynchroniserStateChanged() =
+  block:
+    var captured: seq[byte] = @[]
+    var calls = 0
+
+    var tree = makeValueTree(makeIdentifier(makeString("ROOT")))
+    var synchroniser = newCustomValueTreeSynchroniser(tree)
+    synchroniser[].setStateChangedHandler(
+        proc(encodedChange: pointer, encodedChangeSize: csize_t) =
+          calls += 1
+          captured = newSeq[byte](encodedChangeSize.int)
+          if encodedChangeSize > 0.csize_t:
+            copyMem(captured[0].addr, encodedChange, encodedChangeSize.int))
+
+    var payload = @[7'u8, 11'u8, 13'u8, 251'u8]
+    cast[ptr ValueTreeSynchroniser](synchroniser)[].stateChanged(
+        constPointer(payload[0].addr), payload.len.uint64)
+
+    doAssert calls == 1,
+             "stateChanged reached the override " & $calls & " times"
+    doAssert captured == payload,
+             "the override caught " & $captured & ", not " & $payload
+
+    cdelete synchroniser
+
+testValueTreeSynchroniserStateChanged()

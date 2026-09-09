@@ -2573,8 +2573,8 @@ proc makeGZIPDecompressorInputStream*(sourceStream: var InputStream): GZIPDecomp
 proc `==`*(this: GZIPDecompressorInputStream, other: GZIPDecompressorInputStream): bool {.error: "juce::GZIPDecompressorInputStream defines no operator==; compare a property instead".}
 
 proc makeZipFile*(file: File): ZipFile {.header: juce_core, importcpp: "juce::ZipFile(@)".}
-proc makeZipFile*(inputStream: UniquePtr[InputStream]): ZipFile {.header: juce_core, importcpp: "juce::ZipFile(@)".}
-proc makeZipFile*(inputSource: UniquePtr[InputSource]): ZipFile {.header: juce_core, importcpp: "juce::ZipFile(@)".}
+proc makeZipFile*(inputStream: UniquePtr[InputStream]): ZipFile {.header: juce_core, importcpp: "juce::ZipFile(std::move(#))".}
+proc makeZipFile*(inputSource: UniquePtr[InputSource]): ZipFile {.header: juce_core, importcpp: "juce::ZipFile(std::move(#))".}
 proc makeZipFile*(inputStream: var InputStream): ZipFile {.header: juce_core, importcpp: "juce::ZipFile(@)".}
 proc makeZipFile*(inputStream: ptr InputStream, deleteStreamWhenDestroyed: bool): ZipFile {.header: juce_core, importcpp: "juce::ZipFile(@)".}
 proc makeZipFile*(inputSource: ptr InputSource): ZipFile {.header: juce_core, importcpp: "juce::ZipFile(@)".}
