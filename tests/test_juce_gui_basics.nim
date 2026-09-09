@@ -18410,14 +18410,60 @@ proc testButtonStateChanged() =
         cdelete disabledFace
         cdelete disabledOnFace
 
-    # ToolbarButton::buttonStateChanged (juce_ToolbarButton.cpp:117) belongs
-    # here too, but no test can reach it: the only constructor takes two
-    # std::unique_ptr<Drawable> BY VALUE, and its binding is
-    # importcpp: "juce::ToolbarButton(@)" with no std::move around the
-    # arguments (juce_gui_basics.nim:3847), so every call site asks clang for
-    # unique_ptr's deleted copy constructor. Compare addEntry
-    # (juce_core.nim:2614), whose pattern is "#.addEntry(std::move(#), ...)"
-    # and which is callable. Fixing that is a bindings change.
+    block:
+        # ToolbarButton::buttonStateChanged (juce_ToolbarButton.cpp:117) is
+        # setCurrentImage(getImageToUse()), and getImageToUse
+        # (juce_ToolbarButton.cpp:107-115) answers toggledOnImage when the
+        # toggle is on and normalImage otherwise. Unlike DrawableButton the
+        # button OWNS the two drawables through unique_ptr
+        # (juce_ToolbarButton.cpp:41-42), so the drawable that was handed over
+        # is the one that appears as the child, and identity says which face
+        # was picked.
+        template rect(w: float32, r, g, b: uint8): ptr DrawableRectangle =
+            let d = cnew(makeDrawableRectangle())
+            d[].setRectangle(makeParallelogram(
+                makeRectangle(0.0'f32, 0.0'f32, w, w)))
+            d[].setFill(makeFillType(makeColour(r, g, b, 255'u8)))
+            d
+
+        let normalFace = rect(16.0'f32, 255'u8, 0'u8, 0'u8)
+        let toggledFace = rect(18.0'f32, 0'u8, 0'u8, 255'u8)
+
+        var button = makeToolbarButton(
+            7.cint, makeString("tool"),
+            rawToUniquePtr(cast[ptr Drawable](normalFace)),
+            rawToUniquePtr(cast[ptr Drawable](toggledFace)))
+        button.setBounds(makeRectangle(0.cint, 0.cint, 40.cint, 40.cint))
+
+        # The style defaults to Toolbar::iconsOnly
+        # (juce_ToolbarItemComponent.cpp:48), so getImageToUse does not take
+        # the textOnly branch that would answer nullptr.
+        button.setToggleState(false, NotificationType_dontSendNotification)
+        button.buttonStateChanged()
+        doAssert button.getNumChildComponents() == 1.cint,
+                 "the toolbar button displays " &
+                 $button.getNumChildComponents() & " drawables"
+        doAssert button.getChildComponent(0.cint) ==
+                 cast[ptr Component](normalFace),
+                 "the untoggled toolbar button is not displaying its normal face"
+
+        button.setToggleState(true, NotificationType_dontSendNotification)
+        button.buttonStateChanged()
+        doAssert button.getNumChildComponents() == 1.cint,
+                 "toggling left " & $button.getNumChildComponents() &
+                 " drawables on the toolbar button"
+        doAssert button.getChildComponent(0.cint) ==
+                 cast[ptr Component](toggledFace),
+                 "the toggled-on toolbar button is not displaying its toggled face"
+
+        # And back, so the two faces are a swap rather than a one-way drift.
+        button.setToggleState(false, NotificationType_dontSendNotification)
+        button.buttonStateChanged()
+        doAssert button.getChildComponent(0.cint) ==
+                 cast[ptr Component](normalFace),
+                 "un-toggling did not restore the normal face"
+
+        # The unique_ptrs own both drawables, so neither is deleted here.
 
     shutdownJuce_GUI()
 
