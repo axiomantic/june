@@ -255,6 +255,26 @@ proc testStlContainers() =
     total += range.getLength()
   doAssert total == 3, "the two ranges should cover the three written slots"
 
+  # The two counts are complements around the size, and they MOVE with the
+  # writing - which is what a pair of constants could not do. write() reserves
+  # the slots, so what has been written is readable and the free space has
+  # shrunk by the same three.
+  doAssert fifo.getSize() == 8, "the fifo reports size " & $fifo.getSize()
+  doAssert fifo.getNumReadable() == 3,
+           "after writing three, " & $fifo.getNumReadable() & " are readable"
+  doAssert fifo.getRemainingSpace() == 5,
+           "after writing three of eight, " & $fifo.getRemainingSpace() &
+           " remain"
+  doAssert fifo.getNumReadable() + fifo.getRemainingSpace() == fifo.getSize(),
+           "the readable and the remaining do not add up to the size"
+
+  # Reading gives the slots back, so the two counts swap the other way.
+  discard fifo.read(2.cint)
+  doAssert fifo.getNumReadable() == 1,
+           "after reading two of three, " & $fifo.getNumReadable() & " are readable"
+  doAssert fifo.getRemainingSpace() == 7,
+           "after reading two, " & $fifo.getRemainingSpace() & " remain"
+
 testStlContainers()
 
 # Running a Nim closure on a JUCE thread pool. addJob takes a
@@ -8034,3 +8054,101 @@ proc testPerformanceCounterRunsAndReset() =
                  "printing an empty tally invented a run"
 
 testPerformanceCounterRunsAndReset()
+
+# FileOutputStream's status and its truncate ===================================
+#
+# failedToOpen and getStatus are the two faces of the same answer, and asserting
+# BOTH ways round - a stream that opened and one that could not - is what makes
+# either falsifiable. truncate cuts the file at the CURRENT position, so the
+# position has to be moved back first; truncating where the writing already
+# ended would leave the file alone and prove nothing.
+
+proc testFileOutputStreamStatusAndTruncate() =
+    let directory = File.getSpecialLocation(
+            FileSpecialLocationType_tempDirectory)
+        .getNonexistentChildFile(makeString("june-outstream"), makeString(""))
+    doAssert directory.createDirectory().wasOk(),
+             "could not make the temp directory"
+    defer: discard directory.deleteRecursively()
+
+    let target = directory.getChildFile(makeString("stream.bin"))
+
+    block:
+        var stream = makeFileOutputStream(target)
+        doAssert not stream.failedToOpen(),
+                 "a stream on a writable path reported that it failed to open"
+        doAssert stream.getStatus().wasOk(),
+                 "the status is " & $stream.getStatus().getErrorMessage()
+
+        for byte in 0 ..< 10:
+            doAssert stream.writeByte(char(ord('a') + byte)),
+                     "writing byte " & $byte & " failed"
+        doAssert stream.getPosition() == 10,
+                 "after ten bytes the position is " & $stream.getPosition()
+
+        # Back to four, then cut: the file keeps what is before the position.
+        doAssert stream.setPosition(4), "seeking back failed"
+        doAssert stream.truncate().wasOk(), "the truncate reported failure"
+        stream.flush()
+        doAssert target.getSize() == 4'i64,
+                 "after truncating at four the file holds " & $target.getSize() &
+                 " bytes"
+
+    block:
+        # A directory is not a writable file, so this is the other answer -
+        # asserted because a failedToOpen that always said false would pass the
+        # block above on its own.
+        var refused = makeFileOutputStream(directory)
+        doAssert refused.failedToOpen(),
+                 "a stream onto a directory reported that it opened"
+        doAssert refused.getStatus().failed(),
+                 "the status of a refused stream says it was ok"
+
+testFileOutputStreamStatusAndTruncate()
+
+# DynamicObject's JSON, its clone and an unknown method =========================
+#
+# invokeMethod on a name with no method behind it answers an undefined var and
+# does NOT assert (juce_DynamicObject.cpp:73-79) - the properties lookup simply
+# has no native function in it. That is worth pinning, because it is the answer
+# a caller gets for a typo and the one an implementation might turn into a
+# crash.
+
+proc testDynamicObjectJsonCloneAndUnknownMethod() =
+    block:
+        var obj = makeDynamicObject()
+        obj.setProperty(makeIdentifier("name"), makejuce_var(makeString("june")))
+        obj.setProperty(makeIdentifier("count"), makejuce_var(3.cint))
+
+        # An unknown method: hasMethod says so, and invoking it is still safe.
+        doAssert not obj.hasMethod(makeIdentifier("missing")),
+                 "an object with no methods claims to have one"
+        var noArgs = makejuce_var(makeString("self"))
+        let answer = obj.invokeMethod(
+            makeIdentifier("missing"),
+            makejuce_varNativeFunctionArgs(noArgs, nil, 0.cint))
+        doAssert answer.isVoid(),
+                 "invoking a method that is not there answered something"
+
+        # cloneAllProperties deep-copies the values in place, so the object
+        # still answers with the same ones afterwards.
+        obj.cloneAllProperties()
+        doAssert $obj.getProperty(makeIdentifier("name")).toString() == "june",
+                 "after cloning the properties the name is " &
+                 $obj.getProperty(makeIdentifier("name")).toString()
+        doAssert $obj.getProperty(makeIdentifier("count")).toString() == "3",
+                 "after cloning the properties the count is " &
+                 $obj.getProperty(makeIdentifier("count")).toString()
+
+        # writeAsJSON puts the properties on a stream. Both are asserted, so a
+        # writer that emitted an empty object would fail rather than pass on the
+        # braces alone.
+        var written = makeMemoryOutputStream(256.uint64)
+        obj.writeAsJSON(cast[ptr OutputStream](written.addr)[],
+                        makeJSONFormatOptions())
+        let json = $written.toString()
+        doAssert json.contains("\"name\""), "the JSON has no name field: " & json
+        doAssert json.contains("june"), "the JSON has no name value: " & json
+        doAssert json.contains("\"count\""), "the JSON has no count field: " & json
+
+testDynamicObjectJsonCloneAndUnknownMethod()
