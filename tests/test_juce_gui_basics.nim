@@ -16972,3 +16972,450 @@ when defined(macosx):
         shutdownJuce_GUI()
 
     testCreateNewDocumentWindow()
+
+
+# Overrides installed from Nim, then called through the BASE pointer ==========
+#
+# Each class below has a generated june:: subclass whose overrides are
+# std::function slots. Setting a slot proves only that the setter compiled.
+# Calling the method through a pointer to the ABSTRACT BASE is what proves the
+# override occupies the base's vtable slot and that C++ dispatch reaches Nim.
+# Where a class has more than one override, each gets its own counter: one
+# counter cannot tell a correctly wired pair from a subclass that routed both
+# overrides to the same slot.
+
+proc testComponentTraverserOverrides() =
+    initialiseJuce_GUI()
+
+    block:
+        let parent = newCustomComponent()
+        let first = newCustomComponent()
+        let second = newCustomComponent()
+        let third = newCustomComponent()
+        let parentAsComponent = cast[ptr Component](parent)
+        let firstAsComponent = cast[ptr Component](first)
+        let secondAsComponent = cast[ptr Component](second)
+        let thirdAsComponent = cast[ptr Component](third)
+
+        var defaultCalls = 0
+        var nextCalls = 0
+        var previousCalls = 0
+        var defaultSaw: ptr Component = nil
+        var nextSaw: ptr Component = nil
+        var previousSaw: ptr Component = nil
+
+        let traverser = newCustomComponentTraverser()
+        traverser[].setGetDefaultComponentHandler(
+            proc(parentComponent: ptr Component): ptr Component =
+                defaultCalls += 1
+                defaultSaw = parentComponent
+                firstAsComponent)
+        traverser[].setGetNextComponentHandler(
+            proc(current: ptr Component): ptr Component =
+                nextCalls += 1
+                nextSaw = current
+                secondAsComponent)
+        traverser[].setGetPreviousComponentHandler(
+            proc(current: ptr Component): ptr Component =
+                previousCalls += 1
+                previousSaw = current
+                thirdAsComponent)
+
+        var base = cast[ptr ComponentTraverser](traverser)
+
+        let gotDefault = base[].getDefaultComponent(parentAsComponent)
+        doAssert defaultCalls == 1,
+                 "getDefaultComponent reached the override " & $defaultCalls & " times"
+        doAssert nextCalls == 0 and previousCalls == 0,
+                 "getDefaultComponent also moved next=" & $nextCalls &
+                 " previous=" & $previousCalls
+        doAssert defaultSaw == parentAsComponent,
+                 "getDefaultComponent was handed a component other than the parent"
+        doAssert gotDefault == firstAsComponent,
+                 "getDefaultComponent returned a component the override did not name"
+
+        let gotNext = base[].getNextComponent(firstAsComponent)
+        doAssert nextCalls == 1,
+                 "getNextComponent reached the override " & $nextCalls & " times"
+        doAssert defaultCalls == 1 and previousCalls == 0,
+                 "getNextComponent also moved default=" & $defaultCalls &
+                 " previous=" & $previousCalls
+        doAssert nextSaw == firstAsComponent,
+                 "getNextComponent was handed a component other than the current one"
+        doAssert gotNext == secondAsComponent,
+                 "getNextComponent returned a component the override did not name"
+
+        let gotPrevious = base[].getPreviousComponent(secondAsComponent)
+        doAssert previousCalls == 1,
+                 "getPreviousComponent reached the override " & $previousCalls & " times"
+        doAssert defaultCalls == 1 and nextCalls == 1,
+                 "getPreviousComponent also moved default=" & $defaultCalls &
+                 " next=" & $nextCalls
+        doAssert previousSaw == secondAsComponent,
+                 "getPreviousComponent was handed a component other than the current one"
+        doAssert gotPrevious == thirdAsComponent,
+                 "getPreviousComponent returned a component the override did not name"
+
+        cdelete traverser
+        cdelete third
+        cdelete second
+        cdelete first
+        cdelete parent
+
+    shutdownJuce_GUI()
+
+
+testComponentTraverserOverrides()
+
+
+proc testButtonListenerOverride() =
+    initialiseJuce_GUI()
+
+    block:
+        var button = makeTextButton(makeString("Go"))
+        let buttonAsButton = cast[ptr Button](addr button)
+
+        var clicks = 0
+        var clickedSaw: ptr Button = nil
+
+        let listener = newCustomButtonListener()
+        listener[].setButtonClickedHandler(proc(arg0: ptr Button) =
+            clicks += 1
+            clickedSaw = arg0)
+
+        var base = cast[ptr ButtonListener](listener)
+        base[].buttonClicked(buttonAsButton)
+        doAssert clicks == 1,
+                 "buttonClicked reached the override " & $clicks & " times"
+        doAssert clickedSaw == buttonAsButton,
+                 "buttonClicked was handed a button other than the one passed"
+
+        # A second call is a second delivery, not a latched first one.
+        base[].buttonClicked(buttonAsButton)
+        doAssert clicks == 2,
+                 "a second buttonClicked left the count at " & $clicks
+
+        cdelete listener
+
+    shutdownJuce_GUI()
+
+
+testButtonListenerOverride()
+
+
+proc testMenuBarModelListenerOverrides() =
+    initialiseJuce_GUI()
+
+    block:
+        let model = newCustomMenuBarModel()
+        model[].setGetMenuBarNamesHandler(proc(): StringArray = makeStringArray())
+        model[].setGetMenuForIndexHandler(proc(topLevelMenuIndex: cint,
+                                               menuName: ptr String): PopupMenu =
+            makePopupMenu())
+        model[].setMenuItemSelectedHandler(proc(menuItemID: cint,
+                                                topLevelMenuIndex: cint) = discard)
+        let modelAsModel = cast[ptr MenuBarModel](model)
+
+        var itemsChanged = 0
+        var commandsInvoked = 0
+        var itemsSaw: ptr MenuBarModel = nil
+        var commandSaw: ptr MenuBarModel = nil
+        var commandIds: seq[cint] = @[]
+
+        let listener = newCustomMenuBarModelListener()
+        listener[].setMenuBarItemsChangedHandler(proc(m: ptr MenuBarModel) =
+            itemsChanged += 1
+            itemsSaw = m)
+        listener[].setMenuCommandInvokedHandler(
+            proc(m: ptr MenuBarModel,
+                 info: ptr ApplicationCommandTargetInvocationInfo) =
+                commandsInvoked += 1
+                commandSaw = m
+                commandIds.add(info[].commandID()))
+
+        var base = cast[ptr MenuBarModelListener](listener)
+
+        base[].menuBarItemsChanged(modelAsModel)
+        doAssert itemsChanged == 1,
+                 "menuBarItemsChanged reached the override " & $itemsChanged & " times"
+        doAssert commandsInvoked == 0,
+                 "menuBarItemsChanged also moved the invoked count to " &
+                 $commandsInvoked
+        doAssert itemsSaw == modelAsModel,
+                 "menuBarItemsChanged was told about another model"
+
+        base[].menuCommandInvoked(modelAsModel,
+                                  makeApplicationCommandTargetInvocationInfo(42.cint))
+        doAssert commandsInvoked == 1,
+                 "menuCommandInvoked reached the override " & $commandsInvoked & " times"
+        doAssert itemsChanged == 1,
+                 "menuCommandInvoked also moved the items count to " & $itemsChanged
+        doAssert commandSaw == modelAsModel,
+                 "menuCommandInvoked was told about another model"
+        doAssert commandIds == @[42.cint],
+                 "menuCommandInvoked carried " & $commandIds
+
+        cdelete listener
+        cdelete model
+
+    shutdownJuce_GUI()
+
+
+testMenuBarModelListenerOverrides()
+
+
+proc testCachedComponentImageOverrides() =
+    initialiseJuce_GUI()
+
+    block:
+        var invalidateCalls = 0
+        var invalidateAllCalls = 0
+        var releaseCalls = 0
+        var sawX = 0
+        var sawY = 0
+        var sawW = 0
+        var sawH = 0
+
+        # Not handed to a Component: setCachedComponentImage adopts into a
+        # std::unique_ptr (juce_Component.cpp:829), so a component that was
+        # given this would delete it and the cdelete below would be a second
+        # delete. Calling the base directly needs no owner.
+        let cached = newCustomCachedComponentImage()
+        cached[].setInvalidateHandler(proc(area: ptr Rectangle[cint]): bool =
+            invalidateCalls += 1
+            sawX = area[].getX().int
+            sawY = area[].getY().int
+            sawW = area[].getWidth().int
+            sawH = area[].getHeight().int
+            true)
+        cached[].setInvalidateAllHandler(proc(): bool =
+            invalidateAllCalls += 1
+            false)
+        cached[].setReleaseResourcesHandler(proc() =
+            releaseCalls += 1)
+
+        var base = cast[ptr CachedComponentImage](cached)
+
+        let invalidated = base[].invalidate(
+            makeRectangle(3.cint, 5.cint, 7.cint, 11.cint))
+        doAssert invalidateCalls == 1,
+                 "invalidate reached the override " & $invalidateCalls & " times"
+        doAssert invalidateAllCalls == 0 and releaseCalls == 0,
+                 "invalidate also moved invalidateAll=" & $invalidateAllCalls &
+                 " releaseResources=" & $releaseCalls
+        doAssert (sawX, sawY, sawW, sawH) == (3, 5, 7, 11),
+                 "invalidate was handed the area " &
+                 $(sawX, sawY, sawW, sawH)
+        doAssert invalidated,
+                 "invalidate returned false where the override returned true"
+
+        # invalidateAll returns the opposite of invalidate, so a subclass that
+        # wired both names to one slot cannot pass both of these.
+        let invalidatedAll = base[].invalidateAll()
+        doAssert invalidateAllCalls == 1,
+                 "invalidateAll reached the override " & $invalidateAllCalls & " times"
+        doAssert invalidateCalls == 1 and releaseCalls == 0,
+                 "invalidateAll also moved invalidate=" & $invalidateCalls &
+                 " releaseResources=" & $releaseCalls
+        doAssert not invalidatedAll,
+                 "invalidateAll returned true where the override returned false"
+
+        base[].releaseResources()
+        doAssert releaseCalls == 1,
+                 "releaseResources reached the override " & $releaseCalls & " times"
+        doAssert invalidateCalls == 1 and invalidateAllCalls == 1,
+                 "releaseResources also moved invalidate=" & $invalidateCalls &
+                 " invalidateAll=" & $invalidateAllCalls
+
+        cdelete cached
+
+    shutdownJuce_GUI()
+
+
+testCachedComponentImageOverrides()
+
+
+proc testAccessibilityValueInterfaceOverrides() =
+    initialiseJuce_GUI()
+
+    block:
+        var currentValueCalls = 0
+        var asStringCalls = 0
+        var setAsStringCalls = 0
+        var setAsStringSaw = ""
+
+        let value = newCustomAccessibilityValueInterface()
+        value[].setGetCurrentValueHandler(proc(): cdouble =
+            currentValueCalls += 1
+            0.25)
+        value[].setGetCurrentValueAsStringHandler(proc(): String =
+            asStringCalls += 1
+            makeString("a quarter"))
+        value[].setSetValueAsStringHandler(proc(newValue: ptr String) =
+            setAsStringCalls += 1
+            setAsStringSaw = $newValue[])
+
+        var base = cast[ptr AccessibilityValueInterface](value)
+
+        let current = base[].getCurrentValue()
+        doAssert currentValueCalls == 1,
+                 "getCurrentValue reached the override " & $currentValueCalls & " times"
+        doAssert asStringCalls == 0 and setAsStringCalls == 0,
+                 "getCurrentValue also moved asString=" & $asStringCalls &
+                 " setAsString=" & $setAsStringCalls
+        doAssert current == 0.25,
+                 "getCurrentValue returned " & $current &
+                 " where the override returned 0.25"
+
+        let asText = $base[].getCurrentValueAsString()
+        doAssert asStringCalls == 1,
+                 "getCurrentValueAsString reached the override " & $asStringCalls & " times"
+        doAssert currentValueCalls == 1,
+                 "getCurrentValueAsString also moved getCurrentValue to " &
+                 $currentValueCalls
+        doAssert asText == "a quarter",
+                 "getCurrentValueAsString returned " & asText
+
+        base[].setValueAsString(makeString("three quarters"))
+        doAssert setAsStringCalls == 1,
+                 "setValueAsString reached the override " & $setAsStringCalls & " times"
+        doAssert currentValueCalls == 1 and asStringCalls == 1,
+                 "setValueAsString also moved getCurrentValue=" & $currentValueCalls &
+                 " getCurrentValueAsString=" & $asStringCalls
+        doAssert setAsStringSaw == "three quarters",
+                 "setValueAsString was handed " & setAsStringSaw
+
+        cdelete value
+
+    shutdownJuce_GUI()
+
+
+testAccessibilityValueInterfaceOverrides()
+
+
+proc testAccessibilityCellInterfaceOverrides() =
+    initialiseJuce_GUI()
+
+    block:
+        let component = newCustomComponent()
+        var wrapped = cast[ptr Component](component)
+        var tableHandler = makeAccessibilityHandler(
+            wrapped[], AccessibilityRole_table, makeAccessibilityActions(),
+            makeAccessibilityHandlerInterfaces())
+        # Captured as a pointer, not as the handler: a closure environment
+        # default-constructs what it captures, and AccessibilityHandler has no
+        # default constructor.
+        let tableHandlerPtr = addr tableHandler
+
+        var levelCalls = 0
+        var handlerCalls = 0
+
+        let cell = newCustomAccessibilityCellInterface()
+        cell[].setGetDisclosureLevelHandler(proc(): cint =
+            levelCalls += 1
+            4.cint)
+        cell[].setGetTableHandlerHandler(proc(): ptr AccessibilityHandler =
+            handlerCalls += 1
+            tableHandlerPtr)
+
+        let base = cast[ptr AccessibilityCellInterface](cell)
+
+        let level = base[].getDisclosureLevel()
+        doAssert levelCalls == 1,
+                 "getDisclosureLevel reached the override " & $levelCalls & " times"
+        doAssert handlerCalls == 0,
+                 "getDisclosureLevel also moved getTableHandler to " & $handlerCalls
+        doAssert level == 4,
+                 "getDisclosureLevel returned " & $level &
+                 " where the override returned 4"
+
+        # getTableHandler is declared to return a const AccessibilityHandler*,
+        # so the binding hands back a ConstPtr; it compares equal to the plain
+        # pointer the override returned.
+        let table = base[].getTableHandler()
+        doAssert handlerCalls == 1,
+                 "getTableHandler reached the override " & $handlerCalls & " times"
+        doAssert levelCalls == 1,
+                 "getTableHandler also moved getDisclosureLevel to " & $levelCalls
+        doAssert not table.isNil(),
+                 "getTableHandler returned null where the override returned a handler"
+        doAssert table == tableHandlerPtr,
+                 "getTableHandler returned a handler other than the one the override named"
+
+        cdelete cell
+        cdelete component
+
+    shutdownJuce_GUI()
+
+
+testAccessibilityCellInterfaceOverrides()
+
+
+proc testFocusOutlineOutlineWindowPropertiesOverrides() =
+    initialiseJuce_GUI()
+
+    block:
+        let component = newCustomComponent()
+        var wrapped = cast[ptr Component](component)
+        let componentAsComponent = cast[ptr Component](component)
+
+        var boundsCalls = 0
+        var drawCalls = 0
+        var boundsSaw: ptr Component = nil
+        var drawWidth = 0
+        var drawHeight = 0
+
+        let properties = newCustomFocusOutlineOutlineWindowProperties()
+        properties[].setGetOutlineBoundsHandler(
+            proc(focusedComponent: ptr Component): Rectangle[cint] =
+                boundsCalls += 1
+                boundsSaw = focusedComponent
+                makeRectangle(12.cint, 13.cint, 14.cint, 15.cint))
+        properties[].setDrawOutlineHandler(
+            proc(g: ptr Graphics, width: cint, height: cint) =
+                drawCalls += 1
+                drawWidth = width.int
+                drawHeight = height.int
+                g[].setColour(makeColour(0'u8, 255'u8, 0'u8, 255'u8))
+                g[].fillRect(makeRectangle(0.cint, 0.cint, 4.cint, 4.cint)))
+
+        var base = cast[ptr FocusOutlineOutlineWindowProperties](properties)
+
+        let outline = base[].getOutlineBounds(wrapped[])
+        doAssert boundsCalls == 1,
+                 "getOutlineBounds reached the override " & $boundsCalls & " times"
+        doAssert drawCalls == 0,
+                 "getOutlineBounds also moved drawOutline to " & $drawCalls
+        doAssert boundsSaw == componentAsComponent,
+                 "getOutlineBounds was handed a component other than the focused one"
+        doAssert (outline.getX(), outline.getY(),
+                  outline.getWidth(), outline.getHeight()) ==
+                 (12.cint, 13.cint, 14.cint, 15.cint),
+                 "getOutlineBounds returned " & $outline.getX() & "," &
+                 $outline.getY() & "," & $outline.getWidth() & "," &
+                 $outline.getHeight()
+
+        let image = makeImage(ImagePixelFormat_ARGB, 20.cint, 20.cint, true)
+        var graphics = makeGraphics(image)
+        base[].drawOutline(graphics, 20.cint, 18.cint)
+        doAssert drawCalls == 1,
+                 "drawOutline reached the override " & $drawCalls & " times"
+        doAssert boundsCalls == 1,
+                 "drawOutline also moved getOutlineBounds to " & $boundsCalls
+        doAssert (drawWidth, drawHeight) == (20, 18),
+                 "drawOutline was handed " & $(drawWidth, drawHeight)
+
+        # The Graphics the override was handed is the one drawing into this
+        # image, so what Nim painted is in the pixels.
+        doAssert image.getPixelAt(2.cint, 2.cint).getGreen() == 255,
+                 "the override's fill did not reach the image"
+        doAssert image.getPixelAt(10.cint, 10.cint).getGreen() == 0,
+                 "the override's fill covered more than it drew"
+
+        cdelete properties
+        cdelete component
+
+    shutdownJuce_GUI()
+
+
+testFocusOutlineOutlineWindowPropertiesOverrides()

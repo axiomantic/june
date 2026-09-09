@@ -123,6 +123,11 @@ UNREACHABLE_METHODS = {
     "ComponentDragger.dragComponent": "takes a const MouseEvent&",
     # check_handwritten_covered.py already records this one, with this reason.
     # It belongs here too, or the two tools disagree about the same field.
+    # check_handwritten_covered.py records this one too, for the same reason.
+    "DirectoryContentsDisplayComponent.directoryContentsList":
+        "DirectoryContentsDisplayComponent is a secondary base of both "
+        "FileListComponent and FileTreeComponent, and Nim carries the other "
+        "parent for each, so no bound class reaches the field",
     "ColourLayer.clip":
         "belongs to ColourLayer, which holds an EdgeTable and so has no "
         "default constructor, and nothing bound hands one out",
