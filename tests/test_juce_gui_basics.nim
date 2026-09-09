@@ -18734,3 +18734,157 @@ proc testAssortedSimpleState() =
 
 
 testAssortedSimpleState()
+
+
+# BubbleComponent::setAllowedPlacement restricts which side setPosition may
+# choose. juce_BubbleComponent.cpp:100-108 turns each disallowed side's
+# available space into -1, so a single allowed flag forces that side, and
+# lines 121-155 derive the final bounds from the winning side's arrow tip.
+proc testBubbleComponentAllowedPlacement() =
+    initialiseJuce_GUI()
+
+    block:
+        let parent = newCustomComponent()
+        parent[].setBounds(makeRectangle(0.cint, 0.cint, 400.cint, 400.cint))
+
+        let bubble = newCustomBubbleComponent()
+        bubble[].setGetContentSizeHandler(proc(width: ptr cint, height: ptr cint) =
+            width[] = 100.cint
+            height[] = 20.cint)
+        bubble[].setPaintContentHandler(proc(g: ptr Graphics, width: cint,
+                                             height: cint) = discard)
+
+        parent[].addAndMakeVisible(cast[ptr Component](bubble))
+
+        # A square target in the middle of the parent, so none of the four
+        # sides is favoured by the elongation rule at lines 110-118 and the
+        # space on all four sides is equal. Only the allowed-placement mask
+        # decides.
+        let target = makeRectangle(180.cint, 180.cint, 40.cint, 40.cint)
+        var base = cast[ptr BubbleComponent](bubble)
+
+        template placedAt(flag: BubbleComponentBubblePlacement): (cint, cint, cint, cint) =
+            base[].setAllowedPlacement(flag.cint)
+            base[].setPosition(target, 15.cint, 10.cint)
+            (base[].getX(), base[].getY(), base[].getWidth(), base[].getHeight())
+
+        # Content 100x20 inset by distanceFromTarget 15 on every side gives a
+        # 130x50 bubble in each case; only the origin moves.
+        let above = placedAt(BubbleComponentBubblePlacement_above)
+        doAssert above == (135.cint, 135.cint, 130.cint, 50.cint),
+                 "restricted to above, the bubble sits at " & $above
+
+        let below = placedAt(BubbleComponentBubblePlacement_below)
+        doAssert below == (135.cint, 215.cint, 130.cint, 50.cint),
+                 "restricted to below, the bubble sits at " & $below
+
+        let toLeft = placedAt(BubbleComponentBubblePlacement_left)
+        doAssert toLeft == (55.cint, 175.cint, 130.cint, 50.cint),
+                 "restricted to left, the bubble sits at " & $toLeft
+
+        let toRight = placedAt(BubbleComponentBubblePlacement_right)
+        doAssert toRight == (215.cint, 175.cint, 130.cint, 50.cint),
+                 "restricted to right, the bubble sits at " & $toRight
+
+        # The four restrictions really do straddle the target rather than
+        # landing in the same place by coincidence.
+        doAssert above[1] < below[1],
+                 "the above and below placements have y " & $above[1] & " and " & $below[1]
+        doAssert toLeft[0] < toRight[0],
+                 "the left and right placements have x " & $toLeft[0] & " and " & $toRight[0]
+        # The bubble is not clear of the target: the arrow tip is placed
+        # arrowLength beyond the content edge, so the outer 5 pixels of the
+        # 130-wide bubble sit over the target on either side
+        # (juce_BubbleComponent.cpp:145 and :152).
+        doAssert toLeft[0] + toLeft[2] == target.getX() + 5,
+                 "the left placement ends at " & $(toLeft[0] + toLeft[2]) &
+                 " rather than 5 past the target's left edge"
+        doAssert toRight[0] == target.getRight() - 5,
+                 "the right placement starts at " & $toRight[0] &
+                 " rather than 5 before the target's right edge"
+
+        # Allowing two sides lets setPosition pick between them again: with
+        # above and left permitted, the space comparison at line 121 prefers
+        # the vertical pair on a tie, so this matches the above-only result.
+        let bothVertical = placedAt(
+            BubbleComponentBubblePlacement(BubbleComponentBubblePlacement_above.cint or
+                                           BubbleComponentBubblePlacement_left.cint))
+        doAssert bothVertical == above,
+                 "with above and left allowed the bubble sits at " & $bothVertical
+
+        cdelete bubble
+        cdelete parent
+
+    shutdownJuce_GUI()
+
+
+testBubbleComponentAllowedPlacement()
+
+
+# AccessibilityValueInterface::AccessibleValueRange keeps the MinAndMax it was
+# built from and reports the two ends through getMinimumValue and
+# getMaximumValue (juce_AccessibilityValueInterface.h:111-127). The default
+# constructor leaves range value-initialised, so both ends read back as zero
+# and the range is invalid (:131-133).
+proc testAccessibleValueRangeBounds() =
+    initialiseJuce_GUI()
+
+    block:
+        var bounds = makeAccessibilityValueInterfaceAccessibleValueRangeMinAndMax()
+        bounds.min = -12.5
+        bounds.max = 37.25
+
+        let ranged = makeAccessibilityValueInterfaceAccessibleValueRange(bounds, 0.25)
+        let low = ranged.getMinimumValue()
+        let high = ranged.getMaximumValue()
+        doAssert low == -12.5,
+                 "the range's minimum came back as " & $low
+        doAssert high == 37.25,
+                 "the range's maximum came back as " & $high
+        doAssert high - low == 49.75,
+                 "the two ends span " & $(high - low)
+        doAssert ranged.getInterval() == 0.25,
+                 "the range's interval came back as " & $ranged.getInterval()
+        doAssert ranged.isValid(),
+                 "a range built from an explicit MinAndMax reports itself invalid"
+
+        # The bounds travel by value: editing the MinAndMax afterwards leaves
+        # the range alone, so getMinimumValue is reading the range's own copy
+        # rather than the object it was handed.
+        bounds.min = 900.0
+        bounds.max = 901.0
+        doAssert ranged.getMinimumValue() == -12.5,
+                 "after editing the source bounds the range's minimum is " &
+                 $ranged.getMinimumValue()
+        doAssert ranged.getMaximumValue() == 37.25,
+                 "after editing the source bounds the range's maximum is " &
+                 $ranged.getMaximumValue()
+
+        # A second range from the same type must answer differently, so the
+        # getters are not returning a constant.
+        var other = makeAccessibilityValueInterfaceAccessibleValueRangeMinAndMax()
+        other.min = 1.0
+        other.max = 2.0
+        let narrow = makeAccessibilityValueInterfaceAccessibleValueRange(other, 0.5)
+        doAssert narrow.getMinimumValue() == 1.0 and narrow.getMaximumValue() == 2.0,
+                 "the second range reads " & $narrow.getMinimumValue() & " to " &
+                 $narrow.getMaximumValue()
+
+    block:
+        # What a caller who builds a range with no arguments gets: the private
+        # MinAndMax member is brace-initialised, so both ends are zero rather
+        # than any sentinel, and only isValid says the range means nothing.
+        let empty = makeAccessibilityValueInterfaceAccessibleValueRange()
+        doAssert not empty.isValid(),
+                 "the default-constructed range claims to be valid"
+        doAssert empty.getMinimumValue() == 0.0,
+                 "the default range's minimum is " & $empty.getMinimumValue()
+        doAssert empty.getMaximumValue() == 0.0,
+                 "the default range's maximum is " & $empty.getMaximumValue()
+        doAssert empty.getInterval() == 0.0,
+                 "the default range's interval is " & $empty.getInterval()
+
+    shutdownJuce_GUI()
+
+
+testAccessibleValueRangeBounds()
