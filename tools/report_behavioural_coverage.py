@@ -92,6 +92,10 @@ UNREACHABLE = {
     # juce_gui_basics_subclasses.nim records among the withheld ones. So the
     # only instance a test could reach comes from an AccessibilityHandler,
     # which needs a native window handle.
+    "ComponentBuilderImageProvider":
+        "abstract, and the generator withholds its subclass because the "
+        "const var& in getImageForIdentifier has no Nim spelling, so nothing "
+        "can produce one",
     "AccessibilityTableInterface": "abstract, and no subclass is generated",
 }
 
