@@ -154,6 +154,15 @@ assert. ``ProgressBar``'s two setters look identical to those three and are
 not: they feed the paint path, so rendering the bar and comparing the pixels
 holds them.
 
+**A second overload of a name already used is never compiled.** An
+``importcpp`` proc reaches the C++ compiler only where it is CALLED, and
+``check_handwritten_covered.py`` matches by NAME, so adding an overload to a
+name a test already calls satisfies the gate while the new overload is never
+built. ``newLocalisedStrings`` was added with a ``String`` and a ``File``
+spelling and only the first had a call site; the second had never been
+compiled. Give every overload its own call site, and do not read a green gate
+as evidence that one exists.
+
 **``doAssert cond, msg`` evaluates ``msg`` only when ``cond`` fails.** A call
 placed inside the message string is therefore not made on the passing path. A
 counter asserted against a number that includes such a call is wrong in the
