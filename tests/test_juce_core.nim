@@ -7942,3 +7942,95 @@ proc testTemporaryFileBothExits() =
                  $target.loadFileAsString()
 
 testTemporaryFileBothExits()
+
+# MemoryOutputStream's block and its UTF-8 writer ==============================
+#
+# appendUTF8Char writes a CODEPOINT, not a byte, so a character outside ASCII
+# grows the stream by more than one - which is the whole difference between it
+# and writeByte, and what an implementation that truncated would fail.
+# getMemoryBlock hands back what has been written so far, and preallocate is
+# capacity rather than content: the size must not move when it is called.
+
+proc testMemoryOutputStreamBlockAndUtf8() =
+    block:
+        var stream = makeMemoryOutputStream(256.uint64)
+        doAssert stream.getDataSize() == 0'u64,
+                 "a fresh stream already holds " & $stream.getDataSize() & " bytes"
+
+        # Reserving capacity is not writing: the size stays where it was.
+        stream.preallocate(1024.uint64)
+        doAssert stream.getDataSize() == 0'u64,
+                 "preallocate wrote " & $stream.getDataSize() & " bytes"
+
+        doAssert stream.appendUTF8Char(WChar(ord('A'))),
+                 "appending an ASCII character failed"
+        doAssert stream.getDataSize() == 1'u64,
+                 "an ASCII character took " & $stream.getDataSize() & " bytes"
+
+        # U+00E9 is two bytes in UTF-8, so this is where a byte-at-a-time
+        # implementation would part company with the real one.
+        doAssert stream.appendUTF8Char(WChar(0x00E9)),
+                 "appending a non-ASCII character failed"
+        doAssert stream.getDataSize() == 3'u64,
+                 "after a two-byte character the stream holds " &
+                 $stream.getDataSize() & " bytes"
+
+        # The block is what was written, not the capacity that was reserved.
+        let block1 = stream.getMemoryBlock()
+        doAssert block1.getSize() == 3'u64,
+                 "the block holds " & $block1.getSize() & " bytes"
+
+testMemoryOutputStreamBlockAndUtf8()
+
+# PerformanceCounter's run count and its reset =================================
+#
+# stop() returns false while numRuns is below runsPerPrint and true on the run
+# that reaches it, where it prints and - through printStatistics ->
+# getStatisticsAndReset - CLEARS the tally (juce_PerformanceCounter.cpp:114-141).
+# That is the whole contract, and it is only visible across several runs: a
+# single start/stop pair would look the same whatever the counter did with it.
+
+proc testPerformanceCounterRunsAndReset() =
+    let directory = File.getSpecialLocation(
+            FileSpecialLocationType_tempDirectory)
+        .getNonexistentChildFile(makeString("june-counter"), makeString(""))
+    doAssert directory.createDirectory().wasOk(),
+             "could not make the temp directory"
+    defer: discard directory.deleteRecursively()
+
+    block:
+        # Two runs per printout, so the first stop is below the threshold and
+        # the second reaches it.
+        var counter = makePerformanceCounter(
+            makeString("june"), 2.cint, directory.getChildFile(makeString("counter.txt")))
+
+        counter.start()
+        doAssert not counter.stop(),
+                 "the first run printed, before the run count was reached"
+
+        let afterOne = counter.getStatisticsAndReset()
+        doAssert afterOne.numRuns == 1,
+                 "one start/stop pair counted " & $afterOne.numRuns & " runs"
+        doAssert afterOne.totalSeconds >= 0.0,
+                 "the run took " & $afterOne.totalSeconds & " seconds"
+
+        # getStatisticsAndReset cleared the tally, so the NEXT read starts over -
+        # which is what separates it from a plain getter.
+        doAssert counter.getStatisticsAndReset().numRuns == 0,
+                 "reading the statistics did not reset them"
+
+        # Two more runs now reach the threshold, so the second stop prints.
+        counter.start()
+        doAssert not counter.stop(), "the run after a reset printed too early"
+        counter.start()
+        doAssert counter.stop(), "the run that reached the threshold did not print"
+        doAssert counter.getStatisticsAndReset().numRuns == 0,
+                 "printing did not reset the tally"
+
+        # printStatistics on an empty tally is the same path without a run
+        # behind it, and must not throw or count anything.
+        counter.printStatistics()
+        doAssert counter.getStatisticsAndReset().numRuns == 0,
+                 "printing an empty tally invented a run"
+
+testPerformanceCounterRunsAndReset()
