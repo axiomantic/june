@@ -5046,3 +5046,63 @@ proc testImageBackupExtensionOverrides() =
         cdelete extensions
 
 testImageBackupExtensionOverrides()
+
+# TextLayout built by hand, without a font =====================================
+#
+# addLine and recalculateSize are checkable without laying any text out at all:
+# a Line carries its own origin, ascent and descent, so a layout made of hand
+# built lines has an arithmetic size. That keeps this test off the font metrics,
+# which differ between the two platforms the suite runs on.
+
+proc testTextLayoutAddLineAndSize() =
+    block:
+        var layout = makeTextLayout()
+        doAssert layout.getNumLines() == 0,
+                 "a fresh layout holds " & $layout.getNumLines() & " lines"
+
+        # One line whose ink runs from y = 38 to y = 53, as the Line bounds test
+        # above establishes for these fields.
+        # The no-argument constructor and the field setters, not the six
+        # argument one: cnew splices a constructor's arguments with no separator
+        # between the first and the rest (june_common.nim), so it can only build
+        # a one-argument construction.
+        let first = cnew(makeTextLayoutLine())
+        first[].lineOrigin = makePoint(10.0'f32, 50.0'f32)
+        first[].ascent = 12.0'f32
+        first[].descent = 3.0'f32
+        layout.addLine(makeUniquePtr[TextLayoutLine](first))
+        doAssert layout.getNumLines() == 1,
+                 "after adding a line the layout holds " & $layout.getNumLines()
+
+        # The size is not recomputed until it is asked for: that is what
+        # recalculateSize is FOR, and asserting the height before and after is
+        # what shows the call did something rather than the layout having been
+        # right all along.
+        let before = layout.getHeight()
+        layout.recalculateSize()
+        let after = layout.getHeight()
+        doAssert after == 15.0'f32,
+                 "after recalculating, the layout is " & $after &
+                 " tall, not the ascent plus descent"
+        doAssert after >= before,
+                 "recalculating shrank the layout from " & $before & " to " & $after
+
+        # A second line does NOT make the layout taller, which is the
+        # surprising part and the reason it is written down. recalculateSize
+        # unions the line bounds (juce_TextLayout.cpp:525-539), and a line with
+        # no RUNS has zero width - so its rectangle is empty, and
+        # Rectangle::getUnion answers the other operand when one is empty. The
+        # count still rises, so addLine plainly did its work.
+        let second = cnew(makeTextLayoutLine())
+        second[].lineOrigin = makePoint(10.0'f32, 90.0'f32)
+        second[].ascent = 12.0'f32
+        second[].descent = 3.0'f32
+        layout.addLine(makeUniquePtr[TextLayoutLine](second))
+        layout.recalculateSize()
+        doAssert layout.getNumLines() == 2,
+                 "the layout holds " & $layout.getNumLines() & " lines"
+        doAssert layout.getHeight() == after,
+                 "a second run-less line changed the height from " & $after &
+                 " to " & $layout.getHeight()
+
+testTextLayoutAddLineAndSize()
