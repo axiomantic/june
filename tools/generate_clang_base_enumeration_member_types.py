@@ -1,3 +1,5 @@
+import os
+
 import clang.cindex
 
 if __name__ == "__main__":
@@ -20,5 +22,19 @@ class {klazz.__name__}(Enum):
       buf += f"\n  {kind.name} = clang.cindex.{klazz.__name__}.from_id({kind.value})"
     buf += "\n"
     
-  with open("clang_base_enumerations.py", "w+") as f:
+  # Regenerating this file is NOT a no-op, and it is not meant to be run
+  # casually. Its contents follow the libclang the machine has installed:
+  # running it here added six CursorKind members and thirty OpenMP directives
+  # that the checked-in file does not carry, because this machine's libclang is
+  # newer than the one that produced it. Committing that would pin the repo to
+  # one libclang version, which is why this file is not in CI's
+  # regenerate-and-compare step alongside the bindings.
+  #
+  # Beside this script, not in whatever directory it was run from. The
+  # relative path wrote a stray copy into the caller's working directory and
+  # left the real file - the one inspect_juce.py imports - untouched, so the
+  # regeneration looked like it had happened and had not.
+  output = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "clang_base_enumerations.py")
+  with open(output, "w+") as f:
       f.write(buf)
