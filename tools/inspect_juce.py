@@ -122,15 +122,30 @@ nim_field_setter_def = """{comment}proc `{raw_name}=`*(this: var {class_name}, v
 move_only_wrappers = ("UniquePtr[", "OptionalScopedPointer[")
 
 
-def ctor_moves(nim_type, cpp_type):
-    """A constructor parameter Nim must hand over rather than copy.
+def moves_argument(nim_type, cpp_type, clang_type=None, move_only=()):
+    """A parameter Nim must hand over rather than copy.
 
-    Two shapes need it: a C++ `T&&`, which will not bind to the lvalue Nim
-    passes, and a move-only wrapper taken by value, whose copy constructor is
-    deleted. The method path applies both halves of this rule already.
+    Three shapes need it. A C++ `T&&` will not bind to the lvalue Nim passes.
+    A move-only WRAPPER taken by value has a deleted copy constructor. And a
+    user-defined type taken by value can be move-only because of what it
+    HOLDS, which no spelling reveals - that is what `move_only` carries,
+    derived from the tree by move_only_type_names.
+
+    The first two are decided from the spelling because they hold whatever the
+    translation unit says. The third cannot be: it is a fact about members.
     """
-    return (nim_type.startswith(move_only_wrappers)
-            or cpp_type.rstrip().endswith("&&"))
+    if nim_type.startswith(move_only_wrappers) or cpp_type.rstrip().endswith("&&"):
+        return True
+    if clang_type is None or not move_only:
+        return False
+    # A reference or pointer parameter is not copied, so its type being
+    # move-only says nothing. Only a BY-VALUE parameter has to be handed over.
+    if clang_type.kind in (TypeKind.LVALUEREFERENCE, TypeKind.RVALUEREFERENCE,
+                           TypeKind.POINTER):
+        return False
+    declaration = clang_type.get_declaration()
+    return (declaration is not None and declaration.spelling
+            and declaration.spelling in move_only)
 
 # A static method has no receiver, so it takes the class as a typedesc and is
 # called as Time.currentTimeMillis(). That is the spelling juce_events_lifting
@@ -1274,6 +1289,69 @@ def non_copyable_type_names(translation_unit):
 
 #==================================================================================================
 
+def move_only_type_names(translation_unit):
+    """Names of types a caller must hand over rather than copy.
+
+    Distinct from non_copyable_type_names, which asks whether a FIELD of this
+    type can be read and written. The two answers differ for the wrappers: a
+    UniquePtr field has a working setter, because the setter moves, while a
+    by-value getter of one cannot work. Folding the wrappers into that set
+    withdraws eighteen field accessors that do work - measured, by doing it.
+
+    Seeded with the standard wrappers by their C++ name, because libclang does
+    not report std::unique_ptr's deleted copy constructor: it is absent from
+    the set non_copyable_type_names builds, while OwnedArray and
+    AccessibilityHandler are both present. What this function adds is the
+    PROPAGATION - a class holding one of them is move-only too, and no
+    spelling reveals that.
+
+    juce::AccessibilityHandler::Interfaces is the case that matters. It holds
+    four std::unique_ptr members and declares no copy constructor, so its copy
+    constructor is implicitly deleted, and AccessibilityHandler takes one BY
+    VALUE. Every call to that constructor failed until this was derived.
+    """
+    found = {"unique_ptr", "OptionalScopedPointer"}
+    holds = {}
+
+    def visit(cursor):
+        for child in cursor.get_children():
+            if (child.kind in (CursorKind.CLASS_DECL, CursorKind.STRUCT_DECL,
+                               CursorKind.CLASS_TEMPLATE)
+                    and child.is_definition() and child.spelling):
+                declares_copy = any(
+                    x.kind == CursorKind.CONSTRUCTOR and x.is_copy_constructor()
+                    and x.access_specifier == AccessSpecifier.PUBLIC
+                    and not x.is_deleted_method()
+                    for x in child.get_children())
+                if not declares_copy:
+                    held = set()
+                    for member in child.get_children():
+                        if member.kind in (CursorKind.FIELD_DECL,
+                                           CursorKind.CXX_BASE_SPECIFIER):
+                            declaration = member.type.get_declaration()
+                            if declaration is not None and declaration.spelling:
+                                held.add(declaration.spelling)
+                    holds.setdefault(child.spelling, set()).update(held)
+            visit(child)
+
+    visit(translation_unit.cursor)
+
+    # To a fixed point, because a class can hold a class that holds the
+    # wrapper, to any depth. It terminates: each round either adds a name or
+    # changes nothing, and the names are finite.
+    while True:
+        grew = False
+        for name, held in holds.items():
+            if name not in found and held & found:
+                found.add(name)
+                grew = True
+        if not grew:
+            break
+
+    return found
+
+#==================================================================================================
+
 def type_is_copyable(field_type, non_copyable):
     """Whether a value of this type can be copied.
 
@@ -1652,6 +1730,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
 
     by_value_classes = passed_by_value_to_a_virtual(index, juce_args, base_path)
     non_copyable = non_copyable_type_names(translation_unit)
+    move_only = move_only_type_names(translation_unit)
 
 
     # A module header pulls in the modules it depends on, so the translation
@@ -2132,6 +2211,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
         for ctor in public_constructors:
             ctor_args, ctor_types, ctor_comment = [], [], ""
             ctor_cpp_types = []
+            ctor_clang_types = []
             for count, arg in enumerate(ctor.get_arguments()):
                 argument_type = remap_type(arg.type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap, unambiguous_nested_remap)
                 default_value = default_value_for(
@@ -2141,6 +2221,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
                     f"{argument_type}{default_value}")
                 ctor_types.append(argument_type)
                 ctor_cpp_types.append(arg.type.get_canonical().spelling)
+                ctor_clang_types.append(arg.type)
             ctor_args = drop_unreachable_defaults(ctor_args)
 
             # A constructor has no receiver, so `@` is the whole argument list
@@ -2152,8 +2233,9 @@ def run_main(juce_module_name, juce_class_name_to_export):
             if ctor_cpp_types and ctor.spelling in scalar_overloaded_ctors:
                 ctor_juce_args = ", ".join(f"({cpp_type}) #"
                                            for cpp_type in ctor_cpp_types)
-            elif any(ctor_moves(nim_type, cpp_type) for nim_type, cpp_type
-                     in zip(ctor_types, ctor_cpp_types)):
+            elif any(moves_argument(nim_type, cpp_type, clang_type, move_only)
+                     for nim_type, cpp_type, clang_type
+                     in zip(ctor_types, ctor_cpp_types, ctor_clang_types)):
                 # An rvalue reference will not bind to an lvalue, and Nim hands
                 # over an lvalue, so a parameter declared `T&&` needs the move
                 # here for the same reason the method path gives it one. Without
@@ -2165,9 +2247,11 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 # whose two unique_ptr parameters made every call site a copy of
                 # a deleted copy constructor.
                 ctor_juce_args = ", ".join(
-                    "std::move(#)" if ctor_moves(nim_type, cpp_type) else "#"
-                    for nim_type, cpp_type
-                    in zip(ctor_types, ctor_cpp_types))
+                    "std::move(#)"
+                    if moves_argument(nim_type, cpp_type, clang_type, move_only)
+                    else "#"
+                    for nim_type, cpp_type, clang_type
+                    in zip(ctor_types, ctor_cpp_types, ctor_clang_types))
             else:
                 ctor_juce_args = "@"
 
@@ -2443,6 +2527,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
                     else [f"this: {'' if is_const_method else 'var '}{class_name}"])
             argument_types = []
             cpp_argument_types = []
+            clang_argument_types = []
             for count, arg in enumerate(m.get_arguments()):
                 spelling = remap_argument_name(arg.spelling, count)
                 argument_type = remap_type(arg.type, remap_inner_classes, enum_remap, class_juce_map, global_nested_remap, unambiguous_nested_remap)
@@ -2454,6 +2539,7 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 # Canonical, because the cast has to name a type that resolves
                 # where the generated call sits - juce_wchar does not.
                 cpp_argument_types.append(arg.type.get_canonical().spelling)
+                clang_argument_types.append(arg.type)
 
             reason = deleted_reason
             return_type = ""
@@ -2590,13 +2676,14 @@ def run_main(juce_module_name, juce_class_name_to_export):
             # with one also declare a const-reference overload, which the two
             # collapse onto, so only ConsoleApplication::invokeCatchingFailures
             # was uncallable.
-            def moves(nim_type, cpp_type):
-                return (nim_type.startswith(move_only_wrappers)
-                        or cpp_type.rstrip().endswith("&&"))
+            def moves(nim_type, cpp_type, clang_type):
+                return moves_argument(nim_type, cpp_type, clang_type, move_only)
 
             moves_an_argument = has_arguments and any(
-                moves(nim_type, cpp_type) for nim_type, cpp_type
-                in zip(argument_types, cpp_argument_types))
+                moves(nim_type, cpp_type, clang_type)
+                for nim_type, cpp_type, clang_type
+                in zip(argument_types, cpp_argument_types,
+                       clang_argument_types))
             per_argument = (has_arguments
                             and (m.spelling in scalar_overloaded
                                  or moves_an_argument))
@@ -2626,9 +2713,10 @@ def run_main(juce_module_name, juce_class_name_to_export):
                 # such wrapper, so a static method with a move-only parameter
                 # would need one; none exists in JUCE.
                 emitted_args = ", ".join(
-                    "std::move(#)" if moves(nim_type, cpp_type) else "#"
-                    for nim_type, cpp_type
-                    in zip(argument_types, cpp_argument_types))
+                    "std::move(#)" if moves(nim_type, cpp_type, clang_type) else "#"
+                    for nim_type, cpp_type, clang_type
+                    in zip(argument_types, cpp_argument_types,
+                           clang_argument_types))
             else:
                 emitted_args = "@" if has_arguments else ""
 

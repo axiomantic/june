@@ -19647,3 +19647,56 @@ proc testDialogWindowEscapeKeyPressed() =
 
 
 testDialogWindowEscapeKeyPressed()
+
+
+# AccessibilityHandler wraps a Component and answers for it. The generator
+# could not emit a callable constructor until it learned that Interfaces is
+# move-only because of the four unique_ptrs it holds, so nothing here had ever
+# been reached: the class was recorded as needing a native window handle, and
+# it does not.
+proc testAccessibilityHandlerOverAPlainComponent() =
+    initialiseJuce_GUI()
+
+    block:
+        var host = makeComponent(makeString("accessibility host"))
+        host.setBounds(makeRectangle(0.cint, 0.cint, 120.cint, 40.cint))
+
+        var handler = makeAccessibilityHandler(
+            host, AccessibilityRole_button, makeAccessibilityActions(),
+            makeAccessibilityHandlerInterfaces())
+
+        doAssert handler.getRole().toCint() == AccessibilityRole_button.toCint(),
+                 "the handler reports role " & $handler.getRole().toCint() &
+                 " rather than the button it was built with"
+        doAssert handler.getComponent().getName() == makeString("accessibility host"),
+                 "the handler answers for a different component than it wraps"
+
+        # Not on the desktop and with no parent, so there is nothing to be
+        # visible within. This is the state the constructor leaves it in.
+        doAssert not handler.isVisibleWithinParent(),
+                 "a handler over an unparented component called itself visible"
+
+        # No child handler has been registered, so the point that is the
+        # centre of the component belongs to no child.
+        doAssert handler.getChildAt(makePoint(60.cint, 20.cint)) == nil,
+                 "a handler with no children found one at its centre"
+
+        # Both are void and neither needs a peer: what is asserted is that they
+        # return, and that the handler still answers correctly afterwards.
+        handler.grabFocus()
+        handler.notifyAccessibilityEvent(AccessibilityEvent_titleChanged)
+        doAssert handler.getRole().toCint() == AccessibilityRole_button.toCint(),
+                 "the handler stopped reporting its role after being notified"
+
+        # The native implementation is whatever this platform builds. Its VALUE
+        # belongs to the platform, so nothing here holds it to one - only to
+        # being the same handle on two reads, which would fail if the accessor
+        # built a fresh one or returned rubbish.
+        doAssert handler.getNativeImplementation() ==
+                 handler.getNativeImplementation(),
+                 "two reads of the native implementation gave different handles"
+
+    shutdownJuce_GUI()
+
+
+testAccessibilityHandlerOverAPlainComponent()

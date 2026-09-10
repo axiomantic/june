@@ -84,14 +84,14 @@ UNREACHABLE = {
     "ComponentPeer": "needs a native window",
     "MouseInputSource": "needs a real input device",
     "MouseEvent": "needs a real input device",
-    "AccessibilityHandler": "needs a native window handle",
     "JUCEApplicationBase": "the process's single application instance",
     "JUCEApplicationImpl": "the process's single application instance",
     # Abstract, and no subclass is generated for it: getRowSpan returns an
     # Optional<Span> the generator cannot spell, which
     # juce_gui_basics_subclasses.nim records among the withheld ones. So the
     # only instance a test could reach comes from an AccessibilityHandler,
-    # which needs a native window handle.
+    # which can now be built - but that does not help, because the subclass
+    # this would need is still withheld.
     "ComponentBuilderImageProvider":
         "abstract, and the generator withholds its subclass because the "
         "const var& in getImageForIdentifier has no Nim spelling, so nothing "
