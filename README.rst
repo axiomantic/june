@@ -72,6 +72,36 @@ Or build and run the example application (tweak nim.cfg if needed).
   nimble app_debug
   # nimble app_release
 
+-------------------------
+Checking Linux From A Mac
+-------------------------
+
+Two defects in one month passed on macOS and failed only on Ubuntu CI.
+Verifying on macOS alone cannot catch that class, because the platform
+difference IS the defect. ``tools/linux-check`` runs the same suite in a Linux
+container, against the working tree as it is on disk, before a push.
+
+.. code-block:: bash
+
+  tools/linux-check/run.sh                        # the whole suite
+  tools/linux-check/run.sh tests/test_juce_graphics.nim
+  tools/linux-check/run.sh --help                 # what it proves and what it does not
+
+It reproduces the Linux half of the ``test`` job: the same apt packages, the
+same ``xvfb-run`` invocation -- without a virtual X server the tests that
+construct a window SEGFAULT rather than fail -- the grep for JUCE leak reports,
+and ``tools/check_juce_assertions.py`` over the logs. The last two matter
+because JUCE's leak detector and ``jassert`` both PRINT and let the process exit
+0, so a check that trusted exit status would report green over either.
+
+The repository is bind-mounted read-only; nothing is copied into the image and
+nothing is written into the working tree. The JUCE static library is the
+expensive part and lives in a Docker volume, so it is built once.
+
+It does NOT replace CI. It builds for the host's architecture -- arm64 on an
+Apple Silicon Mac, where CI's ``ubuntu-latest`` is x86_64 -- and it pins one Nim
+version where CI's matrix tests two. ``run.sh --help`` lists every limitation.
+
 -------------------
 Example Application
 -------------------
