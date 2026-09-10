@@ -2567,7 +2567,7 @@ proc isSelected*(this: AccessibleState): bool {.header: juce_gui_basics, importc
 proc isAccessibleOffscreen*(this: AccessibleState): bool {.header: juce_gui_basics, importcpp: "#.isAccessibleOffscreen()".}
 proc `==`*(this: AccessibleState, other: AccessibleState): bool {.error: "juce::AccessibleState defines no operator==; compare a property instead".}
 
-proc makeAccessibilityHandler*(componentToWrap: var Component, accessibilityRole: AccessibilityRole, actions: AccessibilityActions, interfaces: AccessibilityHandlerInterfaces): AccessibilityHandler {.header: juce_gui_basics, importcpp: "juce::AccessibilityHandler(@)".}
+proc makeAccessibilityHandler*(componentToWrap: var Component, accessibilityRole: AccessibilityRole, actions: AccessibilityActions, interfaces: AccessibilityHandlerInterfaces): AccessibilityHandler {.header: juce_gui_basics, importcpp: "juce::AccessibilityHandler(#, #, #, std::move(#))".}
 proc getComponent*(this: AccessibilityHandler): ConstPtr[Component] {.header: juce_gui_basics, importcpp: "(&(#.getComponent()))".}
 proc getComponent*(this: var AccessibilityHandler): var Component {.header: juce_gui_basics, importcpp: "#.getComponent()".}
 proc getRole*(this: AccessibilityHandler): AccessibilityRole {.header: juce_gui_basics, importcpp: "#.getRole()".}
